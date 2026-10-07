@@ -64,27 +64,31 @@ namespace FutebolDeBotao.Editor
                 return;
             }
 
-            var options = AssetDatabase.LoadAssetAtPath<MatchOptions>(OptionsPath);
-            if (options == null)
+            if (AssetDatabase.LoadAssetAtPath<MatchOptions>(OptionsPath) == null)
                 Debug.LogWarning($"[Futebol de Botão] Não achei {OptionsPath}; o Menu vai usar as opções padrão do código.");
 
-            var titleRoute = LoadOrCreateRoute("Abertura", TitleScenePath);
-            var menuRoute = LoadOrCreateRoute("Menu", MenuScenePath);
-            var resultRoute = LoadOrCreateRoute("Resultado", ResultScenePath);
+            // Trocar de cena descarrega assets que nenhuma cena usa, e a referência C# vira nula.
+            // Por isso cada cena recarrega os assets pelo caminho (Load<T>) logo antes de usar.
+            string appPath = AssetDatabase.GetAssetPath(app);
+            string matchRoutePath = AssetDatabase.GetAssetPath(matchRoute);
+            string activityPath = AssetDatabase.GetAssetPath(activity);
+            string titleRoutePath = CreateRoute("Abertura", TitleScenePath);
+            string menuRoutePath = CreateRoute("Menu", MenuScenePath);
+            string resultRoutePath = CreateRoute("Resultado", ResultScenePath);
             AssetDatabase.SaveAssets();
 
-            BuildTitleScene(menuRoute);
-            BuildMenuScene(matchRoute, options);
-            BuildResultScene(matchRoute, menuRoute);
-            if (!SetupMatchScene(activity, resultRoute, menuRoute)) return;
+            BuildTitleScene(menuRoutePath);
+            BuildMenuScene(matchRoutePath);
+            BuildResultScene(matchRoutePath, menuRoutePath);
+            if (!SetupMatchScene(activityPath, resultRoutePath, menuRoutePath)) return;
 
-            SetStartupRoute(app, titleRoute);
+            SetStartupRoute(Load<GameApplicationAsset>(appPath), Load<RouteAsset>(titleRoutePath));
             UpdateBuildScenes();
             AssetDatabase.SaveAssets();
 
             EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Single);
             Debug.Log("[Futebol de Botão] Telas criadas: Abertura → Menu → Partida → Resultado. " +
-                      $"Startup Route = '{titleRoute.name}'. Cenas adicionadas na lista da build.");
+                      "Startup Route = 'Abertura'. Cenas adicionadas na lista da build.");
         }
 
         // ---- Assets do framework ----
@@ -112,7 +116,15 @@ namespace FutebolDeBotao.Editor
             return null;
         }
 
-        private static RouteAsset LoadOrCreateRoute(string routeName, string scenePath)
+        private static T Load<T>(string path) where T : UnityEngine.Object
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset == null) Debug.LogError($"[Futebol de Botão] Não consegui carregar {path}.");
+            return asset;
+        }
+
+        /// <summary>Cria (ou atualiza) a Route e devolve o caminho do asset.</summary>
+        private static string CreateRoute(string routeName, string scenePath)
         {
             string path = $"{AppFolder}/{routeName}.asset";
             var route = AssetDatabase.LoadAssetAtPath<RouteAsset>(path);
@@ -130,7 +142,7 @@ namespace FutebolDeBotao.Editor
             so.FindProperty("primarySceneName").stringValue = Path.GetFileNameWithoutExtension(scenePath);
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(route);
-            return route;
+            return path;
         }
 
         private static void SetStartupRoute(GameApplicationAsset app, RouteAsset route)
@@ -164,16 +176,22 @@ namespace FutebolDeBotao.Editor
             return trigger;
         }
 
-        private static RouteRequestTrigger AddRouteTrigger(Transform parent, string objectName, RouteAsset target, string reason) =>
-            AddTrigger<RouteRequestTrigger>(parent, objectName, so =>
+        private static RouteRequestTrigger AddRouteTrigger(Transform parent, string objectName, string routePath, string reason)
+        {
+            var target = Load<RouteAsset>(routePath);
+            var trigger = AddTrigger<RouteRequestTrigger>(parent, objectName, so =>
             {
                 so.FindProperty("targetRoute").objectReferenceValue = target;
                 so.FindProperty("reason").stringValue = reason;
             });
+            if (trigger.TargetRoute == null)
+                Debug.LogError($"[Futebol de Botão] '{objectName}' ficou sem Target Route ({routePath}).", trigger);
+            return trigger;
+        }
 
         // ---- Cenas ----
 
-        private static void BuildTitleScene(RouteAsset menuRoute)
+        private static void BuildTitleScene(string menuRoute)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var canvas = CreateCanvas("Abertura", 0);
@@ -188,9 +206,10 @@ namespace FutebolDeBotao.Editor
             EditorSceneManager.SaveScene(scene, TitleScenePath);
         }
 
-        private static void BuildMenuScene(RouteAsset matchRoute, MatchOptions options)
+        private static void BuildMenuScene(string matchRoute)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var options = AssetDatabase.LoadAssetAtPath<MatchOptions>(OptionsPath);
             var canvas = CreateCanvas("Menu", 0);
             CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
@@ -224,7 +243,7 @@ namespace FutebolDeBotao.Editor
             EditorSceneManager.SaveScene(scene, MenuScenePath);
         }
 
-        private static void BuildResultScene(RouteAsset matchRoute, RouteAsset menuRoute)
+        private static void BuildResultScene(string matchRoute, string menuRoute)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var canvas = CreateCanvas("Resultado", 0);
@@ -244,9 +263,11 @@ namespace FutebolDeBotao.Editor
             EditorSceneManager.SaveScene(scene, ResultScenePath);
         }
 
-        private static bool SetupMatchScene(ActivityAsset activity, RouteAsset resultRoute, RouteAsset menuRoute)
+        private static bool SetupMatchScene(string activityPath, string resultRoute, string menuRoute)
         {
             var scene = EditorSceneManager.OpenScene(MatchScenePath, OpenSceneMode.Single);
+            var activity = Load<ActivityAsset>(activityPath);
+            if (activity == null) return false;
 
             var systems = FindRoot(scene, MatchSystemsName);
             var match = systems != null ? systems.GetComponent<MatchController>() : null;
