@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace FutebolDeBotao
@@ -13,6 +14,16 @@ namespace FutebolDeBotao
         private Vector2 startPosition;
 
         public TeamSide Side => side;
+        /// <summary>Este botão tocou a bola desde o último <see cref="BeginShot"/>.</summary>
+        public bool TouchedBallThisShot { get; private set; }
+
+        /// <summary>
+        /// Falta: este botão, depois de um peteleco, acertou um adversário antes da bola.
+        /// (quem fez, quem sofreu, posição de quem sofreu no contato)
+        /// </summary>
+        public event Action<Disc, Disc, Vector2> Fouled;
+
+        private bool shooting;
         public Rigidbody2D Body => body;
         public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
 
@@ -49,9 +60,32 @@ namespace FutebolDeBotao
             body.AddForce(impulse, ForceMode2D.Impulse);
         }
 
+        /// <summary>Chamado quando este botão recebe o peteleco: passa a vigiar falta e toque na bola.</summary>
+        public void BeginShot()
+        {
+            shooting = true;
+            TouchedBallThisShot = false;
+        }
+
+        public void EndShot() => shooting = false;
+
         private void OnCollisionEnter2D(Collision2D collision)
         {
             WallElastic.OnEnter(body, collision, tuning);
+            if (!shooting) return;
+
+            if (collision.collider.GetComponent<Ball>() != null)
+            {
+                TouchedBallThisShot = true;
+                return;
+            }
+
+            var other = collision.collider.GetComponent<Disc>();
+            if (!TouchedBallThisShot && other != null && other.Side != side)
+            {
+                shooting = false;
+                Fouled?.Invoke(this, other, other.Body.position);
+            }
         }
 
         public void ResetToStart() => PlaceAt(startPosition);

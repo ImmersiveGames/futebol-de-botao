@@ -14,6 +14,8 @@ namespace FutebolDeBotao
         public Rigidbody2D Body => body;
         public bool TouchedWallSinceShot { get; private set; }
         public Disc LastDiscTouch { get; private set; }
+        /// <summary>Time do último botão ou goleiro que tocou a bola desde o último peteleco. Nulo: ninguém tocou.</summary>
+        public TeamSide? LastTouchSide { get; private set; }
         public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
 
         private void Awake()
@@ -47,6 +49,7 @@ namespace FutebolDeBotao
         {
             TouchedWallSinceShot = false;
             LastDiscTouch = null;
+            LastTouchSide = null;
         }
 
         public void ResetTo(Vector2 position)
@@ -70,7 +73,15 @@ namespace FutebolDeBotao
             }
 
             var disc = collision.collider.GetComponent<Disc>();
-            if (disc != null) LastDiscTouch = disc;
+            if (disc != null)
+            {
+                LastDiscTouch = disc;
+                LastTouchSide = disc.Side;
+                return;
+            }
+
+            var keeper = collision.collider.GetComponent<Goalkeeper>();
+            if (keeper != null) LastTouchSide = keeper.Side;
         }
     }
 }

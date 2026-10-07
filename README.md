@@ -34,11 +34,12 @@ Para testar o goleiro sozinho, marque `Track Ball For Testing` no componente `Go
 
 ### Como a partida funciona hoje (fase 2, em andamento)
 
-- O Azul dá a saída. Cada vez tem até N toques (`Touches Per Turn`) e 15 s de mira por toque; acabou, passa a vez.
+- Saída de um time sorteado. Cada vez tem até N toques (`Touches Per Turn`), 15 s de mira por toque, e o mesmo botão não joga dois toques seguidos. O relógio só corre durante a mira.
+- **Perda da vez:** errar a bola, último toque na bola ser do adversário (goleiro conta), acabar os toques, ou tempo de mira esgotado.
+- **Falta:** se o botão do peteleco acertar um adversário antes da bola, a jogada para. O botão atingido volta para onde levou a falta, a bola fica à frente dele virada para o gol que ele ataca, e só ele pode bater. No campo de ataque já entra no "Vai chutar".
 - **Vai chutar** (botão no HUD ou tecla `V`): aparece quando o time da vez tem botão no campo de ataque. O defensor tem 5 s para arrastar o goleiro para os lados (ou setas/A-D; `Espaço` encerra antes). Depois o atacante chuta com um botão do campo de ataque, e a vez passa ao adversário.
 - Gol: quem levou dá a saída. Gol anulado (bola tocou a parede): bola na frente do gol de quem defendeu, e a vez é dele.
 - Fim do tempo: a jogada em andamento termina e aparece o resultado com "Jogar de novo".
-- Ainda não implementado: falta, perda da vez por errar a bola ou por último toque no adversário, e o mesmo botão não repetir.
 
 ## Fase 1: ligar no Immersive Framework
 
