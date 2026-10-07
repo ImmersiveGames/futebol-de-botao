@@ -166,9 +166,7 @@ namespace FutebolDeBotao
             aim.Cancel();
             aim.InputEnabled = state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick;
             aim.BallKickMode = state == MatchState.GoalKick;
-            aim.CanSelect = state == MatchState.ShotAim
-                ? disc => CanUse(disc) && InAttackHalf(disc)
-                : CanUse;
+            aim.CanSelect = CanUse;
 
             keeperControl.ControlledSide = state == MatchState.ShotCall ? Opponent(Turn) : null;
 
@@ -189,10 +187,9 @@ namespace FutebolDeBotao
             get
             {
                 // Sem goleiro não existe "Vai chutar": entrou, é gol.
-                if (State != MatchState.Aim || aim.IsAiming || !options.hasGoalkeeper) return false;
-                foreach (var disc in discs[Turn])
-                    if (CanUse(disc) && InAttackHalf(disc)) return true;
-                return false;
+                // Disponível quando a bola está no campo de ataque do time da vez; qualquer botão pode chutar.
+                return State == MatchState.Aim && !aim.IsAiming && options.hasGoalkeeper &&
+                       InAttackHalf(ball.Body.position, Turn);
             }
         }
 
@@ -221,11 +218,9 @@ namespace FutebolDeBotao
 
         private void EnterShotAim()
         {
-            message = $"{TeamName(Turn)}: chute com um botão do campo de ataque.";
+            message = $"{TeamName(Turn)}: chute!";
             Enter(MatchState.ShotAim);
         }
-
-        private bool InAttackHalf(Disc disc) => InAttackHalf(disc.Body.position, disc.Side);
 
         private static bool InAttackHalf(Vector2 position, TeamSide side) =>
             side == TeamSide.Bottom ? position.y > 0f : position.y < 0f;
@@ -326,7 +321,7 @@ namespace FutebolDeBotao
             freeKickDisc = victim;
 
             message = $"Falta do {TeamName(offender.Side)}! Tiro livre para o {TeamName(victim.Side)}.";
-            if (InAttackHalf(victimPosition, victim.Side)) BeginShotCall();
+            if (InAttackHalf(spot, victim.Side)) BeginShotCall();
             else Enter(MatchState.Aim);
         }
 

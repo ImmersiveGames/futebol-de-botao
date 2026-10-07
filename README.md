@@ -40,7 +40,7 @@ Para testar o goleiro sozinho, marque `Track Ball For Testing` no componente `Go
 - **Pênalti:** falta do defensor dentro da própria área (4 x 1,6 na frente do gol). Bola na marca (meio do campo do defensor), quem sofreu bate, os outros atacantes voltam para a formação e os defensores vão para a linha do meio-campo. Primeiro o atacante posiciona o batedor num arco atrás da bola (arrastar ou setas, 5 s, `Espaço` encerra), depois o defensor ajusta o goleiro, depois sai o chute.
 - **Gol só vale com "Vai chutar"** (e, por padrão, sem tocar a parede antes; opção `Goal After Wall Is Valid`). Gol contra (último toque de um botão do defensor) vale sempre. Sem goleiro não existe "Vai chutar": entrou, é gol.
 - **Tiro de meta:** gol anulado vira tiro de meta. A bola fica na frente do goleiro e o jogador arrasta direto na bola (força em `PhysicsTuning > Ball Kick Max Impulse`). Conta 1 toque.
-- **Vai chutar** (botão no HUD ou tecla `V`): aparece quando o time da vez tem botão no campo de ataque. O defensor tem 5 s para arrastar o goleiro para os lados (ou setas/A-D; `Espaço` encerra antes). Depois o atacante chuta com um botão do campo de ataque, e a vez passa ao adversário.
+- **Vai chutar** (botão no HUD ou tecla `V`): aparece quando a bola está no campo de ataque do time da vez. O defensor tem 5 s para arrastar o goleiro para os lados (ou setas/A-D; `Espaço` encerra antes). Depois o atacante chuta com qualquer botão, e a vez passa ao adversário.
 - Gol: quem levou dá a saída.
 - Fim do tempo: a jogada em andamento termina e aparece o resultado com "Jogar de novo".
 
