@@ -3,6 +3,8 @@ namespace FutebolDeBotao
     /// <summary>Estados da partida.</summary>
     public enum MatchState
     {
+        /// <summary>Esperando a Activity da partida entrar (ou depois que ela saiu).</summary>
+        Waiting,
         /// <summary>Saída: tudo volta para a formação e a bola vai ao centro.</summary>
         KickOff,
         /// <summary>Mira: o time da vez escolhe um botão e arrasta.</summary>

@@ -1,4 +1,8 @@
 using System.Collections.Generic;
+using Immersive.Framework.ActivityFlow;
+using Immersive.Framework.ActivityRestart;
+using Immersive.Framework.GameFlow;
+using Immersive.Framework.Pause;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,11 +11,23 @@ namespace FutebolDeBotao
     /// <summary>
     /// Máquina de estados da partida: Saída, Mira, Vai chutar, Tiro de meta, Movimento, Gol e Fim.
     /// Cuida da vez, dos toques, da perda da vez, da falta e do pênalti, do relógio, do placar e do HUD provisório.
+    /// A partida começa quando a Activity "Jogo" do framework entra (e recomeça a cada Activity Restart).
     /// </summary>
-    public sealed class MatchController : MonoBehaviour
+    public sealed class MatchController : MonoBehaviour, IActivityContentLifecycleReceiver
     {
+        [Tooltip("Opções padrão. O Menu edita uma cópia delas (MatchSession); este asset não muda.")]
         [SerializeField] private MatchOptions options;
         [SerializeField] private float goalPauseSeconds = 1.5f;
+        [Tooltip("Tempo mostrando o placar final antes de ir para a tela de Resultado.")]
+        [SerializeField] private float endPauseSeconds = 2.5f;
+
+        [Header("Framework")]
+        [Tooltip("Route Request Trigger que leva à tela de Resultado no fim do tempo.")]
+        [SerializeField] private RouteRequestTrigger resultRoute;
+        [Tooltip("Activity Restart Trigger usado pela tecla R e pelo Reiniciar da pausa.")]
+        [SerializeField] private ActivityRestartTrigger restartTrigger;
+        [Tooltip("Pause Request Trigger usado pelo botão Pausa e pela tecla Esc.")]
+        [SerializeField] private PauseRequestTrigger pauseTrigger;
         [Tooltip("Multiplica o tamanho do HUD provisório.")]
         [SerializeField, Range(0.5f, 2f)] private float hudScale = 1f;
 
@@ -37,6 +53,8 @@ namespace FutebolDeBotao
         private GoalTrigger pendingGoal;
         private bool pendingGoalValid;
         private string message = string.Empty;
+        private bool initialized;
+        private bool resultRequested;
 
         public MatchState State { get; private set; }
         public TeamSide Turn { get; private set; }
@@ -46,9 +64,39 @@ namespace FutebolDeBotao
 
         public void Configure(MatchOptions matchOptions) => options = matchOptions;
 
-        private void Start()
+        public void ConfigureFramework(RouteRequestTrigger result, ActivityRestartTrigger restart, PauseRequestTrigger pause)
         {
-            if (options == null) options = MatchOptions.CreateDefault();
+            resultRoute = result;
+            restartTrigger = restart;
+            pauseTrigger = pause;
+        }
+
+        private static bool Paused => Time.timeScale <= 0f;
+
+        private void Start() => EnsureInitialized();
+
+        // ---- Activity do framework ----
+
+        public void OnActivityContentEntered(ActivityContentLifecycleContext context)
+        {
+            EnsureInitialized();
+            StartMatch();
+        }
+
+        public void OnActivityContentExited(ActivityContentLifecycleContext context)
+        {
+            if (!initialized) return;
+            EndShot();
+            monitor.StopWatching();
+            monitor.FreezeAll();
+            message = string.Empty;
+            Enter(MatchState.Waiting);
+        }
+
+        private void EnsureInitialized()
+        {
+            if (initialized) return;
+            initialized = true;
 
             ball = FindAnyObjectByType<Ball>();
             keepers = FindObjectsByType<Goalkeeper>();
@@ -59,7 +107,6 @@ namespace FutebolDeBotao
             if (keeperControl == null) keeperControl = gameObject.AddComponent<GoalkeeperControl>();
 
             CollectDiscs();
-            ApplyOptions();
 
             aim.Flicked += OnFlicked;
             aim.BallKicked += OnBallKicked;
@@ -68,7 +115,7 @@ namespace FutebolDeBotao
             foreach (var list in discs.Values)
                 foreach (var disc in list) disc.Fouled += OnFouled;
 
-            StartMatch();
+            Enter(MatchState.Waiting);
         }
 
         private void CollectDiscs()
@@ -91,6 +138,9 @@ namespace FutebolDeBotao
 
         public void StartMatch()
         {
+            options = MatchSession.Options(options);
+            ApplyOptions();
+            resultRequested = false;
             score[0] = score[1] = 0;
             clock = options.DurationSeconds;
             // Início: time sorteado dá a saída.
@@ -117,9 +167,13 @@ namespace FutebolDeBotao
 
         private void Update()
         {
-            if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && pauseTrigger != null) pauseTrigger.TogglePause();
+            if (Paused) return;
+
+            if (keyboard != null && keyboard.rKey.wasPressedThisFrame && restartTrigger != null)
             {
-                StartMatch();
+                restartTrigger.RequestActivityRestart();
                 return;
             }
 
@@ -153,6 +207,10 @@ namespace FutebolDeBotao
                 case MatchState.Goal:
                     if (stateTimer <= 0f) ResolveGoal();
                     break;
+
+                case MatchState.End:
+                    if (stateTimer <= 0f && !resultRequested) RequestResult();
+                    break;
             }
         }
 
@@ -176,6 +234,7 @@ namespace FutebolDeBotao
                 MatchState.ShotCall => options.shotCallSeconds,
                 MatchState.PenaltySetup => options.penaltySetupSeconds,
                 MatchState.Goal => goalPauseSeconds,
+                MatchState.End => endPauseSeconds,
                 _ => 0f
             };
         }
@@ -521,7 +580,15 @@ namespace FutebolDeBotao
             int bottom = Score(TeamSide.Bottom);
             int top = Score(TeamSide.Top);
             message = bottom == top ? "Fim de jogo: empate!" : $"Fim de jogo: vitória do {TeamName(bottom > top ? TeamSide.Bottom : TeamSide.Top)}!";
+            MatchSession.LastResult = new MatchResult(bottom, top);
             Enter(MatchState.End);
+        }
+
+        private void RequestResult()
+        {
+            resultRequested = true;
+            if (resultRoute != null) resultRoute.RequestRoute();
+            else Debug.LogWarning("[Futebol de Botão] MatchController sem Route Request Trigger do Resultado. Rode \"Futebol de Botão/Criar telas\".");
         }
 
         // ---- Utilidades ----
@@ -535,12 +602,15 @@ namespace FutebolDeBotao
 
         private static TeamSide Opponent(TeamSide side) => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
 
-        private static string TeamName(TeamSide side) => side == TeamSide.Bottom ? "Azul" : "Vermelho";
+        public static string TeamName(TeamSide side) => side == TeamSide.Bottom ? "Azul" : "Vermelho";
 
         // ---- HUD provisório ----
 
         private void OnGUI()
         {
+            // Na pausa só a tela de pausa do framework aparece; esperando a Activity, nada.
+            if (Paused || State == MatchState.Waiting) return;
+
             // O HUD é desenhado numa tela de referência de 720 px de altura e escalado para a tela real.
             float scale = Mathf.Max(0.5f, Mathf.Min(Screen.height / ReferenceHeight, Screen.width / ReferenceMinWidth)) * hudScale;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
@@ -572,7 +642,7 @@ namespace FutebolDeBotao
             if (!string.IsNullOrEmpty(message))
                 lines.Add((message, small, small.CalcHeight(new GUIContent(message), width)));
 
-            bool showButton = CanCallShot || State is MatchState.ShotCall or MatchState.PenaltySetup or MatchState.End;
+            bool showButton = CanCallShot || State is MatchState.ShotCall or MatchState.PenaltySetup;
             float panelHeight = 16f;
             foreach (var line in lines) panelHeight += line.height;
             if (showButton) panelHeight += 52f;
@@ -593,7 +663,10 @@ namespace FutebolDeBotao
             if (CanCallShot && GUI.Button(buttonRect, "Vai chutar (V)", button)) TryCallShot();
             if (State == MatchState.ShotCall && GUI.Button(buttonRect, "Pronto (Espaço)", button)) EnterShotAim();
             if (State == MatchState.PenaltySetup && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishPenaltySetup();
-            if (State == MatchState.End && GUI.Button(buttonRect, "Jogar de novo", button)) StartMatch();
+
+            float screenWidth = Screen.width / scale;
+            if (pauseTrigger != null && GUI.Button(new Rect(screenWidth - 150f, 16f, 130f, 42f), "Pausa (Esc)", button))
+                pauseTrigger.RequestPause();
 
             GUI.Label(new Rect(x, screenHeight - 34f, 600f, 28f), "R: reiniciar  |  Botão direito: cancelar mira", small);
             GUI.matrix = Matrix4x4.identity;

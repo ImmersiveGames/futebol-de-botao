@@ -26,7 +26,7 @@ namespace FutebolDeBotao
 
         private void Update()
         {
-            if (ControlledSide == null || keepers == null) return;
+            if (ControlledSide == null || keepers == null || Time.timeScale <= 0f) return;
 
             var keeper = FindKeeper(ControlledSide.Value);
             if (keeper == null) return;

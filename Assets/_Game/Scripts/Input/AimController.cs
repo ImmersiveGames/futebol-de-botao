@@ -59,7 +59,8 @@ namespace FutebolDeBotao
             worldCamera = WorldCamera.Resolve(worldCamera);
             if (pointer == null || worldCamera == null || tuning == null) return;
 
-            if (!InputEnabled)
+            // Na pausa do framework (Time.timeScale = 0) a mira não lê o ponteiro.
+            if (!InputEnabled || Time.timeScale <= 0f)
             {
                 Cancel();
                 return;
