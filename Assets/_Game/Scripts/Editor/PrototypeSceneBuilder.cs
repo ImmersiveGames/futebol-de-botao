@@ -122,18 +122,18 @@ namespace FutebolDeBotao.Editor
                 // Rede do gol: laterais e fundo.
                 float netY = sign * (halfH + GoalDepth * 0.5f);
                 float netX = GoalWidth * 0.5f + t * 0.25f;
-                CreateWall($"Rede {end} esquerda", parent, square, material, new Vector2(-netX, netY), new Vector2(t * 0.5f, GoalDepth));
-                CreateWall($"Rede {end} direita", parent, square, material, new Vector2(netX, netY), new Vector2(t * 0.5f, GoalDepth));
-                CreateWall($"Rede {end} fundo", parent, square, material, new Vector2(0f, sign * (halfH + GoalDepth + t * 0.25f)), new Vector2(GoalWidth + t, t * 0.5f));
+                CreateWall($"Rede {end} esquerda", parent, square, material, new Vector2(-netX, netY), new Vector2(t * 0.5f, GoalDepth), false);
+                CreateWall($"Rede {end} direita", parent, square, material, new Vector2(netX, netY), new Vector2(t * 0.5f, GoalDepth), false);
+                CreateWall($"Rede {end} fundo", parent, square, material, new Vector2(0f, sign * (halfH + GoalDepth + t * 0.25f)), new Vector2(GoalWidth + t, t * 0.5f), false);
             }
         }
 
-        private static void CreateWall(string wallName, Transform parent, Sprite square, PhysicsMaterial2D material, Vector2 position, Vector2 size)
+        private static void CreateWall(string wallName, Transform parent, Sprite square, PhysicsMaterial2D material, Vector2 position, Vector2 size, bool pushesBack = true)
         {
             var go = CreateSprite(wallName, parent, square, WallColor, position, size, -5);
             var box = go.AddComponent<BoxCollider2D>();
             box.sharedMaterial = material;
-            go.AddComponent<Wall>();
+            go.AddComponent<Wall>().Configure(pushesBack);
         }
 
         private static GameObject CreateBall(Transform parent, Sprite circle, PhysicsTuning tuning)
@@ -191,6 +191,7 @@ namespace FutebolDeBotao.Editor
             var go = new GameObject("Partida (sistemas)");
             var monitor = go.AddComponent<MotionMonitor>();
             monitor.Configure(tuning);
+            go.AddComponent<WallRepulsion>().Configure(tuning);
             go.AddComponent<AimController>().Configure(tuning, monitor);
             go.AddComponent<AimVisuals>();
             go.AddComponent<PrototypeMatch>();

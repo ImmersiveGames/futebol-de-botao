@@ -54,11 +54,6 @@ namespace FutebolDeBotao
             WallElastic.OnEnter(body, collision, tuning);
         }
 
-        private void OnCollisionStay2D(Collision2D collision)
-        {
-            WallElastic.OnStay(body, collision, tuning);
-        }
-
         public void ResetToStart()
         {
             body.linearVelocity = Vector2.zero;

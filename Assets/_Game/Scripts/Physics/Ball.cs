@@ -72,10 +72,5 @@ namespace FutebolDeBotao
             var disc = collision.collider.GetComponent<Disc>();
             if (disc != null) LastDiscTouch = disc;
         }
-
-        private void OnCollisionStay2D(Collision2D collision)
-        {
-            WallElastic.OnStay(body, collision, tuning);
-        }
     }
 }

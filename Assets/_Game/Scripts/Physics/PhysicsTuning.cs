@@ -34,8 +34,10 @@ namespace FutebolDeBotao
         [Min(0f)] public float wallBounceBoost = 1.25f;
         [Tooltip("Velocidade mínima de saída depois de bater na parede.")]
         [Min(0f)] public float wallMinBounceSpeed = 1.2f;
-        [Tooltip("Velocidade com que a parede empurra de volta quem fica encostado nela.")]
-        [Min(0f)] public float wallPushSpeed = 0.8f;
+        [Tooltip("Distância da parede (em unidades do mundo) em que bola e botões começam a ser empurrados para o campo.")]
+        [Min(0f)] public float wallPushDistance = 0.15f;
+        [Tooltip("Aceleração do empurrão quando o corpo está encostado na parede. 0 desliga.")]
+        [Min(0f)] public float wallPushAcceleration = 4f;
 
         [Header("Fim do movimento")]
         [Tooltip("Velocidade abaixo da qual um corpo é considerado parado.")]
