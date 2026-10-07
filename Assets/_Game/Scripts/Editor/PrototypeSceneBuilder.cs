@@ -76,6 +76,10 @@ namespace FutebolDeBotao.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
             Debug.Log($"[Futebol de Botão] Cena de teste criada em {ScenePath}. Ajuste a física em {DataFolder}/PhysicsTuning.asset.");
+
+            // O Immersive Framework pode trocar a cena inicial do Play por uma cena de bootstrap vazia (sem câmera).
+            if (EditorSceneManager.playModeStartScene != null)
+                Debug.LogWarning($"[Futebol de Botão] O Play vai iniciar em '{AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)}', não nesta cena. Para testar a fase 1, use Project Settings > Immersive Framework > Editor Play Mode Startup = Current Scene Only.");
         }
 
         private static void CreateCamera()

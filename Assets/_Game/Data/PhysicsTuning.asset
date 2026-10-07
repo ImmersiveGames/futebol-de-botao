@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e0eb753075f6644ba68a24d8e49baf2, type: 3}
+  m_Name: PhysicsTuning
+  m_EditorClassIdentifier: FutebolDeBotao::FutebolDeBotao.PhysicsTuning
+  discMass: 1
+  discLinearDamping: 2.2
+  discAngularDamping: 4
+  ballMass: 0.35
+  ballLinearDamping: 1.4
+  bounciness: 0.75
+  friction: 0.1
+  maxImpulse: 9
+  maxDragDistance: 2.5
+  minDragDistance: 0.15
+  restSpeed: 0.05
+  restTime: 0.3
+  goalkeeperSpeed: 3
