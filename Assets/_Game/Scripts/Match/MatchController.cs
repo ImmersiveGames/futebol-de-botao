@@ -33,6 +33,7 @@ namespace FutebolDeBotao
         private bool shotWasCalled;
         private Disc shooter;
         private Disc freeKickDisc;
+        private Camera worldCamera;
         private GoalTrigger pendingGoal;
         private bool pendingGoalValid;
         private string message = string.Empty;
@@ -143,6 +144,12 @@ namespace FutebolDeBotao
                     if (stateTimer <= 0f || ready) EnterShotAim();
                     break;
 
+                case MatchState.PenaltySetup:
+                    UpdatePenaltySetup();
+                    bool placed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
+                    if (stateTimer <= 0f || placed) FinishPenaltySetup();
+                    break;
+
                 case MatchState.Goal:
                     if (stateTimer <= 0f) ResolveGoal();
                     break;
@@ -169,6 +176,7 @@ namespace FutebolDeBotao
             {
                 MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick => options.aimTimeSeconds,
                 MatchState.ShotCall => options.shotCallSeconds,
+                MatchState.PenaltySetup => options.penaltySetupSeconds,
                 MatchState.Goal => goalPauseSeconds,
                 _ => 0f
             };
@@ -336,7 +344,6 @@ namespace FutebolDeBotao
             var attackers = discs[attacking];
             for (int i = 0; i < attackers.Count && i < options.discsPerTeam; i++)
                 if (attackers[i] != victim) attackers[i].PlaceAt(options.FormationPosition(i, attacking));
-            victim.PlaceAt(spot - attack * (victim.Radius + ball.Radius + 0.05f));
 
             var defenders = new List<Disc>();
             foreach (var disc in discs[defending])
@@ -348,10 +355,67 @@ namespace FutebolDeBotao
             foreach (var keeper in keepers)
                 if (keeper.isActiveAndEnabled) keeper.ResetToCenter();
             ball.ResetTo(spot);
+            PlacePenaltyDisc(victim, 0f);
 
             GiveTurn(attacking);
             freeKickDisc = victim;
-            message = $"Pênalti para o {TeamName(attacking)}!";
+            message = $"Pênalti para o {TeamName(attacking)}! Posicione o botão.";
+            Enter(MatchState.PenaltySetup);
+        }
+
+        /// <summary>
+        /// Coloca o batedor no arco atrás da bola. <paramref name="angleDegrees"/> = 0 é bem atrás, sinal = lado.
+        /// </summary>
+        private void PlacePenaltyDisc(Disc disc, float angleDegrees)
+        {
+            float angle = Mathf.Clamp(angleDegrees, -options.penaltyArcDegrees, options.penaltyArcDegrees);
+            Vector2 back = -FieldLayout.AttackDirection(disc.Side);
+            Vector2 dir = (Vector2)(Quaternion.Euler(0f, 0f, angle) * back);
+            float distance = disc.Radius + ball.Radius + options.penaltyDiscGap;
+            disc.PlaceAt(ball.Body.position + dir * distance);
+        }
+
+        private float PenaltyAngle(Disc disc)
+        {
+            Vector2 back = -FieldLayout.AttackDirection(disc.Side);
+            return Vector2.SignedAngle(back, disc.Body.position - ball.Body.position);
+        }
+
+        /// <summary>Arrastar (ou setas/A-D) gira o batedor em volta da bola, dentro do arco.</summary>
+        private void UpdatePenaltySetup()
+        {
+            var disc = freeKickDisc;
+            if (disc == null) return;
+
+            var pointer = Pointer.current;
+            if (pointer != null && pointer.press.isPressed)
+            {
+                worldCamera = WorldCamera.Resolve(worldCamera);
+                if (worldCamera != null)
+                {
+                    Vector2 world = WorldCamera.ScreenToWorld(worldCamera, pointer.position.ReadValue());
+                    Vector2 offset = world - ball.Body.position;
+                    // Toques longe da bola (no HUD, por exemplo) não mexem o botão.
+                    if (offset.sqrMagnitude > 0.01f && offset.magnitude < 3f)
+                    {
+                        Vector2 back = -FieldLayout.AttackDirection(disc.Side);
+                        PlacePenaltyDisc(disc, Vector2.SignedAngle(back, offset));
+                        return;
+                    }
+                }
+            }
+
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+            float axis = 0f;
+            if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed) axis -= 1f;
+            if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed) axis += 1f;
+            if (axis != 0f) PlacePenaltyDisc(disc, PenaltyAngle(disc) + axis * 90f * Time.deltaTime);
+        }
+
+        private void FinishPenaltySetup()
+        {
+            message = $"Pênalti: {TeamName(Turn)} vai chutar!";
             BeginShotCall();
         }
 
@@ -491,12 +555,14 @@ namespace FutebolDeBotao
                 lines.Add(($"Vez: {TeamName(Turn)}  |  toques: {touchesLeft}", small, 28f));
             if (State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick)
                 lines.Add(($"Mira: {Mathf.CeilToInt(Mathf.Max(0f, stateTimer))} s", small, 28f));
+            if (State == MatchState.PenaltySetup)
+                lines.Add(($"Batedor: arraste em volta da bola ({Mathf.CeilToInt(stateTimer)} s)", small, 56f));
             if (State == MatchState.ShotCall)
                 lines.Add(($"Goleiro: arraste para os lados ({Mathf.CeilToInt(stateTimer)} s)", small, 56f));
             if (!string.IsNullOrEmpty(message))
                 lines.Add((message, small, small.CalcHeight(new GUIContent(message), width)));
 
-            bool showButton = CanCallShot || State == MatchState.ShotCall || State == MatchState.End;
+            bool showButton = CanCallShot || State is MatchState.ShotCall or MatchState.PenaltySetup or MatchState.End;
             float panelHeight = 16f;
             foreach (var line in lines) panelHeight += line.height;
             if (showButton) panelHeight += 52f;
@@ -516,6 +582,7 @@ namespace FutebolDeBotao
             var buttonRect = new Rect(x, y + 6f, 220f, 42f);
             if (CanCallShot && GUI.Button(buttonRect, "Vai chutar (V)", button)) TryCallShot();
             if (State == MatchState.ShotCall && GUI.Button(buttonRect, "Pronto (Espaço)", button)) EnterShotAim();
+            if (State == MatchState.PenaltySetup && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishPenaltySetup();
             if (State == MatchState.End && GUI.Button(buttonRect, "Jogar de novo", button)) StartMatch();
 
             GUI.Label(new Rect(x, screenHeight - 34f, 600f, 28f), "R: reiniciar  |  Botão direito: cancelar mira", small);
