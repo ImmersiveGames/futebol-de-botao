@@ -56,15 +56,20 @@ namespace FutebolDeBotao
             stillTimer = anyMoving ? 0f : stillTimer + Time.fixedDeltaTime;
             if (stillTimer < restTime) return;
 
+            FreezeAll();
+            watching = false;
+            Settled?.Invoke();
+        }
+
+        /// <summary>Zera a velocidade de tudo na mesa.</summary>
+        public void FreezeAll()
+        {
             foreach (var body in bodies)
             {
                 if (body == null) continue;
                 body.linearVelocity = Vector2.zero;
                 body.angularVelocity = 0f;
             }
-
-            watching = false;
-            Settled?.Invoke();
         }
     }
 }

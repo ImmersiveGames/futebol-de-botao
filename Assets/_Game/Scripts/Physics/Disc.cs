@@ -54,12 +54,14 @@ namespace FutebolDeBotao
             WallElastic.OnEnter(body, collision, tuning);
         }
 
-        public void ResetToStart()
+        public void ResetToStart() => PlaceAt(startPosition);
+
+        public void PlaceAt(Vector2 position)
         {
             body.linearVelocity = Vector2.zero;
             body.angularVelocity = 0f;
-            body.position = startPosition;
-            transform.position = startPosition;
+            body.position = position;
+            transform.position = position;
         }
     }
 }

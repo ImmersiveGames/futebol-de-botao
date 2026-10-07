@@ -6,14 +6,15 @@ using UnityEngine;
 namespace FutebolDeBotao.Editor
 {
     /// <summary>
-    /// Monta a cena de teste da fase 1: campo vertical, paredes, gols, goleiros, 5 botões por time e a bola.
-    /// Menu: Futebol de Botão > Criar cena de teste (fase 1).
+    /// Monta a cena da partida: campo vertical, paredes, gols, goleiros, 5 botões por time, a bola e os sistemas.
+    /// Menu: Futebol de Botão > Criar cena da partida.
     /// </summary>
     public static class PrototypeSceneBuilder
     {
         private const string DataFolder = "Assets/_Game/Data";
         private const string ArtFolder = "Assets/_Game/Art/Placeholder";
         private const string ScenePath = "Assets/_Game/Scenes/Partida.unity";
+        private const string FrameworkCameraPrefab = "Assets/_Game/App/Camera/CameraOutputMesa.prefab";
 
         // Medidas do campo em unidades do mundo (campo sempre vertical).
         private const float FieldWidth = 7f;
@@ -32,17 +33,7 @@ namespace FutebolDeBotao.Editor
         private static readonly Color BlueTeam = new(0.2f, 0.45f, 0.95f);
         private static readonly Color RedTeam = new(0.9f, 0.2f, 0.2f);
 
-        // Formação de 5 botões para o time de baixo; o de cima é espelhado.
-        private static readonly Vector2[] Formation =
-        {
-            new(0f, -0.9f),
-            new(-1.6f, -1.8f),
-            new(1.6f, -1.8f),
-            new(-1.0f, -3.4f),
-            new(1.0f, -3.4f)
-        };
-
-        [MenuItem("Futebol de Botão/Criar cena de teste (fase 1)")]
+        [MenuItem("Futebol de Botão/Criar cena da partida")]
         public static void Build()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -55,10 +46,13 @@ namespace FutebolDeBotao.Editor
             var square = LoadOrCreateSprite("Square", false);
             var circle = LoadOrCreateSprite("Circle", true);
             var wallMaterial = LoadOrCreateWallMaterial(tuning);
+            var options = LoadOrCreateOptions();
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateCamera();
+            // Com o framework ligado, a câmera vem do Camera Output prefab; a Main Camera só serve sem ele.
+            bool usesFrameworkCamera = AssetDatabase.LoadAssetAtPath<GameObject>(FrameworkCameraPrefab) != null;
+            if (!usesFrameworkCamera) CreateCamera();
             var table = new GameObject("Mesa").transform;
             CreateFieldVisuals(table, square, circle);
             CreateWalls(table, square, wallMaterial);
@@ -71,14 +65,14 @@ namespace FutebolDeBotao.Editor
             CreateTeam(table, circle, TeamSide.Bottom, BlueTeam, tuning);
             CreateTeam(table, circle, TeamSide.Top, RedTeam, tuning);
 
-            CreateSystems(tuning);
+            CreateSystems(tuning, options);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
-            Debug.Log($"[Futebol de Botão] Cena de teste criada em {ScenePath}. Ajuste a física em {DataFolder}/PhysicsTuning.asset.");
+            Debug.Log($"[Futebol de Botão] Cena criada em {ScenePath}. Física em {DataFolder}/PhysicsTuning.asset, regras em {DataFolder}/OpcoesDaPartida.asset.");
 
             // O Immersive Framework pode trocar a cena inicial do Play por uma cena de bootstrap vazia (sem câmera).
-            if (EditorSceneManager.playModeStartScene != null)
+            if (!usesFrameworkCamera && EditorSceneManager.playModeStartScene != null)
                 Debug.LogWarning($"[Futebol de Botão] O Play vai iniciar em '{AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene)}', não nesta cena. Para testar a fase 1, use Project Settings > Immersive Framework > Editor Play Mode Startup = Current Scene Only.");
         }
 
@@ -170,11 +164,10 @@ namespace FutebolDeBotao.Editor
         {
             var team = new GameObject(side == TeamSide.Bottom ? "Time Azul" : "Time Vermelho").transform;
             team.SetParent(parent, false);
-            float mirror = side == TeamSide.Bottom ? 1f : -1f;
 
-            for (int i = 0; i < Formation.Length; i++)
+            for (int i = 0; i < Formation.Default5.Length; i++)
             {
-                var position = new Vector2(Formation[i].x, Formation[i].y * mirror);
+                var position = Formation.Mirror(Formation.Default5[i], side);
                 var go = CreateSprite($"Botão {i + 1}", team, circle, color, position, Vector2.one * DiscDiameter, 10);
                 AddBody(go);
                 go.AddComponent<CircleCollider2D>().radius = 0.5f;
@@ -186,7 +179,7 @@ namespace FutebolDeBotao.Editor
             }
         }
 
-        private static void CreateSystems(PhysicsTuning tuning)
+        private static void CreateSystems(PhysicsTuning tuning, MatchOptions options)
         {
             var go = new GameObject("Partida (sistemas)");
             var monitor = go.AddComponent<MotionMonitor>();
@@ -194,7 +187,8 @@ namespace FutebolDeBotao.Editor
             go.AddComponent<WallRepulsion>().Configure(tuning);
             go.AddComponent<AimController>().Configure(tuning, monitor);
             go.AddComponent<AimVisuals>();
-            go.AddComponent<PrototypeMatch>();
+            go.AddComponent<GoalkeeperControl>();
+            go.AddComponent<MatchController>().Configure(options);
         }
 
         private static Rigidbody2D AddBody(GameObject go)
@@ -228,6 +222,37 @@ namespace FutebolDeBotao.Editor
             AssetDatabase.CreateAsset(tuning, path);
             AssetDatabase.SaveAssets();
             return tuning;
+        }
+
+        private static MatchOptions LoadOrCreateOptions()
+        {
+            var formation5 = LoadOrCreateFormation("Formacao 5", Formation.Default5);
+            var formation3 = LoadOrCreateFormation("Formacao 3", Formation.Default3);
+
+            string path = $"{DataFolder}/OpcoesDaPartida.asset";
+            var options = AssetDatabase.LoadAssetAtPath<MatchOptions>(path);
+            if (options == null)
+            {
+                options = ScriptableObject.CreateInstance<MatchOptions>();
+                AssetDatabase.CreateAsset(options, path);
+            }
+
+            if (options.formation5 == null) options.formation5 = formation5;
+            if (options.formation3 == null) options.formation3 = formation3;
+            EditorUtility.SetDirty(options);
+            AssetDatabase.SaveAssets();
+            return options;
+        }
+
+        private static Formation LoadOrCreateFormation(string assetName, Vector2[] positions)
+        {
+            string path = $"{DataFolder}/{assetName}.asset";
+            var formation = AssetDatabase.LoadAssetAtPath<Formation>(path);
+            if (formation != null) return formation;
+            formation = ScriptableObject.CreateInstance<Formation>();
+            formation.SetPositions(positions);
+            AssetDatabase.CreateAsset(formation, path);
+            return formation;
         }
 
         private static PhysicsMaterial2D LoadOrCreateWallMaterial(PhysicsTuning tuning)

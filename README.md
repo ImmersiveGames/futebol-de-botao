@@ -20,16 +20,25 @@ Jogo de futebol de botão em Unity, 2D em pixel art, com campo vertical. Primeir
 
 > Foundation e Logging vêm direto do GitHub (fixados por commit no `manifest.json`), porque as versões 0.2.2 e 0.2.3 que o framework 1.1.0-preview.3 pede ainda não têm release publicada. Quando forem publicadas no OpenUPM, dá para voltar para versões normais.
 
-## Fase 1: cena de teste
+## Cena da partida
 
-1. Menu **Futebol de Botão > Criar cena de teste (fase 1)**. Isso cria:
-   - `Assets/_Game/Scenes/Partida.unity` com campo vertical, paredes, gols, goleiros, 5 botões azuis, 5 vermelhos e a bola;
+1. Menu **Futebol de Botão > Criar cena da partida**. Isso cria:
+   - `Assets/_Game/Scenes/Partida.unity` com campo vertical, paredes, gols, goleiros, 5 botões azuis, 5 vermelhos e a bola (sem Main Camera quando a câmera do framework já existe);
    - `Assets/_Game/Data/PhysicsTuning.asset` com todos os números de física;
+   - `Assets/_Game/Data/OpcoesDaPartida.asset` (tempo, toques, 5 ou 3 botões, goleiro, gol após parede, ajuda de mira) e as formações `Formacao 5` e `Formacao 3`;
    - sprites placeholder em `Assets/_Game/Art/Placeholder/`.
-2. Dê Play na cena. Clique num botão, arraste para trás e solte. Botão direito cancela, `R` reinicia.
+2. Dê Play. Clique num botão do time da vez, arraste para trás e solte. Botão direito cancela, `R` reinicia a partida.
 3. Ajuste o `PhysicsTuning` até o peteleco ficar gostoso. Os valores de botão e bola são aplicados quando a cena começa.
 
 Para testar o goleiro sozinho, marque `Track Ball For Testing` no componente `Goalkeeper`.
+
+### Como a partida funciona hoje (fase 2, em andamento)
+
+- O Azul dá a saída. Cada vez tem até N toques (`Touches Per Turn`) e 15 s de mira por toque; acabou, passa a vez.
+- **Vai chutar** (botão no HUD ou tecla `V`): aparece quando o time da vez tem botão no campo de ataque. O defensor tem 5 s para arrastar o goleiro para os lados (ou setas/A-D; `Espaço` encerra antes). Depois o atacante chuta com um botão do campo de ataque, e a vez passa ao adversário.
+- Gol: quem levou dá a saída. Gol anulado (bola tocou a parede): bola na frente do gol de quem defendeu, e a vez é dele.
+- Fim do tempo: a jogada em andamento termina e aparece o resultado com "Jogar de novo".
+- Ainda não implementado: falta, perda da vez por errar a bola ou por último toque no adversário, e o mesmo botão não repetir.
 
 ## Fase 1: ligar no Immersive Framework
 
@@ -54,7 +63,7 @@ Assets/_Game/
   Scenes/     Partida e Persistent Content
   Scripts/
     Physics/  Disc, Ball, Goalkeeper, GoalTrigger, Wall, MotionMonitor, PhysicsTuning
-    Input/    AimController (mira por arrasto), AimVisuals (ajuda de mira)
-    Match/    PrototypeMatch (placar e gol anulado da fase 1)
-    Editor/   PrototypeSceneBuilder (monta a cena de teste)
+    Input/    AimController (mira por arrasto), AimVisuals (ajuda de mira), GoalkeeperControl
+    Match/    MatchController (máquina de estados), MatchOptions, Formation
+    Editor/   PrototypeSceneBuilder (monta a cena), Framework/FrameworkCameraBuilder (câmera)
 ```

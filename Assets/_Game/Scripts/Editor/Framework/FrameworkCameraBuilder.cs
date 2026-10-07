@@ -53,7 +53,7 @@ namespace FutebolDeBotao.Editor
 
         private static GameObject BuildPrefab(CameraOutputDefinition output, FixedCameraRigBehaviorDefinition fixedBehavior)
         {
-            var root = new GameObject("CameraOutputMesa");
+            var root = new GameObject("CameraOutputMesa") { tag = "MainCamera" };
             try
             {
                 root.transform.position = CameraPosition;

@@ -25,6 +25,11 @@ namespace FutebolDeBotao
         public float Power01 { get; private set; }
         public bool HasValidAim => IsAiming && Power01 > 0f;
 
+        /// <summary>Desligado, a mira ignora o ponteiro (fora da vez de mirar).</summary>
+        public bool InputEnabled { get; set; } = true;
+        /// <summary>Filtro de quais botões podem ser escolhidos agora (ex.: só o time da vez). Nulo libera todos.</summary>
+        public Func<Disc, bool> CanSelect { get; set; }
+
         /// <summary>Peteleco disparado: (botão, impulso).</summary>
         public event Action<Disc, Vector2> Flicked;
 
@@ -36,14 +41,20 @@ namespace FutebolDeBotao
 
         private void Start()
         {
-            if (worldCamera == null) worldCamera = Camera.main;
             ball = FindAnyObjectByType<Ball>();
         }
 
         private void Update()
         {
             var pointer = Pointer.current;
+            worldCamera = WorldCamera.Resolve(worldCamera);
             if (pointer == null || worldCamera == null || tuning == null) return;
+
+            if (!InputEnabled)
+            {
+                Cancel();
+                return;
+            }
 
             if (motionMonitor != null && motionMonitor.IsMoving)
             {
@@ -51,7 +62,7 @@ namespace FutebolDeBotao
                 return;
             }
 
-            pointerWorld = ScreenToWorld(pointer.position.ReadValue());
+            pointerWorld = WorldCamera.ScreenToWorld(worldCamera, pointer.position.ReadValue());
 
             if (pointer.press.wasPressedThisFrame) TryBegin();
 
@@ -73,6 +84,7 @@ namespace FutebolDeBotao
             var hit = Physics2D.OverlapPoint(pointerWorld);
             var disc = hit != null ? hit.GetComponent<Disc>() : null;
             if (disc == null) return;
+            if (CanSelect != null && !CanSelect(disc)) return;
 
             SelectedDisc = disc;
             IsAiming = true;
@@ -121,12 +133,6 @@ namespace FutebolDeBotao
             SelectedDisc = null;
             Direction = Vector2.zero;
             Power01 = 0f;
-        }
-
-        private Vector2 ScreenToWorld(Vector2 screen)
-        {
-            var world = worldCamera.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -worldCamera.transform.position.z));
-            return new Vector2(world.x, world.y);
         }
     }
 }

@@ -45,6 +45,16 @@ namespace FutebolDeBotao
             targetX = Mathf.Clamp(worldX, centerX - halfRange, centerX + halfRange);
         }
 
+        /// <summary>Volta para o centro do gol na hora.</summary>
+        public void ResetToCenter()
+        {
+            targetX = centerX;
+            var position = body.position;
+            position.x = centerX;
+            body.position = position;
+            transform.position = position;
+        }
+
         private void FixedUpdate()
         {
             if (trackBallForTesting && ball != null) SetTargetX(ball.Body.position.x);
