@@ -13,6 +13,11 @@ namespace FutebolDeBotao
     {
         [SerializeField] private MatchOptions options;
         [SerializeField] private float goalPauseSeconds = 1.5f;
+        [Tooltip("Multiplica o tamanho do HUD provisório.")]
+        [SerializeField, Range(0.5f, 2f)] private float hudScale = 1f;
+
+        private const float ReferenceHeight = 720f;
+        private const float ReferenceMinWidth = 400f;
 
         private readonly Dictionary<TeamSide, List<Disc>> discs = new();
         private readonly int[] score = new int[2];
@@ -304,43 +309,59 @@ namespace FutebolDeBotao
 
         private void OnGUI()
         {
-            var big = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold };
-            var small = new GUIStyle(GUI.skin.label) { fontSize = 16, wordWrap = true };
+            // O HUD é desenhado numa tela de referência de 720 px de altura e escalado para a tela real.
+            float scale = Mathf.Max(0.5f, Mathf.Min(Screen.height / ReferenceHeight, Screen.width / ReferenceMinWidth)) * hudScale;
+            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
+            float screenHeight = Screen.height / scale;
+
+            var big = new GUIStyle(GUI.skin.label) { fontSize = 30, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
+            var small = new GUIStyle(GUI.skin.label) { fontSize = 20, wordWrap = true, normal = { textColor = Color.white } };
+            var button = new GUIStyle(GUI.skin.button) { fontSize = 20, fontStyle = FontStyle.Bold };
 
             int minutes = Mathf.FloorToInt(clock / 60f);
             int seconds = Mathf.CeilToInt(clock % 60f);
             if (seconds == 60) { minutes++; seconds = 0; }
 
-            float y = 12f;
-            GUI.Label(new Rect(16, y, 400, 32), $"Azul {Score(TeamSide.Bottom)} x {Score(TeamSide.Top)} Vermelho", big); y += 32;
-            GUI.Label(new Rect(16, y, 400, 26), $"Tempo {minutes}:{seconds:00}", small); y += 26;
-
+            const float x = 20f;
+            const float width = 340f;
+            var lines = new List<(string text, GUIStyle style, float height)>
+            {
+                ($"Azul {Score(TeamSide.Bottom)} x {Score(TeamSide.Top)} Vermelho", big, 40f),
+                ($"Tempo {minutes}:{seconds:00}", small, 28f)
+            };
             if (State is MatchState.Aim or MatchState.ShotAim or MatchState.Moving)
-            {
-                GUI.Label(new Rect(16, y, 400, 26), $"Vez: {TeamName(Turn)}  |  toques restantes: {touchesLeft}", small); y += 26;
-            }
-
+                lines.Add(($"Vez: {TeamName(Turn)}  |  toques: {touchesLeft}", small, 28f));
             if (State is MatchState.Aim or MatchState.ShotAim)
-            {
-                GUI.Label(new Rect(16, y, 400, 26), $"Mira: {Mathf.CeilToInt(Mathf.Max(0f, stateTimer))} s", small); y += 26;
-            }
-
-            if (!string.IsNullOrEmpty(message))
-            {
-                GUI.Label(new Rect(16, y, 320, 48), message, small); y += 50;
-            }
-
-            if (CanCallShot && GUI.Button(new Rect(16, y, 160, 34), "Vai chutar (V)")) TryCallShot();
-
+                lines.Add(($"Mira: {Mathf.CeilToInt(Mathf.Max(0f, stateTimer))} s", small, 28f));
             if (State == MatchState.ShotCall)
+                lines.Add(($"Goleiro: arraste para os lados ({Mathf.CeilToInt(stateTimer)} s)", small, 56f));
+            if (!string.IsNullOrEmpty(message))
+                lines.Add((message, small, small.CalcHeight(new GUIContent(message), width)));
+
+            bool showButton = CanCallShot || State == MatchState.ShotCall || State == MatchState.End;
+            float panelHeight = 16f;
+            foreach (var line in lines) panelHeight += line.height;
+            if (showButton) panelHeight += 52f;
+
+            var previous = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.6f);
+            GUI.DrawTexture(new Rect(x - 10f, 10f, width + 20f, panelHeight), Texture2D.whiteTexture);
+            GUI.color = previous;
+
+            float y = 16f;
+            foreach (var line in lines)
             {
-                GUI.Label(new Rect(16, y, 320, 26), $"Goleiro: arraste para os lados ({Mathf.CeilToInt(stateTimer)} s)", small); y += 28;
-                if (GUI.Button(new Rect(16, y, 160, 34), "Pronto (Espaço)")) EnterShotAim();
+                GUI.Label(new Rect(x, y, width, line.height), line.text, line.style);
+                y += line.height;
             }
 
-            if (State == MatchState.End && GUI.Button(new Rect(16, y, 160, 34), "Jogar de novo")) StartMatch();
+            var buttonRect = new Rect(x, y + 6f, 220f, 42f);
+            if (CanCallShot && GUI.Button(buttonRect, "Vai chutar (V)", button)) TryCallShot();
+            if (State == MatchState.ShotCall && GUI.Button(buttonRect, "Pronto (Espaço)", button)) EnterShotAim();
+            if (State == MatchState.End && GUI.Button(buttonRect, "Jogar de novo", button)) StartMatch();
 
-            GUI.Label(new Rect(16, Screen.height - 34, 600, 26), "R: reiniciar  |  Botão direito: cancelar mira", small);
+            GUI.Label(new Rect(x, screenHeight - 34f, 600f, 28f), "R: reiniciar  |  Botão direito: cancelar mira", small);
+            GUI.matrix = Matrix4x4.identity;
         }
     }
 }
