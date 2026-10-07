@@ -44,7 +44,7 @@ namespace FutebolDeBotao
             if (options == null) options = MatchOptions.CreateDefault();
 
             ball = FindAnyObjectByType<Ball>();
-            keepers = FindObjectsByType<Goalkeeper>(FindObjectsSortMode.None);
+            keepers = FindObjectsByType<Goalkeeper>();
             aim = FindAnyObjectByType<AimController>();
             aimVisuals = FindAnyObjectByType<AimVisuals>();
             monitor = FindAnyObjectByType<MotionMonitor>();
@@ -56,7 +56,7 @@ namespace FutebolDeBotao
 
             aim.Flicked += OnFlicked;
             monitor.Settled += OnSettled;
-            foreach (var goal in FindObjectsByType<GoalTrigger>(FindObjectsSortMode.None)) goal.BallEntered += OnBallEntered;
+            foreach (var goal in FindObjectsByType<GoalTrigger>()) goal.BallEntered += OnBallEntered;
 
             StartMatch();
         }
@@ -65,7 +65,7 @@ namespace FutebolDeBotao
         {
             discs[TeamSide.Bottom] = new List<Disc>();
             discs[TeamSide.Top] = new List<Disc>();
-            foreach (var disc in FindObjectsByType<Disc>(FindObjectsSortMode.None)) discs[disc.Side].Add(disc);
+            foreach (var disc in FindObjectsByType<Disc>()) discs[disc.Side].Add(disc);
             foreach (var list in discs.Values) list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
         }
 

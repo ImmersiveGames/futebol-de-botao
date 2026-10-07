@@ -21,7 +21,7 @@ namespace FutebolDeBotao
 
         private void Start()
         {
-            keepers = FindObjectsByType<Goalkeeper>(FindObjectsSortMode.None);
+            keepers = FindObjectsByType<Goalkeeper>();
         }
 
         private void Update()

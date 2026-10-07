@@ -23,8 +23,8 @@ namespace FutebolDeBotao
         private void Start()
         {
             bodies.Clear();
-            foreach (var disc in FindObjectsByType<Disc>(FindObjectsSortMode.None)) bodies.Add(disc.GetComponent<Rigidbody2D>());
-            foreach (var ball in FindObjectsByType<Ball>(FindObjectsSortMode.None)) bodies.Add(ball.GetComponent<Rigidbody2D>());
+            foreach (var disc in FindObjectsByType<Disc>()) bodies.Add(disc.GetComponent<Rigidbody2D>());
+            foreach (var ball in FindObjectsByType<Ball>()) bodies.Add(ball.GetComponent<Rigidbody2D>());
         }
 
         /// <summary>Chame logo depois de um peteleco.</summary>
