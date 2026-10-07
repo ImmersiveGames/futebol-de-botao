@@ -29,6 +29,14 @@ namespace FutebolDeBotao
         [Tooltip("Arrastos menores que isso cancelam o peteleco.")]
         [Min(0f)] public float minDragDistance = 0.15f;
 
+        [Header("Paredes (elástico)")]
+        [Tooltip("Multiplica a velocidade com que bola e botões saem da parede. 1 = sem ganho.")]
+        [Min(0f)] public float wallBounceBoost = 1.25f;
+        [Tooltip("Velocidade mínima de saída depois de bater na parede.")]
+        [Min(0f)] public float wallMinBounceSpeed = 1.2f;
+        [Tooltip("Velocidade com que a parede empurra de volta quem fica encostado nela.")]
+        [Min(0f)] public float wallPushSpeed = 0.8f;
+
         [Header("Fim do movimento")]
         [Tooltip("Velocidade abaixo da qual um corpo é considerado parado.")]
         [Min(0f)] public float restSpeed = 0.05f;
