@@ -17,10 +17,10 @@ namespace FutebolDeBotao.Editor
         private const string FrameworkCameraPrefab = "Assets/_Game/App/Camera/CameraOutputMesa.prefab";
 
         // Medidas do campo em unidades do mundo (campo sempre vertical).
-        private const float FieldWidth = 7f;
-        private const float FieldHeight = 11f;
+        private const float FieldWidth = FieldLayout.Width;
+        private const float FieldHeight = FieldLayout.Height;
         private const float WallThickness = 0.5f;
-        private const float GoalWidth = 2.4f;
+        private const float GoalWidth = FieldLayout.GoalWidth;
         private const float GoalDepth = 0.8f;
         private const float DiscDiameter = 0.7f;
         private const float BallDiameter = 0.4f;
@@ -93,6 +93,23 @@ namespace FutebolDeBotao.Editor
             CreateSprite("Linha do meio", parent, square, LineColor, Vector2.zero, new Vector2(FieldWidth, 0.05f), -9);
             CreateSprite("Círculo central", parent, circle, LineColor, Vector2.zero, new Vector2(1.8f, 1.8f), -9);
             CreateSprite("Feltro do círculo", parent, circle, FeltColor, Vector2.zero, new Vector2(1.7f, 1.7f), -8);
+
+            // Área do goleiro e marca do pênalti nos dois lados.
+            const float line = 0.05f;
+            foreach (var defending in new[] { TeamSide.Bottom, TeamSide.Top })
+            {
+                string end = defending == TeamSide.Bottom ? "de baixo" : "de cima";
+                float goalLine = FieldLayout.GoalLineY(defending);
+                float inward = defending == TeamSide.Bottom ? 1f : -1f;
+                float frontY = goalLine + inward * FieldLayout.AreaDepth;
+                float midY = goalLine + inward * FieldLayout.AreaDepth * 0.5f;
+                float halfArea = FieldLayout.AreaWidth * 0.5f;
+
+                CreateSprite($"Área {end} frente", parent, square, LineColor, new Vector2(0f, frontY), new Vector2(FieldLayout.AreaWidth + line, line), -9);
+                CreateSprite($"Área {end} esquerda", parent, square, LineColor, new Vector2(-halfArea, midY), new Vector2(line, FieldLayout.AreaDepth), -9);
+                CreateSprite($"Área {end} direita", parent, square, LineColor, new Vector2(halfArea, midY), new Vector2(line, FieldLayout.AreaDepth), -9);
+                CreateSprite($"Marca do pênalti {end}", parent, circle, LineColor, FieldLayout.PenaltySpot(defending), new Vector2(0.15f, 0.15f), -9);
+            }
         }
 
         private static void CreateWalls(Transform parent, Sprite square, PhysicsMaterial2D material)

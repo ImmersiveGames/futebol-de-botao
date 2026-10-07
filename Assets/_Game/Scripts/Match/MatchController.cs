@@ -5,8 +5,8 @@ using UnityEngine.InputSystem;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Máquina de estados da partida: Saída, Mira, Vai chutar, Movimento, Gol e Fim.
-    /// Cuida da vez, dos toques, da perda da vez, da falta, do relógio, do placar e do HUD provisório.
+    /// Máquina de estados da partida: Saída, Mira, Vai chutar, Tiro de meta, Movimento, Gol e Fim.
+    /// Cuida da vez, dos toques, da perda da vez, da falta e do pênalti, do relógio, do placar e do HUD provisório.
     /// </summary>
     public sealed class MatchController : MonoBehaviour
     {
@@ -17,9 +17,6 @@ namespace FutebolDeBotao
 
         private const float ReferenceHeight = 720f;
         private const float ReferenceMinWidth = 400f;
-        // Área de jogo para posicionar a bola no tiro livre (metade do campo menos uma folga).
-        private const float FieldHalfWidth = 3.5f;
-        private const float FieldHalfHeight = 5.5f;
 
         private readonly Dictionary<TeamSide, List<Disc>> discs = new();
         private readonly int[] score = new int[2];
@@ -64,6 +61,7 @@ namespace FutebolDeBotao
             ApplyOptions();
 
             aim.Flicked += OnFlicked;
+            aim.BallKicked += OnBallKicked;
             monitor.Settled += OnSettled;
             foreach (var goal in FindObjectsByType<GoalTrigger>()) goal.BallEntered += OnBallEntered;
             foreach (var list in discs.Values)
@@ -136,6 +134,7 @@ namespace FutebolDeBotao
                     break;
 
                 case MatchState.ShotAim:
+                case MatchState.GoalKick:
                     if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
                     break;
 
@@ -151,14 +150,15 @@ namespace FutebolDeBotao
         }
 
         // GDD: o relógio corre só durante a mira.
-        private bool ClockRunning => State is MatchState.Aim or MatchState.ShotAim;
+        private bool ClockRunning => State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick;
 
         private void Enter(MatchState state)
         {
             State = state;
 
             aim.Cancel();
-            aim.InputEnabled = state is MatchState.Aim or MatchState.ShotAim;
+            aim.InputEnabled = state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick;
+            aim.BallKickMode = state == MatchState.GoalKick;
             aim.CanSelect = state == MatchState.ShotAim
                 ? disc => CanUse(disc) && InAttackHalf(disc)
                 : CanUse;
@@ -167,7 +167,7 @@ namespace FutebolDeBotao
 
             stateTimer = state switch
             {
-                MatchState.Aim or MatchState.ShotAim => options.aimTimeSeconds,
+                MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick => options.aimTimeSeconds,
                 MatchState.ShotCall => options.shotCallSeconds,
                 MatchState.Goal => goalPauseSeconds,
                 _ => 0f
@@ -180,6 +180,7 @@ namespace FutebolDeBotao
         {
             get
             {
+                // Sem goleiro não existe "Vai chutar": entrou, é gol.
                 if (State != MatchState.Aim || aim.IsAiming || !options.hasGoalkeeper) return false;
                 foreach (var disc in discs[Turn])
                     if (CanUse(disc) && InAttackHalf(disc)) return true;
@@ -190,7 +191,23 @@ namespace FutebolDeBotao
         public void TryCallShot()
         {
             if (!CanCallShot) return;
-            message = $"{TeamName(Turn)}: vai chutar! {TeamName(Opponent(Turn))} ajusta o goleiro.";
+            message = $"{TeamName(Turn)}: vai chutar!";
+            BeginShotCall();
+        }
+
+        /// <summary>
+        /// Chute anunciado (falta no ataque, pênalti ou "Vai chutar"): o defensor ganha os segundos para ajustar o goleiro.
+        /// Sem goleiro vira um chute normal de quem vai bater.
+        /// </summary>
+        private void BeginShotCall()
+        {
+            if (!options.hasGoalkeeper)
+            {
+                Enter(MatchState.Aim);
+                return;
+            }
+
+            message += $" {TeamName(Opponent(Turn))} ajusta o goleiro.";
             Enter(MatchState.ShotCall);
         }
 
@@ -213,6 +230,17 @@ namespace FutebolDeBotao
         }
 
         // ---- Movimento ----
+
+        private void OnBallKicked(Vector2 impulse)
+        {
+            if (State != MatchState.GoalKick) return;
+            ball.MarkTouchedBy(Turn);
+            shotWasCalled = false;
+            shooter = null;
+            touchesLeft--;
+            message = string.Empty;
+            Enter(MatchState.Moving);
+        }
 
         private void OnFlicked(Disc disc, Vector2 impulse)
         {
@@ -270,31 +298,61 @@ namespace FutebolDeBotao
             monitor.StopWatching();
             monitor.FreezeAll();
 
+            if (FieldLayout.InArea(victimPosition, offender.Side))
+            {
+                SetupPenalty(offender, victim);
+                return;
+            }
+
             // Tiro livre no local do botão atingido: ele volta para onde levou a falta e a bola fica à frente dele,
             // virada para o gol que ele ataca.
             victim.PlaceAt(victimPosition);
-            Vector2 attack = victim.Side == TeamSide.Bottom ? Vector2.up : Vector2.down;
             float gap = victim.Radius + ball.Radius + 0.05f;
-            Vector2 spot = victimPosition + attack * gap;
-            spot.x = Mathf.Clamp(spot.x, -FieldHalfWidth + ball.Radius, FieldHalfWidth - ball.Radius);
-            spot.y = Mathf.Clamp(spot.y, -FieldHalfHeight + ball.Radius, FieldHalfHeight - ball.Radius);
+            Vector2 spot = victimPosition + FieldLayout.AttackDirection(victim.Side) * gap;
+            spot.x = Mathf.Clamp(spot.x, -FieldLayout.HalfWidth + ball.Radius, FieldLayout.HalfWidth - ball.Radius);
+            spot.y = Mathf.Clamp(spot.y, -FieldLayout.HalfHeight + ball.Radius, FieldLayout.HalfHeight - ball.Radius);
             ClearSpot(spot, victim);
             ball.ResetTo(spot);
 
             GiveTurn(victim.Side);
             freeKickDisc = victim;
 
-            bool canShoot = options.hasGoalkeeper && InAttackHalf(victimPosition, victim.Side);
             message = $"Falta do {TeamName(offender.Side)}! Tiro livre para o {TeamName(victim.Side)}.";
-            if (canShoot)
-            {
-                message += $" Vai chutar: {TeamName(offender.Side)} ajusta o goleiro.";
-                Enter(MatchState.ShotCall);
-            }
-            else
-            {
-                Enter(MatchState.Aim);
-            }
+            if (InAttackHalf(victimPosition, victim.Side)) BeginShotCall();
+            else Enter(MatchState.Aim);
+        }
+
+        /// <summary>
+        /// Pênalti: falta dentro da área de quem defende. Bola na marca, quem sofreu bate; os outros atacantes voltam
+        /// para a formação e os defensores ficam espalhados na linha do meio-campo.
+        /// </summary>
+        private void SetupPenalty(Disc offender, Disc victim)
+        {
+            var defending = offender.Side;
+            var attacking = victim.Side;
+            Vector2 spot = FieldLayout.PenaltySpot(defending);
+            Vector2 attack = FieldLayout.AttackDirection(attacking);
+
+            var attackers = discs[attacking];
+            for (int i = 0; i < attackers.Count && i < options.discsPerTeam; i++)
+                if (attackers[i] != victim) attackers[i].PlaceAt(options.FormationPosition(i, attacking));
+            victim.PlaceAt(spot - attack * (victim.Radius + ball.Radius + 0.05f));
+
+            var defenders = new List<Disc>();
+            foreach (var disc in discs[defending])
+                if (disc.isActiveAndEnabled) defenders.Add(disc);
+            float spacing = FieldLayout.Width / (defenders.Count + 1);
+            for (int i = 0; i < defenders.Count; i++)
+                defenders[i].PlaceAt(new Vector2(-FieldLayout.HalfWidth + spacing * (i + 1), 0f));
+
+            foreach (var keeper in keepers)
+                if (keeper.isActiveAndEnabled) keeper.ResetToCenter();
+            ball.ResetTo(spot);
+
+            GiveTurn(attacking);
+            freeKickDisc = victim;
+            message = $"Pênalti para o {TeamName(attacking)}!";
+            BeginShotCall();
         }
 
         /// <summary>Afasta botões que estejam em cima do lugar da bola no tiro livre.</summary>
@@ -321,16 +379,26 @@ namespace FutebolDeBotao
             EndShot();
             monitor.StopWatching();
             pendingGoal = goal;
-            pendingGoalValid = options.goalAfterWallIsValid || !enteredBall.TouchedWallSinceShot;
 
+            // Gol contra (último toque de um botão de quem defende) vale sempre.
+            // Os outros só valem num "Vai chutar" (sem goleiro não precisa) e, por padrão, sem a bola tocar a parede.
+            var lastDisc = enteredBall.LastDiscTouch;
+            bool ownGoal = lastDisc != null && lastDisc.Side == goal.DefendingSide;
+            bool wallOk = options.goalAfterWallIsValid || !enteredBall.TouchedWallSinceShot;
+            bool called = shotWasCalled || !options.hasGoalkeeper;
+            pendingGoalValid = ownGoal || (called && wallOk);
+
+            var scorer = Opponent(goal.DefendingSide);
             if (pendingGoalValid)
             {
-                score[(int)Opponent(goal.DefendingSide)]++;
-                message = $"GOL do {TeamName(Opponent(goal.DefendingSide))}!";
+                score[(int)scorer]++;
+                message = ownGoal ? $"Gol contra! Ponto do {TeamName(scorer)}." : $"GOL do {TeamName(scorer)}!";
             }
             else
             {
-                message = "Gol anulado: a bola tocou a parede.";
+                message = called
+                    ? "Gol anulado: a bola tocou a parede."
+                    : "Gol anulado: não avisou o \"Vai chutar\".";
             }
 
             Enter(MatchState.Goal);
@@ -354,18 +422,24 @@ namespace FutebolDeBotao
                 return;
             }
 
-            // Gol anulado: bola na frente do gol de quem defendeu, e a vez é dele.
+            SetupGoalKick(defending);
+        }
+
+        /// <summary>Tiro de meta: bola na frente do goleiro de quem defendeu, que chuta direto na bola.</summary>
+        private void SetupGoalKick(TeamSide defending)
+        {
             monitor.FreezeAll();
-            Vector2 towardCenter = defending == TeamSide.Bottom ? Vector2.up : Vector2.down;
+            Vector2 towardCenter = FieldLayout.AttackDirection(defending);
             var keeper = FindKeeper(defending);
-            Vector2 goalMouth = keeper != null
-                ? (Vector2)keeper.transform.position
-                : new Vector2(0f, ball.Body.position.y);
-            ball.ResetTo(goalMouth + towardCenter * (keeper != null ? 0.8f : 1.6f));
+            Vector2 spot = keeper != null
+                ? (Vector2)keeper.transform.position + towardCenter * 0.8f
+                : new Vector2(0f, FieldLayout.GoalLineY(defending)) + towardCenter * 1f;
+            ClearSpot(spot, null);
+            ball.ResetTo(spot);
 
             GiveTurn(defending);
-            message += $" Bola do {TeamName(defending)}.";
-            Enter(MatchState.Aim);
+            message += $" Tiro de meta do {TeamName(defending)}: arraste a bola.";
+            Enter(MatchState.GoalKick);
         }
 
         private void EndMatch()
@@ -413,9 +487,9 @@ namespace FutebolDeBotao
                 ($"Azul {Score(TeamSide.Bottom)} x {Score(TeamSide.Top)} Vermelho", big, 40f),
                 ($"Tempo {minutes}:{seconds:00}", small, 28f)
             };
-            if (State is MatchState.Aim or MatchState.ShotAim or MatchState.Moving)
+            if (State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick or MatchState.Moving)
                 lines.Add(($"Vez: {TeamName(Turn)}  |  toques: {touchesLeft}", small, 28f));
-            if (State is MatchState.Aim or MatchState.ShotAim)
+            if (State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick)
                 lines.Add(($"Mira: {Mathf.CeilToInt(Mathf.Max(0f, stateTimer))} s", small, 28f));
             if (State == MatchState.ShotCall)
                 lines.Add(($"Goleiro: arraste para os lados ({Mathf.CeilToInt(stateTimer)} s)", small, 56f));

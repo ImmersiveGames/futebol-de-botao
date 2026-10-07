@@ -52,12 +52,12 @@ namespace FutebolDeBotao
             ballLine.enabled = false;
             if (!show) return;
 
-            var disc = aim.SelectedDisc;
-            Vector2 origin = disc.Body.position;
+            Vector2 origin = aim.AimOrigin;
+            float radius = aim.AimRadius;
             Vector2 dir = aim.Direction;
 
-            // Barra de força ao lado do botão, de verde a vermelho.
-            Vector2 side = new Vector2(-dir.y, dir.x) * (disc.Radius + 0.25f);
+            // Barra de força ao lado do botão (ou da bola), de verde a vermelho.
+            Vector2 side = new Vector2(-dir.y, dir.x) * (radius + 0.25f);
             Vector2 barStart = origin + side - dir * (powerBarLength * 0.5f);
             powerBar.SetPosition(0, barStart);
             powerBar.SetPosition(1, barStart + dir * (powerBarLength * aim.Power01));
@@ -67,10 +67,11 @@ namespace FutebolDeBotao
 
             if (mode == AimAssistMode.Off) return;
 
-            arrow.SetPosition(0, origin + dir * disc.Radius);
-            arrow.SetPosition(1, origin + dir * (disc.Radius + maxArrowLength * aim.Power01));
+            arrow.SetPosition(0, origin + dir * radius);
+            arrow.SetPosition(1, origin + dir * (radius + maxArrowLength * aim.Power01));
 
-            DrawBallPrediction(disc, origin, dir);
+            // No chute direto na bola a seta já é a direção da bola.
+            if (!aim.IsBallKick) DrawBallPrediction(aim.SelectedDisc, origin, dir);
         }
 
         private void DrawBallPrediction(Disc disc, Vector2 origin, Vector2 dir)

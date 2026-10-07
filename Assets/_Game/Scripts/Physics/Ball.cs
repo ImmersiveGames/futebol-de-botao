@@ -52,6 +52,13 @@ namespace FutebolDeBotao
             LastTouchSide = null;
         }
 
+        /// <summary>Marca um toque de <paramref name="side"/> sem colisão (chute direto na bola).</summary>
+        public void MarkTouchedBy(TeamSide side)
+        {
+            LastDiscTouch = null;
+            LastTouchSide = side;
+        }
+
         public void ResetTo(Vector2 position)
         {
             body.linearVelocity = Vector2.zero;
@@ -81,7 +88,11 @@ namespace FutebolDeBotao
             }
 
             var keeper = collision.collider.GetComponent<Goalkeeper>();
-            if (keeper != null) LastTouchSide = keeper.Side;
+            if (keeper != null)
+            {
+                LastDiscTouch = null;
+                LastTouchSide = keeper.Side;
+            }
         }
     }
 }

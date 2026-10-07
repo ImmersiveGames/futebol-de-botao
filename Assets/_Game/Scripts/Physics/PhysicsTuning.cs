@@ -28,6 +28,8 @@ namespace FutebolDeBotao
         [Min(0.1f)] public float maxDragDistance = 2.5f;
         [Tooltip("Arrastos menores que isso cancelam o peteleco.")]
         [Min(0f)] public float minDragDistance = 0.15f;
+        [Tooltip("Impulso máximo do chute direto na bola (tiro de meta). A bola é mais leve que o botão, então é bem menor que o Max Impulse.")]
+        [Min(0f)] public float ballKickMaxImpulse = 3f;
 
         [Header("Paredes (elástico)")]
         [Tooltip("Multiplica a velocidade com que bola e botões saem da parede. 1 = sem ganho.")]

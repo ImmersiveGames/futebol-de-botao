@@ -27,7 +27,7 @@ Jogo de futebol de botão em Unity, 2D em pixel art, com campo vertical. Primeir
    - `Assets/_Game/Data/PhysicsTuning.asset` com todos os números de física;
    - `Assets/_Game/Data/OpcoesDaPartida.asset` (tempo, toques, 5 ou 3 botões, goleiro, gol após parede, ajuda de mira) e as formações `Formacao 5` e `Formacao 3`;
    - sprites placeholder em `Assets/_Game/Art/Placeholder/`.
-2. Dê Play. Clique num botão do time da vez, arraste para trás e solte. Botão direito cancela, `R` reinicia a partida.
+2. Rode o menu de novo sempre que o builder mudar (ex.: área e marca do pênalti). Dê Play. Clique num botão do time da vez, arraste para trás e solte. Botão direito cancela, `R` reinicia a partida.
 3. Ajuste o `PhysicsTuning` até o peteleco ficar gostoso. Os valores de botão e bola são aplicados quando a cena começa.
 
 Para testar o goleiro sozinho, marque `Track Ball For Testing` no componente `Goalkeeper`.
@@ -37,8 +37,11 @@ Para testar o goleiro sozinho, marque `Track Ball For Testing` no componente `Go
 - Saída de um time sorteado. Cada vez tem até N toques (`Touches Per Turn`), 15 s de mira por toque. O relógio só corre durante a mira.
 - **Perda da vez:** errar a bola, último toque na bola ser do adversário (goleiro conta), acabar os toques, ou tempo de mira esgotado.
 - **Falta:** se o botão do peteleco acertar um adversário antes da bola, a jogada para. O botão atingido volta para onde levou a falta, a bola fica à frente dele virada para o gol que ele ataca, e só ele pode bater. No campo de ataque já entra no "Vai chutar".
+- **Pênalti:** falta do defensor dentro da própria área (4 x 1,6 na frente do gol). Bola na marca (meio do campo do defensor), quem sofreu bate, os outros atacantes voltam para a formação e os defensores vão para a linha do meio-campo. Entra no "Vai chutar".
+- **Gol só vale com "Vai chutar"** (e, por padrão, sem tocar a parede antes; opção `Goal After Wall Is Valid`). Gol contra (último toque de um botão do defensor) vale sempre. Sem goleiro não existe "Vai chutar": entrou, é gol.
+- **Tiro de meta:** gol anulado vira tiro de meta. A bola fica na frente do goleiro e o jogador arrasta direto na bola (força em `PhysicsTuning > Ball Kick Max Impulse`). Conta 1 toque.
 - **Vai chutar** (botão no HUD ou tecla `V`): aparece quando o time da vez tem botão no campo de ataque. O defensor tem 5 s para arrastar o goleiro para os lados (ou setas/A-D; `Espaço` encerra antes). Depois o atacante chuta com um botão do campo de ataque, e a vez passa ao adversário.
-- Gol: quem levou dá a saída. Gol anulado (bola tocou a parede): bola na frente do gol de quem defendeu, e a vez é dele.
+- Gol: quem levou dá a saída.
 - Fim do tempo: a jogada em andamento termina e aparece o resultado com "Jogar de novo".
 
 ## Fase 1: ligar no Immersive Framework

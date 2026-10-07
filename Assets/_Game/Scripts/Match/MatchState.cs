@@ -11,6 +11,8 @@ namespace FutebolDeBotao
         ShotCall,
         /// <summary>"Vai chutar": o atacante mira com um botão do campo de ataque.</summary>
         ShotAim,
+        /// <summary>Tiro de meta: o defensor chuta direto na bola, na frente do goleiro.</summary>
+        GoalKick,
         /// <summary>Movimento: esperando a mesa parar.</summary>
         Moving,
         /// <summary>Gol (ou gol anulado): pausa curta antes de seguir.</summary>

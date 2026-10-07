@@ -6,7 +6,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Mira por arrasto, igual para mouse e toque: toca no botão, arrasta para trás e solta.
-    /// A distância do arrasto define a força.
+    /// A distância do arrasto define a força. No modo chute na bola (tiro de meta) o arrasto é feito na própria bola.
     /// </summary>
     public sealed class AimController : MonoBehaviour
     {
@@ -19,6 +19,11 @@ namespace FutebolDeBotao
 
         public bool IsAiming { get; private set; }
         public Disc SelectedDisc { get; private set; }
+        /// <summary>A mira atual é na bola (tiro de meta), não num botão.</summary>
+        public bool IsBallKick { get; private set; }
+        /// <summary>Centro e raio de quem vai receber o peteleco (botão ou bola).</summary>
+        public Vector2 AimOrigin => IsBallKick ? ball.Body.position : SelectedDisc.Body.position;
+        public float AimRadius => IsBallKick ? ball.Radius : SelectedDisc.Radius;
         /// <summary>Direção em que o botão vai sair (normalizada).</summary>
         public Vector2 Direction { get; private set; }
         /// <summary>Força de 0 a 1.</summary>
@@ -29,9 +34,13 @@ namespace FutebolDeBotao
         public bool InputEnabled { get; set; } = true;
         /// <summary>Filtro de quais botões podem ser escolhidos agora (ex.: só o time da vez). Nulo libera todos.</summary>
         public Func<Disc, bool> CanSelect { get; set; }
+        /// <summary>Ligado, só a bola pode ser chutada (tiro de meta); botões ficam bloqueados.</summary>
+        public bool BallKickMode { get; set; }
 
         /// <summary>Peteleco disparado: (botão, impulso).</summary>
         public event Action<Disc, Vector2> Flicked;
+        /// <summary>Chute direto na bola disparado: (impulso).</summary>
+        public event Action<Vector2> BallKicked;
 
         public void Configure(PhysicsTuning physicsTuning, MotionMonitor monitor)
         {
@@ -81,6 +90,16 @@ namespace FutebolDeBotao
 
         private void TryBegin()
         {
+            if (BallKickMode)
+            {
+                // Área de toque um pouco maior que a bola, que é pequena.
+                if (ball == null || Vector2.Distance(pointerWorld, ball.Body.position) > ball.Radius + 0.3f) return;
+                IsBallKick = true;
+                IsAiming = true;
+                UpdateAim();
+                return;
+            }
+
             var hit = Physics2D.OverlapPoint(pointerWorld);
             var disc = hit != null ? hit.GetComponent<Disc>() : null;
             if (disc == null) return;
@@ -94,7 +113,7 @@ namespace FutebolDeBotao
         private void UpdateAim()
         {
             // Puxar para trás: o botão sai no sentido oposto ao arrasto.
-            Vector2 pull = SelectedDisc.Body.position - pointerWorld;
+            Vector2 pull = AimOrigin - pointerWorld;
             float distance = Mathf.Min(pull.magnitude, tuning.maxDragDistance);
 
             if (distance < tuning.minDragDistance)
@@ -116,6 +135,17 @@ namespace FutebolDeBotao
                 return;
             }
 
+            if (IsBallKick)
+            {
+                var kick = Direction * (Power01 * tuning.ballKickMaxImpulse);
+                ball.BeginShot();
+                ball.Body.AddForce(kick, ForceMode2D.Impulse);
+                if (motionMonitor != null) motionMonitor.BeginWatching();
+                Cancel();
+                BallKicked?.Invoke(kick);
+                return;
+            }
+
             var disc = SelectedDisc;
             var impulse = Direction * (Power01 * tuning.maxImpulse);
 
@@ -130,6 +160,7 @@ namespace FutebolDeBotao
         public void Cancel()
         {
             IsAiming = false;
+            IsBallKick = false;
             SelectedDisc = null;
             Direction = Vector2.zero;
             Power01 = 0f;
