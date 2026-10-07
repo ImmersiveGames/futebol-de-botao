@@ -35,7 +35,6 @@ namespace FutebolDeBotao
         private int touchesLeft;
         private bool shotWasCalled;
         private Disc shooter;
-        private Disc lastDiscUsed;
         private Disc freeKickDisc;
         private GoalTrigger pendingGoal;
         private bool pendingGoalValid;
@@ -206,12 +205,11 @@ namespace FutebolDeBotao
         private static bool InAttackHalf(Vector2 position, TeamSide side) =>
             side == TeamSide.Bottom ? position.y > 0f : position.y < 0f;
 
-        /// <summary>Botão do time da vez, que não foi o do toque anterior; no tiro livre, só quem sofreu a falta.</summary>
+        /// <summary>Botão do time da vez; no tiro livre, só quem sofreu a falta.</summary>
         private bool CanUse(Disc disc)
         {
             if (disc == null || !disc.isActiveAndEnabled || disc.Side != Turn) return false;
-            if (freeKickDisc != null) return disc == freeKickDisc;
-            return disc != lastDiscUsed;
+            return freeKickDisc == null || disc == freeKickDisc;
         }
 
         // ---- Movimento ----
@@ -222,7 +220,6 @@ namespace FutebolDeBotao
             shotWasCalled = State == MatchState.ShotAim;
             shooter = disc;
             shooter.BeginShot();
-            lastDiscUsed = disc;
             freeKickDisc = null;
             touchesLeft--;
             message = string.Empty;
@@ -253,7 +250,6 @@ namespace FutebolDeBotao
         {
             Turn = side;
             touchesLeft = options.touchesPerTurn;
-            lastDiscUsed = null;
             freeKickDisc = null;
         }
 
