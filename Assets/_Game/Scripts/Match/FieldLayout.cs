@@ -33,6 +33,17 @@ namespace FutebolDeBotao
             return sameSide && fromGoalLine <= AreaDepth;
         }
 
+        /// <summary>Faixa do goleiro: da linha do gol até essa distância à frente, na largura da área.</summary>
+        public const float KeeperZoneDepth = 0.6f;
+
+        /// <summary>A bola está na faixa do goleiro de quem defende <paramref name="defending"/> (onde nenhum botão alcança).</summary>
+        public static bool InKeeperZone(Vector2 position, TeamSide defending)
+        {
+            if (Mathf.Abs(position.x) > AreaWidth * 0.5f) return false;
+            bool sameSide = defending == TeamSide.Bottom ? position.y < 0f : position.y > 0f;
+            return sameSide && Mathf.Abs(position.y - GoalLineY(defending)) <= KeeperZoneDepth;
+        }
+
         /// <summary>Marca do pênalti contra quem defende <paramref name="defending"/>.</summary>
         public static Vector2 PenaltySpot(TeamSide defending) =>
             new(0f, GoalLineY(defending) + (defending == TeamSide.Bottom ? PenaltyDistanceFromGoal : -PenaltyDistanceFromGoal));

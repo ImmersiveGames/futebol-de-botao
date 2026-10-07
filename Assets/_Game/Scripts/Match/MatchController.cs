@@ -263,11 +263,26 @@ namespace FutebolDeBotao
             EndShot();
 
             if (clock <= 0f) EndMatch();
+            else if (TryKeeperZoneGoalKick()) return;
             else if (ball.LastTouchSide == null) PassTurn("Errou a bola.");
             else if (ball.LastTouchSide != Turn) PassTurn(shotWasCalled ? "Chute defendido." : "Último toque do adversário.");
             else if (shotWasCalled) PassTurn("Chute para fora.");
             else if (touchesLeft > 0) Enter(MatchState.Aim);
             else PassTurn("Acabaram os toques.");
+        }
+
+        /// <summary>Bola parada na faixa do goleiro vira tiro de meta para o time dele, não importa quem jogou.</summary>
+        private bool TryKeeperZoneGoalKick()
+        {
+            if (!options.hasGoalkeeper) return false;
+            foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
+            {
+                if (!FieldLayout.InKeeperZone(ball.Body.position, side)) continue;
+                message = "Bola parada no goleiro.";
+                SetupGoalKick(side);
+                return true;
+            }
+            return false;
         }
 
         private void EndShot()
