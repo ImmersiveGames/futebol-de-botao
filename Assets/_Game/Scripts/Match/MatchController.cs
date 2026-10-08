@@ -405,42 +405,13 @@ namespace FutebolDeBotao
             else PassTurn("Acabaram os toques.");
         }
 
-        /// <summary>
-        /// Bola do goleiro (faixa do goleiro, colada nele ou na área depois de tocar nele) vira tiro de meta para o
-        /// time dele, não importa quem jogou. A bola fica onde parou; atrás do goleiro, vai para a frente dele.
-        /// </summary>
+        /// <summary>Bola do goleiro (parada na área em volta dele) vira tiro de meta para o time dele, não importa quem jogou.</summary>
         private bool TryKeeperZoneGoalKick()
         {
-            var owner = KeeperBall.Owner(ball.Body.position, ball.Radius, ball.TouchedKeeperSinceShot, keepers, options.hasGoalkeeper);
+            var owner = KeeperBall.Owner(ball.Body.position, ball.Radius, keepers, options.hasGoalkeeper);
             if (owner == null) return false;
-
-            var side = owner.Value;
             message = "Bola do goleiro.";
-            var keeper = FindKeeper(side);
-            if (keeper == null || KeeperBall.BehindKeeper(ball.Body.position, keeper))
-            {
-                SetupGoalKick(side);
-                return true;
-            }
-
-            monitor.FreezeAll();
-            Vector2 spot = ball.Body.position;
-            ball.ResetTo(spot);
-            // Botões encostados na bola vão para o lugar livre mais perto, para o chute não sair em cima de ninguém.
-            foreach (var list in discs.Values)
-            foreach (var disc in list)
-            {
-                if (!disc.isActiveAndEnabled) continue;
-                float clearance = disc.Radius + ball.Radius + 0.3f;
-                Vector2 offset = disc.Body.position - spot;
-                if (offset.sqrMagnitude >= clearance * clearance) continue;
-                Vector2 away = offset.sqrMagnitude > 0.0001f ? offset.normalized : FieldLayout.AttackDirection(side);
-                disc.PlaceAt(FindFreeSpot(spot + away * clearance, disc, null, clearance));
-            }
-
-            GiveTurn(side);
-            message += $" Tiro de meta do {TeamName(side)}: arraste a bola.";
-            Enter(MatchState.GoalKick);
+            SetupGoalKick(owner.Value);
             return true;
         }
 
@@ -656,9 +627,10 @@ namespace FutebolDeBotao
         /// Lugar livre para um botão: dentro do campo, longe de <paramref name="ballClearance"/> do centro da bola,
         /// sem encostar em outro botão (menos <paramref name="ignore"/>) nem no goleiro.
         /// </summary>
-        private bool IsFreeSpot(Vector2 position, Disc disc, Disc ignore, float ballClearance)
+        private bool IsFreeSpot(Vector2 position, Disc disc, Disc ignore, float ballClearance, TeamSide? outsideAreaOf = null)
         {
             float radius = disc.Radius;
+            if (outsideAreaOf != null && FieldLayout.InArea(position, outsideAreaOf.Value)) return false;
             if (Mathf.Abs(position.x) > FieldLayout.HalfWidth - radius - 0.02f) return false;
             if (Mathf.Abs(position.y) > FieldLayout.HalfHeight - radius - 0.02f) return false;
             if ((position - ball.Body.position).sqrMagnitude < ballClearance * ballClearance) return false;
@@ -681,33 +653,18 @@ namespace FutebolDeBotao
         }
 
         /// <summary>O lugar livre mais perto de <paramref name="desired"/>, procurando em anéis cada vez maiores.</summary>
-        private Vector2 FindFreeSpot(Vector2 desired, Disc disc, Disc ignore, float ballClearance)
+        private Vector2 FindFreeSpot(Vector2 desired, Disc disc, Disc ignore, float ballClearance, TeamSide? outsideAreaOf = null)
         {
-            if (IsFreeSpot(desired, disc, ignore, ballClearance)) return desired;
+            if (IsFreeSpot(desired, disc, ignore, ballClearance, outsideAreaOf)) return desired;
             const int directions = 24;
             for (float distance = 0.15f; distance <= 8f; distance += 0.15f)
             for (int i = 0; i < directions; i++)
             {
                 float angle = i * Mathf.PI * 2f / directions;
                 Vector2 candidate = desired + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
-                if (IsFreeSpot(candidate, disc, ignore, ballClearance)) return candidate;
+                if (IsFreeSpot(candidate, disc, ignore, ballClearance, outsideAreaOf)) return candidate;
             }
             return desired;
-        }
-
-        /// <summary>Afasta botões que estejam em cima do lugar da bola no tiro livre.</summary>
-        private void ClearSpot(Vector2 spot, Disc keep)
-        {
-            foreach (var list in discs.Values)
-            foreach (var disc in list)
-            {
-                if (disc == keep || !disc.isActiveAndEnabled) continue;
-                Vector2 offset = disc.Body.position - spot;
-                float minDistance = disc.Radius + ball.Radius + 0.3f;
-                if (offset.sqrMagnitude >= minDistance * minDistance) continue;
-                Vector2 away = offset.sqrMagnitude > 0.0001f ? offset.normalized : Vector2.right;
-                disc.PlaceAt(spot + away * minDistance);
-            }
         }
 
         // ---- Gol ----
@@ -765,21 +722,42 @@ namespace FutebolDeBotao
             SetupGoalKick(defending);
         }
 
-        /// <summary>Tiro de meta: bola na frente do goleiro de quem defendeu, que chuta direto na bola.</summary>
+        /// <summary>
+        /// Tiro de meta: o goleiro de quem defendeu volta para o centro, a bola vai para a frente dele e os botões dentro
+        /// da área vão para o lugar livre mais perto, fora dela. Ele chuta direto na bola.
+        /// </summary>
         private void SetupGoalKick(TeamSide defending)
         {
             monitor.FreezeAll();
             Vector2 towardCenter = FieldLayout.AttackDirection(defending);
             var keeper = FindKeeper(defending);
+            if (keeper != null) keeper.ResetToCenter();
             Vector2 spot = keeper != null
                 ? (Vector2)keeper.transform.position + towardCenter * 0.8f
                 : new Vector2(0f, FieldLayout.GoalLineY(defending)) + towardCenter * 1f;
-            ClearSpot(spot, null);
             ball.ResetTo(spot);
+            ClearArea(defending);
 
             GiveTurn(defending);
             message += $" Tiro de meta do {TeamName(defending)}: arraste a bola.";
             Enter(MatchState.GoalKick);
+        }
+
+        /// <summary>Tira da área de <paramref name="defending"/> os botões dos dois times, para o lugar livre mais perto fora dela.</summary>
+        private void ClearArea(TeamSide defending)
+        {
+            Vector2 towardCenter = FieldLayout.AttackDirection(defending);
+            float edgeY = FieldLayout.GoalLineY(defending) + towardCenter.y * FieldLayout.AreaDepth;
+            foreach (var disc in allDiscs)
+            {
+                if (!disc.isActiveAndEnabled) continue;
+                float clearance = disc.Radius + ball.Radius + 0.3f;
+                bool near = (disc.Body.position - ball.Body.position).sqrMagnitude < clearance * clearance;
+                if (!near && !FieldLayout.InArea(disc.Body.position, defending)) continue;
+                // Direto para fora da linha da área, na mesma coluna.
+                Vector2 desired = new(disc.Body.position.x, edgeY + towardCenter.y * (disc.Radius + 0.05f));
+                disc.PlaceAt(FindFreeSpot(desired, disc, null, clearance, defending));
+            }
         }
 
         private void EndMatch()

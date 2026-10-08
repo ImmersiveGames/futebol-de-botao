@@ -18,8 +18,6 @@ namespace FutebolDeBotao
         /// <summary>Time do último botão ou goleiro que tocou a bola. Nulo: ninguém.</summary>
         public TeamSide? LastTouchSide;
         public bool BallTouchedWall;
-        /// <summary>Goleiro que a bola tocou na jogada (o último). Nulo: nenhum.</summary>
-        public TeamSide? TouchedKeeperOf;
         /// <summary>A bola entrou no gol de quem defende este lado. Nulo: não entrou.</summary>
         public TeamSide? GoalOf;
         public Vector2 BallEnd;
@@ -147,7 +145,7 @@ namespace FutebolDeBotao
                 foreach (var body in bodies) body.VelocityBefore = body.Copy.linearVelocity;
                 physics.Simulate(dt);
                 TotalSteps++;
-                ReboundOffRestingDiscs(shot, ref result);
+                ReboundOffRestingDiscs(shot);
                 result.Steps = step + 1;
                 bool moving = false;
 
@@ -232,7 +230,7 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Mesma regra do jogo (BallRebound): a bola rebate nos botões parados que não são o do peteleco.</summary>
-        private void ReboundOffRestingDiscs(SimBody shot, ref SimResult result)
+        private void ReboundOffRestingDiscs(SimBody shot)
         {
             int count = ball.Collider.GetContacts(contacts);
             touching.Clear();
@@ -240,11 +238,6 @@ namespace FutebolDeBotao
             {
                 var other = contacts[i].collider == ball.Collider ? contacts[i].otherCollider : contacts[i].collider;
                 if (!byCollider.TryGetValue(other, out var otherBody)) continue;
-                if (otherBody.Kind == Kind.Keeper)
-                {
-                    result.TouchedKeeperOf = otherBody.Side;
-                    continue;
-                }
                 if (otherBody.Kind != Kind.Disc || !touching.Add(otherBody)) continue;
                 // Só a batida nova, como o OnCollisionEnter2D do jogo.
                 if (otherBody != shot && !otherBody.WasOnBall && tuning != null)

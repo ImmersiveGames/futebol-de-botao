@@ -16,8 +16,6 @@ namespace FutebolDeBotao
         public Disc LastDiscTouch { get; private set; }
         /// <summary>Time do último botão ou goleiro que tocou a bola desde o último peteleco. Nulo: ninguém tocou.</summary>
         public TeamSide? LastTouchSide { get; private set; }
-        /// <summary>Goleiro que a bola tocou desde o último peteleco (o último, se tocou nos dois). Nulo: nenhum.</summary>
-        public TeamSide? TouchedKeeperSinceShot { get; private set; }
 
         private Vector2 velocityBeforeStep;
         public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
@@ -54,7 +52,6 @@ namespace FutebolDeBotao
             TouchedWallSinceShot = false;
             LastDiscTouch = null;
             LastTouchSide = null;
-            TouchedKeeperSinceShot = null;
         }
 
         // Roda antes do passo de física; as batidas são avisadas depois dele.
@@ -95,7 +92,6 @@ namespace FutebolDeBotao
             {
                 LastDiscTouch = null;
                 LastTouchSide = keeper.Side;
-                TouchedKeeperSinceShot = keeper.Side;
             }
         }
 
@@ -124,7 +120,6 @@ namespace FutebolDeBotao
             {
                 LastDiscTouch = null;
                 LastTouchSide = keeper.Side;
-                TouchedKeeperSinceShot = keeper.Side;
             }
         }
     }
