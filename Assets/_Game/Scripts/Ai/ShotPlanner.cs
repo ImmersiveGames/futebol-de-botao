@@ -33,7 +33,7 @@ namespace FutebolDeBotao
         private static readonly float[] GoalOffsets = { -0.8f, -0.4f, 0f, 0.4f, 0.8f };
         private static readonly float[] PowerScales = { 0.85f, 1f, 1.2f };
 
-        private static readonly ContactFilter2D NoFilter = new ContactFilter2D().NoFilter();
+        private static readonly ContactFilter2D NoFilter = ContactFilter2D.noFilter;
         private readonly RaycastHit2D[] hits = new RaycastHit2D[16];
         private readonly TeamSide side;
         private readonly PhysicsTuning tuning;
