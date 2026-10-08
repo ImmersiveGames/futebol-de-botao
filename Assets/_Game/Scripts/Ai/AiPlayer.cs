@@ -9,7 +9,8 @@ namespace FutebolDeBotao
     /// <summary>
     /// Joga um time pela IA. Na vez dela: escolhe os botões perto da bola, gera jogadas por geometria, simula as
     /// melhores na mesa invisível, dá nota, escolhe com um erro conforme o nível e mostra a mira antes de soltar.
-    /// Também anuncia o "Vai chutar", posiciona o goleiro quando o adversário anuncia e confirma o pênalti.
+    /// Numa jogada ruim pode só reposicionar um botão. Também anuncia o "Vai chutar", posiciona o goleiro quando o
+    /// adversário anuncia e escolhe onde pôr o batedor no tiro livre e no pênalti.
     /// O peteleco sai pelo AimController, o mesmo caminho do jogador, então as regras são as mesmas.
     /// </summary>
     public sealed class AiPlayer : MonoBehaviour
@@ -17,6 +18,8 @@ namespace FutebolDeBotao
         private const float FrameBudgetMs = 4f;
         private const float PickWindow = 30f;
         private const int RobustChecks = 3;
+        private const int PositionSimulations = 6;
+        private const int KickSimulationsPerAngle = 3;
 
         private struct Scored
         {
@@ -73,7 +76,7 @@ namespace FutebolDeBotao
                     if (match.ActingSide == Side) StartCoroutine(PlaceKeeper());
                     break;
                 case MatchState.PenaltySetup:
-                    if (match.Turn == Side) StartCoroutine(ConfirmPenalty());
+                    if (match.Turn == Side) StartCoroutine(SetUpKicker());
                     break;
             }
         }
@@ -181,6 +184,19 @@ namespace FutebolDeBotao
                     if (!scored[i].Foul && scored[i].Score >= best - PickWindow) pool.Add(scored[i]);
                 var pick = pool[Random.Range(0, pool.Count)];
 
+                // Jogada ruim (falta provável ou nada de bom na bola): às vezes a IA só se posiciona. Mais no Difícil.
+                bool poor = pick.Foul || pick.FoulNearby || pick.Score < difficulty.poorShotScore;
+                if (poor && state == MatchState.Aim && match.FreeKickDisc == null && Random.value < difficulty.repositionChance &&
+                    TryFindPosition(usable, maxImpulse, out var move, out float moveScore))
+                {
+                    Debug.Log($"[IA] {state}: jogada ruim (nota {pick.Score:0}{(pick.Foul ? ", com falta" : pick.FoulNearby ? ", falta se errar" : string.Empty)}); " +
+                              $"posiciona {move.Disc.name} sem tocar na bola, nota {moveScore:0}.");
+                    float moveError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees) * 0.5f;
+                    Vector2 moveDirection = Quaternion.Euler(0f, 0f, moveError) * move.Direction;
+                    yield return ShowAimAndRelease(version, move.Disc, moveDirection, move.Power01);
+                    yield break;
+                }
+
                 // Erro de execução conforme o nível: é ele que faz a IA errar e, às vezes, cometer falta.
                 float angleError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees);
                 Vector2 direction = Quaternion.Euler(0f, 0f, angleError) * pick.Candidate.Direction;
@@ -209,6 +225,24 @@ namespace FutebolDeBotao
             var result = simulator.Simulate(disc != null ? disc.Body : null, direction * (power01 * maxImpulse), Side);
             foul = result.Foul;
             return planner.Score(result, ballKick, goalsCount, match.Options.goalAfterWallIsValid, touchesAfter, difficulty.foulCaution);
+        }
+
+        /// <summary>Melhor posicionamento que a simulação confirma (sem tocar na bola nem em adversário).</summary>
+        private bool TryFindPosition(List<Disc> usable, float maxImpulse, out ShotCandidate best, out float bestScore)
+        {
+            best = default;
+            bestScore = float.MinValue;
+            var candidates = planner.PositionCandidates(usable, match.AllDiscs);
+            for (int i = 0; i < Mathf.Min(PositionSimulations, candidates.Count); i++)
+            {
+                var candidate = candidates[i];
+                var result = simulator.Simulate(candidate.Disc.Body, candidate.Direction * (candidate.Power01 * maxImpulse), Side);
+                float? score = planner.ScorePosition(result, candidate);
+                if (score == null || score.Value <= bestScore) continue;
+                best = candidate;
+                bestScore = score.Value;
+            }
+            return best.Disc != null;
         }
 
         /// <summary>
@@ -345,16 +379,71 @@ namespace FutebolDeBotao
             return null;
         }
 
-        // ---- Pênalti ----
+        // ---- Tiro livre e pênalti ----
 
-        /// <summary>Por enquanto a IA bate o pênalti com o botão bem atrás da bola.</summary>
-        private IEnumerator ConfirmPenalty()
+        /// <summary>
+        /// Posiciona o batedor: para cada alvo, põe o botão bem atrás da bola naquela direção (se o lugar estiver livre),
+        /// simula os chutes e fica com o melhor ângulo. Um ângulo por quadro, então dá para ver o batedor girando.
+        /// </summary>
+        private IEnumerator SetUpKicker()
         {
             busy = true;
             try
             {
                 int version = match.StateVersion;
-                yield return new WaitForSeconds(0.8f);
+                yield return new WaitForSeconds(difficulty.thinkSeconds);
+                if (!StillValid(version)) yield break;
+                EnsureBrain();
+
+                var kicker = match.FreeKickDisc;
+                if (kicker != null)
+                {
+                    Vector2 ballPosition = match.Ball.Body.position;
+                    bool hasKeeper = match.Options.hasGoalkeeper;
+                    // O chute do pênalti e do tiro livre no ataque é anunciado; sem goleiro todo gol vale.
+                    bool scoring = !hasKeeper || match.IsPenaltySetup || FieldLayout.AttackDirection(Side).y * ballPosition.y > 0f;
+                    bool calledShot = hasKeeper && scoring;
+                    int touchesAfter = calledShot ? 0 : match.TouchesLeft - 1;
+                    float maxImpulse = aim.Tuning.maxImpulse;
+                    var usable = new List<Disc> { kicker };
+                    var angles = new List<(float angle, float score)>();
+
+                    simulator.Sync();
+                    foreach (var target in planner.KickTargets(scoring))
+                    {
+                        Vector2 toTarget = target - ballPosition;
+                        if (toTarget.sqrMagnitude < 0.01f) continue;
+                        float angle = match.KickerAngleFor(toTarget.normalized);
+                        if (!match.TryPlaceKicker(angle)) continue;
+
+                        var candidates = planner.DiscCandidates(usable, scoring);
+                        candidates.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
+                        float best = float.MinValue;
+                        for (int i = 0; i < Mathf.Min(KickSimulationsPerAngle, candidates.Count); i++)
+                        {
+                            var candidate = candidates[i];
+                            best = Mathf.Max(best, SimulateAndScore(kicker, candidate.Direction, candidate.Power01, maxImpulse,
+                                false, scoring, touchesAfter, out _));
+                        }
+                        if (candidates.Count > 0) angles.Add((angle, best));
+
+                        yield return null;
+                        if (!StillValid(version)) yield break;
+                    }
+
+                    if (angles.Count > 0)
+                    {
+                        angles.Sort((a, b) => b.score.CompareTo(a.score));
+                        int pool = 1;
+                        while (pool < angles.Count && pool < difficulty.pickAmongBest && angles[pool].score >= angles[0].score - PickWindow) pool++;
+                        var pick = angles[Random.Range(0, pool)];
+                        match.TryPlaceKicker(pick.angle);
+                        Debug.Log($"[IA] {(match.IsPenaltySetup ? "Pênalti" : "Tiro livre")}: testou {angles.Count} posições do batedor, " +
+                                  $"escolheu {pick.angle:0}° (nota {pick.score:0}; melhor {angles[0].score:0}).");
+                    }
+                }
+
+                yield return new WaitForSeconds(0.6f);
                 if (StillValid(version)) match.ConfirmReady();
             }
             finally

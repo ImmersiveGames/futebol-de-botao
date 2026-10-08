@@ -9,7 +9,7 @@ namespace FutebolDeBotao
         KickOff,
         /// <summary>Mira: o time da vez escolhe um botão e arrasta.</summary>
         Aim,
-        /// <summary>Pênalti: o atacante posiciona o botão no arco atrás da bola.</summary>
+        /// <summary>Pênalti ou tiro livre: o atacante posiciona o batedor em volta da bola (no pênalti, só no arco atrás dela).</summary>
         PenaltySetup,
         /// <summary>"Vai chutar" declarado: o defensor ajusta o goleiro.</summary>
         ShotCall,

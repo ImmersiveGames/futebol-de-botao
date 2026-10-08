@@ -21,6 +21,8 @@ namespace FutebolDeBotao
         /// <summary>A bola entrou no gol de quem defende este lado. Nulo: não entrou.</summary>
         public TeamSide? GoalOf;
         public Vector2 BallEnd;
+        /// <summary>Onde o botão do peteleco parou (ou estava, se a jogada parou numa falta).</summary>
+        public Vector2 ShooterEnd;
         public int Steps;
     }
 
@@ -166,6 +168,7 @@ namespace FutebolDeBotao
                                 result.Foul = true;
                                 result.FoulPosition = otherBody.Copy.position;
                                 result.BallEnd = ball.Copy.position;
+                                result.ShooterEnd = shot.Copy.position;
                                 return result;
                             }
                         }
@@ -189,6 +192,7 @@ namespace FutebolDeBotao
             }
 
             result.BallEnd = ball.Copy.position;
+            result.ShooterEnd = shot.Copy.position;
             return result;
         }
 

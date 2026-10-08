@@ -57,6 +57,7 @@ namespace FutebolDeBotao
         private bool shotWasCalled;
         private Disc shooter;
         private Disc freeKickDisc;
+        private bool setupIsPenalty;
         private Camera worldCamera;
         private GoalTrigger pendingGoal;
         private bool pendingGoalValid;
@@ -93,6 +94,8 @@ namespace FutebolDeBotao
         public bool IsAi(TeamSide side) => ai != null && ai.Side == side;
         /// <summary>Botão do tiro livre ou do pênalti (só ele pode jogar). Nulo fora disso.</summary>
         public Disc FreeKickDisc => freeKickDisc;
+        /// <summary>No posicionamento do batedor: true = pênalti (arco atrás da bola), false = tiro livre (volta inteira).</summary>
+        public bool IsPenaltySetup => setupIsPenalty;
 
         public void Configure(MatchOptions matchOptions) => options = matchOptions;
 
@@ -436,22 +439,43 @@ namespace FutebolDeBotao
                 return;
             }
 
-            // Tiro livre no local do botão atingido: ele volta para onde levou a falta e a bola fica à frente dele,
-            // virada para o gol que ele ataca.
-            victim.PlaceAt(victimPosition);
-            float gap = victim.Radius + ball.Radius + 0.05f;
-            Vector2 spot = victimPosition + FieldLayout.AttackDirection(victim.Side) * gap;
-            spot.x = Mathf.Clamp(spot.x, -FieldLayout.HalfWidth + ball.Radius, FieldLayout.HalfWidth - ball.Radius);
-            spot.y = Mathf.Clamp(spot.y, -FieldLayout.HalfHeight + ball.Radius, FieldLayout.HalfHeight - ball.Radius);
-            ClearSpot(spot, victim);
+            SetupFreeKick(offender, victim, victimPosition);
+        }
+
+        /// <summary>
+        /// Tiro livre: a bola fica onde o botão levou a falta e ele vira o batedor, posicionado em volta da bola.
+        /// Quem fez a falta volta para a formação e ninguém fica na roda em que o batedor gira.
+        /// </summary>
+        private void SetupFreeKick(Disc offender, Disc victim, Vector2 victimPosition)
+        {
+            float margin = ball.Radius + 0.02f;
+            Vector2 spot = new(
+                Mathf.Clamp(victimPosition.x, -FieldLayout.HalfWidth + margin, FieldLayout.HalfWidth - margin),
+                Mathf.Clamp(victimPosition.y, -FieldLayout.HalfHeight + margin, FieldLayout.HalfHeight - margin));
             ball.ResetTo(spot);
+
+            // A roda: o batedor gira a esta distância da bola, então os outros ficam do lado de fora dela.
+            float clearance = KickerDistance(victim) + victim.Radius * 2f + 0.05f;
+
+            int index = discs[offender.Side].IndexOf(offender);
+            offender.PlaceAt(FindFreeSpot(options.FormationPosition(index, offender.Side), offender, victim, clearance));
+
+            foreach (var disc in allDiscs)
+            {
+                if (disc == victim || disc == offender || !disc.isActiveAndEnabled) continue;
+                Vector2 offset = disc.Body.position - spot;
+                if (offset.sqrMagnitude >= clearance * clearance) continue;
+                Vector2 away = offset.sqrMagnitude > 0.0001f ? offset.normalized : Vector2.right;
+                disc.PlaceAt(FindFreeSpot(spot + away * clearance, disc, victim, clearance));
+            }
 
             GiveTurn(victim.Side);
             freeKickDisc = victim;
+            setupIsPenalty = false;
+            PlaceKickerNearest(victim, 0f);
 
-            message = $"Falta do {TeamName(offender.Side)}! Tiro livre para o {TeamName(victim.Side)}.";
-            if (InAttackHalf(spot, victim.Side)) BeginShotCall();
-            else Enter(MatchState.Aim);
+            message = $"Falta do {TeamName(offender.Side)}! Tiro livre para o {TeamName(victim.Side)}: posicione o batedor.";
+            Enter(MatchState.PenaltySetup);
         }
 
         /// <summary>
@@ -479,7 +503,8 @@ namespace FutebolDeBotao
             foreach (var keeper in keepers)
                 if (keeper.isActiveAndEnabled) keeper.ResetToCenter();
             ball.ResetTo(spot);
-            PlacePenaltyDisc(victim, 0f);
+            setupIsPenalty = true;
+            PlaceKickerNearest(victim, 0f);
 
             GiveTurn(attacking);
             freeKickDisc = victim;
@@ -487,17 +512,45 @@ namespace FutebolDeBotao
             Enter(MatchState.PenaltySetup);
         }
 
+        private float KickerDistance(Disc disc) => disc.Radius + ball.Radius + options.penaltyDiscGap;
+
         /// <summary>
-        /// Coloca o batedor no arco atrás da bola. <paramref name="angleDegrees"/> = 0 é bem atrás, sinal = lado.
+        /// Põe o batedor em volta da bola. <paramref name="angleDegrees"/> = 0 é bem atrás (para o lado do próprio gol),
+        /// sinal = lado. No pênalti fica preso ao arco; no tiro livre dá a volta inteira, mas não entra em cima de
+        /// outro botão, do goleiro ou fora do campo (aí ele fica onde estava e devolve false).
         /// </summary>
-        private void PlacePenaltyDisc(Disc disc, float angleDegrees)
+        private bool TryPlaceKicker(Disc disc, float angleDegrees)
         {
-            float angle = Mathf.Clamp(angleDegrees, -options.penaltyArcDegrees, options.penaltyArcDegrees);
+            float angle = setupIsPenalty
+                ? Mathf.Clamp(angleDegrees, -options.penaltyArcDegrees, options.penaltyArcDegrees)
+                : Mathf.DeltaAngle(0f, angleDegrees);
             Vector2 back = -FieldLayout.AttackDirection(disc.Side);
             Vector2 dir = (Vector2)(Quaternion.Euler(0f, 0f, angle) * back);
-            float distance = disc.Radius + ball.Radius + options.penaltyDiscGap;
-            disc.PlaceAt(ball.Body.position + dir * distance);
+            Vector2 position = ball.Body.position + dir * KickerDistance(disc);
+            if (!IsFreeSpot(position, disc, null, disc.Radius + ball.Radius + 0.05f)) return false;
+            disc.PlaceAt(position);
+            return true;
         }
+
+        /// <summary>Batedor no ângulo livre mais perto de <paramref name="angleDegrees"/>; sem nenhum, no lugar livre mais perto.</summary>
+        private void PlaceKickerNearest(Disc disc, float angleDegrees)
+        {
+            for (int step = 0; step <= 12; step++)
+            {
+                if (TryPlaceKicker(disc, angleDegrees + step * 15f)) return;
+                if (step > 0 && step < 12 && TryPlaceKicker(disc, angleDegrees - step * 15f)) return;
+            }
+            Vector2 back = -FieldLayout.AttackDirection(disc.Side);
+            disc.PlaceAt(FindFreeSpot(ball.Body.position + back * KickerDistance(disc), disc, null, disc.Radius + ball.Radius + 0.05f));
+        }
+
+        /// <summary>A IA posiciona o batedor (mesmas regras do jogador). Devolve false se o lugar não serve.</summary>
+        public bool TryPlaceKicker(float angleDegrees) =>
+            State == MatchState.PenaltySetup && freeKickDisc != null && TryPlaceKicker(freeKickDisc, angleDegrees);
+
+        /// <summary>Ângulo do batedor para bater reto na bola na direção <paramref name="shotDirection"/>.</summary>
+        public float KickerAngleFor(Vector2 shotDirection) =>
+            Vector2.SignedAngle(-FieldLayout.AttackDirection(Turn), -shotDirection);
 
         private float PenaltyAngle(Disc disc)
         {
@@ -505,7 +558,7 @@ namespace FutebolDeBotao
             return Vector2.SignedAngle(back, disc.Body.position - ball.Body.position);
         }
 
-        /// <summary>Arrastar (ou setas/A-D) gira o batedor em volta da bola, dentro do arco.</summary>
+        /// <summary>Arrastar (ou setas/A-D) gira o batedor em volta da bola (no pênalti, dentro do arco).</summary>
         private void UpdatePenaltySetup()
         {
             var disc = freeKickDisc;
@@ -523,7 +576,7 @@ namespace FutebolDeBotao
                     if (offset.sqrMagnitude > 0.01f && offset.magnitude < 3f)
                     {
                         Vector2 back = -FieldLayout.AttackDirection(disc.Side);
-                        PlacePenaltyDisc(disc, Vector2.SignedAngle(back, offset));
+                        TryPlaceKicker(disc, Vector2.SignedAngle(back, offset));
                         return;
                     }
                 }
@@ -534,13 +587,70 @@ namespace FutebolDeBotao
             float axis = 0f;
             if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed) axis -= 1f;
             if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed) axis += 1f;
-            if (axis != 0f) PlacePenaltyDisc(disc, PenaltyAngle(disc) + axis * 90f * Time.deltaTime);
+            if (axis != 0f) TryPlaceKicker(disc, PenaltyAngle(disc) + axis * 90f * Time.deltaTime);
         }
 
         private void FinishPenaltySetup()
         {
-            message = $"Pênalti: {TeamName(Turn)} vai chutar!";
-            BeginShotCall();
+            if (setupIsPenalty)
+            {
+                message = $"Pênalti: {TeamName(Turn)} vai chutar!";
+                BeginShotCall();
+            }
+            else if (InAttackHalf(ball.Body.position, Turn))
+            {
+                // GDD: tiro livre no campo de ataque é chute anunciado.
+                message = $"Tiro livre: {TeamName(Turn)} vai chutar!";
+                BeginShotCall();
+            }
+            else
+            {
+                message = $"Tiro livre do {TeamName(Turn)}.";
+                Enter(MatchState.Aim);
+            }
+        }
+
+        /// <summary>
+        /// Lugar livre para um botão: dentro do campo, longe de <paramref name="ballClearance"/> do centro da bola,
+        /// sem encostar em outro botão (menos <paramref name="ignore"/>) nem no goleiro.
+        /// </summary>
+        private bool IsFreeSpot(Vector2 position, Disc disc, Disc ignore, float ballClearance)
+        {
+            float radius = disc.Radius;
+            if (Mathf.Abs(position.x) > FieldLayout.HalfWidth - radius - 0.02f) return false;
+            if (Mathf.Abs(position.y) > FieldLayout.HalfHeight - radius - 0.02f) return false;
+            if ((position - ball.Body.position).sqrMagnitude < ballClearance * ballClearance) return false;
+
+            foreach (var other in allDiscs)
+            {
+                if (other == disc || other == ignore || !other.isActiveAndEnabled) continue;
+                float minDistance = radius + other.Radius + 0.05f;
+                if ((position - other.Body.position).sqrMagnitude < minDistance * minDistance) return false;
+            }
+
+            foreach (var keeper in keepers)
+            {
+                if (!keeper.isActiveAndEnabled || !keeper.TryGetComponent(out Collider2D keeperCollider)) continue;
+                var bounds = keeperCollider.bounds;
+                float gap = radius + 0.05f;
+                if (bounds.SqrDistance(new Vector3(position.x, position.y, bounds.center.z)) < gap * gap) return false;
+            }
+            return true;
+        }
+
+        /// <summary>O lugar livre mais perto de <paramref name="desired"/>, procurando em anéis cada vez maiores.</summary>
+        private Vector2 FindFreeSpot(Vector2 desired, Disc disc, Disc ignore, float ballClearance)
+        {
+            if (IsFreeSpot(desired, disc, ignore, ballClearance)) return desired;
+            const int directions = 24;
+            for (float distance = 0.15f; distance <= 8f; distance += 0.15f)
+            for (int i = 0; i < directions; i++)
+            {
+                float angle = i * Mathf.PI * 2f / directions;
+                Vector2 candidate = desired + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * distance;
+                if (IsFreeSpot(candidate, disc, ignore, ballClearance)) return candidate;
+            }
+            return desired;
         }
 
         /// <summary>Afasta botões que estejam em cima do lugar da bola no tiro livre.</summary>

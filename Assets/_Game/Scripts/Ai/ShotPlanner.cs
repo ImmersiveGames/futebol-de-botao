@@ -100,6 +100,86 @@ namespace FutebolDeBotao
             return list;
         }
 
+        /// <summary>Alvos do tiro livre e do pênalti: o gol quando o chute vale gol, senão pontos à frente da bola.</summary>
+        public List<Vector2> KickTargets(bool scoring) => scoring ? GoalTargets() : AdvanceTargets(ball.Body.position);
+
+        /// <summary>
+        /// Jogadas de posicionamento: o botão anda até um ponto sem tocar em nada (a vez passa por "errou a bola").
+        /// Pontos: na frente do próprio gol (cobrindo a bola), entre a bola e os adversários mais perto dela e atrás
+        /// da bola, pronto para o próximo ataque. <see cref="ShotCandidate.Target"/> é onde o botão deve parar.
+        /// </summary>
+        public List<ShotCandidate> PositionCandidates(IReadOnlyList<Disc> usable, IReadOnlyList<Disc> allDiscs)
+        {
+            var list = new List<ShotCandidate>();
+            if (usable.Count == 0) return list;
+            Vector2 ballPosition = ball.Body.position;
+            float discRadius = usable[0].Radius;
+            float near = ball.Radius + discRadius + 0.45f;
+            bool defending = Progress(ballPosition) < 0f;
+
+            var points = new List<(Vector2 point, float value)>();
+            Vector2 ownGoal = new(0f, FieldLayout.GoalLineY(side));
+            Vector2 toOwnGoal = ownGoal - ballPosition;
+            if (toOwnGoal.magnitude > near + 0.5f)
+                points.Add((ballPosition + toOwnGoal.normalized * near, defending ? 14f : 7f));
+
+            // Adversários mais perto da bola: o botão para no meio do caminho deles.
+            var opponents = new List<Disc>();
+            foreach (var disc in allDiscs)
+                if (disc != null && disc.isActiveAndEnabled && disc.Side != side) opponents.Add(disc);
+            opponents.Sort((a, b) => (a.Body.position - ballPosition).sqrMagnitude.CompareTo((b.Body.position - ballPosition).sqrMagnitude));
+            for (int i = 0; i < Mathf.Min(2, opponents.Count); i++)
+            {
+                Vector2 toOpponent = opponents[i].Body.position - ballPosition;
+                if (toOpponent.magnitude < near + discRadius * 2f + 0.1f) continue;
+                points.Add((ballPosition + toOpponent.normalized * near, 11f - i * 2f));
+            }
+
+            Vector2 behind = ballPosition - Attack * near;
+            points.Add((behind, defending ? 5f : 9f));
+
+            float maxX = FieldLayout.HalfWidth - discRadius - 0.05f;
+            float maxY = FieldLayout.HalfHeight - discRadius - 0.05f;
+
+            foreach (var disc in usable)
+            foreach (var (rawPoint, value) in points)
+            {
+                Vector2 point = new(Mathf.Clamp(rawPoint.x, -maxX, maxX), Mathf.Clamp(rawPoint.y, -maxY, maxY));
+                Vector2 travel = point - disc.Body.position;
+                float distance = travel.magnitude;
+                if (distance < 0.3f) continue;
+                Vector2 direction = travel / distance;
+                if (!PathClear(disc, direction, distance)) continue;
+
+                // Com o damping da Unity o botão anda uns v / damping.
+                float speed = distance * Mathf.Max(disc.Body.linearDamping, 0.1f);
+                float power = speed * disc.Body.mass / Mathf.Max(tuning.maxImpulse, 0.01f);
+                if (power > 1f) continue;
+
+                list.Add(new ShotCandidate
+                {
+                    Disc = disc,
+                    Direction = direction,
+                    Power01 = Mathf.Max(power, MinPower),
+                    Target = point,
+                    PreScore = value - distance * 0.5f
+                });
+            }
+
+            list.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
+            return list;
+        }
+
+        /// <summary>Nota de um posicionamento simulado. Nulo: não serve (tocou na bola, fez falta ou parou longe).</summary>
+        public float? ScorePosition(in SimResult result, in ShotCandidate candidate)
+        {
+            if (result.Foul || result.TouchedBall || result.LastTouchSide != null || result.GoalOf != null) return null;
+            if ((result.BallEnd - (Vector2)ball.Body.position).sqrMagnitude > 0.01f) return null;
+            float miss = Vector2.Distance(result.ShooterEnd, candidate.Target);
+            if (miss > 0.8f) return null;
+            return candidate.PreScore - miss * 4f;
+        }
+
         /// <summary>
         /// Vale anunciar o "Vai chutar"? Sim quando a bola está perto do gol e existe um chute com caminho livre
         /// até a bola e da bola até o gol (sem contar o goleiro, que ainda vai se mexer).
@@ -224,6 +304,19 @@ namespace FutebolDeBotao
                 else blocked = true;
                 return;
             }
+        }
+
+        /// <summary>O botão chega até o ponto sem encostar em nada (bola, botão, goleiro ou parede).</summary>
+        private bool PathClear(Disc disc, Vector2 direction, float distance)
+        {
+            int count = Physics2D.CircleCast(disc.Body.position, disc.Radius + 0.02f, direction, NoFilter, hits, distance + 0.05f);
+            for (int i = 0; i < count; i++)
+            {
+                var collider = hits[i].collider;
+                if (collider.isTrigger || collider.attachedRigidbody == disc.Body) continue;
+                return false;
+            }
+            return true;
         }
 
         /// <summary>Passa um círculo do tamanho da bola até o alvo; adversário ou goleiro no caminho atrapalham.</summary>

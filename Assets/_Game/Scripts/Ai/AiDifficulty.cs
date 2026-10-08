@@ -18,6 +18,13 @@ namespace FutebolDeBotao
         [Tooltip("Quanto a IA evita jogadas com risco de falta. 1 = evita bastante; menor = arrisca mais.")]
         [Range(0f, 1f)] public float foulCaution = 1f;
 
+        [Header("Posicionamento")]
+        [Tooltip("Quando a melhor jogada é ruim (falta provável ou sem boa chance na bola), chance de só reposicionar um " +
+                 "botão sem tocar na bola, em vez de arriscar. A vez passa. Fácil ~0,2; Médio ~0,5; Difícil ~0,8.")]
+        [Range(0f, 1f)] public float repositionChance = 0.5f;
+        [Tooltip("Nota abaixo da qual a melhor jogada conta como ruim.")]
+        public float poorShotScore = 0f;
+
         [Header("Erro na execução")]
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
         [Min(0f)] public float angleErrorDegrees = 4f;
