@@ -224,11 +224,14 @@ namespace FutebolDeBotao
 
         private void Update()
         {
+            // Com o Jogador 1 na sessão, o Esc é dele (Pause PlayerInput Binding do framework); sem ninguém, lê o teclado direto.
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && pauseTrigger != null) pauseTrigger.TogglePause();
+            if (!CoachActor.AnyPauseBound && keyboard != null && keyboard.escapeKey.wasPressedThisFrame && pauseTrigger != null)
+                pauseTrigger.TogglePause();
             if (Paused) return;
 
-            if (keyboard != null && keyboard.rKey.wasPressedThisFrame && restartTrigger != null)
+            // R: só quem age agora (na vez da IA, o Reiniciar fica na pausa).
+            if (!IsAi(ActingSide) && MatchInput.For(ActingSide).RestartPressedThisFrame && restartTrigger != null)
             {
                 restartTrigger.RequestActivityRestart();
                 return;
@@ -242,7 +245,7 @@ namespace FutebolDeBotao
                 case MatchState.Aim:
                     if (clock <= 0f) EndMatch();
                     else if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
-                    else if (!IsAi(Turn) && keyboard != null && keyboard.vKey.wasPressedThisFrame) TryCallShot();
+                    else if (!IsAi(Turn) && MatchInput.For(Turn).ShotCallPressedThisFrame) TryCallShot();
                     break;
 
                 case MatchState.ShotAim:
@@ -251,13 +254,13 @@ namespace FutebolDeBotao
                     break;
 
                 case MatchState.ShotCall:
-                    bool ready = !IsAi(Opponent(Turn)) && keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
+                    bool ready = !IsAi(Opponent(Turn)) && MatchInput.For(Opponent(Turn)).ConfirmPressedThisFrame;
                     if (stateTimer <= 0f || ready) EnterShotAim();
                     break;
 
                 case MatchState.PenaltySetup:
                     UpdatePenaltySetup();
-                    bool placed = !IsAi(Turn) && keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
+                    bool placed = !IsAi(Turn) && MatchInput.For(Turn).ConfirmPressedThisFrame;
                     if (stateTimer <= 0f || placed) FinishPenaltySetup();
                     break;
 
@@ -282,6 +285,7 @@ namespace FutebolDeBotao
             aim.Cancel();
             // Na vez da IA o ponteiro não mira.
             aim.InputEnabled = (state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick) && !IsAi(Turn);
+            aim.InputSide = Turn;
             aim.BallKickMode = state == MatchState.GoalKick;
             aim.CanSelect = CanUse;
 
@@ -581,13 +585,13 @@ namespace FutebolDeBotao
             var disc = freeKickDisc;
             if (disc == null || IsAi(Turn)) return;
 
-            var pointer = Pointer.current;
-            if (pointer != null && pointer.press.isPressed && !UiPointer.IsOverUi())
+            var input = MatchInput.For(Turn);
+            if (input.PointerHeld && input.TryGetPointer(out var screen) && !UiPointer.IsOverUi())
             {
                 worldCamera = WorldCamera.Resolve(worldCamera);
                 if (worldCamera != null)
                 {
-                    Vector2 world = WorldCamera.ScreenToWorld(worldCamera, pointer.position.ReadValue());
+                    Vector2 world = WorldCamera.ScreenToWorld(worldCamera, screen);
                     Vector2 offset = world - ball.Body.position;
                     // Toques longe da bola (no HUD, por exemplo) não mexem o botão.
                     if (offset.sqrMagnitude > 0.01f && offset.magnitude < 3f)
@@ -599,11 +603,7 @@ namespace FutebolDeBotao
                 }
             }
 
-            var keyboard = Keyboard.current;
-            if (keyboard == null) return;
-            float axis = 0f;
-            if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed) axis -= 1f;
-            if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed) axis += 1f;
+            float axis = input.KeeperAxis;
             if (axis != 0f) TryPlaceKicker(disc, PenaltyAngle(disc) + axis * 90f * Time.deltaTime);
         }
 

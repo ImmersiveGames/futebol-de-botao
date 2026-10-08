@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace FutebolDeBotao
 {
@@ -31,13 +30,14 @@ namespace FutebolDeBotao
             var keeper = FindKeeper(ControlledSide.Value);
             if (keeper == null) return;
 
-            var pointer = Pointer.current;
-            if (pointer != null && pointer.press.isPressed && !UiPointer.IsOverUi())
+            // Lê o técnico (Actor) do defensor, ou o mouse/teclado direto quando o time não tem técnico.
+            var input = MatchInput.For(ControlledSide.Value);
+            if (input.PointerHeld && input.TryGetPointer(out var screen) && !UiPointer.IsOverUi())
             {
                 worldCamera = WorldCamera.Resolve(worldCamera);
                 if (worldCamera != null)
                 {
-                    float x = WorldCamera.ScreenToWorld(worldCamera, pointer.position.ReadValue()).x;
+                    float x = WorldCamera.ScreenToWorld(worldCamera, screen).x;
                     if (Mathf.Abs(x) <= fieldHalfWidth)
                     {
                         keeper.SetTargetX(x);
@@ -46,11 +46,7 @@ namespace FutebolDeBotao
                 }
             }
 
-            var keyboard = Keyboard.current;
-            if (keyboard == null) return;
-            float axis = 0f;
-            if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed) axis -= 1f;
-            if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed) axis += 1f;
+            float axis = input.KeeperAxis;
             if (axis != 0f) keeper.SetTargetX(keeper.transform.position.x + axis * keyboardSpeed * Time.deltaTime);
         }
 

@@ -65,9 +65,24 @@ Abertura --(qualquer tecla, clique ou toque)--> Menu --Iniciar--> Partida --fim 
 - **Abertura:** não avança sozinha; mostra "Aperte qualquer botão ou toque na tela".
 - **Menu:** "Iniciar" e "Opções da partida" (duração, botões por time, goleiro, toques, gol após parede, ajuda de mira). As opções ficam numa cópia em memória (`MatchSession`); o `OpcoesDaPartida.asset` não muda. Salvar entre sessões fica para a fase 4.
 - **Partida:** começa quando a Activity **Jogo** entra (`IActivityContentLifecycleReceiver`), não mais no `Start()`. `R` e "Reiniciar partida" usam o `ActivityRestartTrigger` do framework (Reset, Clear e Reenter da Activity).
-- **Pausa:** botão "Pausa" no HUD e `Esc` chamam o `PauseRequestTrigger`. O framework põe `Time.timeScale = 0` (física, relógio e timer de mira param) e o adaptador mostra a tela de pausa. A mira e o goleiro ignoram o ponteiro na pausa. Ainda sem Player do framework: os jogadores como Actors vêm depois, junto com uma feature do framework para jogadores revezando o mesmo controle.
+- **Pausa:** botão "Pausa" no HUD e `Esc` chamam o `PauseRequestTrigger`. O framework põe `Time.timeScale = 0` (física, relógio e timer de mira param) e o adaptador mostra a tela de pausa. A mira e o goleiro ignoram o ponteiro na pausa. Com o Jogador 1 na sessão, o `Esc` é dele (`PlayerPauseInput`, mapa Global).
 - **Resultado:** placar final e vencedor, com "Jogar de novo" (Route Partida) e "Menu".
 - **HUD (`MatchHud`, uGUI montado em código):** com a tela em pé (celular, versão principal) usa os 4 cantos ao lado dos gols, 2 por jogador; os de cima ficam girados 180° para o jogador de cima. Canto esquerdo: placar, relógio e Pausa. Canto direito: de quem é a vez, toques, timer da jogada (vermelho nos últimos 5 s) e o botão de ação ("Vai chutar" ou "Pronto"). As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador. Com a tela deitada (PC) fica um painel provisório à esquerda. O `TurnHighlight` faz brilhar os botões que podem jogar (mais forte no que está sendo mirado), a bola no tiro de meta e o goleiro no "Vai chutar". Toques no HUD não viram mira nem movem o goleiro (`UiPointer`).
+
+## Jogadores (Actors do framework)
+
+Plano: [Plano dos Actors](https://claude.ai/code/artifact/e05b681a-5319-4b4e-a983-a2c8ec3b502c). Menu **Futebol de Botão > Criar jogadores** (rode antes de "Criar telas"). Ele cria em `Assets/_Game/App/Jogadores/`:
+
+- `Controles.inputactions`: mapa **Jogo** (Apontar, Pressionar, Cancelar, MoverGoleiro, Confirmar, VaiChutar, Reiniciar) e mapa **Global** (Pausa = Esc), esquemas "Teclado e mouse" e "Toque". Só é criado se ainda não existe; depois pode editar à vontade.
+- perfis: `Tecnico` (ActorProfile), `Jogador1` (player.1, Azul, embaixo), `Jogador2` (player.2, Vermelho, em cima) e `SessaoDeJogadores` (Manager-Provisioned, Join aberto);
+- prefabs: `Tecnico` (Actor: `PlayerActorRuntimeHost`, `PlayerActorDeclaration`, `PlayerGameplayInputReader`, `CoachActor`) e `Jogador` (host: `PlayerInput`, `LocalPlayerHostAuthoring`, `UnityPlayerInputGateAdapter`, `PlayerPauseInput`);
+- liga a Player Session na Game Application, a participação na Activity **Jogo** (todos que entraram, sem participante também vale, exige Gameplay Ready) e o `Local Player Provisioning` na `PersistentContent` (2 jogadores no máximo).
+
+Como funciona hoje:
+
+- **Contra a IA:** ao escolher o nível, o Menu faz o Join do Jogador 1 (`MenuPlayers`). Na partida o Azul lê pelo `CoachActor` (leitor do framework) e o `MatchPlayers` bloqueia o Jogador 1 fora da vez dele (bloqueio de disponibilidade, IF-ADR-044). `R` vale só para quem age; na vez da IA, o Reiniciar fica na pausa.
+- **2 jogadores:** o Menu tira todo mundo da sessão e a partida lê o mouse/teclado direto, como antes. Os dois times como Actors esperam a feature do framework para dois jogadores no mesmo dispositivo (o Join com um dispositivo que já é de outro jogador é recusado).
+- **Partida aberta direto no editor:** o `MatchPlayers` faz um Join de teste do Jogador 1.
 
 ## IA (fase 3)
 

@@ -6,6 +6,7 @@ using Immersive.Framework.ActivityRestart;
 using Immersive.Framework.Authoring;
 using Immersive.Framework.GameFlow;
 using Immersive.Framework.Pause;
+using Immersive.Framework.PlayerParticipation;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -254,6 +255,13 @@ namespace FutebolDeBotao.Editor
             var trigger = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "menu.iniciar");
             menu.Configure(options, trigger, main.gameObject, optionsPanel.gameObject, modePanel.gameObject, values);
 
+            // Jogadores: contra a IA o Menu faz o Join do Jogador 1 (escopo Route).
+            var players = new GameObject("Jogadores");
+            var menuObserver = AddObserver(players, LocalPlayerProvisioningConsumerScope.Route);
+            var menuPlayers = players.AddComponent<MenuPlayers>();
+            menuPlayers.Configure(menuObserver);
+            menu.SetPlayers(menuPlayers);
+
             EditorSceneManager.SaveScene(scene, MenuScenePath);
         }
 
@@ -323,6 +331,12 @@ namespace FutebolDeBotao.Editor
 
             BuildPauseScreen(pause, restart, toMenu);
 
+            // Jogadores: só o da vez joga; os outros (e o Jogador 1 na vez da IA) ficam bloqueados pelo framework.
+            var players = new GameObject("Jogadores");
+            players.transform.SetParent(framework, false);
+            var matchObserver = AddObserver(players, LocalPlayerProvisioningConsumerScope.Activity);
+            players.AddComponent<MatchPlayers>().Configure(matchObserver, match);
+
             // HUD: cantos ao lado dos gols no celular (em pé), painel à esquerda no PC. Monta a UI sozinho no Awake.
             var hud = new GameObject(MatchHudName).AddComponent<MatchHud>();
             hud.Configure(match);
@@ -353,6 +367,15 @@ namespace FutebolDeBotao.Editor
             so.FindProperty("canvasGroup").objectReferenceValue = group;
             so.FindProperty("surfaceRoot").objectReferenceValue = panel.gameObject;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static PlayerSessionObserver AddObserver(GameObject target, LocalPlayerProvisioningConsumerScope scope)
+        {
+            var observer = target.AddComponent<PlayerSessionObserver>();
+            var so = new SerializedObject(observer);
+            so.FindProperty("scope").intValue = (int)scope;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return observer;
         }
 
         private static GameObject FindRoot(Scene scene, string objectName)

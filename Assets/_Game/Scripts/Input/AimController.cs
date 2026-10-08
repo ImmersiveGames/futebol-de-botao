@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace FutebolDeBotao
 {
@@ -33,6 +32,8 @@ namespace FutebolDeBotao
 
         /// <summary>Desligado, a mira ignora o ponteiro (fora da vez de mirar).</summary>
         public bool InputEnabled { get; set; } = true;
+        /// <summary>Time cujo input a mira lê (o da vez).</summary>
+        public TeamSide InputSide { get; set; }
         /// <summary>Filtro de quais botões podem ser escolhidos agora (ex.: só o time da vez). Nulo libera todos.</summary>
         public Func<Disc, bool> CanSelect { get; set; }
         /// <summary>Ligado, só a bola pode ser chutada (tiro de meta); botões ficam bloqueados.</summary>
@@ -61,9 +62,8 @@ namespace FutebolDeBotao
             // A IA está mirando: o ponteiro não interfere.
             if (scripted) return;
 
-            var pointer = Pointer.current;
             worldCamera = WorldCamera.Resolve(worldCamera);
-            if (pointer == null || worldCamera == null || tuning == null) return;
+            if (worldCamera == null || tuning == null) return;
 
             // Na pausa do framework (Time.timeScale = 0) a mira não lê o ponteiro.
             if (!InputEnabled || Time.timeScale <= 0f)
@@ -78,13 +78,16 @@ namespace FutebolDeBotao
                 return;
             }
 
-            pointerWorld = WorldCamera.ScreenToWorld(worldCamera, pointer.position.ReadValue());
+            // Lê o técnico (Actor) do time da vez, ou o mouse/teclado direto quando o time não tem técnico.
+            var input = MatchInput.For(InputSide);
+            if (!input.TryGetPointer(out var screen)) return;
+            pointerWorld = WorldCamera.ScreenToWorld(worldCamera, screen);
 
-            if (pointer.press.wasPressedThisFrame && !UiPointer.IsOverUi()) TryBegin();
+            if (input.PointerPressedThisFrame && !UiPointer.IsOverUi()) TryBegin();
 
             if (!IsAiming) return;
 
-            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+            if (input.CancelPressedThisFrame)
             {
                 Cancel();
                 return;
@@ -92,7 +95,7 @@ namespace FutebolDeBotao
 
             UpdateAim();
 
-            if (pointer.press.wasReleasedThisFrame) Release();
+            if (input.PointerReleasedThisFrame) Release();
         }
 
         private void TryBegin()

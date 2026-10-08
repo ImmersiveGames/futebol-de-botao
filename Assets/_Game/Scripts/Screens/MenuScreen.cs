@@ -29,6 +29,8 @@ namespace FutebolDeBotao
         [SerializeField] private GameObject mainPanel;
         [SerializeField] private GameObject optionsPanel;
         [SerializeField] private GameObject modePanel;
+        [Tooltip("Acerta quem está na sessão (Jogador 1 contra a IA). Vazio: a partida lê o mouse/teclado direto.")]
+        [SerializeField] private MenuPlayers players;
         [Tooltip("Um texto de valor por opção, na ordem de MatchOptionKind.")]
         [SerializeField] private Text[] valueLabels = new Text[0];
 
@@ -65,14 +67,18 @@ namespace FutebolDeBotao
         {
             MatchSession.VsAi = true;
             MatchSession.AiLevel = (AiLevel)Mathf.Clamp(level, 0, 2);
+            if (players != null) players.PrepareVsAi();
             RequestMatch();
         }
 
         public void PlayTwoPlayers()
         {
             MatchSession.VsAi = false;
+            if (players != null) players.PrepareTwoPlayers();
             RequestMatch();
         }
+
+        public void SetPlayers(MenuPlayers menuPlayers) => players = menuPlayers;
 
         private void RequestMatch()
         {
