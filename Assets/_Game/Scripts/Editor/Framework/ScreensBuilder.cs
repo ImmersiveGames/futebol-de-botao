@@ -322,12 +322,13 @@ namespace FutebolDeBotao.Editor
         private static void BuildPauseScreen(PauseRequestTrigger pause, ActivityRestartTrigger restart, RouteRequestTrigger toMenu)
         {
             var canvas = CreateCanvas(PauseCanvasName, 100);
-            var group = canvas.gameObject.AddComponent<CanvasGroup>();
             var pauseMenu = canvas.gameObject.AddComponent<PauseMenu>();
             pauseMenu.Configure(pause, restart, toMenu);
 
             // O adaptador do framework mostra e esconde o painel; o PauseMenu fica no Canvas, que nunca é desligado.
             var panel = CreatePanel(canvas, "Painel", PanelColor, Vector2.zero, Vector2.one);
+            // O framework exige o CanvasGroup no mesmo objeto do Surface Root.
+            var group = panel.gameObject.AddComponent<CanvasGroup>();
             CreateText(panel.transform, "Título", "Pausa", 64, new Vector2(0f, 260f), new Vector2(600f, 110f), FontStyle.Bold);
             CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 80f), new Vector2(420f, 90f), pauseMenu.Resume);
             CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -40f), new Vector2(420f, 90f), pauseMenu.Restart);

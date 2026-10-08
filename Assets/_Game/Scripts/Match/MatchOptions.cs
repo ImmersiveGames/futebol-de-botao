@@ -26,7 +26,7 @@ namespace FutebolDeBotao
         public AimAssistMode aimAssist = AimAssistMode.Short;
         [Min(1f)] public float aimTimeSeconds = 15f;
         [Tooltip("Tempo que o defensor tem para ajustar o goleiro depois do \"Vai chutar\".")]
-        [Min(1f)] public float shotCallSeconds = 5f;
+        [Min(1f)] public float shotCallSeconds = 30f;
 
         [Header("Pênalti")]
         [Tooltip("Tempo para o atacante posicionar o botão atrás da bola.")]
