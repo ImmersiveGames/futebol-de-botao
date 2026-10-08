@@ -70,6 +70,26 @@ namespace FutebolDeBotao
 
         public void ResetToStart() => ResetTo(startPosition);
 
+        // Botão que já estava encostado na bola e a empurra não gera batida nova ("Enter"); conta pelo "Stay".
+        private void OnCollisionStay2D(Collision2D collision)
+        {
+            if (!Disc.IsPushing(collision)) return;
+            var disc = collision.collider.GetComponent<Disc>();
+            if (disc != null)
+            {
+                LastDiscTouch = disc;
+                LastTouchSide = disc.Side;
+                return;
+            }
+
+            var keeper = collision.collider.GetComponent<Goalkeeper>();
+            if (keeper != null)
+            {
+                LastDiscTouch = null;
+                LastTouchSide = keeper.Side;
+            }
+        }
+
         private void OnCollisionEnter2D(Collision2D collision)
         {
             if (collision.collider.GetComponent<Wall>() != null)

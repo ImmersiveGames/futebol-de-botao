@@ -92,6 +92,22 @@ namespace FutebolDeBotao
             }
         }
 
+        // Botão já encostado na bola antes do peteleco: a Unity não avisa uma batida nova ("Enter"), só que o
+        // contato continua ("Stay"). Se o botão empurra a bola nesse contato, conta como tocar na bola.
+        private void OnCollisionStay2D(Collision2D collision)
+        {
+            if (!shooting || TouchedBallThisShot) return;
+            if (collision.collider.GetComponent<Ball>() != null && IsPushing(collision)) TouchedBallThisShot = true;
+        }
+
+        /// <summary>O contato está trocando força (não é só um encostar parado).</summary>
+        public static bool IsPushing(Collision2D collision)
+        {
+            for (int i = 0; i < collision.contactCount; i++)
+                if (collision.GetContact(i).normalImpulse > 0.0001f) return true;
+            return false;
+        }
+
         private bool TouchingBall()
         {
             int count = body.GetContacts(contacts);
