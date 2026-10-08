@@ -32,7 +32,7 @@ namespace FutebolDeBotao.Editor
             AssetDatabase.Refresh();
 
             var output = LoadOrCreate<CameraOutputDefinition>(OutputPath);
-            CameraDefinitionIdentityEditorUtility.GenerateMissingId(output);
+            CameraOutputDefinitionIdentityEditorUtility.GenerateMissingId(output);
             var fixedBehavior = LoadOrCreate<FixedCameraRigBehaviorDefinition>(FixedPath);
             AssetDatabase.SaveAssets();
 

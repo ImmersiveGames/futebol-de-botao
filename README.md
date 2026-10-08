@@ -18,7 +18,7 @@ Jogo de futebol de botão em Unity, 2D em pixel art, com campo vertical. Primeir
 3. Se a Unity perguntar sobre o novo Input System, aceite e deixe reiniciar. Confira em **Project Settings > Player > Active Input Handling** que está em `Input System Package (New)` ou `Both`.
 4. Faça o commit da pasta `ProjectSettings/` e dos `.meta` gerados.
 
-> Foundation e Logging vêm direto do GitHub (fixados por commit no `manifest.json`), porque as versões 0.2.2 e 0.2.3 que o framework 1.1.0-preview.3 pede ainda não têm release publicada. Quando forem publicadas no OpenUPM, dá para voltar para versões normais.
+> Foundation e Logging vêm direto do GitHub (fixados por commit no `manifest.json`), porque as versões 0.2.2 e 0.2.3 que o framework 1.1.0-preview.5 pede ainda não têm release publicada. Quando forem publicadas no OpenUPM, dá para voltar para versões normais.
 
 ## Cena da partida
 
