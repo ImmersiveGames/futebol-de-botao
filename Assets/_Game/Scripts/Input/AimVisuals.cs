@@ -56,11 +56,13 @@ namespace FutebolDeBotao
             float radius = aim.AimRadius;
             Vector2 dir = aim.Direction;
 
-            // Barra de força ao lado do botão (ou da bola), de verde a vermelho.
-            Vector2 side = new Vector2(-dir.y, dir.x) * (radius + 0.25f);
-            Vector2 barStart = origin + side - dir * (powerBarLength * 0.5f);
+            // Barra de força parada ao lado do botão (ou da bola), em pé e crescendo para cima, de verde a vermelho.
+            // Fica à direita; perto da parede da direita passa para a esquerda.
+            float offset = radius + 0.25f;
+            float sideX = origin.x + offset <= FieldLayout.HalfWidth - 0.1f ? offset : -offset;
+            Vector2 barStart = origin + new Vector2(sideX, -powerBarLength * 0.5f);
             powerBar.SetPosition(0, barStart);
-            powerBar.SetPosition(1, barStart + dir * (powerBarLength * aim.Power01));
+            powerBar.SetPosition(1, barStart + Vector2.up * (powerBarLength * aim.Power01));
             var barColor = Color.Lerp(Color.green, Color.red, aim.Power01);
             powerBar.startColor = barColor;
             powerBar.endColor = barColor;
