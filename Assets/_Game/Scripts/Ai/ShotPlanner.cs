@@ -38,6 +38,7 @@ namespace FutebolDeBotao
         private readonly TeamSide side;
         private readonly PhysicsTuning tuning;
         private readonly Ball ball;
+        private Goalkeeper[] keepers;
 
         public ShotPlanner(TeamSide aiSide, PhysicsTuning physicsTuning, Ball matchBall)
         {
@@ -392,7 +393,10 @@ namespace FutebolDeBotao
             Vector2 end = result.BallEnd;
             score += Progress(end - start) * 3f;
 
-            if (FieldLayout.InKeeperZone(end, Opponent)) score -= 15f;
+            // Bola do goleiro adversário (faixa, colada nele ou na área depois de tocar nele) vira tiro de meta dele.
+            keepers ??= Object.FindObjectsByType<Goalkeeper>();
+            bool hasKeeper = KeeperBall.Find(keepers, Opponent) != null;
+            if (KeeperBall.Owner(end, ball.Radius, result.TouchedKeeperOf, keepers, hasKeeper) == Opponent) score -= 15f;
             if (keepsTurn && Progress(end) > 0f) score += 5f;
 
             if (!keepsTurn)

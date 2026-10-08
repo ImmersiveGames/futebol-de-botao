@@ -24,8 +24,13 @@ namespace FutebolDeBotao
         public event Action<Disc, Disc, Vector2> Fouled;
 
         private bool shooting;
+        private bool shotDisc;
         private readonly ContactPoint2D[] contacts = new ContactPoint2D[16];
         public Rigidbody2D Body => body;
+        /// <summary>Este é o botão do peteleco atual (empurra a bola; os outros fazem a bola rebater).</summary>
+        public bool IsShotDisc => shotDisc;
+        /// <summary>Velocidade antes do passo de física atual (para refazer a batida da bola).</summary>
+        public Vector2 VelocityBeforeStep { get; private set; }
         public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
 
         private void Awake()
@@ -65,10 +70,18 @@ namespace FutebolDeBotao
         public void BeginShot()
         {
             shooting = true;
+            shotDisc = true;
             TouchedBallThisShot = false;
         }
 
-        public void EndShot() => shooting = false;
+        public void EndShot()
+        {
+            shooting = false;
+            shotDisc = false;
+        }
+
+        // Roda antes do passo de física; as batidas são avisadas depois dele.
+        private void FixedUpdate() => VelocityBeforeStep = body.linearVelocity;
 
         private void OnCollisionEnter2D(Collision2D collision)
         {

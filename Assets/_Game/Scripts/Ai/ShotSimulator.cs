@@ -18,6 +18,8 @@ namespace FutebolDeBotao
         /// <summary>Time do último botão ou goleiro que tocou a bola. Nulo: ninguém.</summary>
         public TeamSide? LastTouchSide;
         public bool BallTouchedWall;
+        /// <summary>Goleiro que a bola tocou na jogada (o último). Nulo: nenhum.</summary>
+        public TeamSide? TouchedKeeperOf;
         /// <summary>A bola entrou no gol de quem defende este lado. Nulo: não entrou.</summary>
         public TeamSide? GoalOf;
         public Vector2 BallEnd;
@@ -43,6 +45,8 @@ namespace FutebolDeBotao
             public Kind Kind;
             public TeamSide Side;
             public bool WasOnWall;
+            public bool WasOnBall;
+            public Vector2 VelocityBefore;
         }
 
         private const float MaxSeconds = 4f;
@@ -55,6 +59,7 @@ namespace FutebolDeBotao
         private readonly HashSet<Collider2D> walls = new();
         private readonly HashSet<Collider2D> pushingWalls = new();
         private readonly ContactPoint2D[] contacts = new ContactPoint2D[16];
+        private readonly HashSet<SimBody> touching = new();
         private Scene scene;
         private PhysicsScene2D physics;
         private SimBody ball;
@@ -113,6 +118,7 @@ namespace FutebolDeBotao
                 body.Copy.linearVelocity = Vector2.zero;
                 body.Copy.angularVelocity = 0f;
                 body.WasOnWall = false;
+                body.WasOnBall = false;
             }
 
             SimBody shot = shooter != null && bySource.TryGetValue(shooter, out var found) ? found : ball;
@@ -125,8 +131,10 @@ namespace FutebolDeBotao
 
             for (int step = 0; step < maxSteps; step++)
             {
+                foreach (var body in bodies) body.VelocityBefore = body.Copy.linearVelocity;
                 physics.Simulate(dt);
                 TotalSteps++;
+                ReboundOffRestingDiscs(shot, ref result);
                 result.Steps = step + 1;
                 bool moving = false;
 
@@ -208,6 +216,29 @@ namespace FutebolDeBotao
             result.BallEnd = ball.Copy.position;
             result.ShooterEnd = shot.Copy.position;
             return result;
+        }
+
+        /// <summary>Mesma regra do jogo (BallRebound): a bola rebate nos botões parados que não são o do peteleco.</summary>
+        private void ReboundOffRestingDiscs(SimBody shot, ref SimResult result)
+        {
+            int count = ball.Collider.GetContacts(contacts);
+            touching.Clear();
+            for (int i = 0; i < count; i++)
+            {
+                var other = contacts[i].collider == ball.Collider ? contacts[i].otherCollider : contacts[i].collider;
+                if (!byCollider.TryGetValue(other, out var otherBody)) continue;
+                if (otherBody.Kind == Kind.Keeper)
+                {
+                    result.TouchedKeeperOf = otherBody.Side;
+                    continue;
+                }
+                if (otherBody.Kind != Kind.Disc || !touching.Add(otherBody)) continue;
+                // Só a batida nova, como o OnCollisionEnter2D do jogo.
+                if (otherBody != shot && !otherBody.WasOnBall && tuning != null)
+                    BallRebound.Apply(ball.Copy, ball.VelocityBefore, otherBody.Copy, otherBody.VelocityBefore, tuning.bounciness);
+            }
+            foreach (var body in bodies)
+                if (body.Kind == Kind.Disc) body.WasOnBall = touching.Contains(body);
         }
 
         /// <summary>Mesma regra do WallElastic: sai da parede com um pouco de ganho.</summary>

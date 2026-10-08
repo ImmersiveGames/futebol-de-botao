@@ -405,18 +405,43 @@ namespace FutebolDeBotao
             else PassTurn("Acabaram os toques.");
         }
 
-        /// <summary>Bola parada na faixa do goleiro vira tiro de meta para o time dele, não importa quem jogou.</summary>
+        /// <summary>
+        /// Bola do goleiro (faixa do goleiro, colada nele ou na área depois de tocar nele) vira tiro de meta para o
+        /// time dele, não importa quem jogou. A bola fica onde parou; atrás do goleiro, vai para a frente dele.
+        /// </summary>
         private bool TryKeeperZoneGoalKick()
         {
-            if (!options.hasGoalkeeper) return false;
-            foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
+            var owner = KeeperBall.Owner(ball.Body.position, ball.Radius, ball.TouchedKeeperSinceShot, keepers, options.hasGoalkeeper);
+            if (owner == null) return false;
+
+            var side = owner.Value;
+            message = "Bola do goleiro.";
+            var keeper = FindKeeper(side);
+            if (keeper == null || KeeperBall.BehindKeeper(ball.Body.position, keeper))
             {
-                if (!FieldLayout.InKeeperZone(ball.Body.position, side)) continue;
-                message = "Bola parada no goleiro.";
                 SetupGoalKick(side);
                 return true;
             }
-            return false;
+
+            monitor.FreezeAll();
+            Vector2 spot = ball.Body.position;
+            ball.ResetTo(spot);
+            // Botões encostados na bola vão para o lugar livre mais perto, para o chute não sair em cima de ninguém.
+            foreach (var list in discs.Values)
+            foreach (var disc in list)
+            {
+                if (!disc.isActiveAndEnabled) continue;
+                float clearance = disc.Radius + ball.Radius + 0.3f;
+                Vector2 offset = disc.Body.position - spot;
+                if (offset.sqrMagnitude >= clearance * clearance) continue;
+                Vector2 away = offset.sqrMagnitude > 0.0001f ? offset.normalized : FieldLayout.AttackDirection(side);
+                disc.PlaceAt(FindFreeSpot(spot + away * clearance, disc, null, clearance));
+            }
+
+            GiveTurn(side);
+            message += $" Tiro de meta do {TeamName(side)}: arraste a bola.";
+            Enter(MatchState.GoalKick);
+            return true;
         }
 
         private void EndShot()
