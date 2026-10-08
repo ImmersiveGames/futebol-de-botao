@@ -17,7 +17,7 @@ namespace FutebolDeBotao
 
     /// <summary>
     /// Dados que passam de uma tela para outra enquanto o jogo está aberto: as opções escolhidas no Menu
-    /// e o placar da última partida. As opções são uma cópia em memória do asset padrão, que não é alterado.
+    /// e o placar da última partida, o modo (contra a IA ou 2 jogadores) e o nível da IA. As opções são uma cópia em memória do asset padrão, que não é alterado.
     /// Salvar entre sessões fica para a fase 4 (Progression Save).
     /// </summary>
     public static class MatchSession
@@ -25,6 +25,12 @@ namespace FutebolDeBotao
         private static MatchOptions options;
 
         public static MatchResult? LastResult { get; set; }
+
+        /// <summary>Modo escolhido no Menu: true = contra a IA, false = 2 jogadores. Nulo: a partida abriu sem passar pelo Menu.</summary>
+        public static bool? VsAi { get; set; }
+
+        /// <summary>Nível da IA escolhido no Menu.</summary>
+        public static AiLevel AiLevel { get; set; } = AiLevel.Medium;
 
         /// <summary>Opções da sessão; na primeira vez copia <paramref name="defaults"/> (ou o padrão do código).</summary>
         public static MatchOptions Options(MatchOptions defaults)
@@ -42,6 +48,8 @@ namespace FutebolDeBotao
         {
             options = null;
             LastResult = null;
+            VsAi = null;
+            AiLevel = AiLevel.Medium;
         }
     }
 }

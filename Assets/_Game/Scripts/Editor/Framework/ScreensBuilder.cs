@@ -238,8 +238,21 @@ namespace FutebolDeBotao.Editor
             CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(0f, -400f), new Vector2(320f, 90f), menu.ShowMain);
             optionsPanel.gameObject.SetActive(false);
 
+            // Modo de jogo: contra a IA (você é o Azul, embaixo) ou 2 jogadores
+            var modePanel = CreateGroup(canvas, "Modo");
+            CreateText(modePanel, "Título", "Como jogar?", 52, new Vector2(0f, 360f), new Vector2(680f, 90f), FontStyle.Bold);
+            CreateText(modePanel, "Contra a IA", "Contra a IA", 34, new Vector2(0f, 240f), new Vector2(680f, 60f), FontStyle.Normal);
+            for (int level = 0; level < 3; level++)
+            {
+                string levelName = AiDifficulty.DisplayName((AiLevel)level);
+                CreateIntButton(modePanel, $"IA {levelName}", levelName, new Vector2(0f, 130f - level * 110f), new Vector2(420f, 90f), menu.PlayVsAi, level);
+            }
+            CreateButton(modePanel, "2 jogadores", "2 jogadores", new Vector2(0f, -240f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
+            CreateButton(modePanel, "Voltar", "Voltar", new Vector2(0f, -400f), new Vector2(320f, 90f), menu.ShowMain);
+            modePanel.gameObject.SetActive(false);
+
             var trigger = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "menu.iniciar");
-            menu.Configure(options, trigger, main.gameObject, optionsPanel.gameObject, values);
+            menu.Configure(options, trigger, main.gameObject, optionsPanel.gameObject, modePanel.gameObject, values);
 
             EditorSceneManager.SaveScene(scene, MenuScenePath);
         }

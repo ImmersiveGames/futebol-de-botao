@@ -2,6 +2,14 @@ using UnityEngine;
 
 namespace FutebolDeBotao
 {
+    /// <summary>Níveis da IA escolhidos no Menu.</summary>
+    public enum AiLevel
+    {
+        Easy,
+        Medium,
+        Hard
+    }
+
     /// <summary>
     /// Números de um nível da IA (Fácil, Médio, Difícil). Quanto mais jogadas ela testa e menos erra, mais forte fica.
     /// </summary>
@@ -43,12 +51,65 @@ namespace FutebolDeBotao
         [Tooltip("Tempo mostrando a mira e a barra de força enchendo antes de chutar.")]
         [Min(0f)] public float aimSeconds = 0.7f;
 
-        /// <summary>Nível Médio do plano, para usar enquanto não há assets dos 3 níveis.</summary>
-        public static AiDifficulty CreateMedium()
+        /// <summary>
+        /// Asset do nível em Resources/IA (Facil, Medio, Dificil), que você ajusta no Inspector.
+        /// Sem o asset, usa os números do plano direto do código.
+        /// </summary>
+        public static AiDifficulty Load(AiLevel level)
+        {
+            var asset = Resources.Load<AiDifficulty>($"IA/{FileName(level)}");
+            return asset != null ? asset : Create(level);
+        }
+
+        public static string FileName(AiLevel level) => level switch
+        {
+            AiLevel.Easy => "Facil",
+            AiLevel.Hard => "Dificil",
+            _ => "Medio"
+        };
+
+        public static string DisplayName(AiLevel level) => level switch
+        {
+            AiLevel.Easy => "Fácil",
+            AiLevel.Hard => "Difícil",
+            _ => "Médio"
+        };
+
+        /// <summary>Números do plano da IA para cada nível (os mesmos dos assets).</summary>
+        public static AiDifficulty Create(AiLevel level)
         {
             var difficulty = CreateInstance<AiDifficulty>();
-            difficulty.name = "Médio (padrão)";
+            difficulty.name = $"{DisplayName(level)} (padrão)";
             difficulty.hideFlags = HideFlags.DontSave;
+            switch (level)
+            {
+                case AiLevel.Easy:
+                    difficulty.discsToTest = 2;
+                    difficulty.simulations = 4;
+                    difficulty.pickAmongBest = 3;
+                    difficulty.foulCaution = 0.5f;
+                    difficulty.repositionChance = 0.2f;
+                    difficulty.angleErrorDegrees = 8f;
+                    difficulty.powerError = 0.15f;
+                    difficulty.shotCallDistance = 3f;
+                    difficulty.keeperError = 0.5f;
+                    difficulty.thinkSeconds = 0.6f;
+                    difficulty.aimSeconds = 0.9f;
+                    break;
+                case AiLevel.Hard:
+                    difficulty.discsToTest = 3;
+                    difficulty.simulations = 12;
+                    difficulty.pickAmongBest = 1;
+                    difficulty.foulCaution = 1f;
+                    difficulty.repositionChance = 0.8f;
+                    difficulty.angleErrorDegrees = 1.5f;
+                    difficulty.powerError = 0.03f;
+                    difficulty.shotCallDistance = 6f;
+                    difficulty.keeperError = 0.08f;
+                    difficulty.thinkSeconds = 0.3f;
+                    difficulty.aimSeconds = 0.6f;
+                    break;
+            }
             return difficulty;
         }
     }

@@ -29,9 +29,10 @@ namespace FutebolDeBotao
         [Tooltip("Pause Request Trigger usado pelo botão Pausa e pela tecla Esc.")]
         [SerializeField] private PauseRequestTrigger pauseTrigger;
         [Header("IA")]
-        [Tooltip("Teste da IA (passo 1): o time de cima joga sozinho, no nível Médio. Desligue para 2 jogadores. O Menu vai escolher isso no passo 3.")]
+        [Tooltip("Só quando a partida abre direto, sem passar pelo Menu (teste no editor): o time de cima joga pela IA. " +
+                 "Pelo Menu vale o modo escolhido lá.")]
         [SerializeField] private bool aiPlaysTop = true;
-        [Tooltip("Nível da IA. Vazio usa o Médio padrão.")]
+        [Tooltip("Nível da IA quando a partida abre direto, sem passar pelo Menu. Vazio usa o Médio.")]
         [SerializeField] private AiDifficulty aiDifficulty;
 
         [Tooltip("Multiplica o tamanho do HUD provisório.")]
@@ -143,12 +144,6 @@ namespace FutebolDeBotao
 
             CollectDiscs();
 
-            if (aiPlaysTop)
-            {
-                ai = gameObject.AddComponent<AiPlayer>();
-                ai.Configure(this, TeamSide.Top, aiDifficulty != null ? aiDifficulty : AiDifficulty.CreateMedium());
-            }
-
             aim.Flicked += OnFlicked;
             aim.BallKicked += OnBallKicked;
             monitor.Settled += OnSettled;
@@ -184,11 +179,29 @@ namespace FutebolDeBotao
         {
             options = MatchSession.Options(options);
             ApplyOptions();
+            ConfigureAi();
             resultRequested = false;
             score[0] = score[1] = 0;
             clock = options.DurationSeconds;
             // Início: time sorteado dá a saída.
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
+        }
+
+        /// <summary>Contra a IA, o time de cima (Vermelho) joga sozinho no nível do Menu; em 2 jogadores, ninguém.</summary>
+        private void ConfigureAi()
+        {
+            bool fromMenu = MatchSession.VsAi.HasValue;
+            bool vsAi = MatchSession.VsAi ?? aiPlaysTop;
+            if (!vsAi)
+            {
+                if (ai != null) Destroy(ai);
+                ai = null;
+                return;
+            }
+
+            var difficulty = fromMenu || aiDifficulty == null ? AiDifficulty.Load(MatchSession.AiLevel) : aiDifficulty;
+            if (ai == null) ai = gameObject.AddComponent<AiPlayer>();
+            ai.Configure(this, TeamSide.Top, difficulty);
         }
 
         private void KickOff(TeamSide side)

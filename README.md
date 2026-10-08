@@ -71,7 +71,7 @@ Abertura --(qualquer tecla, clique ou toque)--> Menu --Iniciar--> Partida --fim 
 
 ## IA (fase 3)
 
-Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). Passo 1 feito: a IA joga com o time de cima enquanto `Ai Plays Top` estiver ligado no `MatchController` (objeto `Partida (sistemas)`); desligue para 2 jogadores. O Menu vai escolher isso no passo 3.
+Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). No Menu, "Iniciar" pergunta o modo: contra a IA (Fácil, Médio ou Difícil; você é o Azul, embaixo, e a IA o Vermelho) ou 2 jogadores. A escolha fica no `MatchSession`. Abrindo a cena da partida direto no editor, vale o `Ai Plays Top` do `MatchController` (objeto `Partida (sistemas)`). Na vez da IA, o HUD mostra "IA pensando...".
 
 - `AiPlayer`: na vez da IA pega os botões mais perto da bola (`AiDifficulty.discsToTest`), gera jogadas por geometria e confere o caminho com CircleCasts (`ShotPlanner`), simula as melhores (`AiDifficulty.simulations`) numa mesa invisível (`ShotSimulator`, uma `PhysicsScene2D` própria), dá nota e escolhe com erro de ângulo e força. Mostra a mira por `aimSeconds` e solta pelo `AimController`, o mesmo caminho do jogador.
 - Falta tira nota mas não é proibida; o erro de ângulo faz a IA cometer falta às vezes.
@@ -79,7 +79,7 @@ Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d18
 - Tiro livre e pênalti: a IA gira o batedor por várias posições em volta da bola (uma por quadro), simula os chutes de cada uma e fica com a melhor.
 - Também anuncia o "Vai chutar" e põe o goleiro na linha do chute quando você anuncia.
 - Cada jogada da IA escreve no Console `[IA] ... pensou X ms (N jogadas simuladas, P passos de física)`.
-- Nível: campo `Ai Difficulty` do `MatchController` (asset em **Create > Futebol de Botão > Nível da IA**); vazio usa o Médio.
+- Níveis: assets `Assets/_Game/Resources/IA/Facil`, `Medio` e `Dificil` (ajuste no Inspector). Sem o asset, valem os números do plano no código (`AiDifficulty.Create`). O campo `Ai Difficulty` do `MatchController` só vale abrindo a partida direto, sem o Menu.
 
 ## Fase 1: ligar no Immersive Framework
 

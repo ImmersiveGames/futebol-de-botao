@@ -16,7 +16,8 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: "Iniciar" pede a Route da Partida; "Opções da partida" abre o painel com as opções do GDD.
+    /// Menu: "Iniciar" abre a escolha do modo (contra a IA, com o nível, ou 2 jogadores) e então pede a Route da Partida;
+    /// "Opções da partida" abre o painel com as opções do GDD.
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
@@ -27,11 +28,14 @@ namespace FutebolDeBotao
         [SerializeField] private RouteRequestTrigger matchRoute;
         [SerializeField] private GameObject mainPanel;
         [SerializeField] private GameObject optionsPanel;
+        [SerializeField] private GameObject modePanel;
         [Tooltip("Um texto de valor por opção, na ordem de MatchOptionKind.")]
         [SerializeField] private Text[] valueLabels = new Text[0];
 
-        public void Configure(MatchOptions defaultOptions, RouteRequestTrigger match, GameObject main, GameObject optionsRoot, Text[] values)
+        public void Configure(MatchOptions defaultOptions, RouteRequestTrigger match, GameObject main, GameObject optionsRoot, GameObject modeRoot,
+            Text[] values)
         {
+            modePanel = modeRoot;
             defaults = defaultOptions;
             matchRoute = match;
             mainPanel = main;
@@ -45,22 +49,48 @@ namespace FutebolDeBotao
             Refresh();
         }
 
+        /// <summary>"Iniciar": mostra a escolha do modo. Sem o painel de modo (cena antiga), entra direto.</summary>
         public void StartMatch()
+        {
+            if (modePanel == null)
+            {
+                RequestMatch();
+                return;
+            }
+            Show(modePanel);
+        }
+
+        /// <summary>Contra a IA: 0 = Fácil, 1 = Médio, 2 = Difícil. Você joga com o Azul (baixo).</summary>
+        public void PlayVsAi(int level)
+        {
+            MatchSession.VsAi = true;
+            MatchSession.AiLevel = (AiLevel)Mathf.Clamp(level, 0, 2);
+            RequestMatch();
+        }
+
+        public void PlayTwoPlayers()
+        {
+            MatchSession.VsAi = false;
+            RequestMatch();
+        }
+
+        private void RequestMatch()
         {
             if (matchRoute != null) matchRoute.RequestRoute();
         }
 
         public void ShowOptions()
         {
-            if (mainPanel != null) mainPanel.SetActive(false);
-            if (optionsPanel != null) optionsPanel.SetActive(true);
+            Show(optionsPanel);
             Refresh();
         }
 
-        public void ShowMain()
+        public void ShowMain() => Show(mainPanel);
+
+        private void Show(GameObject panel)
         {
-            if (optionsPanel != null) optionsPanel.SetActive(false);
-            if (mainPanel != null) mainPanel.SetActive(true);
+            foreach (var other in new[] { mainPanel, optionsPanel, modePanel })
+                if (other != null) other.SetActive(other == panel);
         }
 
         public void Previous(int kind) => Change((MatchOptionKind)kind, -1);

@@ -117,6 +117,7 @@ namespace FutebolDeBotao
             bool mine = active && acting == side;
 
             view.Turn.text = !active ? StateText(state)
+                : match.IsAi(acting) ? ThinkingText()
                 : !mine ? $"Vez do {MatchController.TeamName(acting)}"
                 : state == MatchState.ShotCall ? "Ajuste o goleiro"
                 : state == MatchState.PenaltySetup ? "Posicione o batedor"
@@ -184,6 +185,9 @@ namespace FutebolDeBotao
             if (seconds == 60) { minutes++; seconds = 0; }
             return $"{minutes}:{seconds:00}";
         }
+
+        /// <summary>"IA pensando" com reticências andando, enquanto a IA age.</summary>
+        private static string ThinkingText() => "IA pensando" + new string('.', 1 + (int)(Time.unscaledTime * 2f) % 3);
 
         private static string TouchesText(int touches) => touches == 1 ? "Sua vez: 1 toque" : $"Sua vez: {touches} toques";
 
