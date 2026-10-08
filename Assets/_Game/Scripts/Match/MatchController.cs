@@ -442,6 +442,10 @@ namespace FutebolDeBotao
         {
             if (State != MatchState.Moving || offender != shooter) return;
 
+            // Para investigar falta marcada errado: mostra o que o jogo sabia no momento.
+            Debug.Log($"[Falta] {offender.name} ({TeamName(offender.Side)}) acertou {victim.name}. " +
+                      $"Último toque na bola neste peteleco: {(ball.LastDiscTouch != null ? ball.LastDiscTouch.name : "ninguém")}.");
+
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
