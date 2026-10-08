@@ -195,7 +195,7 @@ namespace FutebolDeBotao
                           $"Escolhida: {(pick.Candidate.Disc != null ? pick.Candidate.Disc.name : "bola")}, nota {pick.Score:0}" +
                           $"{(pick.Foul ? " (com falta)" : pick.FoulNearby ? " (falta se errar)" : string.Empty)}; melhor {best:0}.");
 
-                yield return ShowAimAndRelease(version, ballKick ? null : pick.candidate.Disc, direction, power);
+                yield return ShowAimAndRelease(version, ballKick ? null : pick.Candidate.Disc, direction, power);
             }
             finally
             {
