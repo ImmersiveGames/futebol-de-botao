@@ -30,7 +30,7 @@ namespace FutebolDeBotao
 
         [Header("Pênalti")]
         [Tooltip("Tempo para o atacante posicionar o botão atrás da bola.")]
-        [Min(1f)] public float penaltySetupSeconds = 5f;
+        [Min(1f)] public float penaltySetupSeconds = 30f;
         [Tooltip("Distância entre a borda do botão e a borda da bola no pênalti.")]
         [Min(0.05f)] public float penaltyDiscGap = 0.6f;
         [Tooltip("Abertura do arco atrás da bola onde o botão pode ficar, em graus para cada lado.")]
