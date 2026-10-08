@@ -39,6 +39,7 @@ namespace FutebolDeBotao
         private readonly PhysicsTuning tuning;
         private readonly Ball ball;
         private Goalkeeper[] keepers;
+        private bool ignoreKeepers;
 
         public ShotPlanner(TeamSide aiSide, PhysicsTuning physicsTuning, Ball matchBall)
         {
@@ -66,6 +67,30 @@ namespace FutebolDeBotao
             foreach (var target in targets)
                 AddDiscCandidates(list, disc, ballPosition, target, scoring);
 
+            return list;
+        }
+
+        /// <summary>
+        /// Chutes a gol mais prováveis deste lado (o atacante, visto pelo goleiro da IA): sem risco de falta nem
+        /// caminho fechado, os mais fáceis (menos força) primeiro. Só a força do meio de cada jogada.
+        /// </summary>
+        public List<ShotCandidate> GoalThreats(IReadOnlyList<Disc> usable, int count)
+        {
+            // O goleiro ainda vai se mexer: ele não fecha caminho na escolha dos chutes.
+            ignoreKeepers = true;
+            List<ShotCandidate> all;
+            try { all = DiscCandidates(usable, true); }
+            finally { ignoreKeepers = false; }
+            var list = new List<ShotCandidate>();
+            int middle = System.Array.IndexOf(PowerScales, 1f);
+            for (int i = middle; i < all.Count; i += PowerScales.Length)
+                if (!all[i].FoulRisk && !all[i].Blocked) list.Add(all[i]);
+            list.Sort((a, b) =>
+            {
+                int byScore = b.PreScore.CompareTo(a.PreScore);
+                return byScore != 0 ? byScore : a.Power01.CompareTo(b.Power01);
+            });
+            if (list.Count > count) list.RemoveRange(count, list.Count - count);
             return list;
         }
 
@@ -332,7 +357,7 @@ namespace FutebolDeBotao
 
                 var other = collider.GetComponent<Disc>();
                 if (other != null && other.Side != side) return true;
-                if (collider.GetComponent<Goalkeeper>() != null) return true;
+                if (!ignoreKeepers && collider.GetComponent<Goalkeeper>() != null) return true;
             }
             return false;
         }

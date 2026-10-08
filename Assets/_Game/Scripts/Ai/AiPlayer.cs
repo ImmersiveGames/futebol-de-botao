@@ -37,6 +37,7 @@ namespace FutebolDeBotao
         private MotionMonitor monitor;
         private ShotPlanner planner;
         private ShotSimulator simulator;
+        private ShotPlanner attackerPlanner;
         private bool busy;
 
         public TeamSide Side { get; private set; }
@@ -327,7 +328,10 @@ namespace FutebolDeBotao
                 float travelSeconds = 0f;
                 if (keeper != null)
                 {
-                    float targetX = PredictShotX() + Random.Range(-difficulty.keeperError, difficulty.keeperError);
+                    float? bestX = null;
+                    yield return BestKeeperX(keeper, version, x => bestX = x);
+                    if (!StillValid(version)) yield break;
+                    float targetX = (bestX ?? PredictShotX()) + Random.Range(-difficulty.keeperError, difficulty.keeperError);
                     keeper.SetTargetX(targetX);
                     float speed = aim.Tuning != null ? Mathf.Max(aim.Tuning.goalkeeperSpeed, 0.1f) : 3f;
                     travelSeconds = Mathf.Min(Mathf.Abs(targetX - keeper.transform.position.x) / speed, 2.5f);
@@ -341,6 +345,92 @@ namespace FutebolDeBotao
                 busy = false;
             }
         }
+
+        private const int KeeperPositions = 9;
+
+        /// <summary>
+        /// Onde o goleiro deixa passar menos gols: pega os chutes a gol mais prováveis do adversário (quantos, conforme
+        /// o nível), simula cada um contra várias posições do goleiro e fica com a que sofre menos. Chutes mais fáceis
+        /// pesam mais. Entre posições empatadas, fica no meio delas. Uma posição por quadro, para não travar.
+        /// </summary>
+        private IEnumerator BestKeeperX(Goalkeeper keeper, int version, System.Action<float?> done)
+        {
+            EnsureBrain();
+            var attacker = Opponent(Side);
+            var usable = new List<Disc>();
+            foreach (var disc in match.AllDiscs)
+                if (match.CanUse(disc)) usable.Add(disc);
+
+            attackerPlanner ??= new ShotPlanner(attacker, aim.Tuning, match.Ball);
+            var threats = attackerPlanner.GoalThreats(usable, difficulty.keeperShotsToConsider);
+            if (threats.Count == 0)
+            {
+                done(null);
+                yield break;
+            }
+
+            double computeMs = 0;
+            int stepsBefore = simulator.TotalSteps;
+            simulator.Sync();
+            float maxImpulse = aim.Tuning.maxImpulse;
+            var conceded = new float[KeeperPositions];
+            var xs = new float[KeeperPositions];
+
+            try
+            {
+                for (int p = 0; p < KeeperPositions; p++)
+                {
+                    var watch = Stopwatch.StartNew();
+                    xs[p] = Mathf.Lerp(keeper.MinX, keeper.MaxX, p / (KeeperPositions - 1f));
+                    simulator.OverrideKeeperX(Side, xs[p]);
+                    foreach (var threat in threats)
+                    {
+                        var result = simulator.Simulate(threat.Disc.Body, threat.Direction * (threat.Power01 * maxImpulse), attacker);
+                        if (result.GoalOf != Side) continue;
+                        float weight = 1f / (0.5f + threat.Power01);
+                        if (threat.BallBlocked) weight *= 0.7f;
+                        conceded[p] += weight;
+                    }
+
+                    computeMs += watch.Elapsed.TotalMilliseconds;
+                    yield return null;
+                    if (!StillValid(version))
+                    {
+                        done(null);
+                        yield break;
+                    }
+                }
+            }
+            finally
+            {
+                simulator.ClearKeeperOverride();
+            }
+
+            // Entre as posições que sofrem menos, fica no meio do maior bloco seguido (empate: o mais perto do centro).
+            float least = Mathf.Min(conceded);
+            float bestX = 0f;
+            int bestLength = 0;
+            float center = (keeper.MinX + keeper.MaxX) * 0.5f;
+            for (int start = 0; start < KeeperPositions; start++)
+            {
+                if (conceded[start] > least + 0.001f || (start > 0 && conceded[start - 1] <= least + 0.001f)) continue;
+                int end = start;
+                while (end + 1 < KeeperPositions && conceded[end + 1] <= least + 0.001f) end++;
+                float middle = (xs[start] + xs[end]) * 0.5f;
+                int length = end - start + 1;
+                if (length > bestLength || (length == bestLength && Mathf.Abs(middle - center) < Mathf.Abs(bestX - center)))
+                {
+                    bestLength = length;
+                    bestX = middle;
+                }
+            }
+
+            Debug.Log($"[IA] Goleiro: {threats.Count} chutes x {KeeperPositions} posições, pensou {computeMs:0.0} ms " +
+                      $"({simulator.TotalSteps - stepsBefore} passos de física). Fica em x={bestX:0.00} (peso dos gols que ainda entram: {least:0.0}).");
+            done(bestX);
+        }
+
+        private static TeamSide Opponent(TeamSide side) => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
 
         /// <summary>Onde a bola cruza a linha do gol se o batedor bater reto nela.</summary>
         private float PredictShotX()

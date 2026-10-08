@@ -63,6 +63,8 @@ namespace FutebolDeBotao
         private Scene scene;
         private PhysicsScene2D physics;
         private SimBody ball;
+        private TeamSide? keeperOverrideSide;
+        private float keeperOverrideX;
 
         /// <summary>Passos de física simulados desde a criação (para o log de desempenho).</summary>
         public int TotalSteps { get; private set; }
@@ -101,6 +103,15 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>Nas próximas simulações, o goleiro de <paramref name="side"/> fica em <paramref name="x"/> (o goleiro da IA testando posições).</summary>
+        public void OverrideKeeperX(TeamSide side, float x)
+        {
+            keeperOverrideSide = side;
+            keeperOverrideX = x;
+        }
+
+        public void ClearKeeperOverride() => keeperOverrideSide = null;
+
         /// <summary>
         /// Simula um peteleco a partir da mesa de verdade como está agora.
         /// <paramref name="shooter"/> nulo = chute direto na bola (tiro de meta).
@@ -119,6 +130,8 @@ namespace FutebolDeBotao
                 body.Copy.angularVelocity = 0f;
                 body.WasOnWall = false;
                 body.WasOnBall = false;
+                if (body.Kind == Kind.Keeper && body.Side == keeperOverrideSide)
+                    body.Copy.position = new Vector2(keeperOverrideX, body.Source.position.y);
             }
 
             SimBody shot = shooter != null && bySource.TryGetValue(shooter, out var found) ? found : ball;

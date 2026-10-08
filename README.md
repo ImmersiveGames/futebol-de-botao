@@ -93,7 +93,7 @@ Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d18
 - Falta tira nota mas não é proibida; o erro de ângulo faz a IA cometer falta às vezes.
 - Posicionamento: quando a melhor jogada é ruim (falta provável ou nota abaixo de `poorShotScore`), com chance `repositionChance` (Fácil ~0,2, Médio 0,5, Difícil ~0,8) a IA só anda com um botão sem tocar na bola: cobre o próprio gol, para entre a bola e o adversário mais perto ou fica atrás da bola. A simulação confere que não toca em nada. A vez passa ("Errou a bola").
 - Tiro livre e pênalti: a IA gira o batedor por várias posições em volta da bola (uma por quadro), simula os chutes de cada uma e fica com a melhor.
-- Também anuncia o "Vai chutar" e põe o goleiro na linha do chute quando você anuncia.
+- Também anuncia o "Vai chutar". Quando você anuncia, o goleiro da IA pega os seus chutes a gol mais prováveis (`Keeper Shots To Consider` no nível: 3/6/10), simula cada um contra 9 posições do goleiro e fica onde entram menos gols (chutes mais fáceis pesam mais), com o erro do nível (`Keeper Error`). O Console mostra `[IA] Goleiro: ...`.
 - Cada jogada da IA escreve no Console `[IA] ... pensou X ms (N jogadas simuladas, P passos de física)`.
 - Níveis: assets `Assets/_Game/Resources/IA/Facil`, `Medio` e `Dificil` (ajuste no Inspector). Sem o asset, valem os números do plano no código (`AiDifficulty.Create`). O campo `Ai Difficulty` do `MatchController` só vale abrindo a partida direto, sem o Menu.
 

@@ -21,6 +21,9 @@ namespace FutebolDeBotao
         private float targetX;
 
         public TeamSide Side => side;
+        /// <summary>Menor e maior X onde o goleiro pode ficar.</summary>
+        public float MinX => centerX - halfRange;
+        public float MaxX => centerX + halfRange;
 
         private void Awake()
         {
