@@ -138,6 +138,20 @@ namespace FutebolDeBotao
                     bool onWall = false;
                     Vector2 wallPoint = default;
 
+                    // Igual ao jogo: bola e adversário no mesmo passo conta como bola primeiro.
+                    if (!shooterDecided && body == shot)
+                    {
+                        for (int i = 0; i < count; i++)
+                        {
+                            var touched = contacts[i].collider == body.Collider ? contacts[i].otherCollider : contacts[i].collider;
+                            if (byCollider.TryGetValue(touched, out var touchedBody) && touchedBody == ball)
+                            {
+                                result.TouchedBall = true;
+                                shooterDecided = true;
+                            }
+                        }
+                    }
+
                     for (int i = 0; i < count; i++)
                     {
                         var other = contacts[i].collider == body.Collider ? contacts[i].otherCollider : contacts[i].collider;

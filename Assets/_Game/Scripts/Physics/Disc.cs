@@ -24,6 +24,7 @@ namespace FutebolDeBotao
         public event Action<Disc, Disc, Vector2> Fouled;
 
         private bool shooting;
+        private readonly ContactPoint2D[] contacts = new ContactPoint2D[16];
         public Rigidbody2D Body => body;
         public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
 
@@ -81,11 +82,25 @@ namespace FutebolDeBotao
             }
 
             var other = collision.collider.GetComponent<Disc>();
+            // Bola de raspão e adversário no mesmo passo de física: a Unity avisa as batidas em qualquer ordem,
+            // então confere se a bola também está encostando agora antes de marcar falta.
+            if (!TouchedBallThisShot && other != null && other.Side != side && TouchingBall()) TouchedBallThisShot = true;
             if (!TouchedBallThisShot && other != null && other.Side != side)
             {
                 shooting = false;
                 Fouled?.Invoke(this, other, other.Body.position);
             }
+        }
+
+        private bool TouchingBall()
+        {
+            int count = body.GetContacts(contacts);
+            for (int i = 0; i < count; i++)
+            {
+                var hit = contacts[i].collider == GetComponent<Collider2D>() ? contacts[i].otherCollider : contacts[i].collider;
+                if (hit != null && hit.GetComponent<Ball>() != null) return true;
+            }
+            return false;
         }
 
         public void ResetToStart() => PlaceAt(startPosition);
