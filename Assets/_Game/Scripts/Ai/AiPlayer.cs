@@ -16,6 +16,17 @@ namespace FutebolDeBotao
     {
         private const float FrameBudgetMs = 4f;
         private const float PickWindow = 30f;
+        private const int RobustChecks = 3;
+
+        private struct Scored
+        {
+            public ShotCandidate Candidate;
+            public float Score;
+            /// <summary>A jogada simulada (sem erro) dá falta.</summary>
+            public bool Foul;
+            /// <summary>Com o erro de ângulo para um dos lados, dá falta.</summary>
+            public bool FoulNearby;
+        }
 
         private MatchController match;
         private AiDifficulty difficulty;
@@ -106,24 +117,23 @@ namespace FutebolDeBotao
                 var tuning = aim.Tuning;
                 float maxImpulse = ballKick ? tuning.ballKickMaxImpulse : tuning.maxImpulse;
                 int touchesAfter = match.TouchesLeft - 1;
-                int simulations = Mathf.Min(difficulty.simulations, candidates.Count);
-                var scored = new List<(ShotCandidate candidate, float score)>(simulations);
+                var queue = Diversify(candidates, difficulty.simulations);
+                var scored = new List<Scored>(queue.Count);
 
                 simulator.Sync();
                 int stepsBefore = simulator.TotalSteps;
+                int fouls = 0;
                 double computeMs = 0;
                 var frame = Stopwatch.StartNew();
 
-                for (int i = 0; i < simulations; i++)
+                foreach (var candidate in queue)
                 {
-                    var candidate = candidates[i];
                     var watch = Stopwatch.StartNew();
-                    var result = simulator.Simulate(candidate.Disc != null ? candidate.Disc.Body : null,
-                        candidate.Direction * (candidate.Power01 * maxImpulse), Side);
-                    float score = planner.Score(result, ballKick, goalsCount, match.Options.goalAfterWallIsValid,
-                        touchesAfter, difficulty.foulCaution);
+                    float score = SimulateAndScore(candidate.Disc, candidate.Direction, candidate.Power01, maxImpulse,
+                        ballKick, goalsCount, touchesAfter, out bool foul);
                     computeMs += watch.Elapsed.TotalMilliseconds;
-                    scored.Add((candidate, score));
+                    if (foul) fouls++;
+                    scored.Add(new Scored { Candidate = candidate, Score = score, Foul = foul });
 
                     // Divide a conta em quadros para o jogo não travar.
                     if (frame.Elapsed.TotalMilliseconds > FrameBudgetMs)
@@ -134,19 +144,56 @@ namespace FutebolDeBotao
                     }
                 }
 
-                scored.Sort((a, b) => b.score.CompareTo(a.score));
-                float best = scored[0].score;
-                int pool = 1;
-                while (pool < scored.Count && pool < difficulty.pickAmongBest && scored[pool].score >= best - PickWindow) pool++;
-                var pick = scored[Random.Range(0, pool)];
+                // Robustez: as melhores também são testadas com o erro de ângulo para cada lado e ficam com a média.
+                // Assim a IA foge de jogadas em que um errinho vira falta (bola de raspão com adversário atrás).
+                scored.Sort((a, b) => b.Score.CompareTo(a.Score));
+                float spread = difficulty.angleErrorDegrees * 0.75f;
+                if (spread > 0.01f)
+                {
+                    for (int i = 0; i < Mathf.Min(RobustChecks, scored.Count); i++)
+                    {
+                        var entry = scored[i];
+                        if (entry.Foul) continue;
+                        float sum = entry.Score;
+                        foreach (float sign in new[] { -1f, 1f })
+                        {
+                            var watch = Stopwatch.StartNew();
+                            Vector2 tilted = Quaternion.Euler(0f, 0f, sign * spread) * entry.Candidate.Direction;
+                            sum += SimulateAndScore(entry.Candidate.Disc, tilted, entry.Candidate.Power01, maxImpulse,
+                                ballKick, goalsCount, touchesAfter, out bool foul);
+                            computeMs += watch.Elapsed.TotalMilliseconds;
+                            if (foul)
+                            {
+                                fouls++;
+                                entry.FoulNearby = true;
+                            }
+                        }
+                        entry.Score = sum / 3f;
+                        scored[i] = entry;
+                    }
+                    scored.Sort((a, b) => b.Score.CompareTo(a.Score));
+                }
+
+                // Sorteio entre as melhores, mas uma jogada que a simulação já mostrou com falta só sai se for a melhor.
+                float best = scored[0].Score;
+                var pool = new List<Scored> { scored[0] };
+                for (int i = 1; i < scored.Count && pool.Count < difficulty.pickAmongBest; i++)
+                    if (!scored[i].Foul && scored[i].Score >= best - PickWindow) pool.Add(scored[i]);
+                var pick = pool[Random.Range(0, pool.Count)];
 
                 // Erro de execução conforme o nível: é ele que faz a IA errar e, às vezes, cometer falta.
                 float angleError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees);
-                Vector2 direction = Quaternion.Euler(0f, 0f, angleError) * pick.candidate.Direction;
-                float power = Mathf.Clamp(pick.candidate.Power01 * (1f + Random.Range(-difficulty.powerError, difficulty.powerError)), 0.1f, 1f);
+                Vector2 direction = Quaternion.Euler(0f, 0f, angleError) * pick.Candidate.Direction;
+                float power = Mathf.Clamp(pick.Candidate.Power01 * (1f + Random.Range(-difficulty.powerError, difficulty.powerError)), 0.1f, 1f);
 
-                Debug.Log($"[IA] {state}: pensou {computeMs:0.0} ms ({simulations} jogadas simuladas, " +
-                          $"{simulator.TotalSteps - stepsBefore} passos de física). Nota da escolhida {pick.score:0} (melhor {best:0}).");
+                int discsTried = 0;
+                var seen = new HashSet<Disc>();
+                foreach (var entry in scored)
+                    if (entry.Candidate.Disc != null && seen.Add(entry.Candidate.Disc)) discsTried++;
+                Debug.Log($"[IA] {state}: pensou {computeMs:0.0} ms ({queue.Count} jogadas de {discsTried} botões, " +
+                          $"{simulator.TotalSteps - stepsBefore} passos de física, {fouls} simulações com falta). " +
+                          $"Escolhida: {(pick.Candidate.Disc != null ? pick.Candidate.Disc.name : "bola")}, nota {pick.Score:0}" +
+                          $"{(pick.Foul ? " (com falta)" : pick.FoulNearby ? " (falta se errar)" : string.Empty)}; melhor {best:0}.");
 
                 yield return ShowAimAndRelease(version, ballKick ? null : pick.candidate.Disc, direction, power);
             }
@@ -154,6 +201,35 @@ namespace FutebolDeBotao
             {
                 busy = false;
             }
+        }
+
+        private float SimulateAndScore(Disc disc, Vector2 direction, float power01, float maxImpulse, bool ballKick,
+            bool goalsCount, int touchesAfter, out bool foul)
+        {
+            var result = simulator.Simulate(disc != null ? disc.Body : null, direction * (power01 * maxImpulse), Side);
+            foul = result.Foul;
+            return planner.Score(result, ballKick, goalsCount, match.Options.goalAfterWallIsValid, touchesAfter, difficulty.foulCaution);
+        }
+
+        /// <summary>
+        /// Escolhe quem vai para a mesa simulada: primeiro a melhor jogada de cada botão (para a IA sempre comparar
+        /// botões diferentes), depois as outras pela nota da geometria.
+        /// </summary>
+        private static List<ShotCandidate> Diversify(List<ShotCandidate> sorted, int count)
+        {
+            var queue = new List<ShotCandidate>();
+            var taken = new bool[sorted.Count];
+            var discs = new HashSet<Disc>();
+            for (int i = 0; i < sorted.Count && queue.Count < count; i++)
+            {
+                var disc = sorted[i].Disc;
+                if (disc == null || !discs.Add(disc)) continue;
+                queue.Add(sorted[i]);
+                taken[i] = true;
+            }
+            for (int i = 0; i < sorted.Count && queue.Count < count; i++)
+                if (!taken[i]) queue.Add(sorted[i]);
+            return queue;
         }
 
         /// <summary>Mostra a mira e a barra de força enchendo, como um jogador arrastando, e solta.</summary>
