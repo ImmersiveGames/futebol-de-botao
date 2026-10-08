@@ -34,7 +34,7 @@ Para testar o goleiro sozinho, marque `Track Ball For Testing` no componente `Go
 
 ### Como a partida funciona hoje (fase 2, em andamento)
 
-- Saída de um time sorteado. Cada vez tem até N toques (`Touches Per Turn`), 15 s de mira por toque. O relógio só corre durante a mira.
+- Saída de um time sorteado. Cada vez tem até N toques (`Touches Per Turn`), 30 s de mira por toque. O relógio só corre durante a mira.
 - **Perda da vez:** errar a bola, último toque na bola ser do adversário (goleiro conta), acabar os toques, ou tempo de mira esgotado.
 - **Falta (tiro livre):** se o botão do peteleco acertar um adversário antes da bola, a jogada para. A bola fica onde o botão atingido levou a falta e ele vira o batedor, posicionado em volta da bola: arraste (ou setas/A-D) para girá-lo 360°, `Espaço`/"Pronto" encerra (30 s, o mesmo tempo do pênalti). Quem fez a falta volta para o lugar dele na formação, e os outros botões que estavam perto da bola vão para o lugar livre mais perto, fora da roda em que o batedor gira (nunca um em cima do outro). O batedor não entra em cima de outro botão, do goleiro ou fora do campo. Depois, no campo de ataque entra no "Vai chutar"; no de defesa vira mira normal, e só o batedor pode jogar.
 - **Pênalti:** falta do defensor dentro da própria área (4 x 1,6 na frente do gol). Bola na marca (meio do campo do defensor), quem sofreu bate, os outros atacantes voltam para a formação e os defensores vão para a linha do meio-campo. Primeiro o atacante posiciona o batedor num arco atrás da bola (arrastar ou setas, 30 s, `Espaço` encerra), depois o defensor ajusta o goleiro, depois sai o chute.
