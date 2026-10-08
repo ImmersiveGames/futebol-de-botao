@@ -13,15 +13,20 @@ MonoBehaviour:
   m_Name: PhysicsTuning
   m_EditorClassIdentifier: FutebolDeBotao::FutebolDeBotao.PhysicsTuning
   discMass: 1
-  discLinearDamping: 2.2
+  discLinearDamping: 1.6
   discAngularDamping: 4
   ballMass: 0.35
-  ballLinearDamping: 1.4
+  ballLinearDamping: 1.1
   bounciness: 0.75
   friction: 0.1
-  maxImpulse: 9
+  maxImpulse: 10
   maxDragDistance: 2.5
   minDragDistance: 0.15
+  ballKickMaxImpulse: 3
+  wallBounceBoost: 1.25
+  wallMinBounceSpeed: 1.2
+  wallPushDistance: 0.15
+  wallPushAcceleration: 4
   restSpeed: 0.05
   restTime: 0.3
   goalkeeperSpeed: 3
