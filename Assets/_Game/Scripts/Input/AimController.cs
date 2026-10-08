@@ -74,7 +74,7 @@ namespace FutebolDeBotao
 
             pointerWorld = WorldCamera.ScreenToWorld(worldCamera, pointer.position.ReadValue());
 
-            if (pointer.press.wasPressedThisFrame) TryBegin();
+            if (pointer.press.wasPressedThisFrame && !UiPointer.IsOverUi()) TryBegin();
 
             if (!IsAiming) return;
 

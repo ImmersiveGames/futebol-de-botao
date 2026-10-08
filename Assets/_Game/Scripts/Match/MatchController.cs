@@ -61,6 +61,19 @@ namespace FutebolDeBotao
         public int TouchesLeft => touchesLeft;
         public float ClockSeconds => clock;
         public int Score(TeamSide side) => score[(int)side];
+        /// <summary>Última mensagem da partida (falta, gol, vez...). O HUD mostra quando ela muda.</summary>
+        public string Message => message;
+        /// <summary>Segundos que restam no timer da etapa atual (mira, goleiro, pênalti).</summary>
+        public float StateSecondsLeft => Mathf.Max(0f, stateTimer);
+        /// <summary>Timer de mira correndo (Mira, Vai chutar ou Tiro de meta).</summary>
+        public bool IsAimTimerRunning => ClockRunning;
+        /// <summary>Quem age agora: o atacante na mira e no pênalti, o defensor ajustando o goleiro.</summary>
+        public TeamSide ActingSide => State == MatchState.ShotCall ? Opponent(Turn) : Turn;
+        /// <summary>Há um "Pronto" esperando (goleiro no Vai chutar ou batedor no pênalti).</summary>
+        public bool CanConfirmReady => State is MatchState.ShotCall or MatchState.PenaltySetup;
+        /// <summary>Com um HUD de verdade na cena, o HUD provisório (OnGUI) não é desenhado.</summary>
+        public bool ExternalHud { get; set; }
+        public PauseRequestTrigger PauseTrigger => pauseTrigger;
 
         public void Configure(MatchOptions matchOptions) => options = matchOptions;
 
@@ -194,7 +207,7 @@ namespace FutebolDeBotao
                     break;
 
                 case MatchState.ShotCall:
-                    bool ready = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
+                    bool ready = keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
                     if (stateTimer <= 0f || ready) EnterShotAim();
                     break;
 
@@ -252,6 +265,18 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>"Pronto": encerra o ajuste do goleiro ou o posicionamento do batedor do pênalti.</summary>
+        public void ConfirmReady()
+        {
+            if (State == MatchState.ShotCall) EnterShotAim();
+            else if (State == MatchState.PenaltySetup) FinishPenaltySetup();
+        }
+
+        public void RequestPause()
+        {
+            if (pauseTrigger != null) pauseTrigger.RequestPause();
+        }
+
         public void TryCallShot()
         {
             if (!CanCallShot) return;
@@ -285,7 +310,7 @@ namespace FutebolDeBotao
             side == TeamSide.Bottom ? position.y > 0f : position.y < 0f;
 
         /// <summary>Botão do time da vez; no tiro livre, só quem sofreu a falta.</summary>
-        private bool CanUse(Disc disc)
+        public bool CanUse(Disc disc)
         {
             if (disc == null || !disc.isActiveAndEnabled || disc.Side != Turn) return false;
             return freeKickDisc == null || disc == freeKickDisc;
@@ -457,7 +482,7 @@ namespace FutebolDeBotao
             if (disc == null) return;
 
             var pointer = Pointer.current;
-            if (pointer != null && pointer.press.isPressed)
+            if (pointer != null && pointer.press.isPressed && !UiPointer.IsOverUi())
             {
                 worldCamera = WorldCamera.Resolve(worldCamera);
                 if (worldCamera != null)
@@ -609,7 +634,7 @@ namespace FutebolDeBotao
         private void OnGUI()
         {
             // Na pausa só a tela de pausa do framework aparece; esperando a Activity, nada.
-            if (Paused || State == MatchState.Waiting) return;
+            if (ExternalHud || Paused || State == MatchState.Waiting) return;
 
             // O HUD é desenhado numa tela de referência de 720 px de altura e escalado para a tela real.
             float scale = Mathf.Max(0.5f, Mathf.Min(Screen.height / ReferenceHeight, Screen.width / ReferenceMinWidth)) * hudScale;

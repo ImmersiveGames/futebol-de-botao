@@ -36,6 +36,7 @@ namespace FutebolDeBotao.Editor
         private const string MatchSystemsName = "Partida (sistemas)";
         private const string MatchFrameworkName = "Framework (telas)";
         private const string PauseCanvasName = "Tela de pausa";
+        private const string MatchHudName = "HUD da partida";
 
         private static readonly Vector2 ReferenceResolution = new(720f, 1280f);
         private static readonly Color Background = new(0.08f, 0.2f, 0.11f);
@@ -277,7 +278,7 @@ namespace FutebolDeBotao.Editor
                 return false;
             }
 
-            foreach (var oldName in new[] { MatchFrameworkName, PauseCanvasName })
+            foreach (var oldName in new[] { MatchFrameworkName, PauseCanvasName, MatchHudName })
             {
                 var old = FindRoot(scene, oldName);
                 if (old != null) UnityEngine.Object.DestroyImmediate(old);
@@ -308,6 +309,10 @@ namespace FutebolDeBotao.Editor
             matchSo.ApplyModifiedPropertiesWithoutUndo();
 
             BuildPauseScreen(pause, restart, toMenu);
+
+            // HUD: cantos ao lado dos gols no celular (em pé), painel à esquerda no PC. Monta a UI sozinho no Awake.
+            var hud = new GameObject(MatchHudName).AddComponent<MatchHud>();
+            hud.Configure(match);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

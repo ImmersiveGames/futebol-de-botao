@@ -32,7 +32,7 @@ namespace FutebolDeBotao
             if (keeper == null) return;
 
             var pointer = Pointer.current;
-            if (pointer != null && pointer.press.isPressed)
+            if (pointer != null && pointer.press.isPressed && !UiPointer.IsOverUi())
             {
                 worldCamera = WorldCamera.Resolve(worldCamera);
                 if (worldCamera != null)

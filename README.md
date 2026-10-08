@@ -49,7 +49,7 @@ Para testar o goleiro sozinho, marque `Track Ball For Testing` no componente `Go
 Menu **Futebol de Botão > Criar telas** (rode depois de "Criar cena da partida"). Ele cria ou recria:
 
 - as Routes `Abertura`, `Menu` e `Resultado` em `Assets/_Game/App/` e as cenas `Abertura.unity`, `Menu.unity` e `Resultado.unity` (uGUI, visual provisório);
-- na cena `Partida.unity`: a `Activity Content Contribution` da Activity **Jogo** no objeto `Partida (sistemas)`, o objeto `Framework (telas)` com os triggers do framework (Route Resultado, Route Menu, Pause, Activity Restart) e o Canvas `Tela de pausa` com o `Unity Pause Surface Adapter`;
+- na cena `Partida.unity`: a `Activity Content Contribution` da Activity **Jogo** no objeto `Partida (sistemas)`, o objeto `Framework (telas)` com os triggers do framework (Route Resultado, Route Menu, Pause, Activity Restart) e o Canvas `Tela de pausa` com o `Unity Pause Surface Adapter` e o objeto `HUD da partida` (`MatchHud`);
 - **Startup Route = Abertura** no `GameApplicationAsset`, e as 5 cenas na lista da build.
 
 Depois commite os assets e cenas gerados (com os `.meta`) e o `ProjectSettings/EditorBuildSettings.asset`.
@@ -67,6 +67,7 @@ Abertura --(qualquer tecla, clique ou toque)--> Menu --Iniciar--> Partida --fim 
 - **Partida:** começa quando a Activity **Jogo** entra (`IActivityContentLifecycleReceiver`), não mais no `Start()`. `R` e "Reiniciar partida" usam o `ActivityRestartTrigger` do framework (Reset, Clear e Reenter da Activity).
 - **Pausa:** botão "Pausa" no HUD e `Esc` chamam o `PauseRequestTrigger`. O framework põe `Time.timeScale = 0` (física, relógio e timer de mira param) e o adaptador mostra a tela de pausa. A mira e o goleiro ignoram o ponteiro na pausa. Ainda sem Player do framework: os jogadores como Actors vêm depois, junto com uma feature do framework para jogadores revezando o mesmo controle.
 - **Resultado:** placar final e vencedor, com "Jogar de novo" (Route Partida) e "Menu".
+- **HUD (`MatchHud`, uGUI montado em código):** com a tela em pé (celular, versão principal) usa os 4 cantos ao lado dos gols, 2 por jogador; os de cima ficam girados 180° para o jogador de cima. Canto esquerdo: placar, relógio e Pausa. Canto direito: de quem é a vez, toques, timer da jogada (vermelho nos últimos 5 s) e o botão de ação ("Vai chutar" ou "Pronto"). As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador. Com a tela deitada (PC) fica um painel provisório à esquerda. O `TurnHighlight` faz brilhar os botões que podem jogar (mais forte no que está sendo mirado), a bola no tiro de meta e o goleiro no "Vai chutar". Toques no HUD não viram mira nem movem o goleiro (`UiPointer`).
 
 ## Fase 1: ligar no Immersive Framework
 
