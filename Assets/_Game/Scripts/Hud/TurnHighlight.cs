@@ -60,11 +60,13 @@ namespace FutebolDeBotao
 
         private void Build()
         {
+            // A partida ainda não juntou os botões.
+            if (match.AllDiscs.Count == 0) return;
             built = true;
             aim = FindAnyObjectByType<AimController>();
-            foreach (var disc in FindObjectsByType<Disc>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var disc in match.AllDiscs)
                 discHalos[disc] = CreateHalo(disc.transform);
-            foreach (var keeper in FindObjectsByType<Goalkeeper>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var keeper in match.Keepers)
                 keeperHalos[keeper] = CreateHalo(keeper.transform);
             var ball = FindAnyObjectByType<Ball>();
             if (ball != null) ballHalo = CreateHalo(ball.transform);

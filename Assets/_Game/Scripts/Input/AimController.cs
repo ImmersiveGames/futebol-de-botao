@@ -16,6 +16,7 @@ namespace FutebolDeBotao
 
         private Ball ball;
         private Vector2 pointerWorld;
+        private bool scripted;
 
         public bool IsAiming { get; private set; }
         public Disc SelectedDisc { get; private set; }
@@ -37,6 +38,8 @@ namespace FutebolDeBotao
         /// <summary>Ligado, só a bola pode ser chutada (tiro de meta); botões ficam bloqueados.</summary>
         public bool BallKickMode { get; set; }
 
+        public PhysicsTuning Tuning => tuning;
+
         /// <summary>Peteleco disparado: (botão, impulso).</summary>
         public event Action<Disc, Vector2> Flicked;
         /// <summary>Chute direto na bola disparado: (impulso).</summary>
@@ -55,6 +58,9 @@ namespace FutebolDeBotao
 
         private void Update()
         {
+            // A IA está mirando: o ponteiro não interfere.
+            if (scripted) return;
+
             var pointer = Pointer.current;
             worldCamera = WorldCamera.Resolve(worldCamera);
             if (pointer == null || worldCamera == null || tuning == null) return;
@@ -158,8 +164,38 @@ namespace FutebolDeBotao
             Flicked?.Invoke(disc, impulse);
         }
 
+        // ---- Mira da IA ----
+
+        /// <summary>A IA começa a mirar com <paramref name="disc"/> (nulo = chute direto na bola). A mira aparece igual à do jogador.</summary>
+        public void BeginScripted(Disc disc)
+        {
+            Cancel();
+            if (disc == null && ball == null) return;
+            scripted = true;
+            IsAiming = true;
+            IsBallKick = disc == null;
+            SelectedDisc = disc;
+        }
+
+        /// <summary>Atualiza a mira da IA: direção de saída e força de 0 a 1.</summary>
+        public void SetScripted(Vector2 direction, float power01)
+        {
+            if (!scripted) return;
+            Direction = direction.normalized;
+            Power01 = Mathf.Clamp01(power01);
+        }
+
+        /// <summary>A IA solta: o peteleco sai pelo mesmo caminho do jogador.</summary>
+        public void ReleaseScripted()
+        {
+            if (!scripted) return;
+            scripted = false;
+            Release();
+        }
+
         public void Cancel()
         {
+            scripted = false;
             IsAiming = false;
             IsBallKick = false;
             SelectedDisc = null;

@@ -28,6 +28,12 @@ namespace FutebolDeBotao
         [SerializeField] private ActivityRestartTrigger restartTrigger;
         [Tooltip("Pause Request Trigger usado pelo botão Pausa e pela tecla Esc.")]
         [SerializeField] private PauseRequestTrigger pauseTrigger;
+        [Header("IA")]
+        [Tooltip("Teste da IA (passo 1): o time de cima joga sozinho, no nível Médio. Desligue para 2 jogadores. O Menu vai escolher isso no passo 3.")]
+        [SerializeField] private bool aiPlaysTop = true;
+        [Tooltip("Nível da IA. Vazio usa o Médio padrão.")]
+        [SerializeField] private AiDifficulty aiDifficulty;
+
         [Tooltip("Multiplica o tamanho do HUD provisório.")]
         [SerializeField, Range(0.5f, 2f)] private float hudScale = 1f;
 
@@ -42,6 +48,8 @@ namespace FutebolDeBotao
         private AimVisuals aimVisuals;
         private MotionMonitor monitor;
         private GoalkeeperControl keeperControl;
+        private AiPlayer ai;
+        private readonly List<Disc> allDiscs = new();
 
         private float clock;
         private float stateTimer;
@@ -74,6 +82,17 @@ namespace FutebolDeBotao
         /// <summary>Com um HUD de verdade na cena, o HUD provisório (OnGUI) não é desenhado.</summary>
         public bool ExternalHud { get; set; }
         public PauseRequestTrigger PauseTrigger => pauseTrigger;
+        public MatchOptions Options => options;
+        /// <summary>Muda a cada troca de estado, mesmo para o mesmo estado (a IA usa para saber se a jogada dela ainda vale).</summary>
+        public int StateVersion { get; private set; }
+        /// <summary>Todos os botões da mesa, inclusive os desligados no modo de 3 botões.</summary>
+        public IReadOnlyList<Disc> AllDiscs => allDiscs;
+        public IReadOnlyList<Goalkeeper> Keepers => keepers;
+        public Ball Ball => ball;
+        /// <summary>Este time é jogado pela IA.</summary>
+        public bool IsAi(TeamSide side) => ai != null && ai.Side == side;
+        /// <summary>Botão do tiro livre ou do pênalti (só ele pode jogar). Nulo fora disso.</summary>
+        public Disc FreeKickDisc => freeKickDisc;
 
         public void Configure(MatchOptions matchOptions) => options = matchOptions;
 
@@ -121,6 +140,12 @@ namespace FutebolDeBotao
 
             CollectDiscs();
 
+            if (aiPlaysTop)
+            {
+                ai = gameObject.AddComponent<AiPlayer>();
+                ai.Configure(this, TeamSide.Top, aiDifficulty != null ? aiDifficulty : AiDifficulty.CreateMedium());
+            }
+
             aim.Flicked += OnFlicked;
             aim.BallKicked += OnBallKicked;
             monitor.Settled += OnSettled;
@@ -137,6 +162,9 @@ namespace FutebolDeBotao
             discs[TeamSide.Top] = new List<Disc>();
             foreach (var disc in FindObjectsByType<Disc>()) discs[disc.Side].Add(disc);
             foreach (var list in discs.Values) list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            allDiscs.Clear();
+            allDiscs.AddRange(discs[TeamSide.Bottom]);
+            allDiscs.AddRange(discs[TeamSide.Top]);
         }
 
         private void ApplyOptions()
@@ -198,7 +226,7 @@ namespace FutebolDeBotao
                 case MatchState.Aim:
                     if (clock <= 0f) EndMatch();
                     else if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
-                    else if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame) TryCallShot();
+                    else if (!IsAi(Turn) && keyboard != null && keyboard.vKey.wasPressedThisFrame) TryCallShot();
                     break;
 
                 case MatchState.ShotAim:
@@ -207,13 +235,13 @@ namespace FutebolDeBotao
                     break;
 
                 case MatchState.ShotCall:
-                    bool ready = keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
+                    bool ready = !IsAi(Opponent(Turn)) && keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
                     if (stateTimer <= 0f || ready) EnterShotAim();
                     break;
 
                 case MatchState.PenaltySetup:
                     UpdatePenaltySetup();
-                    bool placed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
+                    bool placed = !IsAi(Turn) && keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
                     if (stateTimer <= 0f || placed) FinishPenaltySetup();
                     break;
 
@@ -233,13 +261,15 @@ namespace FutebolDeBotao
         private void Enter(MatchState state)
         {
             State = state;
+            StateVersion++;
 
             aim.Cancel();
-            aim.InputEnabled = state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick;
+            // Na vez da IA o ponteiro não mira.
+            aim.InputEnabled = (state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick) && !IsAi(Turn);
             aim.BallKickMode = state == MatchState.GoalKick;
             aim.CanSelect = CanUse;
 
-            keeperControl.ControlledSide = state == MatchState.ShotCall ? Opponent(Turn) : null;
+            keeperControl.ControlledSide = state == MatchState.ShotCall && !IsAi(Opponent(Turn)) ? Opponent(Turn) : null;
 
             stateTimer = state switch
             {
@@ -479,7 +509,7 @@ namespace FutebolDeBotao
         private void UpdatePenaltySetup()
         {
             var disc = freeKickDisc;
-            if (disc == null) return;
+            if (disc == null || IsAi(Turn)) return;
 
             var pointer = Pointer.current;
             if (pointer != null && pointer.press.isPressed && !UiPointer.IsOverUi())

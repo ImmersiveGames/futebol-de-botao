@@ -136,6 +136,7 @@ namespace FutebolDeBotao
         /// <summary>Texto do botão de ação desse jogador agora, ou nulo se ele não tem ação.</summary>
         private string ActionFor(TeamSide side)
         {
+            if (match.IsAi(side)) return null;
             if (match.CanCallShot && match.Turn == side) return "Vai chutar";
             if (match.CanConfirmReady && match.ActingSide == side) return "Pronto";
             return null;
@@ -143,6 +144,7 @@ namespace FutebolDeBotao
 
         private void OnAction(TeamSide side)
         {
+            if (match.IsAi(side)) return;
             if (match.CanCallShot && match.Turn == side) match.TryCallShot();
             else if (match.CanConfirmReady && match.ActingSide == side) match.ConfirmReady();
         }

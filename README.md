@@ -69,6 +69,16 @@ Abertura --(qualquer tecla, clique ou toque)--> Menu --Iniciar--> Partida --fim 
 - **Resultado:** placar final e vencedor, com "Jogar de novo" (Route Partida) e "Menu".
 - **HUD (`MatchHud`, uGUI montado em código):** com a tela em pé (celular, versão principal) usa os 4 cantos ao lado dos gols, 2 por jogador; os de cima ficam girados 180° para o jogador de cima. Canto esquerdo: placar, relógio e Pausa. Canto direito: de quem é a vez, toques, timer da jogada (vermelho nos últimos 5 s) e o botão de ação ("Vai chutar" ou "Pronto"). As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador. Com a tela deitada (PC) fica um painel provisório à esquerda. O `TurnHighlight` faz brilhar os botões que podem jogar (mais forte no que está sendo mirado), a bola no tiro de meta e o goleiro no "Vai chutar". Toques no HUD não viram mira nem movem o goleiro (`UiPointer`).
 
+## IA (fase 3)
+
+Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). Passo 1 feito: a IA joga com o time de cima enquanto `Ai Plays Top` estiver ligado no `MatchController` (objeto `Partida (sistemas)`); desligue para 2 jogadores. O Menu vai escolher isso no passo 3.
+
+- `AiPlayer`: na vez da IA pega os botões mais perto da bola (`AiDifficulty.discsToTest`), gera jogadas por geometria e confere o caminho com CircleCasts (`ShotPlanner`), simula as melhores (`AiDifficulty.simulations`) numa mesa invisível (`ShotSimulator`, uma `PhysicsScene2D` própria), dá nota e escolhe com erro de ângulo e força. Mostra a mira por `aimSeconds` e solta pelo `AimController`, o mesmo caminho do jogador.
+- Falta tira nota mas não é proibida; o erro de ângulo faz a IA cometer falta às vezes.
+- Também anuncia o "Vai chutar", põe o goleiro na linha do chute quando você anuncia e confirma o pênalti (por enquanto batendo de trás).
+- Cada jogada da IA escreve no Console `[IA] ... pensou X ms (N jogadas simuladas, P passos de física)`.
+- Nível: campo `Ai Difficulty` do `MatchController` (asset em **Create > Futebol de Botão > Nível da IA**); vazio usa o Médio.
+
 ## Fase 1: ligar no Immersive Framework
 
 Segue o [Getting Started do framework](https://github.com/ImmersiveGames/com.immersive.framework/blob/master/Documentation~/Guides/Getting-Started.md):
