@@ -56,6 +56,7 @@ namespace FutebolDeBotao
         private Camera worldCamera;
         private string lastMessage;
         private float messageUntil;
+        private bool messageHeld;
 
         public void Configure(MatchController matchController) => match = matchController;
 
@@ -156,10 +157,12 @@ namespace FutebolDeBotao
             {
                 lastMessage = message;
                 if (!string.IsNullOrEmpty(message)) messageUntil = Time.unscaledTime + match.Options.messageSeconds;
+                // Aviso que parou o jogo some junto com a pausa, para não ficar na tela com o jogo andando.
+                messageHeld = match.IsHolding;
             }
 
-            bool show = visible && !string.IsNullOrEmpty(message) &&
-                        (Time.unscaledTime < messageUntil || match.IsHolding || match.State == MatchState.End);
+            bool timeLeft = messageHeld ? match.IsHolding : Time.unscaledTime < messageUntil;
+            bool show = visible && !string.IsNullOrEmpty(message) && (timeLeft || match.State == MatchState.End);
 
             var bottom = messages[TeamSide.Bottom];
             var top = messages[TeamSide.Top];

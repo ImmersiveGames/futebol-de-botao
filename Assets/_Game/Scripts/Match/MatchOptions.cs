@@ -46,9 +46,7 @@ namespace FutebolDeBotao
         [Header("Avisos")]
         [Tooltip("Avisos importantes (falta, cartão, pênalti, gol, gol anulado, bola do goleiro) param o jogo por este tempo: " +
                  "controles travados e relógio parado.")]
-        [Min(0f)] public float noticeHoldSeconds = 4f;
-        [Tooltip("Depois deste tempo, um toque ou clique continua o jogo antes de acabar o aviso.")]
-        [Min(0f)] public float noticeSkipAfterSeconds = 1f;
+        [Min(0f)] public float noticeHoldSeconds = 3f;
         [Tooltip("Quanto tempo as outras mensagens (vez, toques...) ficam na tela, sem parar o jogo.")]
         [Min(0.5f)] public float messageSeconds = 3.5f;
 

@@ -69,7 +69,6 @@ namespace FutebolDeBotao
         private bool initialized;
         private bool resultRequested;
         private float holdTimer;
-        private float holdElapsed;
         private bool restoreControls;
 
         public MatchState State { get; private set; }
@@ -314,7 +313,7 @@ namespace FutebolDeBotao
                 return;
             }
 
-            // O clique que pulou o aviso não pode começar uma mira: os controles voltam no quadro seguinte.
+            // Um dedo já apertado durante o aviso não vira mira: os controles voltam no quadro seguinte.
             if (restoreControls)
             {
                 restoreControls = false;
@@ -401,31 +400,16 @@ namespace FutebolDeBotao
         {
             if (options.noticeHoldSeconds <= 0f) return;
             holdTimer = options.noticeHoldSeconds;
-            holdElapsed = 0f;
             aim.Cancel();
             ApplyControls();
         }
 
         private void UpdateHold()
         {
-            holdElapsed += Time.deltaTime;
             holdTimer -= Time.deltaTime;
-            if (holdTimer > 0f && holdElapsed >= options.noticeSkipAfterSeconds && SkipPressed()) holdTimer = 0f;
             if (holdTimer > 0f) return;
             holdTimer = 0f;
             restoreControls = true;
-        }
-
-        /// <summary>Toque, clique ou espaço de um jogador humano.</summary>
-        private bool SkipPressed()
-        {
-            foreach (TeamSide side in new[] { TeamSide.Bottom, TeamSide.Top })
-            {
-                if (IsAi(side)) continue;
-                var input = MatchInput.For(side);
-                if (input.PointerPressedThisFrame || input.ConfirmPressedThisFrame) return true;
-            }
-            return false;
         }
 
         // ---- Vai chutar ----
