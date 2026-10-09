@@ -108,9 +108,11 @@ namespace FutebolDeBotao
 
         private void OnCollisionEnter2D(Collision2D collision)
         {
-            if (collision.collider.GetComponent<Wall>() != null)
+            var wall = collision.collider.GetComponent<Wall>();
+            if (wall != null)
             {
-                TouchedWallSinceShot = true;
+                // A rede do gol não conta como parede: a bola encosta nela entrando no gol.
+                if (wall.PushesBack) TouchedWallSinceShot = true;
                 WallElastic.OnEnter(body, collision, tuning);
                 return;
             }

@@ -199,7 +199,8 @@ namespace FutebolDeBotao
 
                         if (body == ball)
                         {
-                            if (walls.Contains(other)) result.BallTouchedWall = true;
+                            // A rede do gol não conta como parede (igual ao jogo).
+                            if (walls.Contains(other)) result.BallTouchedWall |= pushingWalls.Contains(other);
                             else if (otherBody != null) result.LastTouchSide = otherBody.Side;
                         }
 
