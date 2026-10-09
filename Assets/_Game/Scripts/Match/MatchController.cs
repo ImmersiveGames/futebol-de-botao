@@ -43,6 +43,9 @@ namespace FutebolDeBotao
 
         private readonly Dictionary<TeamSide, List<Disc>> discs = new();
         private readonly int[] score = new int[2];
+        /// <summary>Faltas longe do lance de cada jogador (1 = amarelo; a partir de 2, cada uma é vermelho).</summary>
+        private readonly int[] farFouls = new int[2];
+        private Vector2 shotBallStart;
         private Ball ball;
         private Goalkeeper[] keepers;
         private AimController aim;
@@ -71,6 +74,10 @@ namespace FutebolDeBotao
         public int TouchesLeft => touchesLeft;
         public float ClockSeconds => clock;
         public int Score(TeamSide side) => score[(int)side];
+        /// <summary>O jogador de <paramref name="side"/> já levou amarelo.</summary>
+        public bool HasYellow(TeamSide side) => farFouls[(int)side] >= 1;
+        /// <summary>Vermelhos que o jogador de <paramref name="side"/> levou.</summary>
+        public int RedCards(TeamSide side) => Mathf.Max(0, farFouls[(int)side] - 1);
         /// <summary>Última mensagem da partida (falta, gol, vez...). O HUD mostra quando ela muda.</summary>
         public string Message => message;
         /// <summary>Segundos que restam no timer da etapa atual (mira, goleiro, pênalti).</summary>
@@ -238,6 +245,7 @@ namespace FutebolDeBotao
             ConfigureAi();
             resultRequested = false;
             score[0] = score[1] = 0;
+            farFouls[0] = farFouls[1] = 0;
             clock = options.DurationSeconds;
             // Início: time sorteado dá a saída.
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
@@ -440,6 +448,7 @@ namespace FutebolDeBotao
             if (State != MatchState.Aim && State != MatchState.ShotAim) return;
             shotWasCalled = State == MatchState.ShotAim;
             shooter = disc;
+            shotBallStart = ball.Body.position;
             shooter.BeginShot();
             freeKickDisc = null;
             touchesLeft--;
@@ -521,24 +530,38 @@ namespace FutebolDeBotao
             monitor.StopWatching();
             monitor.FreezeAll();
 
-            // A falta sai do ponto mais perto do gol que o time de quem sofreu ataca: onde o botão foi atingido ou onde
-            // a bola estava. Assim não adianta fazer falta lá atrás só para afastar a bola.
-            Vector2 spot = FreeKickSpot(victim.Side, victimPosition, ball.Body.position);
+            // Falta longe do lance (para afastar a bola, por exemplo) vale cartão para o jogador, não para o botão.
+            bool far = Vector2.Distance(victimPosition, shotBallStart) > options.farFoulDistance;
 
-            if (FieldLayout.InArea(spot, offender.Side))
+            if (FieldLayout.InArea(victimPosition, offender.Side)) SetupPenalty(offender, victim);
+            else SetupFreeKick(offender, victim, victimPosition);
+
+            if (far) GiveCard(offender);
+        }
+
+        /// <summary>1ª falta longe do lance: amarelo. Depois, cada uma é vermelho e o botão que fez a falta sai.</summary>
+        private void GiveCard(Disc offender)
+        {
+            var side = offender.Side;
+            int count = ++farFouls[(int)side];
+            if (count == 1)
             {
-                SetupPenalty(offender, victim);
+                message += $" Cartão amarelo para o {TeamName(side)}!";
                 return;
             }
 
-            SetupFreeKick(offender, victim, spot);
-        }
-
-        /// <summary>Onde sai o tiro livre: o mais perto do gol que <paramref name="fouledSide"/> ataca.</summary>
-        public static Vector2 FreeKickSpot(TeamSide fouledSide, Vector2 victimPosition, Vector2 ballPosition)
-        {
-            Vector2 attack = FieldLayout.AttackDirection(fouledSide);
-            return Vector2.Dot(ballPosition, attack) > Vector2.Dot(victimPosition, attack) ? ballPosition : victimPosition;
+            int onField = 0;
+            foreach (var disc in discs[side])
+                if (disc.isActiveAndEnabled) onField++;
+            if (onField > options.minDiscsAfterRed)
+            {
+                offender.gameObject.SetActive(false);
+                message += $" Cartão vermelho para o {TeamName(side)}: {offender.name} expulso!";
+            }
+            else
+            {
+                message += $" Cartão vermelho para o {TeamName(side)}!";
+            }
         }
 
         /// <summary>

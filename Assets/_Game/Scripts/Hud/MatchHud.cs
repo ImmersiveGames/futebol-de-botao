@@ -175,8 +175,17 @@ namespace FutebolDeBotao
         }
 
         private string ScoreText() =>
-            $"<color=#{ColorUtility.ToHtmlStringRGB(BlueColor)}>Azul</color> {match.Score(TeamSide.Bottom)} x " +
-            $"{match.Score(TeamSide.Top)} <color=#{ColorUtility.ToHtmlStringRGB(RedColor)}>Verm.</color>";
+            $"{Cards(TeamSide.Bottom)}<color=#{ColorUtility.ToHtmlStringRGB(BlueColor)}>Azul</color> {match.Score(TeamSide.Bottom)} x " +
+            $"{match.Score(TeamSide.Top)} <color=#{ColorUtility.ToHtmlStringRGB(RedColor)}>Verm.</color>{Cards(TeamSide.Top)}";
+
+        /// <summary>Cartões do jogador ao lado do nome: um quadradinho amarelo e um vermelho por expulsão.</summary>
+        private string Cards(TeamSide side)
+        {
+            if (!match.HasYellow(side)) return string.Empty;
+            string cards = "<color=#FFD21F>■</color>";
+            for (int i = 0; i < match.RedCards(side); i++) cards += "<color=#E02424>■</color>";
+            return side == TeamSide.Bottom ? cards + " " : " " + cards;
+        }
 
         private static string ClockText(float clock)
         {

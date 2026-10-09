@@ -365,6 +365,8 @@ namespace FutebolDeBotao
             simulator ??= new ShotSimulator(aim.Tuning, match.AllDiscs, match.Ball, match.Keepers);
             planner.FoulsEnabled = match.Options.fouls;
             planner.GoalWidth = match.GoalWidth;
+            planner.FarFoulDistance = match.Options.farFoulDistance;
+            planner.HasYellow = match.HasYellow(Side);
             simulator.FoulsEnabled = match.Options.fouls;
             simulator.GoalWidth = match.GoalWidth;
         }

@@ -44,6 +44,10 @@ namespace FutebolDeBotao
         /// <summary>Opção da partida: desligada, adversário no caminho não é risco de falta.</summary>
         public bool FoulsEnabled { get; set; } = true;
 
+        /// <summary>Distância da falta longe do lance (dá cartão) e se a IA já tem amarelo.</summary>
+        public float FarFoulDistance { get; set; } = 3.5f;
+        public bool HasYellow { get; set; }
+
         /// <summary>Bola mais perto que isto do próprio gol: a IA prefere afastá-la (também para os lados).</summary>
         private const float DangerDistance = 3.5f;
 
@@ -400,10 +404,12 @@ namespace FutebolDeBotao
 
             if (result.Foul)
             {
-                Vector2 spot = MatchController.FreeKickSpot(Opponent, result.FoulPosition, result.BallEnd);
-                bool penalty = FieldLayout.InArea(spot, side);
+                bool penalty = FieldLayout.InArea(result.FoulPosition, side);
+                // Falta longe do lance dá cartão: pior ainda, e muito pior com amarelo (vermelho tira um botão).
+                bool far = Vector2.Distance(result.FoulPosition, start) > FarFoulDistance;
+                float card = far ? (HasYellow ? 150f : 40f) : 0f;
                 // A falta tira nota mas não é proibida: no Fácil a IA liga menos para ela.
-                return -(penalty ? 120f : 45f) * Mathf.Lerp(0.3f, 1f, foulCaution);
+                return -((penalty ? 120f : 45f) + card) * Mathf.Lerp(0.3f, 1f, foulCaution);
             }
 
             if (result.GoalOf == side) return -120f;
