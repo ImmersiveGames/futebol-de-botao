@@ -125,13 +125,15 @@ namespace FutebolDeBotao
             if (collision.collider.GetComponent<Ball>() != null && IsPushing(collision)) TouchedBallThisShot = true;
         }
 
-        /// <summary>Som da batida: botão com botão (avisa só um dos dois) ou botão na parede. Bola avisa a própria.</summary>
+        /// <summary>
+        /// Som da batida: botão com botão ou botão na parede (a bola avisa as dela). Os dois botões avisam a mesma
+        /// batida; o MatchSounds não repete o mesmo som no mesmo instante, então toca uma vez só.
+        /// </summary>
         private void RaiseImpact(Collision2D collision)
         {
-            var other = collision.collider.GetComponent<Disc>();
-            if (other != null)
+            if (collision.collider.GetComponent<Disc>() != null)
             {
-                if (GetInstanceID() < other.GetInstanceID()) TableImpacts.Raise(TableImpactKind.DiscDisc, collision.relativeVelocity.magnitude);
+                TableImpacts.Raise(TableImpactKind.DiscDisc, collision.relativeVelocity.magnitude);
                 return;
             }
             if (collision.collider.GetComponent<Wall>() != null) TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
