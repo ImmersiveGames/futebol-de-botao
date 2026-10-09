@@ -10,6 +10,8 @@ namespace FutebolDeBotao
         public const float HalfWidth = Width * 0.5f;
         public const float HalfHeight = Height * 0.5f;
         public const float GoalWidth = 2.4f;
+        /// <summary>Fundo do gol (da linha de fundo até a rede de trás).</summary>
+        public const float GoalDepth = 0.8f;
 
         /// <summary>Área do goleiro: retângulo na frente de cada gol.</summary>
         public const float AreaWidth = 4f;

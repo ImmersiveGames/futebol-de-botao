@@ -186,7 +186,8 @@ namespace FutebolDeBotao
         private readonly List<GameObject> goalPosts = new();
 
         /// <summary>
-        /// Sem goleiro o gol fica menor: duas traves de parede, uma de cada lado da boca, copiadas da parede do fundo.
+        /// Sem goleiro o gol fica menor: dois blocos de parede, um de cada lado, da linha de fundo até a rede de trás
+        /// (copiados da parede do fundo).
         /// </summary>
         private void ApplyGoalWidth()
         {
@@ -208,7 +209,7 @@ namespace FutebolDeBotao
                         var copy = Instantiate(wall.gameObject, wall.transform.parent);
                         copy.name = $"Trave sem goleiro {(position.y < 0f ? "baixo" : "cima")} {(side < 0f ? "esquerda" : "direita")}";
                         copy.SetActive(false);
-                        copy.transform.position = new Vector3(side, position.y, position.z);
+                        copy.transform.position = new Vector3(side, Mathf.Sign(position.y), position.z);
                         goalPosts.Add(copy);
                     }
                 }
@@ -216,11 +217,13 @@ namespace FutebolDeBotao
 
             foreach (var copy in goalPosts)
             {
-                float side = Mathf.Sign(copy.transform.position.x);
                 var position = copy.transform.position;
-                copy.transform.position = new Vector3(side * (GoalWidth * 0.5f + post * 0.5f), position.y, position.z);
+                float side = Mathf.Sign(position.x);
+                float end = Mathf.Sign(position.y);
+                copy.transform.position = new Vector3(side * (GoalWidth * 0.5f + post * 0.5f),
+                    end * (FieldLayout.HalfHeight + FieldLayout.GoalDepth * 0.5f), position.z);
                 var scale = copy.transform.localScale;
-                copy.transform.localScale = new Vector3(Mathf.Max(post, 0.001f), scale.y, scale.z);
+                copy.transform.localScale = new Vector3(Mathf.Max(post, 0.001f), FieldLayout.GoalDepth, scale.z);
                 copy.SetActive(post > 0.001f);
             }
 

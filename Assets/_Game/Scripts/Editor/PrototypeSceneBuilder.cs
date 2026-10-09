@@ -21,7 +21,7 @@ namespace FutebolDeBotao.Editor
         private const float FieldHeight = FieldLayout.Height;
         private const float WallThickness = 0.5f;
         private const float GoalWidth = FieldLayout.GoalWidth;
-        private const float GoalDepth = 0.8f;
+        private const float GoalDepth = FieldLayout.GoalDepth;
         private const float DiscDiameter = 0.7f;
         private const float BallDiameter = 0.4f;
         private const float KeeperWidth = 1.0f;
