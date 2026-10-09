@@ -68,6 +68,9 @@ namespace FutebolDeBotao
         private string message = string.Empty;
         private bool initialized;
         private bool resultRequested;
+        private float holdTimer;
+        private float holdElapsed;
+        private bool restoreControls;
 
         public MatchState State { get; private set; }
         public TeamSide Turn { get; private set; }
@@ -87,7 +90,9 @@ namespace FutebolDeBotao
         /// <summary>Quem age agora: o atacante na mira e no pênalti, o defensor ajustando o goleiro.</summary>
         public TeamSide ActingSide => State == MatchState.ShotCall ? Opponent(Turn) : Turn;
         /// <summary>Há um "Pronto" esperando (goleiro no Vai chutar ou batedor no pênalti).</summary>
-        public bool CanConfirmReady => State is MatchState.ShotCall or MatchState.PenaltySetup;
+        public bool CanConfirmReady => !IsHolding && State is (MatchState.ShotCall or MatchState.PenaltySetup);
+        /// <summary>Um aviso importante está na tela: controles travados, relógio e timer parados, a IA espera.</summary>
+        public bool IsHolding => holdTimer > 0f;
         /// <summary>Com um HUD de verdade na cena, o HUD provisório (OnGUI) não é desenhado.</summary>
         public bool ExternalHud { get; set; }
         public PauseRequestTrigger PauseTrigger => pauseTrigger;
@@ -244,6 +249,8 @@ namespace FutebolDeBotao
             ApplyOptions();
             ConfigureAi();
             resultRequested = false;
+            holdTimer = 0f;
+            restoreControls = false;
             score[0] = score[1] = 0;
             farFouls[0] = farFouls[1] = 0;
             clock = options.DurationSeconds;
@@ -301,6 +308,19 @@ namespace FutebolDeBotao
                 return;
             }
 
+            if (IsHolding)
+            {
+                UpdateHold();
+                return;
+            }
+
+            // O clique que pulou o aviso não pode começar uma mira: os controles voltam no quadro seguinte.
+            if (restoreControls)
+            {
+                restoreControls = false;
+                ApplyControls();
+            }
+
             if (ClockRunning) clock = Mathf.Max(0f, clock - Time.deltaTime);
             stateTimer -= Time.deltaTime;
 
@@ -347,13 +367,7 @@ namespace FutebolDeBotao
             StateVersion++;
 
             aim.Cancel();
-            // Na vez da IA o ponteiro não mira.
-            aim.InputEnabled = (state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick) && !IsAi(Turn);
-            aim.InputSide = Turn;
-            aim.BallKickMode = state == MatchState.GoalKick;
-            aim.CanSelect = CanUse;
-
-            keeperControl.ControlledSide = state == MatchState.ShotCall && !IsAi(Opponent(Turn)) ? Opponent(Turn) : null;
+            ApplyControls();
 
             stateTimer = state switch
             {
@@ -366,6 +380,54 @@ namespace FutebolDeBotao
             };
         }
 
+        /// <summary>Liga a mira e o goleiro de quem age no estado atual (nada durante um aviso).</summary>
+        private void ApplyControls()
+        {
+            var state = State;
+            bool holding = IsHolding || restoreControls;
+            // Na vez da IA o ponteiro não mira.
+            aim.InputEnabled = !holding && (state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick) && !IsAi(Turn);
+            aim.InputSide = Turn;
+            aim.BallKickMode = state == MatchState.GoalKick;
+            aim.CanSelect = CanUse;
+
+            keeperControl.ControlledSide = !holding && state == MatchState.ShotCall && !IsAi(Opponent(Turn)) ? Opponent(Turn) : null;
+        }
+
+        // ---- Avisos ----
+
+        /// <summary>Aviso importante: para o jogo por alguns segundos para todo mundo ler. A mensagem atual é o aviso.</summary>
+        private void Hold()
+        {
+            if (options.noticeHoldSeconds <= 0f) return;
+            holdTimer = options.noticeHoldSeconds;
+            holdElapsed = 0f;
+            aim.Cancel();
+            ApplyControls();
+        }
+
+        private void UpdateHold()
+        {
+            holdElapsed += Time.deltaTime;
+            holdTimer -= Time.deltaTime;
+            if (holdTimer > 0f && holdElapsed >= options.noticeSkipAfterSeconds && SkipPressed()) holdTimer = 0f;
+            if (holdTimer > 0f) return;
+            holdTimer = 0f;
+            restoreControls = true;
+        }
+
+        /// <summary>Toque, clique ou espaço de um jogador humano.</summary>
+        private bool SkipPressed()
+        {
+            foreach (TeamSide side in new[] { TeamSide.Bottom, TeamSide.Top })
+            {
+                if (IsAi(side)) continue;
+                var input = MatchInput.For(side);
+                if (input.PointerPressedThisFrame || input.ConfirmPressedThisFrame) return true;
+            }
+            return false;
+        }
+
         // ---- Vai chutar ----
 
         public bool CanCallShot
@@ -374,7 +436,7 @@ namespace FutebolDeBotao
             {
                 // Sem goleiro não existe "Vai chutar": entrou, é gol.
                 // Disponível quando a bola está no campo de ataque do time da vez; qualquer botão pode chutar.
-                return State == MatchState.Aim && !aim.IsAiming && options.hasGoalkeeper &&
+                return !IsHolding && State == MatchState.Aim && !aim.IsAiming && options.hasGoalkeeper &&
                        InAttackHalf(ball.Body.position, Turn);
             }
         }
@@ -382,6 +444,7 @@ namespace FutebolDeBotao
         /// <summary>"Pronto": encerra o ajuste do goleiro ou o posicionamento do batedor do pênalti.</summary>
         public void ConfirmReady()
         {
+            if (IsHolding) return;
             if (State == MatchState.ShotCall) EnterShotAim();
             else if (State == MatchState.PenaltySetup) FinishPenaltySetup();
         }
@@ -477,6 +540,7 @@ namespace FutebolDeBotao
             if (owner == null) return false;
             message = "Bola do goleiro.";
             SetupGoalKick(owner.Value);
+            Hold();
             return true;
         }
 
@@ -537,6 +601,7 @@ namespace FutebolDeBotao
             else SetupFreeKick(offender, victim, victimPosition);
 
             if (far) GiveCard(offender);
+            Hold();
         }
 
         /// <summary>1ª falta longe do lance: amarelo. Depois, cada uma é vermelho e o botão que fez a falta sai.</summary>
@@ -816,6 +881,9 @@ namespace FutebolDeBotao
             }
 
             Enter(MatchState.Goal);
+            // O aviso já é a pausa do gol: acabou, segue direto para a saída ou o tiro de meta.
+            if (options.noticeHoldSeconds > 0f) stateTimer = 0f;
+            Hold();
         }
 
         private void ResolveGoal()

@@ -70,6 +70,8 @@ namespace FutebolDeBotao
         private void Update()
         {
             if (busy || match == null || aim == null || difficulty == null || Time.timeScale <= 0f) return;
+            // Aviso na tela: a IA espera como todo mundo.
+            if (match.IsHolding) return;
             if (monitor != null && monitor.IsMoving) return;
 
             switch (match.State)
@@ -88,7 +90,7 @@ namespace FutebolDeBotao
             }
         }
 
-        private bool StillValid(int version) => match != null && match.StateVersion == version;
+        private bool StillValid(int version) => match != null && match.StateVersion == version && !match.IsHolding;
 
         // ---- Toque ----
 

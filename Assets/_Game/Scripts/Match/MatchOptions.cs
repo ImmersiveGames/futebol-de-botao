@@ -43,6 +43,15 @@ namespace FutebolDeBotao
         [Tooltip("Abertura do arco atrás da bola onde o botão pode ficar, em graus para cada lado.")]
         [Range(0f, 90f)] public float penaltyArcDegrees = 70f;
 
+        [Header("Avisos")]
+        [Tooltip("Avisos importantes (falta, cartão, pênalti, gol, gol anulado, bola do goleiro) param o jogo por este tempo: " +
+                 "controles travados e relógio parado.")]
+        [Min(0f)] public float noticeHoldSeconds = 4f;
+        [Tooltip("Depois deste tempo, um toque ou clique continua o jogo antes de acabar o aviso.")]
+        [Min(0f)] public float noticeSkipAfterSeconds = 1f;
+        [Tooltip("Quanto tempo as outras mensagens (vez, toques...) ficam na tela, sem parar o jogo.")]
+        [Min(0.5f)] public float messageSeconds = 3.5f;
+
         public float DurationSeconds => durationMinutes * 60f;
 
         /// <summary>Posição inicial do botão <paramref name="index"/> do time <paramref name="side"/>.</summary>

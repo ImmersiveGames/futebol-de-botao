@@ -17,7 +17,6 @@ namespace FutebolDeBotao
         private const float PixelsPerUnit = 100f;
 
         [SerializeField] private MatchController match;
-        [SerializeField, Min(0.5f)] private float messageSeconds = 2.5f;
         [Tooltip("Nos últimos segundos o timer fica vermelho.")]
         [SerializeField, Min(0f)] private float warningSeconds = 5f;
 
@@ -156,11 +155,11 @@ namespace FutebolDeBotao
             if (message != lastMessage)
             {
                 lastMessage = message;
-                if (!string.IsNullOrEmpty(message)) messageUntil = Time.unscaledTime + messageSeconds;
+                if (!string.IsNullOrEmpty(message)) messageUntil = Time.unscaledTime + match.Options.messageSeconds;
             }
 
             bool show = visible && !string.IsNullOrEmpty(message) &&
-                        (Time.unscaledTime < messageUntil || match.State == MatchState.End);
+                        (Time.unscaledTime < messageUntil || match.IsHolding || match.State == MatchState.End);
 
             var bottom = messages[TeamSide.Bottom];
             var top = messages[TeamSide.Top];
