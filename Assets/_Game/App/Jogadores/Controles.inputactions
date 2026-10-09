@@ -1,0 +1,266 @@
+{
+    "version": 1,
+    "name": "Controles",
+    "maps": [
+        {
+            "name": "Jogo",
+            "id": "fbb83896-f04e-46ff-9460-7a09ce3f7b87",
+            "actions": [
+                {
+                    "name": "Apontar",
+                    "type": "PassThrough",
+                    "id": "4ba1bf89-c711-4e84-b390-361f76d90366",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Pressionar",
+                    "type": "Button",
+                    "id": "448f5854-ba8d-4f5b-b760-bb9818c6f267",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Cancelar",
+                    "type": "Button",
+                    "id": "3122c609-3cf1-4693-aeb7-ef4a767fa835",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "MoverGoleiro",
+                    "type": "Value",
+                    "id": "8ee13298-3230-48d8-b56d-df86f9db92b5",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Confirmar",
+                    "type": "Button",
+                    "id": "debe7c6f-33a8-48e6-a15d-3ac4edea1b4f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "VaiChutar",
+                    "type": "Button",
+                    "id": "466b518c-3d4d-459a-8f78-2bf64d28fc40",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Reiniciar",
+                    "type": "Button",
+                    "id": "53cc8a2e-0d1c-471f-8180-1736d01009b5",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "2da02fea-8cad-4953-af96-8c45aa86eb28",
+                    "path": "<Pointer>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse;Toque",
+                    "action": "Apontar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "44ebd619-8dbd-4e19-a3f6-9b0ca29c3b79",
+                    "path": "<Pointer>/press",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse;Toque",
+                    "action": "Pressionar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "457c316b-3271-45c5-9919-8621aa1a9019",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Cancelar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "3c4f8ba1-aea6-4f23-88f1-772bf7564688",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MoverGoleiro",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "28f7a55c-bb41-433d-a960-6dfb38513141",
+                    "path": "<Keyboard>/leftArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "MoverGoleiro",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "fce1b910-8acc-4f08-a435-c1c606a4f12f",
+                    "path": "<Keyboard>/rightArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "MoverGoleiro",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "3529475b-f54f-431e-bcd5-d3d1832f60a9",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MoverGoleiro",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "6edf92fa-5c8c-4d34-9da7-171c5ebadbcc",
+                    "path": "<Keyboard>/a",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "MoverGoleiro",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "e1ebcbf5-5593-4d0b-ae49-ee6747133b16",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "MoverGoleiro",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "79206106-ebb4-42fb-919d-b94e51d42050",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Confirmar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3880c2ea-05fe-4a45-9e67-793e324d8d7d",
+                    "path": "<Keyboard>/v",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "VaiChutar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f62f66d4-23b1-4771-ab96-b79d6eb4a4a6",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Reiniciar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Global",
+            "id": "fb659f46-105d-4ddf-949f-3aa475137ef0",
+            "actions": [
+                {
+                    "name": "Pausa",
+                    "type": "Button",
+                    "id": "cf7c6af3-d254-41b1-a355-d98bfd9a1fe8",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "7fd5cee8-8b76-4bbf-a166-fc7f75eb0e0b",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Pausa",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "Teclado e mouse",
+            "bindingGroup": "Teclado e mouse",
+            "devices": [
+                {
+                    "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        },
+        {
+            "name": "Toque",
+            "bindingGroup": "Toque",
+            "devices": [
+                {
+                    "devicePath": "<Touchscreen>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        }
+    ]
+}

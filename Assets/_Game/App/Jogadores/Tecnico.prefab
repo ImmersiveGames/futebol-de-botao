@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3988638696007549463
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7076600471371467503}
+  - component: {fileID: 5018566267967872311}
+  - component: {fileID: 2886952327619118599}
+  - component: {fileID: 5354494057980872098}
+  - component: {fileID: 6467616040919972356}
+  m_Layer: 0
+  m_Name: Tecnico
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7076600471371467503
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3988638696007549463}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5018566267967872311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3988638696007549463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd151acf79cd456a9997d26d3af27439, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Immersive.Framework.Runtime::Immersive.Framework.PlayerParticipation.PlayerActorRuntimeHost
+  playerActorDeclaration: {fileID: 2886952327619118599}
+  presentationMount: {fileID: 0}
+--- !u!114 &2886952327619118599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3988638696007549463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26cc512b3155464caed4dc48a6c9de6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Immersive.Framework.Runtime::Immersive.Framework.Actors.PlayerActorDeclaration
+  actorId: 
+  actorKind: 20
+  actorRole: 50
+  displayName: "T\xE9cnico"
+  reason: actor.declaration
+  playerInput: {fileID: 0}
+--- !u!114 &5354494057980872098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3988638696007549463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 390f1d653bee4a0dbc17dce425c59eaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Immersive.Framework.Runtime::Immersive.Framework.PlayerParticipation.PlayerGameplayInputReader
+--- !u!114 &6467616040919972356
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3988638696007549463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9819a4f6ffda4ba987688486a2b7c0a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FutebolDeBotao::FutebolDeBotao.CoachActor
+  reader: {fileID: 5354494057980872098}
+  point: {fileID: 4384032517470619574, guid: cd1f27abe0c565a4ead7226405a14b66, type: 3}
+  press: {fileID: -4805508822348317530, guid: cd1f27abe0c565a4ead7226405a14b66, type: 3}
+  cancel: {fileID: -2714357778430690734, guid: cd1f27abe0c565a4ead7226405a14b66, type: 3}
+  keeperAxis: {fileID: -3992584705754574125, guid: cd1f27abe0c565a4ead7226405a14b66, type: 3}
+  confirm: {fileID: 5989059126174684481, guid: cd1f27abe0c565a4ead7226405a14b66, type: 3}
+  shotCall: {fileID: 8330478794598762136, guid: cd1f27abe0c565a4ead7226405a14b66, type: 3}
+  restart: {fileID: 8301011655552132644, guid: cd1f27abe0c565a4ead7226405a14b66, type: 3}
