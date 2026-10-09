@@ -553,15 +553,27 @@ namespace FutebolDeBotao
             int onField = 0;
             foreach (var disc in discs[side])
                 if (disc.isActiveAndEnabled) onField++;
-            if (onField > options.minDiscsAfterRed)
+            offender.gameObject.SetActive(false);
+            if (onField > 1)
             {
-                offender.gameObject.SetActive(false);
                 message += $" Cartão vermelho para o {TeamName(side)}: {offender.name} expulso!";
+                return;
             }
-            else
-            {
-                message += $" Cartão vermelho para o {TeamName(side)}!";
-            }
+            Walkover(side);
+        }
+
+        /// <summary>W.O.: o time ficou sem botões. Quem foi expulso fica com 0 e o adversário ganha 3 gols a mais.</summary>
+        private void Walkover(TeamSide loser)
+        {
+            var winner = Opponent(loser);
+            score[(int)loser] = 0;
+            score[(int)winner] += 3;
+            EndShot();
+            monitor.StopWatching();
+            monitor.FreezeAll();
+            message = $"W.O.! O {TeamName(loser)} ficou sem botões. Vitória do {TeamName(winner)}!";
+            MatchSession.LastResult = new MatchResult(Score(TeamSide.Bottom), Score(TeamSide.Top), true);
+            Enter(MatchState.End);
         }
 
         /// <summary>

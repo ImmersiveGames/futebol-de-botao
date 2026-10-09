@@ -5,14 +5,17 @@ namespace FutebolDeBotao
     /// <summary>Placar final da última partida, lido pela tela de Resultado.</summary>
     public readonly struct MatchResult
     {
-        public MatchResult(int bottom, int top)
+        public MatchResult(int bottom, int top, bool walkover = false)
         {
             Bottom = bottom;
             Top = top;
+            Walkover = walkover;
         }
 
         public int Bottom { get; }
         public int Top { get; }
+        /// <summary>Acabou por W.O. (um time ficou sem botões por cartão vermelho).</summary>
+        public bool Walkover { get; }
     }
 
     /// <summary>

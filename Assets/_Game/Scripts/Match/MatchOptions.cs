@@ -17,10 +17,8 @@ namespace FutebolDeBotao
         [Tooltip("Desligado: bater em adversário é só física, sem tiro livre nem pênalti.")]
         public bool fouls = true;
         [Tooltip("Falta longe do lance: o botão atingido estava a mais que isto da bola no começo da jogada. " +
-                 "A 1ª dá amarelo para o jogador; a partir da 2ª, vermelho e o botão que fez a falta sai.")]
+                 "A 1ª dá amarelo para o jogador; a partir da 2ª, vermelho e o botão que fez a falta sai. Sem botões, é W.O.")]
         [Min(0f)] public float farFoulDistance = 3.5f;
-        [Tooltip("O vermelho não tira botão se o time ficaria com menos que isto em campo.")]
-        [Min(1)] public int minDiscsAfterRed = 1;
 
         [Header("Times")]
         [Tooltip("5 ou 3 botões por time.")]

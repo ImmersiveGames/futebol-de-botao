@@ -37,7 +37,8 @@ namespace FutebolDeBotao
             if (verdictLabel != null)
                 verdictLabel.text = bottom == top
                     ? "Empate!"
-                    : $"Vitória do {MatchController.TeamName(bottom > top ? TeamSide.Bottom : TeamSide.Top)}!";
+                    : $"Vitória do {MatchController.TeamName(bottom > top ? TeamSide.Bottom : TeamSide.Top)}" +
+                      $"{(result.Value.Walkover ? " por W.O." : string.Empty)}!";
         }
 
         public void PlayAgain()
