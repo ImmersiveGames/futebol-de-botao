@@ -311,7 +311,9 @@ namespace FutebolDeBotao
             planner ??= new ShotPlanner(Side, aim.Tuning, match.Ball);
             simulator ??= new ShotSimulator(aim.Tuning, match.AllDiscs, match.Ball, match.Keepers);
             planner.FoulsEnabled = match.Options.fouls;
+            planner.GoalWidth = match.GoalWidth;
             simulator.FoulsEnabled = match.Options.fouls;
+            simulator.GoalWidth = match.GoalWidth;
         }
 
         // ---- Goleiro ----
@@ -365,6 +367,7 @@ namespace FutebolDeBotao
 
             attackerPlanner ??= new ShotPlanner(attacker, aim.Tuning, match.Ball);
             attackerPlanner.FoulsEnabled = match.Options.fouls;
+            attackerPlanner.GoalWidth = match.GoalWidth;
             var threats = attackerPlanner.GoalThreats(usable, difficulty.keeperShotsToConsider);
             if (threats.Count == 0)
             {

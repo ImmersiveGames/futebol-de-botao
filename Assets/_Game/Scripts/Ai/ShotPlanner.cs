@@ -44,6 +44,9 @@ namespace FutebolDeBotao
         /// <summary>Opção da partida: desligada, adversário no caminho não é risco de falta.</summary>
         public bool FoulsEnabled { get; set; } = true;
 
+        /// <summary>Largura da boca do gol (menor sem goleiro): os alvos de chute ficam dentro dela.</summary>
+        public float GoalWidth { get; set; } = FieldLayout.GoalWidth;
+
         public ShotPlanner(TeamSide aiSide, PhysicsTuning physicsTuning, Ball matchBall)
         {
             side = aiSide;
@@ -291,7 +294,8 @@ namespace FutebolDeBotao
         {
             var targets = new List<Vector2>();
             float y = FieldLayout.GoalLineY(Opponent) + Attack.y * 0.4f;
-            foreach (float x in GoalOffsets) targets.Add(new Vector2(x, y));
+            float scale = GoalWidth / FieldLayout.GoalWidth;
+            foreach (float x in GoalOffsets) targets.Add(new Vector2(x * scale, y));
             return targets;
         }
 

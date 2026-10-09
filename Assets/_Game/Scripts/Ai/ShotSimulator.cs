@@ -58,6 +58,7 @@ namespace FutebolDeBotao
         private readonly HashSet<Collider2D> pushingWalls = new();
         private readonly ContactPoint2D[] contacts = new ContactPoint2D[16];
         private readonly HashSet<SimBody> touching = new();
+        private readonly List<(Wall Source, BoxCollider2D Copy)> wallCopies = new();
         private Scene scene;
         private PhysicsScene2D physics;
         private SimBody ball;
@@ -77,6 +78,7 @@ namespace FutebolDeBotao
             {
                 if (!wall.TryGetComponent(out BoxCollider2D box) || box.isTrigger) continue;
                 var copy = CopyBox(box);
+                wallCopies.Add((wall, copy));
                 walls.Add(copy);
                 if (wall.PushesBack) pushingWalls.Add(copy);
             }
@@ -99,7 +101,15 @@ namespace FutebolDeBotao
                 bool active = body.Source != null && body.Source.gameObject.activeInHierarchy;
                 if (body.Copy.gameObject.activeSelf != active) body.Copy.gameObject.SetActive(active);
             }
+            foreach (var (source, copy) in wallCopies)
+            {
+                bool active = source != null && source.gameObject.activeInHierarchy;
+                if (copy.gameObject.activeSelf != active) copy.gameObject.SetActive(active);
+            }
         }
+
+        /// <summary>Largura da boca do gol para contar gol (menor sem goleiro).</summary>
+        public float GoalWidth { get; set; } = FieldLayout.GoalWidth;
 
         /// <summary>Nas próximas simulações, o goleiro de <paramref name="side"/> fica em <paramref name="x"/> (o goleiro da IA testando posições).</summary>
         public void OverrideKeeperX(TeamSide side, float x)
@@ -235,7 +245,7 @@ namespace FutebolDeBotao
 
                 // A bola entra no gol quando o centro passa da linha de fundo entre as traves (GoalTrigger).
                 var ballPosition = ball.Copy.position;
-                if (Mathf.Abs(ballPosition.x) < FieldLayout.GoalWidth * 0.5f && Mathf.Abs(ballPosition.y) > FieldLayout.HalfHeight + 0.05f)
+                if (Mathf.Abs(ballPosition.x) < GoalWidth * 0.5f && Mathf.Abs(ballPosition.y) > FieldLayout.HalfHeight + 0.05f)
                 {
                     result.GoalOf = ballPosition.y > 0f ? TeamSide.Top : TeamSide.Bottom;
                     break;

@@ -176,7 +176,56 @@ namespace FutebolDeBotao
                     list[i].gameObject.SetActive(i < options.discsPerTeam);
 
             foreach (var keeper in keepers) keeper.gameObject.SetActive(options.hasGoalkeeper);
+            ApplyGoalWidth();
             if (aimVisuals != null) aimVisuals.Mode = options.aimAssist;
+        }
+
+        /// <summary>Largura da boca do gol nesta partida (menor sem goleiro).</summary>
+        public float GoalWidth { get; private set; } = FieldLayout.GoalWidth;
+
+        private readonly List<GameObject> goalPosts = new();
+
+        /// <summary>
+        /// Sem goleiro o gol fica menor: duas traves de parede, uma de cada lado da boca, copiadas da parede do fundo.
+        /// </summary>
+        private void ApplyGoalWidth()
+        {
+            GoalWidth = options.hasGoalkeeper
+                ? FieldLayout.GoalWidth
+                : Mathf.Clamp(options.goalWidthWithoutKeeper, 0.6f, FieldLayout.GoalWidth);
+            float post = (FieldLayout.GoalWidth - GoalWidth) * 0.5f;
+
+            if (goalPosts.Count == 0 && post > 0.001f)
+            {
+                foreach (var wall in FindObjectsByType<Wall>())
+                {
+                    // As paredes do fundo, ao lado do gol: viram o molde das traves daquele lado do campo.
+                    var position = wall.transform.position;
+                    if (!wall.PushesBack || Mathf.Abs(position.y) < FieldLayout.HalfHeight || Mathf.Abs(position.x) > FieldLayout.HalfWidth) continue;
+                    if (position.x > 0f) continue;
+                    foreach (float side in new[] { -1f, 1f })
+                    {
+                        var copy = Instantiate(wall.gameObject, wall.transform.parent);
+                        copy.name = $"Trave sem goleiro {(position.y < 0f ? "baixo" : "cima")} {(side < 0f ? "esquerda" : "direita")}";
+                        copy.SetActive(false);
+                        copy.transform.position = new Vector3(side, position.y, position.z);
+                        goalPosts.Add(copy);
+                    }
+                }
+            }
+
+            foreach (var copy in goalPosts)
+            {
+                float side = Mathf.Sign(copy.transform.position.x);
+                var position = copy.transform.position;
+                copy.transform.position = new Vector3(side * (GoalWidth * 0.5f + post * 0.5f), position.y, position.z);
+                var scale = copy.transform.localScale;
+                copy.transform.localScale = new Vector3(Mathf.Max(post, 0.001f), scale.y, scale.z);
+                copy.SetActive(post > 0.001f);
+            }
+
+            var repulsion = FindAnyObjectByType<WallRepulsion>();
+            if (repulsion != null) repulsion.RefreshWalls();
         }
 
         public void StartMatch()

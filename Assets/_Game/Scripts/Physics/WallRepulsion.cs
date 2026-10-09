@@ -21,14 +21,19 @@ namespace FutebolDeBotao
         private void Start()
         {
             monitor = GetComponent<MotionMonitor>();
-
-            walls.Clear();
-            foreach (var wall in FindObjectsByType<Wall>())
-                if (wall.PushesBack && wall.TryGetComponent(out Collider2D wallCollider)) walls.Add(wallCollider);
+            RefreshWalls();
 
             bodies.Clear();
             foreach (var disc in FindObjectsByType<Disc>()) bodies.Add(disc.GetComponent<Collider2D>());
             foreach (var ball in FindObjectsByType<Ball>()) bodies.Add(ball.GetComponent<Collider2D>());
+        }
+
+        /// <summary>Relê as paredes ligadas (as traves do gol sem goleiro entram e saem com a opção).</summary>
+        public void RefreshWalls()
+        {
+            walls.Clear();
+            foreach (var wall in FindObjectsByType<Wall>())
+                if (wall.PushesBack && wall.TryGetComponent(out Collider2D wallCollider)) walls.Add(wallCollider);
         }
 
         private void FixedUpdate()
