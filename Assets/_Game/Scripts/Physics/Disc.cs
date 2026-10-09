@@ -92,6 +92,7 @@ namespace FutebolDeBotao
         private void OnCollisionEnter2D(Collision2D collision)
         {
             WallElastic.OnEnter(body, collision, tuning);
+            RaiseImpact(collision);
             if (!shooting)
             {
                 var opponent = collision.collider.GetComponent<Disc>();
@@ -122,6 +123,18 @@ namespace FutebolDeBotao
         {
             if (!shooting || TouchedBallThisShot) return;
             if (collision.collider.GetComponent<Ball>() != null && IsPushing(collision)) TouchedBallThisShot = true;
+        }
+
+        /// <summary>Som da batida: botão com botão (avisa só um dos dois) ou botão na parede. Bola avisa a própria.</summary>
+        private void RaiseImpact(Collision2D collision)
+        {
+            var other = collision.collider.GetComponent<Disc>();
+            if (other != null)
+            {
+                if (GetInstanceID() < other.GetInstanceID()) TableImpacts.Raise(TableImpactKind.DiscDisc, collision.relativeVelocity.magnitude);
+                return;
+            }
+            if (collision.collider.GetComponent<Wall>() != null) TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
         }
 
         /// <summary>O contato está trocando força (não é só um encostar parado).</summary>

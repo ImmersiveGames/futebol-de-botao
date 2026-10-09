@@ -205,6 +205,7 @@ namespace FutebolDeBotao.Editor
             var trigger = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "abertura.menu");
             canvas.gameObject.AddComponent<TitleScreen>().Configure(trigger, prompt);
 
+            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic);
             EditorSceneManager.SaveScene(scene, TitleScenePath);
         }
 
@@ -256,6 +257,7 @@ namespace FutebolDeBotao.Editor
             menuPlayers.Configure(menuObserver);
             menu.SetPlayers(menuPlayers);
 
+            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic);
             EditorSceneManager.SaveScene(scene, MenuScenePath);
         }
 
@@ -276,6 +278,7 @@ namespace FutebolDeBotao.Editor
             var menu = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "resultado.menu");
             result.Configure(score, verdict, again, menu);
 
+            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic);
             EditorSceneManager.SaveScene(scene, ResultScenePath);
         }
 
@@ -334,6 +337,9 @@ namespace FutebolDeBotao.Editor
             // HUD: cantos ao lado dos gols no celular (em pé), painel à esquerda no PC. Monta a UI sozinho no Awake.
             var hud = new GameObject(MatchHudName).AddComponent<MatchHud>();
             hud.Configure(match);
+
+            // Música da partida e sons (peteleco, batidas, apito, gol, cartão). Sem os cues ("Criar áudio"), fica sem som.
+            AudioBuilder.AddMatchAudio(framework, match);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

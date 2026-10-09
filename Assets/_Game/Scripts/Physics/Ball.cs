@@ -93,6 +93,7 @@ namespace FutebolDeBotao
             var disc = collision.collider.GetComponent<Disc>();
             if (disc != null)
             {
+                TableImpacts.Raise(TableImpactKind.BallDisc, collision.relativeVelocity.magnitude);
                 LastDiscTouch = disc;
                 LastTouchSide = disc.Side;
                 return;
@@ -111,6 +112,7 @@ namespace FutebolDeBotao
             var wall = collision.collider.GetComponent<Wall>();
             if (wall != null)
             {
+                TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
                 // A rede do gol não conta como parede: a bola encosta nela entrando no gol.
                 if (wall.PushesBack) TouchedWallSinceShot = true;
                 WallElastic.OnEnter(body, collision, tuning);
@@ -120,6 +122,7 @@ namespace FutebolDeBotao
             var disc = collision.collider.GetComponent<Disc>();
             if (disc != null)
             {
+                TableImpacts.Raise(TableImpactKind.BallDisc, collision.relativeVelocity.magnitude);
                 LastDiscTouch = disc;
                 LastTouchSide = disc.Side;
                 // Botão parado que não é o do peteleco: a bola rebate nele e ele fica no lugar.
@@ -131,6 +134,7 @@ namespace FutebolDeBotao
             var keeper = collision.collider.GetComponent<Goalkeeper>();
             if (keeper != null)
             {
+                TableImpacts.Raise(TableImpactKind.BallKeeper, collision.relativeVelocity.magnitude);
                 LastDiscTouch = null;
                 LastTouchSide = keeper.Side;
             }

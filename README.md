@@ -87,6 +87,16 @@ Como funciona hoje:
 - **2 jogadores:** o Menu tira todo mundo da sessão e a partida lê o mouse/teclado direto, como antes. Os dois times como Actors esperam a feature do framework para dois jogadores no mesmo dispositivo (o Join com um dispositivo que já é de outro jogador é recusado).
 - **Partida aberta direto no editor:** o `MatchPlayers` faz um Join de teste do Jogador 1.
 
+## Áudio
+
+Pacotes `com.immersive.audio` 0.2.3 e `com.immersive.pooling` 0.2.2 (git, no `manifest.json`) e o BGM do framework (`Immersive.Framework.Audio`). Menu **Futebol de Botão > Criar áudio** (rode depois de "Criar jogadores"; ele roda "Criar telas" no final):
+
+- **Sons:** `Assets/_Game/Audio/Sons/*.wav`, provisórios em chiptune gerados pelo próprio menu (`ChiptuneSounds`, só cria os que faltam; faça o commit dos .wav pelo LFS) (peteleco, batida fraca/forte, bola na parede, apito, apito final, gol com torcida, cartão, música do menu e da partida). Troque o arquivo mantendo o nome para usar um som de verdade.
+- **Cues:** `Assets/_Game/Audio/Cues/` (`AudioSfxCueAsset` direto e `AudioBgmCueAsset` em loop) e `PadroesDeAudio.asset` (`AudioDefaultsAsset`).
+- **Persistent Content:** objeto "Áudio" com `AudioRuntimeHost` (listener persistente) e `FrameworkBgmDirector`.
+- **Música:** `RouteBgmAuthoring` (Play Own) em cada tela: música do menu na Abertura, Menu e Resultado (não reinicia entre elas) e a da partida na Partida.
+- **Sons da partida:** `MatchSounds` (em "Framework (telas)") ouve o peteleco (`AimController`), as batidas (`TableImpacts`, avisadas por `Ball`/`Disc`; a simulação da IA não avisa) e os lances (`MatchController.Noticed`: saída, falta, pênalti, gol anulado = apito; gol; cartão; fim = apito final). Batidas fracas demais não tocam e o mesmo som não repete em menos de 0,06 s (o pacote não aplica o limite do cue).
+
 ## IA (fase 3)
 
 Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). O Menu começa perguntando o modo: contra a IA (Fácil, Médio ou Difícil; você é o Azul, embaixo, e a IA o Vermelho) ou 2 jogadores. A escolha fica no `MatchSession`. Abrindo a cena da partida direto no editor, vale o `Ai Plays Top` do `MatchController` (objeto `Partida (sistemas)`). Na vez da IA, o HUD mostra "IA pensando...".

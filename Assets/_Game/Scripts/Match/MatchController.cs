@@ -80,6 +80,9 @@ namespace FutebolDeBotao
         public bool HasYellow(TeamSide side) => farFouls[(int)side] >= 1;
         /// <summary>Vermelhos que o jogador de <paramref name="side"/> levou.</summary>
         public int RedCards(TeamSide side) => Mathf.Max(0, farFouls[(int)side] - 1);
+        /// <summary>Lances que têm som (apito, gol, cartão...). Quem toca é o <c>MatchSounds</c>.</summary>
+        public event System.Action<MatchNotice> Noticed;
+
         /// <summary>Última mensagem da partida (falta, gol, vez...). O HUD mostra quando ela muda.</summary>
         public string Message => message;
         /// <summary>Segundos que restam no timer da etapa atual (mira, goleiro, pênalti).</summary>
@@ -289,6 +292,7 @@ namespace FutebolDeBotao
 
             GiveTurn(side);
             message = $"Saída do {TeamName(side)}.";
+            Noticed?.Invoke(MatchNotice.KickOff);
             Enter(MatchState.Aim);
         }
 
@@ -584,6 +588,7 @@ namespace FutebolDeBotao
             if (FieldLayout.InArea(victimPosition, offender.Side)) SetupPenalty(offender, victim);
             else SetupFreeKick(offender, victim, victimPosition);
 
+            Noticed?.Invoke(setupIsPenalty ? MatchNotice.Penalty : MatchNotice.Foul);
             if (far) GiveCard(offender);
             Hold();
         }
@@ -595,6 +600,7 @@ namespace FutebolDeBotao
             int count = ++farFouls[(int)side];
             if (count == 1)
             {
+                Noticed?.Invoke(MatchNotice.YellowCard);
                 message += $" Cartão amarelo para o {TeamName(side)}!";
                 return;
             }
@@ -603,6 +609,7 @@ namespace FutebolDeBotao
             foreach (var disc in discs[side])
                 if (disc.isActiveAndEnabled) onField++;
             offender.gameObject.SetActive(false);
+            Noticed?.Invoke(MatchNotice.RedCard);
             if (onField > 1)
             {
                 message += $" Cartão vermelho para o {TeamName(side)}: {offender.name} expulso!";
@@ -621,6 +628,7 @@ namespace FutebolDeBotao
             monitor.StopWatching();
             monitor.FreezeAll();
             message = $"W.O.! O {TeamName(loser)} ficou sem botões. Vitória do {TeamName(winner)}!";
+            Noticed?.Invoke(MatchNotice.FinalWhistle);
             MatchSession.LastResult = new MatchResult(Score(TeamSide.Bottom), Score(TeamSide.Top), true);
             Enter(MatchState.End);
         }
@@ -864,6 +872,7 @@ namespace FutebolDeBotao
                     : "Gol anulado: não avisou o \"Vai chutar\".";
             }
 
+            Noticed?.Invoke(pendingGoalValid ? MatchNotice.Goal : MatchNotice.GoalAnnulled);
             Enter(MatchState.Goal);
             // O aviso já é a pausa do gol: acabou, segue direto para a saída ou o tiro de meta.
             if (options.noticeHoldSeconds > 0f) stateTimer = 0f;
@@ -935,6 +944,7 @@ namespace FutebolDeBotao
             int top = Score(TeamSide.Top);
             message = bottom == top ? "Fim de jogo: empate!" : $"Fim de jogo: vitória do {TeamName(bottom > top ? TeamSide.Bottom : TeamSide.Top)}!";
             MatchSession.LastResult = new MatchResult(bottom, top);
+            Noticed?.Invoke(MatchNotice.FinalWhistle);
             Enter(MatchState.End);
         }
 
