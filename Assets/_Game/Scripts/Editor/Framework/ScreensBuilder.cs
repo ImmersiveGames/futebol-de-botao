@@ -200,7 +200,7 @@ namespace FutebolDeBotao.Editor
             CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
 
             CreateText(canvas, "Título", "Futebol de Botão", 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
-            var prompt = CreateText(canvas, "Aperte", "Aperte qualquer botão\nou toque na tela", 36, new Vector2(0f, -200f), new Vector2(680f, 120f));
+            var prompt = CreateText(canvas, "Aperte", TitleScreen.PromptText, 36, new Vector2(0f, -200f), new Vector2(680f, 120f));
 
             var trigger = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "abertura.menu");
             canvas.gameObject.AddComponent<TitleScreen>().Configure(trigger, prompt);
@@ -216,31 +216,8 @@ namespace FutebolDeBotao.Editor
             CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
 
-            // Principal
-            var main = CreateGroup(canvas, "Principal");
-            CreateText(main, "Título", "Futebol de Botão", 64, new Vector2(0f, 300f), new Vector2(680f, 110f), FontStyle.Bold);
-            CreateButton(main, "Iniciar", "Iniciar", new Vector2(0f, 40f), new Vector2(420f, 90f), menu.StartMatch);
-            CreateButton(main, "Opções", "Opções da partida", new Vector2(0f, -80f), new Vector2(420f, 90f), menu.ShowOptions);
-
-            // Opções da partida (GDD)
-            var optionsPanel = CreateGroup(canvas, "Opções da partida");
-            CreateText(optionsPanel, "Título", "Opções da partida", 52, new Vector2(0f, 420f), new Vector2(680f, 90f), FontStyle.Bold);
-            var kinds = (MatchOptionKind[])Enum.GetValues(typeof(MatchOptionKind));
-            var values = new Text[kinds.Length];
-            for (int i = 0; i < kinds.Length; i++)
-            {
-                float y = 290f - i * 90f;
-                var row = CreateGroup(optionsPanel, MenuScreen.Label(kinds[i]));
-                CreateText(row, "Nome", MenuScreen.Label(kinds[i]), 30, new Vector2(-170f, y), new Vector2(300f, 70f), FontStyle.Normal, TextAnchor.MiddleLeft);
-                CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(70f, 70f), menu.Previous, i);
-                values[i] = CreateText(row, "Valor", "-", 30, new Vector2(165f, y), new Vector2(170f, 70f), FontStyle.Bold);
-                CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
-            }
-            CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(0f, -400f), new Vector2(320f, 90f), menu.ShowMain);
-            optionsPanel.gameObject.SetActive(false);
-
-            // Modo de jogo: contra a IA (você é o Azul, embaixo) ou 2 jogadores
-            var modePanel = CreateGroup(canvas, "Modo");
+            // Como jogar (primeira tela): contra a IA (você é o Azul, embaixo) ou 2 jogadores
+            var modePanel = CreateGroup(canvas, "Como jogar");
             CreateText(modePanel, "Título", "Como jogar?", 52, new Vector2(0f, 360f), new Vector2(680f, 90f), FontStyle.Bold);
             CreateText(modePanel, "Contra a IA", "Contra a IA", 34, new Vector2(0f, 240f), new Vector2(680f, 60f), FontStyle.Normal);
             for (int level = 0; level < 3; level++)
@@ -249,11 +226,28 @@ namespace FutebolDeBotao.Editor
                 CreateIntButton(modePanel, $"IA {levelName}", levelName, new Vector2(0f, 130f - level * 110f), new Vector2(420f, 90f), menu.PlayVsAi, level);
             }
             CreateButton(modePanel, "2 jogadores", "2 jogadores", new Vector2(0f, -240f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
-            CreateButton(modePanel, "Voltar", "Voltar", new Vector2(0f, -400f), new Vector2(320f, 90f), menu.ShowMain);
-            modePanel.gameObject.SetActive(false);
+
+            // Opções da partida (GDD), depois do modo; "Jogar" vai para a Partida
+            var optionsPanel = CreateGroup(canvas, "Opções da partida");
+            CreateText(optionsPanel, "Título", "Opções da partida", 52, new Vector2(0f, 440f), new Vector2(680f, 90f), FontStyle.Bold);
+            var modeLabel = CreateText(optionsPanel, "Modo", "-", 30, new Vector2(0f, 370f), new Vector2(680f, 50f));
+            var kinds = (MatchOptionKind[])Enum.GetValues(typeof(MatchOptionKind));
+            var values = new Text[kinds.Length];
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                float y = 280f - i * 90f;
+                var row = CreateGroup(optionsPanel, MenuScreen.Label(kinds[i]));
+                CreateText(row, "Nome", MenuScreen.Label(kinds[i]), 30, new Vector2(-170f, y), new Vector2(300f, 70f), FontStyle.Normal, TextAnchor.MiddleLeft);
+                CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(70f, 70f), menu.Previous, i);
+                values[i] = CreateText(row, "Valor", "-", 30, new Vector2(165f, y), new Vector2(170f, 70f), FontStyle.Bold);
+                CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
+            }
+            CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-170f, -420f), new Vector2(300f, 90f), menu.ShowMode);
+            CreateButton(optionsPanel, "Jogar", "Jogar", new Vector2(170f, -420f), new Vector2(300f, 90f), menu.Play);
+            optionsPanel.gameObject.SetActive(false);
 
             var trigger = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "menu.iniciar");
-            menu.Configure(options, trigger, main.gameObject, optionsPanel.gameObject, modePanel.gameObject, values);
+            menu.Configure(options, trigger, modePanel.gameObject, optionsPanel.gameObject, modeLabel, values);
 
             // Jogadores: contra a IA o Menu faz o Join do Jogador 1 (escopo Route).
             var players = new GameObject("Jogadores");

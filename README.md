@@ -60,13 +60,13 @@ Depois commite os assets e cenas gerados (com os `.meta`) e o `ProjectSettings/E
 Fluxo:
 
 ```text
-Abertura --(qualquer tecla, clique ou toque)--> Menu --Iniciar--> Partida --fim do tempo--> Resultado
+Abertura --(qualquer tecla, clique ou toque)--> Menu: Como jogar --modo--> Opções da partida --Jogar--> Partida --fim do tempo--> Resultado
                                                  ^                  | Pausa: Continuar / Reiniciar / Sair para o menu
                                                  +------ Menu ------+--------- Jogar de novo --> Partida
 ```
 
-- **Abertura:** não avança sozinha; mostra "Aperte qualquer botão ou toque na tela".
-- **Menu:** "Iniciar" e "Opções da partida" (duração, botões por time, goleiro, toques, gol após parede, ajuda de mira, faltas). Opções de sim ou não aparecem como Ligado/Desligado. As opções ficam numa cópia em memória (`MatchSession`); o `OpcoesDaPartida.asset` não muda. Salvar entre sessões fica para a fase 4.
+- **Abertura:** não avança sozinha; mostra "Clique para iniciar" ("Toque para iniciar" no celular).
+- **Menu:** começa em "Como jogar" (contra a IA Fácil/Médio/Difícil ou 2 jogadores); escolhido o modo, abrem as "Opções da partida" com "Voltar" e "Jogar" (a seleção de times vai entrar entre as Opções e o jogo). Opções: (duração, botões por time, goleiro, toques, gol após parede, ajuda de mira, faltas). Opções de sim ou não aparecem como Ligado/Desligado. As opções ficam numa cópia em memória (`MatchSession`); o `OpcoesDaPartida.asset` não muda. Salvar entre sessões fica para a fase 4.
 - **Partida:** começa quando a Activity **Jogo** entra (`IActivityContentLifecycleReceiver`), não mais no `Start()`. `R` e "Reiniciar partida" usam o `ActivityRestartTrigger` do framework (Reset, Clear e Reenter da Activity).
 - **Pausa:** botão "Pausa" no HUD e `Esc` chamam o `PauseRequestTrigger`. O framework põe `Time.timeScale = 0` (física, relógio e timer de mira param) e o adaptador mostra a tela de pausa. A mira e o goleiro ignoram o ponteiro na pausa. Com o Jogador 1 na sessão, o `Esc` é dele (`PlayerPauseInput`, mapa Global).
 - **Resultado:** placar final e vencedor, com "Jogar de novo" (Route Partida) e "Menu".
@@ -83,13 +83,13 @@ Plano: [Plano dos Actors](https://claude.ai/code/artifact/e05b681a-5319-4b4e-a98
 
 Como funciona hoje:
 
-- **Contra a IA:** ao escolher o nível, o Menu faz o Join do Jogador 1 (`MenuPlayers`). Na partida o Azul lê pelo `CoachActor` (leitor do framework) e o `MatchPlayers` bloqueia o Jogador 1 fora da vez dele (bloqueio de disponibilidade, IF-ADR-044). `R` vale só para quem age; na vez da IA, o Reiniciar fica na pausa.
+- **Contra a IA:** ao apertar "Jogar" depois de escolher o nível, o Menu faz o Join do Jogador 1 (`MenuPlayers`). Na partida o Azul lê pelo `CoachActor` (leitor do framework) e o `MatchPlayers` bloqueia o Jogador 1 fora da vez dele (bloqueio de disponibilidade, IF-ADR-044). `R` vale só para quem age; na vez da IA, o Reiniciar fica na pausa.
 - **2 jogadores:** o Menu tira todo mundo da sessão e a partida lê o mouse/teclado direto, como antes. Os dois times como Actors esperam a feature do framework para dois jogadores no mesmo dispositivo (o Join com um dispositivo que já é de outro jogador é recusado).
 - **Partida aberta direto no editor:** o `MatchPlayers` faz um Join de teste do Jogador 1.
 
 ## IA (fase 3)
 
-Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). No Menu, "Iniciar" pergunta o modo: contra a IA (Fácil, Médio ou Difícil; você é o Azul, embaixo, e a IA o Vermelho) ou 2 jogadores. A escolha fica no `MatchSession`. Abrindo a cena da partida direto no editor, vale o `Ai Plays Top` do `MatchController` (objeto `Partida (sistemas)`). Na vez da IA, o HUD mostra "IA pensando...".
+Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). O Menu começa perguntando o modo: contra a IA (Fácil, Médio ou Difícil; você é o Azul, embaixo, e a IA o Vermelho) ou 2 jogadores. A escolha fica no `MatchSession`. Abrindo a cena da partida direto no editor, vale o `Ai Plays Top` do `MatchController` (objeto `Partida (sistemas)`). Na vez da IA, o HUD mostra "IA pensando...".
 
 - `AiPlayer`: na vez da IA pega os botões mais perto da bola (`AiDifficulty.discsToTest`), gera jogadas por geometria e confere o caminho com CircleCasts (`ShotPlanner`), simula as melhores (`AiDifficulty.simulations`) numa mesa invisível (`ShotSimulator`, uma `PhysicsScene2D` própria), dá nota e escolhe com erro de ângulo e força. Mostra a mira por `aimSeconds` e solta pelo `AimController`, o mesmo caminho do jogador.
 - Falta tira nota mas não é proibida; o erro de ângulo faz a IA cometer falta às vezes.

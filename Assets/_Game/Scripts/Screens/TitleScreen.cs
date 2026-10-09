@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Abertura: mostra o nome do jogo e "Aperte qualquer botão ou toque na tela".
+    /// Abertura: mostra o nome do jogo e "Clique para iniciar" (no celular, "Toque para iniciar").
     /// Não avança sozinha; qualquer tecla, clique ou toque pede a Route do Menu.
     /// </summary>
     public sealed class TitleScreen : MonoBehaviour
@@ -20,6 +20,14 @@ namespace FutebolDeBotao
         {
             menuRoute = menu;
             prompt = promptText;
+        }
+
+        /// <summary>Texto da chamada: toque no celular, clique no resto.</summary>
+        public static string PromptText => Application.isMobilePlatform ? "Toque para iniciar" : "Clique para iniciar";
+
+        private void Start()
+        {
+            if (prompt != null) prompt.text = PromptText;
         }
 
         private void Update()

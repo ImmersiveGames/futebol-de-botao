@@ -17,8 +17,8 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: "Iniciar" abre a escolha do modo (contra a IA, com o nível, ou 2 jogadores) e então pede a Route da Partida;
-    /// "Opções da partida" abre o painel com as opções do GDD.
+    /// Menu: começa em "Como jogar" (contra a IA, com o nível, ou 2 jogadores); escolhido o modo, abre as Opções da
+    /// partida, e "Jogar" pede a Route da Partida. (A seleção de times vai entrar entre as Opções e o jogo.)
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
@@ -27,55 +27,55 @@ namespace FutebolDeBotao
 
         [SerializeField] private MatchOptions defaults;
         [SerializeField] private RouteRequestTrigger matchRoute;
-        [SerializeField] private GameObject mainPanel;
-        [SerializeField] private GameObject optionsPanel;
         [SerializeField] private GameObject modePanel;
+        [SerializeField] private GameObject optionsPanel;
+        [Tooltip("Mostra nas Opções o modo escolhido.")]
+        [SerializeField] private Text modeLabel;
         [Tooltip("Acerta quem está na sessão (Jogador 1 contra a IA). Vazio: a partida lê o mouse/teclado direto.")]
         [SerializeField] private MenuPlayers players;
         [Tooltip("Um texto de valor por opção, na ordem de MatchOptionKind.")]
         [SerializeField] private Text[] valueLabels = new Text[0];
 
-        public void Configure(MatchOptions defaultOptions, RouteRequestTrigger match, GameObject main, GameObject optionsRoot, GameObject modeRoot,
-            Text[] values)
+        public void Configure(MatchOptions defaultOptions, RouteRequestTrigger match, GameObject modeRoot, GameObject optionsRoot,
+            Text mode, Text[] values)
         {
-            modePanel = modeRoot;
             defaults = defaultOptions;
             matchRoute = match;
-            mainPanel = main;
+            modePanel = modeRoot;
             optionsPanel = optionsRoot;
+            modeLabel = mode;
             valueLabels = values;
         }
 
         private void Start()
         {
-            ShowMain();
+            ShowMode();
             Refresh();
         }
 
-        /// <summary>"Iniciar": mostra a escolha do modo. Sem o painel de modo (cena antiga), entra direto.</summary>
-        public void StartMatch()
-        {
-            if (modePanel == null)
-            {
-                RequestMatch();
-                return;
-            }
-            Show(modePanel);
-        }
-
-        /// <summary>Contra a IA: 0 = Fácil, 1 = Médio, 2 = Difícil. Você joga com o Azul (baixo).</summary>
+        /// <summary>Contra a IA: 0 = Fácil, 1 = Médio, 2 = Difícil. Você joga com o Azul (baixo). Abre as Opções.</summary>
         public void PlayVsAi(int level)
         {
             MatchSession.VsAi = true;
             MatchSession.AiLevel = (AiLevel)Mathf.Clamp(level, 0, 2);
-            if (players != null) players.PrepareVsAi();
-            RequestMatch();
+            ShowOptions();
         }
 
+        /// <summary>2 jogadores no mesmo aparelho. Abre as Opções.</summary>
         public void PlayTwoPlayers()
         {
             MatchSession.VsAi = false;
-            if (players != null) players.PrepareTwoPlayers();
+            ShowOptions();
+        }
+
+        /// <summary>"Jogar" nas Opções: acerta os jogadores do modo escolhido e vai para a Partida.</summary>
+        public void Play()
+        {
+            if (players != null)
+            {
+                if (MatchSession.VsAi == true) players.PrepareVsAi();
+                else players.PrepareTwoPlayers();
+            }
             RequestMatch();
         }
 
@@ -89,14 +89,19 @@ namespace FutebolDeBotao
         public void ShowOptions()
         {
             Show(optionsPanel);
+            if (modeLabel != null)
+                modeLabel.text = MatchSession.VsAi == true
+                    ? $"Contra a IA ({AiDifficulty.DisplayName(MatchSession.AiLevel)})"
+                    : "2 jogadores";
             Refresh();
         }
 
-        public void ShowMain() => Show(mainPanel);
+        /// <summary>"Como jogar": a primeira tela do Menu.</summary>
+        public void ShowMode() => Show(modePanel);
 
         private void Show(GameObject panel)
         {
-            foreach (var other in new[] { mainPanel, optionsPanel, modePanel })
+            foreach (var other in new[] { modePanel, optionsPanel })
                 if (other != null) other.SetActive(other == panel);
         }
 
