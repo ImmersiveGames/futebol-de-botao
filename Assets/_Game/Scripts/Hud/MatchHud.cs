@@ -48,8 +48,8 @@ namespace FutebolDeBotao
         private readonly Dictionary<TeamSide, PlayerView> corners = new();
         private readonly Dictionary<TeamSide, MessageView> messages = new();
         private readonly List<Canvas> worldCanvases = new();
-        private Text leftBoard;
-        private Text rightBoard;
+        private (Text First, Text Second) leftBoard;
+        private (Text First, Text Second) rightBoard;
         private PlayerView pcPanel;
         private GameObject cornersRoot;
         private GameObject pcRoot;
@@ -96,8 +96,8 @@ namespace FutebolDeBotao
 
             if (portrait)
             {
-                leftBoard.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
-                rightBoard.text = ScoreText(TeamSide.Top, TeamSide.Bottom);
+                RefreshBoard(leftBoard, TeamSide.Bottom, TeamSide.Top);
+                RefreshBoard(rightBoard, TeamSide.Top, TeamSide.Bottom);
                 Refresh(corners[TeamSide.Bottom], TeamSide.Bottom);
                 Refresh(corners[TeamSide.Top], TeamSide.Top);
             }
@@ -178,6 +178,13 @@ namespace FutebolDeBotao
             top.Label.text = message;
             // Com uma mensagem só (PC) ela fica bem no meio; com duas, uma de cada lado do círculo central.
             bottom.Root.transform.position = new Vector3(0f, portrait ? -1.3f : 0f, 0f);
+        }
+
+        /// <summary>Placar lateral: cada metade encosta no "x" do meio, então os cartões crescem para as pontas.</summary>
+        private void RefreshBoard((Text First, Text Second) board, TeamSide first, TeamSide second)
+        {
+            board.First.text = $"{Cards(first, true)}{Abbreviation(first)} {match.Score(first)}";
+            board.Second.text = $"{match.Score(second)} {Abbreviation(second)}{Cards(second, false)}";
         }
 
         /// <summary>Placar lido da esquerda para a direita: <paramref name="first"/> primeiro.</summary>
@@ -269,15 +276,30 @@ namespace FutebolDeBotao
             rightBoard = CreateSideBoard("Placar lateral direito", 1f, -90f);
         }
 
-        private Text CreateSideBoard(string objectName, float sideSign, float rotation)
+        private (Text First, Text Second) CreateSideBoard(string objectName, float sideSign, float rotation)
         {
-            const float wall = 0.5f;
+            // Nas telas compridas a câmera corta um pedaço de fora da madeira: o placar fica no meio da parte que aparece.
+            const float boardX = FieldLayout.HalfWidth + 0.19f;
+            const float height = 0.36f;
+            // A fonte desenha as letras um pouco acima do meio da caixa; o ajuste centraliza o texto.
+            const float centering = -2f;
             var canvas = CreateWorldCanvas(objectName, cornersRoot.transform,
-                new Vector2(sideSign * (FieldLayout.HalfWidth + wall * 0.5f), 0f), new Vector2(5f, wall), rotation);
+                new Vector2(sideSign * boardX, 0f), new Vector2(5f, height), rotation);
             // O placar não bloqueia toques.
             Destroy(canvas.GetComponent<GraphicRaycaster>());
-            var text = CreateText(canvas.transform, "Placar", 34, FontStyle.Bold, Vector2.zero, new Vector2(500f, 50f));
-            FitOneLine(text);
+
+            // "x" fixo no meio-campo; cada time encosta nele e os cartões crescem para as pontas.
+            BoardText(canvas.transform, "x", TextAnchor.MiddleCenter, new Vector2(0f, centering), 40f).text = "x";
+            var first = BoardText(canvas.transform, "Primeiro time", TextAnchor.MiddleRight, new Vector2(-125f, centering), 210f);
+            var second = BoardText(canvas.transform, "Segundo time", TextAnchor.MiddleLeft, new Vector2(125f, centering), 210f);
+            return (first, second);
+        }
+
+        private Text BoardText(Transform parent, string objectName, TextAnchor alignment, Vector2 position, float width)
+        {
+            var text = CreateText(parent, objectName, 26, FontStyle.Bold, position, new Vector2(width, 36f));
+            text.alignment = alignment;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
             var shadow = text.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.8f);
             shadow.effectDistance = new Vector2(2f, -2f);
