@@ -38,12 +38,12 @@ namespace FutebolDeBotao
             if (!session.TryGetAccess(out var access, out _)) return;
             if (!access.TryGetObservation(out var observation) || observation == null || !observation.IsAvailable) return;
 
-            // Bloqueios valem só para a ocorrência da Activity em que foram pedidos (o Reiniciar cria outra).
+            // Reiniciar cria outra ocorrência da Activity, mas o bloqueio do framework fica preso ao jogador (não à
+            // Activity): se só esquecermos o token, o jogador fica bloqueado para sempre. Solta antes de recomeçar.
             if (observation.ActivityOccurrence != occurrence)
             {
                 occurrence = observation.ActivityOccurrence;
-                blocks.Clear();
-                retryAt.Clear();
+                ReleaseAll(access, "partida reiniciada");
             }
 
 #if UNITY_EDITOR
@@ -101,12 +101,23 @@ namespace FutebolDeBotao
 
         private void OnDisable()
         {
-            if (session != null && session.TryGetAccess(out var access, out _))
-                foreach (var pair in blocks)
-                    if (pair.Value.IsValid) access.RequestReleaseRuntimeGameplay(pair.Value, Source, "partida saiu");
+            if (session != null && session.TryGetAccess(out var access, out _)) ReleaseAll(access, "partida saiu");
             blocks.Clear();
             retryAt.Clear();
             occurrence = -1;
+        }
+
+        private void ReleaseAll(IPlayerSessionScopedAccess access, string reason)
+        {
+            foreach (var pair in blocks)
+            {
+                if (!pair.Value.IsValid) continue;
+                var result = access.RequestReleaseRuntimeGameplay(pair.Value, Source, reason);
+                if (!result.Succeeded && result.Status != PlayerGameplayAvailabilityBlockStatus.RejectedForeignOrStaleToken)
+                    Debug.LogWarning($"[Jogadores] Não consegui liberar {pair.Key} ({reason}): {result.Status} {result.Message}");
+            }
+            blocks.Clear();
+            retryAt.Clear();
         }
 
 #if UNITY_EDITOR
