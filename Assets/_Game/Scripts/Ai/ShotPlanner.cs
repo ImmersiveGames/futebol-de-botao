@@ -41,6 +41,9 @@ namespace FutebolDeBotao
         private Goalkeeper[] keepers;
         private bool ignoreKeepers;
 
+        /// <summary>Opção da partida: desligada, adversário no caminho não é risco de falta.</summary>
+        public bool FoulsEnabled { get; set; } = true;
+
         public ShotPlanner(TeamSide aiSide, PhysicsTuning physicsTuning, Ball matchBall)
         {
             side = aiSide;
@@ -326,7 +329,7 @@ namespace FutebolDeBotao
                 if (collider.GetComponent<Ball>() != null) return;
 
                 var other = collider.GetComponent<Disc>();
-                if (other != null && other.Side != side) foulRisk = true;
+                if (other != null && other.Side != side) foulRisk = FoulsEnabled;
                 else blocked = true;
                 return;
             }
@@ -390,7 +393,8 @@ namespace FutebolDeBotao
 
             if (result.Foul)
             {
-                bool penalty = FieldLayout.InArea(result.FoulPosition, side);
+                Vector2 spot = MatchController.FreeKickSpot(Opponent, result.FoulPosition, result.BallEnd);
+                bool penalty = FieldLayout.InArea(spot, side);
                 // A falta tira nota mas não é proibida: no Fácil a IA liga menos para ela.
                 return -(penalty ? 120f : 45f) * Mathf.Lerp(0.3f, 1f, foulCaution);
             }

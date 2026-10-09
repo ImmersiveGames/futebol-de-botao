@@ -229,7 +229,7 @@ namespace FutebolDeBotao.Editor
             var values = new Text[kinds.Length];
             for (int i = 0; i < kinds.Length; i++)
             {
-                float y = 280f - i * 100f;
+                float y = 290f - i * 90f;
                 var row = CreateGroup(optionsPanel, MenuScreen.Label(kinds[i]));
                 CreateText(row, "Nome", MenuScreen.Label(kinds[i]), 30, new Vector2(-170f, y), new Vector2(300f, 70f), FontStyle.Normal, TextAnchor.MiddleLeft);
                 CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(70f, 70f), menu.Previous, i);

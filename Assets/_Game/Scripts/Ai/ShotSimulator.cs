@@ -9,7 +9,7 @@ namespace FutebolDeBotao
     /// <summary>Como terminou uma jogada simulada.</summary>
     public struct SimResult
     {
-        /// <summary>O botão do peteleco acertou um adversário antes da bola.</summary>
+        /// <summary>O botão do peteleco (ou um companheiro empurrado por ele) acertou um adversário antes da bola.</summary>
         public bool Foul;
         /// <summary>Onde estava o botão atingido (falta na área de quem fez = pênalti).</summary>
         public Vector2 FoulPosition;
@@ -114,6 +114,9 @@ namespace FutebolDeBotao
         /// Simula um peteleco a partir da mesa de verdade como está agora.
         /// <paramref name="shooter"/> nulo = chute direto na bola (tiro de meta).
         /// </summary>
+        /// <summary>Opção da partida: desligada, bater em adversário não para a jogada.</summary>
+        public bool FoulsEnabled { get; set; } = true;
+
         public SimResult Simulate(Rigidbody2D shooter, Vector2 impulse, TeamSide shooterSide)
         {
             var result = new SimResult();
@@ -195,7 +198,7 @@ namespace FutebolDeBotao
                                 result.TouchedBall = true;
                                 shooterDecided = true;
                             }
-                            else if (otherBody != null && otherBody.Kind == Kind.Disc && otherBody.Side != shooterSide)
+                            else if (FoulsEnabled && otherBody != null && otherBody.Kind == Kind.Disc && otherBody.Side != shooterSide)
                             {
                                 // O jogo para na falta.
                                 result.Foul = true;
@@ -204,6 +207,23 @@ namespace FutebolDeBotao
                                 result.ShooterEnd = shot.Copy.position;
                                 return result;
                             }
+                        }
+                    }
+
+                    // Companheiro empurrado que bate num adversário antes de alguém tocar a bola: falta, como no jogo.
+                    if (FoulsEnabled && body != shot && body.Kind == Kind.Disc && body.Side == shooterSide &&
+                        result.LastTouchSide == null && body.Copy.linearVelocity.sqrMagnitude > restSpeed * restSpeed)
+                    {
+                        for (int i = 0; i < count; i++)
+                        {
+                            var other = contacts[i].collider == body.Collider ? contacts[i].otherCollider : contacts[i].collider;
+                            if (!byCollider.TryGetValue(other, out var otherBody) || otherBody.Kind != Kind.Disc ||
+                                otherBody.Side == shooterSide) continue;
+                            result.Foul = true;
+                            result.FoulPosition = otherBody.Copy.position;
+                            result.BallEnd = ball.Copy.position;
+                            result.ShooterEnd = shot.Copy.position;
+                            return result;
                         }
                     }
 

@@ -12,7 +12,8 @@ namespace FutebolDeBotao
         Goalkeeper,
         Touches,
         GoalAfterWall,
-        AimAssist
+        AimAssist,
+        Fouls
     }
 
     /// <summary>
@@ -128,6 +129,9 @@ namespace FutebolDeBotao
                 case MatchOptionKind.AimAssist:
                     options.aimAssist = (AimAssistMode)Wrap((int)options.aimAssist + step, 3);
                     break;
+                case MatchOptionKind.Fouls:
+                    options.fouls = !options.fouls;
+                    break;
             }
             Refresh();
         }
@@ -147,6 +151,7 @@ namespace FutebolDeBotao
             MatchOptionKind.Touches => "Toques por vez",
             MatchOptionKind.GoalAfterWall => "Gol após parede",
             MatchOptionKind.AimAssist => "Ajuda de mira",
+            MatchOptionKind.Fouls => "Faltas",
             _ => kind.ToString()
         };
 
@@ -154,7 +159,7 @@ namespace FutebolDeBotao
         {
             MatchOptionKind.Duration => $"{options.durationMinutes} min",
             MatchOptionKind.Discs => options.discsPerTeam.ToString(),
-            MatchOptionKind.Goalkeeper => options.hasGoalkeeper ? "Com" : "Sem",
+            MatchOptionKind.Goalkeeper => OnOff(options.hasGoalkeeper),
             MatchOptionKind.Touches => options.touchesPerTurn.ToString(),
             MatchOptionKind.GoalAfterWall => options.goalAfterWallIsValid ? "Válido" : "Anulado",
             MatchOptionKind.AimAssist => options.aimAssist switch
@@ -163,8 +168,11 @@ namespace FutebolDeBotao
                 AimAssistMode.Short => "Curta",
                 _ => "Desligada"
             },
+            MatchOptionKind.Fouls => OnOff(options.fouls),
             _ => string.Empty
         };
+
+        private static string OnOff(bool value) => value ? "Ligado" : "Desligado";
 
         private static int Wrap(int value, int count) => ((value % count) + count) % count;
     }

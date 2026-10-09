@@ -149,7 +149,11 @@ namespace FutebolDeBotao
             monitor.Settled += OnSettled;
             foreach (var goal in FindObjectsByType<GoalTrigger>()) goal.BallEntered += OnBallEntered;
             foreach (var list in discs.Values)
-                foreach (var disc in list) disc.Fouled += OnFouled;
+                foreach (var disc in list)
+                {
+                    disc.Fouled += OnFouled;
+                    disc.HitOpponent += OnHitOpponent;
+                }
 
             Enter(MatchState.Waiting);
         }
@@ -440,8 +444,23 @@ namespace FutebolDeBotao
 
         private void OnFouled(Disc offender, Disc victim, Vector2 victimPosition)
         {
-            if (State != MatchState.Moving || offender != shooter) return;
+            if (State != MatchState.Moving || offender != shooter || !options.fouls) return;
+            CommitFoul(offender, victim, victimPosition);
+        }
 
+        /// <summary>
+        /// Companheiro empurrado pelo botão do peteleco acertou um adversário antes de alguém tocar a bola: também é
+        /// falta (não vale usar um botão para empurrar o outro em cima do adversário).
+        /// </summary>
+        private void OnHitOpponent(Disc disc, Disc victim, Vector2 victimPosition)
+        {
+            if (State != MatchState.Moving || shooter == null || !options.fouls) return;
+            if (disc == shooter || disc.Side != shooter.Side || ball.LastTouchSide != null) return;
+            CommitFoul(disc, victim, victimPosition);
+        }
+
+        private void CommitFoul(Disc offender, Disc victim, Vector2 victimPosition)
+        {
             // Para investigar falta marcada errado: mostra o que o jogo sabia no momento.
             Debug.Log($"[Falta] {offender.name} ({TeamName(offender.Side)}) acertou {victim.name}. " +
                       $"Último toque na bola neste peteleco: {(ball.LastDiscTouch != null ? ball.LastDiscTouch.name : "ninguém")}.");
@@ -463,7 +482,8 @@ namespace FutebolDeBotao
             SetupFreeKick(offender, victim, spot);
         }
 
-        private static Vector2 FreeKickSpot(TeamSide fouledSide, Vector2 victimPosition, Vector2 ballPosition)
+        /// <summary>Onde sai o tiro livre: o mais perto do gol que <paramref name="fouledSide"/> ataca.</summary>
+        public static Vector2 FreeKickSpot(TeamSide fouledSide, Vector2 victimPosition, Vector2 ballPosition)
         {
             Vector2 attack = FieldLayout.AttackDirection(fouledSide);
             return Vector2.Dot(ballPosition, attack) > Vector2.Dot(victimPosition, attack) ? ballPosition : victimPosition;

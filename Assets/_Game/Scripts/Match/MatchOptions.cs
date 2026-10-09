@@ -14,6 +14,8 @@ namespace FutebolDeBotao
         [Tooltip("Toques por vez, de 1 a 3.")]
         [Range(1, 3)] public int touchesPerTurn = 3;
         public bool goalAfterWallIsValid;
+        [Tooltip("Desligado: bater em adversário é só física, sem tiro livre nem pênalti.")]
+        public bool fouls = true;
 
         [Header("Times")]
         [Tooltip("5 ou 3 botões por time.")]

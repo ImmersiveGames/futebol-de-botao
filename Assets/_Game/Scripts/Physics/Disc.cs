@@ -23,6 +23,12 @@ namespace FutebolDeBotao
         /// </summary>
         public event Action<Disc, Disc, Vector2> Fouled;
 
+        /// <summary>
+        /// Este botão, sem ser o do peteleco, bateu num adversário (ex.: empurrado por um companheiro). Quem decide se
+        /// é falta é a partida. (este botão, o adversário, posição do adversário no contato)
+        /// </summary>
+        public event Action<Disc, Disc, Vector2> HitOpponent;
+
         private bool shooting;
         private bool shotDisc;
         private readonly ContactPoint2D[] contacts = new ContactPoint2D[16];
@@ -86,7 +92,12 @@ namespace FutebolDeBotao
         private void OnCollisionEnter2D(Collision2D collision)
         {
             WallElastic.OnEnter(body, collision, tuning);
-            if (!shooting) return;
+            if (!shooting)
+            {
+                var opponent = collision.collider.GetComponent<Disc>();
+                if (opponent != null && opponent.Side != side) HitOpponent?.Invoke(this, opponent, opponent.Body.position);
+                return;
+            }
 
             if (collision.collider.GetComponent<Ball>() != null)
             {
