@@ -32,6 +32,9 @@ namespace FutebolDeBotao
         [Range(0f, 1f)] public float repositionChance = 0.5f;
         [Tooltip("Nota abaixo da qual a melhor jogada conta como ruim.")]
         public float poorShotScore = 0f;
+        [Tooltip("Quando toda jogada na bola tem risco de gol contra (testando o erro de mira e de força), chance de só " +
+                 "pôr um botão bloqueando entre a bola e o gol. Fácil 0,4; Médio 0,85; Difícil 1.")]
+        [Range(0f, 1f)] public float ownGoalDefendChance = 0.85f;
 
         [Header("Erro na execução")]
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
@@ -91,6 +94,7 @@ namespace FutebolDeBotao
                     difficulty.pickAmongBest = 3;
                     difficulty.foulCaution = 0.5f;
                     difficulty.repositionChance = 0.2f;
+                    difficulty.ownGoalDefendChance = 0.4f;
                     difficulty.angleErrorDegrees = 8f;
                     difficulty.powerError = 0.15f;
                     difficulty.shotCallDistance = 3f;
@@ -105,6 +109,7 @@ namespace FutebolDeBotao
                     difficulty.pickAmongBest = 1;
                     difficulty.foulCaution = 1f;
                     difficulty.repositionChance = 0.8f;
+                    difficulty.ownGoalDefendChance = 1f;
                     difficulty.angleErrorDegrees = 1.5f;
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;

@@ -44,6 +44,9 @@ namespace FutebolDeBotao
         /// <summary>Opção da partida: desligada, adversário no caminho não é risco de falta.</summary>
         public bool FoulsEnabled { get; set; } = true;
 
+        /// <summary>Bola mais perto que isto do próprio gol: a IA prefere afastá-la (também para os lados).</summary>
+        private const float DangerDistance = 3.5f;
+
         /// <summary>Largura da boca do gol (menor sem goleiro): os alvos de chute ficam dentro dela.</summary>
         public float GoalWidth { get; set; } = FieldLayout.GoalWidth;
 
@@ -425,6 +428,12 @@ namespace FutebolDeBotao
 
             Vector2 end = result.BallEnd;
             score += Progress(end - start) * 3f;
+
+            // Bola perto do próprio gol: tirar de lá vale mais que atacar, inclusive afastando para os lados.
+            Vector2 ownGoalCenter = new(0f, FieldLayout.GoalLineY(side));
+            float startFromGoal = Vector2.Distance(start, ownGoalCenter);
+            if (startFromGoal < DangerDistance)
+                score += (Vector2.Distance(end, ownGoalCenter) - startFromGoal) * 4f;
 
             // Bola do goleiro adversário (parada na área em volta dele) vira tiro de meta dele.
             keepers ??= Object.FindObjectsByType<Goalkeeper>();
