@@ -46,13 +46,14 @@ namespace FutebolDeBotao.Editor
         public static void Build()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-            if (!CreateAssets()) return;
-            if (!SetupPersistentContent()) return;
+            var defaults = CreateAssets();
+            if (defaults == null) return;
+            if (!SetupPersistentContent(defaults)) return;
             Debug.Log("[Futebol de Botão] Áudio criado (cues e Audio Runtime no Persistent Content). Ligando música e sons nas telas...");
             ScreensBuilder.Build();
         }
 
-        private static bool CreateAssets()
+        private static AudioDefaultsAsset CreateAssets()
         {
             Directory.CreateDirectory(CuesFolder);
             // Sons provisórios (chiptune) para os que ainda não existem; um som de verdade com o mesmo nome fica.
@@ -65,12 +66,16 @@ namespace FutebolDeBotao.Editor
             }
 
             var defaults = LoadOrCreate<AudioDefaultsAsset>(DefaultsPath);
-            if (defaults == null) return false;
+            if (defaults == null)
+            {
+                Debug.LogError($"[Futebol de Botão] Não consegui criar {DefaultsPath}.");
+                return null;
+            }
 
             foreach (var (clip, volume) in SfxCues)
             {
                 var cue = Cue<AudioSfxCueAsset>(clip, "sfx", volume, AudioBusKeys.Sfx);
-                if (cue == null) return false;
+                if (cue == null) return null;
                 Set(cue, so =>
                 {
                     so.FindProperty("executionMode").intValue = (int)AudioSfxExecutionMode.Direct;
@@ -82,7 +87,7 @@ namespace FutebolDeBotao.Editor
             foreach (var music in new[] { MenuMusic, MatchMusic })
             {
                 var cue = Cue<AudioBgmCueAsset>(music, "bgm", 0.5f, AudioBusKeys.Bgm);
-                if (cue == null) return false;
+                if (cue == null) return null;
                 Set(cue, so =>
                 {
                     so.FindProperty("loopMode").intValue = (int)AudioLoopMode.On;
@@ -92,7 +97,7 @@ namespace FutebolDeBotao.Editor
             }
 
             AssetDatabase.SaveAssets();
-            return true;
+            return defaults;
         }
 
         private static T Cue<T>(string clipName, string kind, float volume, string bus) where T : AudioCueAsset
@@ -140,9 +145,8 @@ namespace FutebolDeBotao.Editor
         private static T LoadCue<T>(string clipName) where T : AudioCueAsset => AssetDatabase.LoadAssetAtPath<T>(CuePath(clipName));
 
         /// <summary>Audio Runtime no Persistent Content: toca a música entre as telas e os sons da partida.</summary>
-        private static bool SetupPersistentContent()
+        private static bool SetupPersistentContent(AudioDefaultsAsset defaults)
         {
-            var defaults = AssetDatabase.LoadAssetAtPath<AudioDefaultsAsset>(DefaultsPath);
             var scene = EditorSceneManager.OpenScene(PersistentScenePath, OpenSceneMode.Single);
 
             GameObject root = null;
@@ -169,6 +173,13 @@ namespace FutebolDeBotao.Editor
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+
+            // Sem os padrões o host não toca nada (FailedMissingDefaults).
+            if (host.Defaults == null)
+            {
+                Debug.LogError($"[Futebol de Botão] O Audio Runtime ficou sem os padrões. Arraste {DefaultsPath} no campo Defaults do objeto \"{AudioRuntimeName}\" no Persistent Content.");
+                return false;
+            }
             return true;
         }
 
