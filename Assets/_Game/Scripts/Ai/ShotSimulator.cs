@@ -56,6 +56,7 @@ namespace FutebolDeBotao
         private readonly Dictionary<Collider2D, SimBody> byCollider = new();
         private readonly HashSet<Collider2D> walls = new();
         private readonly HashSet<Collider2D> pushingWalls = new();
+        private readonly HashSet<Collider2D> sideWalls = new();
         private readonly ContactPoint2D[] contacts = new ContactPoint2D[16];
         private readonly HashSet<SimBody> touching = new();
         private readonly List<(Wall Source, BoxCollider2D Copy)> wallCopies = new();
@@ -82,6 +83,7 @@ namespace FutebolDeBotao
                 wallCopies.Add((wall, copy));
                 walls.Add(copy);
                 if (wall.PushesBack) pushingWalls.Add(copy);
+                if (wall.IsSideWall) sideWalls.Add(copy);
             }
 
             foreach (var disc in allDiscs)
@@ -199,8 +201,8 @@ namespace FutebolDeBotao
 
                         if (body == ball)
                         {
-                            // A rede do gol não conta como parede (igual ao jogo).
-                            if (walls.Contains(other)) result.BallTouchedWall |= pushingWalls.Contains(other);
+                            // Só a parede lateral conta (igual ao jogo).
+                            if (walls.Contains(other)) result.BallTouchedWall |= sideWalls.Contains(other);
                             else if (otherBody != null) result.LastTouchSide = otherBody.Side;
                         }
 

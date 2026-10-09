@@ -868,7 +868,7 @@ namespace FutebolDeBotao
             else
             {
                 message = called
-                    ? "Gol anulado: a bola tocou a parede."
+                    ? "Gol anulado: a bola tocou a parede lateral."
                     : "Gol anulado: não avisou o \"Vai chutar\".";
             }
 

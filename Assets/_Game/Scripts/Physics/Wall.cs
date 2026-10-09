@@ -10,6 +10,11 @@ namespace FutebolDeBotao
 
         public bool PushesBack => pushesBack;
 
+        /// <summary>
+        /// Parede lateral (esquerda ou direita do campo). Só ela anula o gol: o fundo e as traves não contam.
+        /// </summary>
+        public bool IsSideWall => pushesBack && Mathf.Abs(transform.position.x) > FieldLayout.HalfWidth;
+
         public void Configure(bool pushBack)
         {
             pushesBack = pushBack;

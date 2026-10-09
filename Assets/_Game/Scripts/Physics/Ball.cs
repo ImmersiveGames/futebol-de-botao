@@ -113,8 +113,8 @@ namespace FutebolDeBotao
             if (wall != null)
             {
                 TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
-                // A rede do gol não conta como parede: a bola encosta nela entrando no gol.
-                if (wall.PushesBack) TouchedWallSinceShot = true;
+                // Só a parede lateral anula o gol: trave, fundo e rede não contam.
+                if (wall.IsSideWall) TouchedWallSinceShot = true;
                 WallElastic.OnEnter(body, collision, tuning);
                 return;
             }
