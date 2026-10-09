@@ -242,6 +242,7 @@ namespace FutebolDeBotao
                     new Vector2(-centerX * sign, -centerY * sign), size, rotation);
                 CreatePanel(left.transform, PanelColor);
                 view.Score = CreateText(left.transform, "Placar", 28, FontStyle.Bold, new Vector2(0f, 40f), new Vector2(250f, 40f));
+                FitOneLine(view.Score);
                 view.Clock = CreateText(left.transform, "Relógio", 28, FontStyle.Bold, new Vector2(0f, 2f), new Vector2(250f, 36f));
                 view.Pause = CreateButton(left.transform, "Pausa", "Pausa", 22, new Vector2(0f, -40f), new Vector2(130f, 40f), out _);
                 view.Pause.onClick.AddListener(match.RequestPause);
@@ -301,6 +302,7 @@ namespace FutebolDeBotao
 
             var view = new PlayerView();
             view.Score = CreateTopText(panel, "Placar", 30, -40f, 50f);
+            FitOneLine(view.Score);
             view.Clock = CreateTopText(panel, "Relógio", 30, -95f, 44f);
             view.Turn = CreateTopText(panel, "Vez", 26, -150f, 60f);
             view.Timer = CreateTopText(panel, "Timer", 26, -205f, 40f);
@@ -369,7 +371,15 @@ namespace FutebolDeBotao
             return text;
         }
 
-        private Text CreateTopText(RectTransform parent, string objectName, int size, float y, float height)
+        /// <summary>Placar sempre numa linha: com cartões ao lado das abreviações, a fonte diminui em vez de quebrar.</summary>
+        private static void FitOneLine(Text text)
+        {
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = 12;
+            text.resizeTextMaxSize = text.fontSize;
+        }
+
+                private Text CreateTopText(RectTransform parent, string objectName, int size, float y, float height)
         {
             var text = CreateText(parent, objectName, size, FontStyle.Bold, Vector2.zero, new Vector2(280f, height));
             SetTop(text.rectTransform, y);
