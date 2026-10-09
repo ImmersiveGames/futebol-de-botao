@@ -7,7 +7,9 @@ namespace FutebolDeBotao
     /// <summary>
     /// HUD da partida (visual provisório, montado em código).
     /// Tela em pé (celular): 4 cantos ao lado dos gols, 2 por jogador; os de cima giram 180° para o jogador de cima.
-    /// Canto esquerdo de cada jogador: placar, relógio e pausa. Canto direito: vez, toques, timer e o botão de ação.
+    /// Canto esquerdo de cada jogador: relógio e pausa. Canto direito: vez, toques, timer e o botão de ação.
+    /// O placar (abreviações, gols e cartões) fica nas duas paredes laterais, no meio-campo, deitado para ler com o
+    /// celular na horizontal: na esquerda de baixo para cima, na direita de cima para baixo; o time de baixo sempre na ponta de baixo.
     /// As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador.
     /// Tela deitada (PC): painel único à esquerda e uma mensagem só, sem girar (provisório até refinar o PC).
     /// Também destaca os botões do time da vez.
@@ -46,6 +48,8 @@ namespace FutebolDeBotao
         private readonly Dictionary<TeamSide, PlayerView> corners = new();
         private readonly Dictionary<TeamSide, MessageView> messages = new();
         private readonly List<Canvas> worldCanvases = new();
+        private Text leftBoard;
+        private Text rightBoard;
         private PlayerView pcPanel;
         private GameObject cornersRoot;
         private GameObject pcRoot;
@@ -92,6 +96,8 @@ namespace FutebolDeBotao
 
             if (portrait)
             {
+                leftBoard.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
+                rightBoard.text = ScoreText(TeamSide.Top, TeamSide.Bottom);
                 Refresh(corners[TeamSide.Bottom], TeamSide.Bottom);
                 Refresh(corners[TeamSide.Top], TeamSide.Top);
             }
@@ -106,7 +112,7 @@ namespace FutebolDeBotao
 
         private void Refresh(PlayerView view, TeamSide side)
         {
-            view.Score.text = ScoreText();
+            if (view.Score != null) view.Score.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
             view.Clock.text = ClockText(match.ClockSeconds);
 
             var state = match.State;
@@ -174,21 +180,22 @@ namespace FutebolDeBotao
             bottom.Root.transform.position = new Vector3(0f, portrait ? -1.3f : 0f, 0f);
         }
 
-        private string ScoreText() =>
-            $"{Cards(TeamSide.Bottom)}{Abbreviation(TeamSide.Bottom)} {match.Score(TeamSide.Bottom)} x " +
-            $"{match.Score(TeamSide.Top)} {Abbreviation(TeamSide.Top)}{Cards(TeamSide.Top)}";
+        /// <summary>Placar lido da esquerda para a direita: <paramref name="first"/> primeiro.</summary>
+        private string ScoreText(TeamSide first, TeamSide second) =>
+            $"{Cards(first, true)}{Abbreviation(first)} {match.Score(first)} x " +
+            $"{match.Score(second)} {Abbreviation(second)}{Cards(second, false)}";
 
         /// <summary>Abreviação do time (3 letras) na cor dele: o placar fica sempre do mesmo tamanho.</summary>
         private static string Abbreviation(TeamSide side) =>
             $"<color=#{ColorUtility.ToHtmlStringRGB(TeamColor(side))}>{MatchSession.Team(side).Abbreviation}</color>";
 
         /// <summary>Cartões do jogador ao lado do nome: um quadradinho amarelo e um vermelho por expulsão.</summary>
-        private string Cards(TeamSide side)
+        private string Cards(TeamSide side, bool before)
         {
             if (!match.HasYellow(side)) return string.Empty;
             string cards = "<color=#FFD21F>■</color>";
             for (int i = 0; i < match.RedCards(side); i++) cards += "<color=#E02424>■</color>";
-            return side == TeamSide.Bottom ? cards + " " : " " + cards;
+            return before ? cards + " " : " " + cards;
         }
 
         private static string ClockText(float clock)
@@ -241,10 +248,8 @@ namespace FutebolDeBotao
                 var left = CreateWorldCanvas($"Canto esquerdo {Name(side)}", cornersRoot.transform,
                     new Vector2(-centerX * sign, -centerY * sign), size, rotation);
                 CreatePanel(left.transform, PanelColor);
-                view.Score = CreateText(left.transform, "Placar", 28, FontStyle.Bold, new Vector2(0f, 40f), new Vector2(250f, 40f));
-                FitOneLine(view.Score);
-                view.Clock = CreateText(left.transform, "Relógio", 28, FontStyle.Bold, new Vector2(0f, 2f), new Vector2(250f, 36f));
-                view.Pause = CreateButton(left.transform, "Pausa", "Pausa", 22, new Vector2(0f, -40f), new Vector2(130f, 40f), out _);
+                view.Clock = CreateText(left.transform, "Relógio", 32, FontStyle.Bold, new Vector2(0f, 24f), new Vector2(250f, 44f));
+                view.Pause = CreateButton(left.transform, "Pausa", "Pausa", 22, new Vector2(0f, -28f), new Vector2(130f, 44f), out _);
                 view.Pause.onClick.AddListener(match.RequestPause);
 
                 var right = CreateWorldCanvas($"Canto direito {Name(side)}", cornersRoot.transform,
@@ -258,6 +263,25 @@ namespace FutebolDeBotao
 
                 corners[side] = view;
             }
+
+            // Placar nas paredes laterais, no meio-campo, deitado (lê com o celular na horizontal, lateral para cima).
+            leftBoard = CreateSideBoard("Placar lateral esquerdo", -1f, 90f);
+            rightBoard = CreateSideBoard("Placar lateral direito", 1f, -90f);
+        }
+
+        private Text CreateSideBoard(string objectName, float sideSign, float rotation)
+        {
+            const float wall = 0.5f;
+            var canvas = CreateWorldCanvas(objectName, cornersRoot.transform,
+                new Vector2(sideSign * (FieldLayout.HalfWidth + wall * 0.5f), 0f), new Vector2(5f, wall), rotation);
+            // O placar não bloqueia toques.
+            Destroy(canvas.GetComponent<GraphicRaycaster>());
+            var text = CreateText(canvas.transform, "Placar", 34, FontStyle.Bold, Vector2.zero, new Vector2(500f, 50f));
+            FitOneLine(text);
+            var shadow = text.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            shadow.effectDistance = new Vector2(2f, -2f);
+            return text;
         }
 
         private void BuildMessages()
