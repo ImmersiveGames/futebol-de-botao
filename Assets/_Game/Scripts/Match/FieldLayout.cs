@@ -35,6 +35,10 @@ namespace FutebolDeBotao
             return sameSide && fromGoalLine <= AreaDepth;
         }
 
+        /// <summary>A bola passou inteira da linha de fundo (o centro está a mais de um raio para dentro do gol).</summary>
+        public static bool BallFullyInGoal(Vector2 ballPosition, float ballRadius) =>
+            Mathf.Abs(ballPosition.y) >= HalfHeight + ballRadius;
+
         /// <summary>Marca do pênalti contra quem defende <paramref name="defending"/>.</summary>
         public static Vector2 PenaltySpot(TeamSide defending) =>
             new(0f, GoalLineY(defending) + (defending == TeamSide.Bottom ? PenaltyDistanceFromGoal : -PenaltyDistanceFromGoal));

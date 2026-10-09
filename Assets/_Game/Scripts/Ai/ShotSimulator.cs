@@ -62,6 +62,7 @@ namespace FutebolDeBotao
         private Scene scene;
         private PhysicsScene2D physics;
         private SimBody ball;
+        private float ballRadius = 0.2f;
         private TeamSide? keeperOverrideSide;
         private float keeperOverrideX;
 
@@ -86,6 +87,7 @@ namespace FutebolDeBotao
             foreach (var disc in allDiscs)
                 AddBody(disc.GetComponent<Rigidbody2D>(), CopyCircle(disc.GetComponent<CircleCollider2D>()), Kind.Disc, disc.Side);
 
+            if (realBall != null) ballRadius = realBall.Radius;
             if (realBall != null)
                 ball = AddBody(realBall.GetComponent<Rigidbody2D>(), CopyCircle(realBall.GetComponent<CircleCollider2D>()), Kind.Ball, TeamSide.Bottom);
 
@@ -243,9 +245,9 @@ namespace FutebolDeBotao
                     if (body.Copy.linearVelocity.sqrMagnitude > restSpeed * restSpeed) moving = true;
                 }
 
-                // A bola entra no gol quando o centro passa da linha de fundo entre as traves (GoalTrigger).
+                // A bola entra no gol quando passa inteira da linha de fundo entre as traves (GoalTrigger).
                 var ballPosition = ball.Copy.position;
-                if (Mathf.Abs(ballPosition.x) < GoalWidth * 0.5f && Mathf.Abs(ballPosition.y) > FieldLayout.HalfHeight + 0.05f)
+                if (Mathf.Abs(ballPosition.x) < GoalWidth * 0.5f && FieldLayout.BallFullyInGoal(ballPosition, ballRadius))
                 {
                     result.GoalOf = ballPosition.y > 0f ? TeamSide.Top : TeamSide.Bottom;
                     break;

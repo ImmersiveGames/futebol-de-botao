@@ -11,6 +11,8 @@ namespace FutebolDeBotao
         private Rigidbody2D body;
         private Vector2 startPosition;
 
+        private const float GoalDamping = 10f;
+
         public Rigidbody2D Body => body;
         public bool TouchedWallSinceShot { get; private set; }
         public Disc LastDiscTouch { get; private set; }
@@ -64,8 +66,17 @@ namespace FutebolDeBotao
             LastTouchSide = side;
         }
 
+        /// <summary>Gol marcado: a bola freia forte e para dentro da rede, sem quicar para fora.</summary>
+        public void StopInGoal()
+        {
+            body.linearVelocity *= 0.3f;
+            body.angularVelocity = 0f;
+            body.linearDamping = GoalDamping;
+        }
+
         public void ResetTo(Vector2 position)
         {
+            if (tuning != null) body.linearDamping = tuning.ballLinearDamping;
             body.linearVelocity = Vector2.zero;
             body.angularVelocity = 0f;
             body.position = position;

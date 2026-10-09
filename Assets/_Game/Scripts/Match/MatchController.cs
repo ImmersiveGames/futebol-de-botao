@@ -756,6 +756,7 @@ namespace FutebolDeBotao
 
             EndShot();
             monitor.StopWatching();
+            enteredBall.StopInGoal();
             pendingGoal = goal;
 
             // Gol contra (último toque de um botão de quem defende) vale sempre.
