@@ -98,16 +98,6 @@ namespace FutebolDeBotao
             int count = catalog.SchemeCount(discs);
             MatchSession.SetSchemeIndex(side, discs, Wrap(MatchSession.SchemeIndex(side, discs) + step, count));
             Refresh();
-
-            // Diagnóstico da troca de esquema (tirar depois).
-            var scheme = MatchSession.Scheme(side, discs);
-            var view = halves[side];
-            var shown = new System.Text.StringBuilder();
-            foreach (var (body, _, _) in view.Discs)
-                if (body.gameObject.activeSelf) shown.Append(body.rectTransform.anchoredPosition / Unit).Append(' ');
-            Debug.Log($"[Seleção] {side}: {discs} botões, esquema {MatchSession.SchemeIndex(side, discs) + 1}/{count} " +
-                      $"'{(scheme != null ? scheme.name : "nulo")}' ({(scheme != null ? scheme.DisplayName : "-")}, {(scheme != null ? scheme.Count : 0)} posições). " +
-                      $"Catálogo '{catalog.name}' (5: {catalog.SchemeCount(5)}, 3: {catalog.SchemeCount(3)}). Botões na tela: {shown}");
         }
 
         public void Back()

@@ -13,7 +13,8 @@ namespace FutebolDeBotao
         [SerializeField] private string displayName = "2-2-1";
         [Tooltip("Estilo mostrado embaixo do nome (ex.: Defensivo).")]
         [SerializeField] private string style = "Equilibrado";
-        [SerializeField] private Vector2[] positions = Default5;
+        // Cópia: a Unity reaproveita o array do campo ao carregar o asset, e escreveria por cima do Default5 compartilhado.
+        [SerializeField] private Vector2[] positions = (Vector2[])Default5.Clone();
 
         // Os esquemas deixam livres as faixas laterais (|x| > 1,75) da Seleção de times, onde ficam escudo e setas.
         public static readonly Vector2[] Default5 =
