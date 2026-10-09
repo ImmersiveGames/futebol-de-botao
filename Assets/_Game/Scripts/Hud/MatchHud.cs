@@ -20,8 +20,6 @@ namespace FutebolDeBotao
         [Tooltip("Nos últimos segundos o timer fica vermelho.")]
         [SerializeField, Min(0f)] private float warningSeconds = 5f;
 
-        private static readonly Color BlueColor = new(0.35f, 0.6f, 1f);
-        private static readonly Color RedColor = new(1f, 0.4f, 0.4f);
         private static readonly Color WarningColor = new(1f, 0.25f, 0.2f);
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.45f);
         private static readonly Color ButtonColor = new(0.95f, 0.95f, 0.9f);
@@ -177,8 +175,12 @@ namespace FutebolDeBotao
         }
 
         private string ScoreText() =>
-            $"{Cards(TeamSide.Bottom)}<color=#{ColorUtility.ToHtmlStringRGB(BlueColor)}>Azul</color> {match.Score(TeamSide.Bottom)} x " +
-            $"{match.Score(TeamSide.Top)} <color=#{ColorUtility.ToHtmlStringRGB(RedColor)}>Verm.</color>{Cards(TeamSide.Top)}";
+            $"{Cards(TeamSide.Bottom)}{Abbreviation(TeamSide.Bottom)} {match.Score(TeamSide.Bottom)} x " +
+            $"{match.Score(TeamSide.Top)} {Abbreviation(TeamSide.Top)}{Cards(TeamSide.Top)}";
+
+        /// <summary>Abreviação do time (3 letras) na cor dele: o placar fica sempre do mesmo tamanho.</summary>
+        private static string Abbreviation(TeamSide side) =>
+            $"<color=#{ColorUtility.ToHtmlStringRGB(TeamColor(side))}>{MatchSession.Team(side).Abbreviation}</color>";
 
         /// <summary>Cartões do jogador ao lado do nome: um quadradinho amarelo e um vermelho por expulsão.</summary>
         private string Cards(TeamSide side)
@@ -210,7 +212,8 @@ namespace FutebolDeBotao
             _ => string.Empty
         };
 
-        private static Color TeamColor(TeamSide side) => side == TeamSide.Bottom ? BlueColor : RedColor;
+        /// <summary>Cor do time um pouco mais clara, para ler sobre o fundo escuro do HUD.</summary>
+        private static Color TeamColor(TeamSide side) => Color.Lerp(MatchSession.Team(side).TextColor, Color.white, 0.3f);
 
         // ---- Montagem: cantos (celular) ----
 

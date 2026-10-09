@@ -18,7 +18,7 @@ namespace FutebolDeBotao
 
     /// <summary>
     /// Menu: começa em "Como jogar" (contra a IA, com o nível, ou 2 jogadores); escolhido o modo, abre as Opções da
-    /// partida, e "Jogar" pede a Route da Partida. (A seleção de times vai entrar entre as Opções e o jogo.)
+    /// partida, depois a Seleção de times, e "Jogar" pede a Route da Partida.
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
@@ -29,6 +29,7 @@ namespace FutebolDeBotao
         [SerializeField] private RouteRequestTrigger matchRoute;
         [SerializeField] private GameObject modePanel;
         [SerializeField] private GameObject optionsPanel;
+        [SerializeField] private TeamSelectionScreen selection;
         [Tooltip("Mostra nas Opções o modo escolhido.")]
         [SerializeField] private Text modeLabel;
         [Tooltip("Acerta quem está na sessão (Jogador 1 contra a IA). Vazio: a partida lê o mouse/teclado direto.")]
@@ -53,7 +54,7 @@ namespace FutebolDeBotao
             Refresh();
         }
 
-        /// <summary>Contra a IA: 0 = Fácil, 1 = Médio, 2 = Difícil. Você joga com o Azul (baixo). Abre as Opções.</summary>
+        /// <summary>Contra a IA: 0 = Fácil, 1 = Médio, 2 = Difícil. Você joga com o time de baixo. Abre as Opções.</summary>
         public void PlayVsAi(int level)
         {
             MatchSession.VsAi = true;
@@ -68,7 +69,7 @@ namespace FutebolDeBotao
             ShowOptions();
         }
 
-        /// <summary>"Jogar" nas Opções: acerta os jogadores do modo escolhido e vai para a Partida.</summary>
+        /// <summary>"Jogar" na Seleção de times: acerta os jogadores do modo escolhido e vai para a Partida.</summary>
         public void Play()
         {
             if (players != null)
@@ -80,6 +81,20 @@ namespace FutebolDeBotao
         }
 
         public void SetPlayers(MenuPlayers menuPlayers) => players = menuPlayers;
+
+        public void SetSelection(TeamSelectionScreen teamSelection) => selection = teamSelection;
+
+        /// <summary>"Avançar" nas Opções: abre a Seleção de times (sem ela, vai direto para a Partida).</summary>
+        public void ShowSelection()
+        {
+            if (selection == null)
+            {
+                Play();
+                return;
+            }
+            Show(selection.gameObject);
+            selection.Open();
+        }
 
         private void RequestMatch()
         {
@@ -101,7 +116,7 @@ namespace FutebolDeBotao
 
         private void Show(GameObject panel)
         {
-            foreach (var other in new[] { modePanel, optionsPanel })
+            foreach (var other in new[] { modePanel, optionsPanel, selection != null ? selection.gameObject : null })
                 if (other != null) other.SetActive(other == panel);
         }
 

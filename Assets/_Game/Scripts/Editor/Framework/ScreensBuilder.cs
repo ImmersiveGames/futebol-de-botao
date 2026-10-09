@@ -33,6 +33,7 @@ namespace FutebolDeBotao.Editor
         private const string MatchScenePath = ScenesFolder + "/Partida.unity";
         private const string ResultScenePath = ScenesFolder + "/Resultado.unity";
         private const string OptionsPath = "Assets/_Game/Data/OpcoesDaPartida.asset";
+        private const string CircleSpritePath = "Assets/_Game/Art/Placeholder/Circle.png";
 
         private const string MatchSystemsName = "Partida (sistemas)";
         private const string MatchFrameworkName = "Framework (telas)";
@@ -54,6 +55,7 @@ namespace FutebolDeBotao.Editor
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            TeamsBuilder.CreateAssets();
 
             var app = FindGameApplication();
             var matchRoute = FindMatchRoute();
@@ -89,7 +91,7 @@ namespace FutebolDeBotao.Editor
             AssetDatabase.SaveAssets();
 
             EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Single);
-            Debug.Log("[Futebol de Botão] Telas criadas: Abertura → Menu → Partida → Resultado. " +
+            Debug.Log("[Futebol de Botão] Telas criadas: Abertura → Menu (Como jogar, Opções, Seleção de times) → Partida → Resultado. " +
                       "Startup Route = 'Abertura'. Cenas adicionadas na lista da build.");
         }
 
@@ -228,7 +230,7 @@ namespace FutebolDeBotao.Editor
             }
             CreateButton(modePanel, "2 jogadores", "2 jogadores", new Vector2(0f, -240f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
 
-            // Opções da partida (GDD), depois do modo; "Jogar" vai para a Partida
+            // Opções da partida (GDD), depois do modo; "Avançar" abre a Seleção de times
             var optionsPanel = CreateGroup(canvas, "Opções da partida");
             CreateText(optionsPanel, "Título", "Opções da partida", 52, new Vector2(0f, 440f), new Vector2(680f, 90f), FontStyle.Bold);
             var modeLabel = CreateText(optionsPanel, "Modo", "-", 30, new Vector2(0f, 370f), new Vector2(680f, 50f));
@@ -244,8 +246,15 @@ namespace FutebolDeBotao.Editor
                 CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
             }
             CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-170f, -420f), new Vector2(300f, 90f), menu.ShowMode);
-            CreateButton(optionsPanel, "Jogar", "Jogar", new Vector2(170f, -420f), new Vector2(300f, 90f), menu.Play);
+            CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(170f, -420f), new Vector2(300f, 90f), menu.ShowSelection);
             optionsPanel.gameObject.SetActive(false);
+
+            // Seleção de times no campo desenhado ("Jogar" vai para a Partida). Monta a UI sozinha no Awake.
+            var selectionPanel = CreateGroup(canvas, "Seleção de times");
+            var selection = selectionPanel.gameObject.AddComponent<TeamSelectionScreen>();
+            selection.Configure(menu, options, AssetDatabase.LoadAssetAtPath<Sprite>(CircleSpritePath));
+            menu.SetSelection(selection);
+            selectionPanel.gameObject.SetActive(false);
 
             var trigger = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "menu.iniciar");
             menu.Configure(options, trigger, modePanel.gameObject, optionsPanel.gameObject, modeLabel, values);

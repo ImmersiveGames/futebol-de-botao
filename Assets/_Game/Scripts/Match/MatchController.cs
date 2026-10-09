@@ -194,6 +194,7 @@ namespace FutebolDeBotao
             foreach (var keeper in keepers) keeper.gameObject.SetActive(options.hasGoalkeeper);
             ApplyGoalWidth();
             if (aimVisuals != null) aimVisuals.Mode = options.aimAssist;
+            PaintTeams();
         }
 
         /// <summary>Largura da boca do gol nesta partida (menor sem goleiro).</summary>
@@ -262,7 +263,7 @@ namespace FutebolDeBotao
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
         }
 
-        /// <summary>Contra a IA, o time de cima (Vermelho) joga sozinho no nível do Menu; em 2 jogadores, ninguém.</summary>
+        /// <summary>Contra a IA, o time de cima joga sozinho no nível do Menu; em 2 jogadores, ninguém.</summary>
         private void ConfigureAi()
         {
             bool fromMenu = MatchSession.VsAi.HasValue;
@@ -287,7 +288,7 @@ namespace FutebolDeBotao
 
             foreach (var pair in discs)
                 for (int i = 0; i < pair.Value.Count && i < options.discsPerTeam; i++)
-                    pair.Value[i].PlaceAt(options.FormationPosition(i, pair.Key));
+                    pair.Value[i].PlaceAt(FormationPosition(i, pair.Key));
             foreach (var keeper in keepers)
                 if (keeper.isActiveAndEnabled) keeper.ResetToCenter();
             ball.ResetTo(Vector2.zero);
@@ -659,7 +660,7 @@ namespace FutebolDeBotao
             float clearance = KickerDistance(victim) + victim.Radius * 2f + 0.05f;
 
             int index = discs[offender.Side].IndexOf(offender);
-            offender.PlaceAt(FindFreeSpot(options.FormationPosition(index, offender.Side), offender, victim, clearance));
+            offender.PlaceAt(FindFreeSpot(FormationPosition(index, offender.Side), offender, victim, clearance));
 
             foreach (var disc in allDiscs)
             {
@@ -692,7 +693,7 @@ namespace FutebolDeBotao
 
             var attackers = discs[attacking];
             for (int i = 0; i < attackers.Count && i < options.discsPerTeam; i++)
-                if (attackers[i] != victim) attackers[i].PlaceAt(options.FormationPosition(i, attacking));
+                if (attackers[i] != victim) attackers[i].PlaceAt(FormationPosition(i, attacking));
 
             var defenders = new List<Disc>();
             foreach (var disc in discs[defending])
@@ -937,7 +938,7 @@ namespace FutebolDeBotao
         {
             foreach (var pair in discs)
                 for (int i = 0; i < pair.Value.Count && i < options.discsPerTeam; i++)
-                    pair.Value[i].PlaceAt(options.FormationPosition(i, pair.Key));
+                    pair.Value[i].PlaceAt(FormationPosition(i, pair.Key));
 
             foreach (var disc in allDiscs)
             {
@@ -976,7 +977,36 @@ namespace FutebolDeBotao
 
         private static TeamSide Opponent(TeamSide side) => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
 
-        public static string TeamName(TeamSide side) => side == TeamSide.Bottom ? "Azul" : "Vermelho";
+        public static string TeamName(TeamSide side) => MatchSession.Team(side).TeamName;
+
+        /// <summary>Posição inicial do botão <paramref name="index"/> no esquema escolhido na Seleção de times.</summary>
+        private Vector2 FormationPosition(int index, TeamSide side)
+        {
+            var scheme = MatchSession.Scheme(side, options.discsPerTeam);
+            if (scheme != null && index < scheme.Count) return scheme.PositionFor(index, side);
+            return options.FormationPosition(index, side);
+        }
+
+        /// <summary>Pinta botões e goleiros com as cores dos times escolhidos (botão na cor principal, anel na secundária).</summary>
+        private void PaintTeams()
+        {
+            foreach (var pair in discs)
+            {
+                var team = MatchSession.Team(pair.Key);
+                foreach (var disc in pair.Value)
+                {
+                    if (disc.TryGetComponent(out SpriteRenderer body)) body.color = team.PrimaryColor;
+                    var ring = disc.transform.Find("Anel");
+                    if (ring != null && ring.TryGetComponent(out SpriteRenderer ringRenderer)) ringRenderer.color = team.SecondaryColor;
+                    var center = disc.transform.Find("Centro");
+                    if (center != null && center.TryGetComponent(out SpriteRenderer centerRenderer)) centerRenderer.color = team.PrimaryColor;
+                }
+            }
+
+            foreach (var keeper in keepers)
+                if (keeper.TryGetComponent(out SpriteRenderer renderer))
+                    renderer.color = Color.Lerp(MatchSession.Team(keeper.Side).PrimaryColor, Color.black, 0.25f);
+        }
 
         // ---- HUD provisório ----
 
@@ -1002,7 +1032,7 @@ namespace FutebolDeBotao
             const float width = 340f;
             var lines = new List<(string text, GUIStyle style, float height)>
             {
-                ($"Azul {Score(TeamSide.Bottom)} x {Score(TeamSide.Top)} Vermelho", big, 40f),
+                ($"{TeamName(TeamSide.Bottom)} {Score(TeamSide.Bottom)} x {Score(TeamSide.Top)} {TeamName(TeamSide.Top)}", big, 40f),
                 ($"Tempo {minutes}:{seconds:00}", small, 28f)
             };
             if (State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick or MatchState.Moving)

@@ -60,15 +60,16 @@ Depois commite os assets e cenas gerados (com os `.meta`) e o `ProjectSettings/E
 Fluxo:
 
 ```text
-Abertura --(qualquer tecla, clique ou toque)--> Menu: Como jogar --modo--> Opções da partida --Jogar--> Partida --fim do tempo--> Resultado
+Abertura --(qualquer tecla, clique ou toque)--> Menu: Como jogar --modo--> Opções da partida --Avançar--> Seleção de times --Jogar--> Partida --fim do tempo--> Resultado
                                                  ^                  | Pausa: Continuar / Reiniciar / Sair para o menu
                                                  +------ Menu ------+--------- Jogar de novo --> Partida
 ```
 
 - **Abertura:** não avança sozinha; mostra "Clique para iniciar" ("Toque para iniciar" no celular).
-- **Menu:** começa em "Como jogar" (contra a IA Fácil/Médio/Difícil ou 2 jogadores); escolhido o modo, abrem as "Opções da partida" com "Voltar" e "Jogar" (a seleção de times vai entrar entre as Opções e o jogo). Opções: (duração, botões por time, goleiro, toques, gol após parede, ajuda de mira, faltas). Opções de sim ou não aparecem como Ligado/Desligado. As opções ficam numa cópia em memória (`MatchSession`); o `OpcoesDaPartida.asset` não muda. Salvar entre sessões fica para a fase 4.
+- **Menu:** começa em "Como jogar" (contra a IA Fácil/Médio/Difícil ou 2 jogadores); escolhido o modo, abrem as "Opções da partida" com "Voltar" e "Avançar", e depois a "Seleção de times" com "Voltar" e "Jogar". Opções: (duração, botões por time, goleiro, toques, gol após parede, ajuda de mira, faltas). Opções de sim ou não aparecem como Ligado/Desligado. As opções ficam numa cópia em memória (`MatchSession`); o `OpcoesDaPartida.asset` não muda. Salvar entre sessões fica para a fase 4.
 - **Partida:** começa quando a Activity **Jogo** entra (`IActivityContentLifecycleReceiver`), não mais no `Start()`. `R` e "Reiniciar partida" usam o `ActivityRestartTrigger` do framework (Reset, Clear e Reenter da Activity).
 - **Pausa:** botão "Pausa" no HUD e `Esc` chamam o `PauseRequestTrigger`. O framework põe `Time.timeScale = 0` (física, relógio e timer de mira param) e o adaptador mostra a tela de pausa. A mira e o goleiro ignoram o ponteiro na pausa. Com o Jogador 1 na sessão, o `Esc` é dele (`PlayerPauseInput`, mapa Global).
+- **Seleção de times:** o campo desenhado com os dois times no esquema escolhido (`TeamSelectionScreen`, monta a UI no Awake). Em cada metade, à esquerda, escudo, nome e abreviação com as setas do time; à direita, as setas do esquema. A metade de cima fica girada 180° para o Jogador 2. Os dois não podem ter o mesmo time; contra a IA ela sorteia time e esquema ao abrir a tela. Times e esquemas ficam em `Assets/_Game/Resources/Times` (criados por "Criar telas" ou **Futebol de Botão > Criar times**, que só cria o que falta; edite nome, abreviação, cores e escudo no Inspector) e no catálogo `Resources/Times/CatalogoDeTimes`. O placar usa a abreviação; mensagens e Resultado, o nome.
 - **Resultado:** placar final e vencedor, com "Jogar de novo" (Route Partida) e "Menu".
 - **HUD (`MatchHud`, uGUI montado em código):** com a tela em pé (celular, versão principal) usa os 4 cantos ao lado dos gols, 2 por jogador; os de cima ficam girados 180° para o jogador de cima. Canto esquerdo: placar, relógio e Pausa. Canto direito: de quem é a vez, toques, timer da jogada (vermelho nos últimos 5 s) e o botão de ação ("Vai chutar" ou "Pronto"). As mensagens aparecem no meio do campo, uma virada para cada jogador. Avisos importantes (falta, cartão, pênalti, gol, gol anulado, bola do goleiro) param o jogo por `MatchOptions.noticeHoldSeconds` (3 s, sem pular): controles travados, relógio e timer parados, a IA espera; o aviso some junto com a pausa. As outras mensagens não param o jogo e ficam `messageSeconds` (3,5 s). Com a tela deitada (PC) fica um painel provisório à esquerda. O `TurnHighlight` faz brilhar os botões que podem jogar (mais forte no que está sendo mirado), a bola no tiro de meta e o goleiro no "Vai chutar". Toques no HUD não viram mira nem movem o goleiro (`UiPointer`).
 
@@ -99,7 +100,7 @@ Pacotes `com.immersive.audio` 0.2.3 e `com.immersive.pooling` 0.2.2 (git, no `ma
 
 ## IA (fase 3)
 
-Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). O Menu começa perguntando o modo: contra a IA (Fácil, Médio ou Difícil; você é o Azul, embaixo, e a IA o Vermelho) ou 2 jogadores. A escolha fica no `MatchSession`. Abrindo a cena da partida direto no editor, vale o `Ai Plays Top` do `MatchController` (objeto `Partida (sistemas)`). Na vez da IA, o HUD mostra "IA pensando...".
+Plano: [Plano da IA](https://claude.ai/code/artifact/ba328677-b577-4234-9834-d188c402ef89). O Menu começa perguntando o modo: contra a IA (Fácil, Médio ou Difícil; você joga embaixo e a IA em cima, com o time sorteado na Seleção de times) ou 2 jogadores. A escolha fica no `MatchSession`. Abrindo a cena da partida direto no editor, vale o `Ai Plays Top` do `MatchController` (objeto `Partida (sistemas)`). Na vez da IA, o HUD mostra "IA pensando...".
 
 - `AiPlayer`: na vez da IA pega os botões mais perto da bola (`AiDifficulty.discsToTest`), gera jogadas por geometria e confere o caminho com CircleCasts (`ShotPlanner`), simula as melhores (`AiDifficulty.simulations`) numa mesa invisível (`ShotSimulator`, uma `PhysicsScene2D` própria), dá nota e escolhe com erro de ângulo e força. Mostra a mira por `aimSeconds` e solta pelo `AimController`, o mesmo caminho do jogador.
 - Falta tira nota mas não é proibida; o erro de ângulo faz a IA cometer falta às vezes.
