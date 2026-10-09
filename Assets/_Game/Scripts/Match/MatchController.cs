@@ -46,6 +46,8 @@ namespace FutebolDeBotao
         /// <summary>Faltas longe do lance de cada jogador (1 = amarelo; a partir de 2, cada uma é vermelho).</summary>
         private readonly int[] farFouls = new int[2];
         private Vector2 shotBallStart;
+        /// <summary>A bola estava no campo de ataque de quem jogou no começo da jogada (sem goleiro, só assim o gol vale).</summary>
+        private bool shotFromAttackHalf;
         private Ball ball;
         private Goalkeeper[] keepers;
         private AimController aim;
@@ -471,6 +473,12 @@ namespace FutebolDeBotao
             Enter(MatchState.ShotAim);
         }
 
+        /// <summary>
+        /// Um gol nesta jogada valeria: num chute anunciado ou, sem goleiro, com a bola no campo de ataque do time da vez.
+        /// </summary>
+        public bool GoalWouldCount => State == MatchState.ShotAim ||
+                                      (!options.hasGoalkeeper && InAttackHalf(ball.Body.position, Turn));
+
         private static bool InAttackHalf(Vector2 position, TeamSide side) =>
             side == TeamSide.Bottom ? position.y > 0f : position.y < 0f;
 
@@ -488,6 +496,7 @@ namespace FutebolDeBotao
             if (State != MatchState.GoalKick) return;
             ball.MarkTouchedBy(Turn);
             shotWasCalled = false;
+            shotFromAttackHalf = InAttackHalf(ball.Body.position, Turn);
             shooter = null;
             touchesLeft--;
             message = string.Empty;
@@ -500,6 +509,7 @@ namespace FutebolDeBotao
             shotWasCalled = State == MatchState.ShotAim;
             shooter = disc;
             shotBallStart = ball.Body.position;
+            shotFromAttackHalf = InAttackHalf(shotBallStart, Turn);
             shooter.BeginShot();
             freeKickDisc = null;
             touchesLeft--;
@@ -852,11 +862,11 @@ namespace FutebolDeBotao
             pendingGoal = goal;
 
             // Gol contra (último toque de um botão de quem defende) vale sempre.
-            // Os outros só valem num "Vai chutar" (sem goleiro não precisa) e, por padrão, sem a bola tocar a parede.
+            // Os outros só valem num "Vai chutar" (sem goleiro: chute do campo de ataque) e, por padrão, sem a bola tocar a parede lateral.
             var lastDisc = enteredBall.LastDiscTouch;
             bool ownGoal = lastDisc != null && lastDisc.Side == goal.DefendingSide;
             bool wallOk = options.goalAfterWallIsValid || !enteredBall.TouchedWallSinceShot;
-            bool called = shotWasCalled || !options.hasGoalkeeper;
+            bool called = options.hasGoalkeeper ? shotWasCalled : shotFromAttackHalf;
             pendingGoalValid = ownGoal || (called && wallOk);
 
             var scorer = Opponent(goal.DefendingSide);
@@ -867,9 +877,9 @@ namespace FutebolDeBotao
             }
             else
             {
-                message = called
-                    ? "Gol anulado: a bola tocou a parede lateral."
-                    : "Gol anulado: não avisou o \"Vai chutar\".";
+                message = called ? "Gol anulado: a bola tocou a parede lateral."
+                    : options.hasGoalkeeper ? "Gol anulado: não avisou o \"Vai chutar\"."
+                    : "Gol anulado: chute do campo de defesa.";
             }
 
             Noticed?.Invoke(pendingGoalValid ? MatchNotice.Goal : MatchNotice.GoalAnnulled);

@@ -120,8 +120,8 @@ namespace FutebolDeBotao
                     yield break;
                 }
 
-                // Gol só vale num chute anunciado (ou num jogo sem goleiro).
-                bool goalsCount = state == MatchState.ShotAim || !match.Options.hasGoalkeeper;
+                // Gol só vale num chute anunciado (sem goleiro: com a bola no campo de ataque).
+                bool goalsCount = match.GoalWouldCount;
                 var candidates = ballKick ? planner.BallKickCandidates() : planner.DiscCandidates(usable, goalsCount);
                 if (candidates.Count == 0) candidates.Add(Fallback(usable, ballKick));
                 candidates.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
