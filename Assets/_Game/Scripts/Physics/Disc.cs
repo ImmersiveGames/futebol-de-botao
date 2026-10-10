@@ -29,6 +29,12 @@ namespace FutebolDeBotao
         /// </summary>
         public event Action<Disc, Disc, Vector2> HitOpponent;
 
+        /// <summary>
+        /// Este botão bateu no goleiro adversário: como botão do peteleco antes de tocar a bola (true) ou empurrado por
+        /// outro (false). Quem decide se é falta é a partida.
+        /// </summary>
+        public event Action<Disc, Goalkeeper, bool> HitOpponentKeeper;
+
         private bool shooting;
         private bool shotDisc;
         private readonly ContactPoint2D[] contacts = new ContactPoint2D[16];
@@ -93,16 +99,30 @@ namespace FutebolDeBotao
         {
             WallElastic.OnEnter(body, collision, tuning);
             RaiseImpact(collision);
+            var keeper = collision.collider.GetComponent<Goalkeeper>();
             if (!shooting)
             {
                 var opponent = collision.collider.GetComponent<Disc>();
                 if (opponent != null && opponent.Side != side) HitOpponent?.Invoke(this, opponent, opponent.Body.position);
+                else if (keeper != null && keeper.Side != side) HitOpponentKeeper?.Invoke(this, keeper, false);
                 return;
             }
 
             if (collision.collider.GetComponent<Ball>() != null)
             {
                 TouchedBallThisShot = true;
+                return;
+            }
+
+            if (keeper != null)
+            {
+                if (keeper.Side == side) return;
+                if (!TouchedBallThisShot && TouchingBall()) TouchedBallThisShot = true;
+                if (!TouchedBallThisShot)
+                {
+                    shooting = false;
+                    HitOpponentKeeper?.Invoke(this, keeper, true);
+                }
                 return;
             }
 

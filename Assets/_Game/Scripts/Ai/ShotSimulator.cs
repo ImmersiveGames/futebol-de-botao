@@ -9,9 +9,9 @@ namespace FutebolDeBotao
     /// <summary>Como terminou uma jogada simulada.</summary>
     public struct SimResult
     {
-        /// <summary>O botão do peteleco (ou um companheiro empurrado por ele) acertou um adversário antes da bola.</summary>
+        /// <summary>O botão do peteleco (ou um companheiro empurrado por ele) acertou um adversário ou o goleiro dele antes da bola.</summary>
         public bool Foul;
-        /// <summary>Onde estava o botão atingido (falta na área de quem fez = pênalti).</summary>
+        /// <summary>Onde estava o botão ou goleiro atingido (falta na área de quem fez = pênalti).</summary>
         public Vector2 FoulPosition;
         /// <summary>O botão do peteleco tocou a bola.</summary>
         public bool TouchedBall;
@@ -213,7 +213,7 @@ namespace FutebolDeBotao
                                 result.TouchedBall = true;
                                 shooterDecided = true;
                             }
-                            else if (FoulsEnabled && otherBody != null && otherBody.Kind == Kind.Disc && otherBody.Side != shooterSide)
+                            else if (FoulsEnabled && otherBody != null && otherBody.Kind != Kind.Ball && otherBody.Side != shooterSide)
                             {
                                 // O jogo para na falta.
                                 result.Foul = true;
@@ -225,14 +225,14 @@ namespace FutebolDeBotao
                         }
                     }
 
-                    // Companheiro empurrado que bate num adversário antes de alguém tocar a bola: falta, como no jogo.
+                    // Companheiro empurrado que bate num adversário (ou no goleiro dele) antes de alguém tocar a bola: falta, como no jogo.
                     if (FoulsEnabled && body != shot && body.Kind == Kind.Disc && body.Side == shooterSide &&
                         result.LastTouchSide == null && body.Copy.linearVelocity.sqrMagnitude > restSpeed * restSpeed)
                     {
                         for (int i = 0; i < count; i++)
                         {
                             var other = contacts[i].collider == body.Collider ? contacts[i].otherCollider : contacts[i].collider;
-                            if (!byCollider.TryGetValue(other, out var otherBody) || otherBody.Kind != Kind.Disc ||
+                            if (!byCollider.TryGetValue(other, out var otherBody) || otherBody.Kind == Kind.Ball ||
                                 otherBody.Side == shooterSide) continue;
                             result.Foul = true;
                             result.FoulPosition = otherBody.Copy.position;

@@ -169,6 +169,7 @@ namespace FutebolDeBotao
                 {
                     disc.Fouled += OnFouled;
                     disc.HitOpponent += OnHitOpponent;
+                    disc.HitOpponentKeeper += OnHitOpponentKeeper;
                 }
 
             Enter(MatchState.Waiting);
@@ -581,6 +582,28 @@ namespace FutebolDeBotao
             if (State != MatchState.Moving || shooter == null || !options.fouls) return;
             if (disc == shooter || disc.Side != shooter.Side || ball.LastTouchSide != null) return;
             CommitFoul(disc, victim, victimPosition);
+        }
+
+        /// <summary>
+        /// Botão do peteleco (ou companheiro empurrado por ele) acertou o goleiro adversário antes de alguém tocar a
+        /// bola: falta no goleiro, tiro de meta para o time dele.
+        /// </summary>
+        private void OnHitOpponentKeeper(Disc disc, Goalkeeper keeper, bool asShooter)
+        {
+            if (State != MatchState.Moving || shooter == null || !options.fouls) return;
+            if (asShooter ? disc != shooter : disc == shooter || disc.Side != shooter.Side || ball.LastTouchSide != null) return;
+
+            Debug.Log($"[Falta] {disc.name} ({TeamName(disc.Side)}) acertou o goleiro do {TeamName(keeper.Side)}.");
+            EndShot();
+            monitor.StopWatching();
+            monitor.FreezeAll();
+
+            bool far = Vector2.Distance(keeper.transform.position, shotBallStart) > options.farFoulDistance;
+            message = $"Falta no goleiro do {TeamName(keeper.Side)}!";
+            SetupGoalKick(keeper.Side);
+            Noticed?.Invoke(MatchNotice.Foul);
+            if (far) GiveCard(disc);
+            Hold();
         }
 
         private void CommitFoul(Disc offender, Disc victim, Vector2 victimPosition)

@@ -340,7 +340,8 @@ namespace FutebolDeBotao
                 if (collider.GetComponent<Ball>() != null) return;
 
                 var other = collider.GetComponent<Disc>();
-                if (other != null && other.Side != side) foulRisk = FoulsEnabled;
+                var keeper = collider.GetComponent<Goalkeeper>();
+                if ((other != null && other.Side != side) || (keeper != null && keeper.Side != side)) foulRisk = FoulsEnabled;
                 else blocked = true;
                 return;
             }
