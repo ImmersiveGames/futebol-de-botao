@@ -19,7 +19,10 @@ namespace FutebolDeBotao
         [SerializeField] private PlayerSessionObserver session;
         [SerializeField] private MatchController match;
 
-        private readonly Dictionary<PlayerSlotId, PlayerGameplayAvailabilityBlockToken> blocks = new();
+        // Estático de propósito: o bloqueio do framework fica preso ao jogador, não à cena. Ao sair da Partida (Menu,
+        // Resultado) o acesso da sessão já pode ter acabado antes do OnDisable; o token fica guardado e a próxima
+        // Partida solta ele, senão o jogador continua bloqueado para sempre.
+        private static readonly Dictionary<PlayerSlotId, PlayerGameplayAvailabilityBlockToken> blocks = new();
         private readonly Dictionary<PlayerSlotId, float> retryAt = new();
         private int occurrence = -1;
 #if UNITY_EDITOR
@@ -43,7 +46,8 @@ namespace FutebolDeBotao
             if (observation.ActivityOccurrence != occurrence)
             {
                 occurrence = observation.ActivityOccurrence;
-                ReleaseAll(access, "partida reiniciada");
+                if (blocks.Count > 0) Debug.Log($"[Jogadores] Nova partida: soltando {blocks.Count} bloqueio(s) que sobraram da anterior.");
+                ReleaseAll(access, "partida nova");
             }
 
 #if UNITY_EDITOR
@@ -101,22 +105,26 @@ namespace FutebolDeBotao
 
         private void OnDisable()
         {
+            // Se o acesso já acabou, os tokens ficam em blocks e a próxima Partida solta.
             if (session != null && session.TryGetAccess(out var access, out _)) ReleaseAll(access, "partida saiu");
-            blocks.Clear();
             retryAt.Clear();
             occurrence = -1;
         }
 
         private void ReleaseAll(IPlayerSessionScopedAccess access, string reason)
         {
+            var kept = new List<KeyValuePair<PlayerSlotId, PlayerGameplayAvailabilityBlockToken>>();
             foreach (var pair in blocks)
             {
                 if (!pair.Value.IsValid) continue;
                 var result = access.RequestReleaseRuntimeGameplay(pair.Value, Source, reason);
-                if (!result.Succeeded && result.Status != PlayerGameplayAvailabilityBlockStatus.RejectedForeignOrStaleToken)
-                    Debug.LogWarning($"[Jogadores] Não consegui liberar {pair.Key} ({reason}): {result.Status} {result.Message}");
+                if (result.Succeeded || result.Status == PlayerGameplayAvailabilityBlockStatus.RejectedForeignOrStaleToken) continue;
+                // Runtime indisponível agora (cena saindo): guarda para tentar de novo na próxima Partida.
+                kept.Add(pair);
+                Debug.LogWarning($"[Jogadores] Não consegui liberar {pair.Key} ({reason}): {result.Status} {result.Message}");
             }
             blocks.Clear();
+            foreach (var pair in kept) blocks[pair.Key] = pair.Value;
             retryAt.Clear();
         }
 
