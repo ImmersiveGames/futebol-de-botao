@@ -39,15 +39,15 @@ namespace FutebolDeBotao.Editor
         private static readonly Vector2Int WoodOrigin = new(-23, -10);
         private static readonly Vector2Int WoodSize = new(45, 19);
 
-        // Ordem de desenho: madeira, moldura, feltro, marcações, fundo do gol, bola, traves e rede, botões (10 a 12).
-        // A bola passa por baixo da rede; os botões encostam na trave sem ficar atrás dela.
+        // Ordem de desenho: madeira, moldura, feltro, marcações, fundo do gol, bola, botões (10 a 12), traves e rede.
+        // A bola e os botões passam por baixo da trave e da rede; a mira (50) continua por cima de tudo.
         private const int WoodOrder = -30;
         private const int FrameOrder = -25;
         private const int FeltOrder = -20;
         private const int MarksOrder = -15;
         private const int GoalBackOrder = -14;
         private const int BallOrder = 7;
-        private const int GoalFrontOrder = 9;
+        private const int GoalFrontOrder = 13;
 
         // Sombra preta semitransparente: escurece igual a faixa clara e a escura do feltro.
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.4f);
