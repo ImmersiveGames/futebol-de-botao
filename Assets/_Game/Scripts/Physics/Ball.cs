@@ -10,6 +10,7 @@ namespace FutebolDeBotao
 
         private Rigidbody2D body;
         private Vector2 startPosition;
+        private bool inGoal;
 
         private const float GoalDamping = 10f;
 
@@ -66,16 +67,16 @@ namespace FutebolDeBotao
             LastTouchSide = side;
         }
 
-        /// <summary>Gol marcado: a bola freia forte e para dentro da rede, sem quicar para fora.</summary>
+        /// <summary>Gol marcado: a bola continua rolando até a rede e para nela, sem quicar para fora.</summary>
         public void StopInGoal()
         {
-            body.linearVelocity *= 0.3f;
+            inGoal = true;
             body.angularVelocity = 0f;
-            body.linearDamping = GoalDamping;
         }
 
         public void ResetTo(Vector2 position)
         {
+            inGoal = false;
             if (tuning != null) body.linearDamping = tuning.ballLinearDamping;
             body.linearVelocity = Vector2.zero;
             body.angularVelocity = 0f;
@@ -115,6 +116,13 @@ namespace FutebolDeBotao
                 TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
                 // Só a parede lateral anula o gol: trave, fundo e rede não contam.
                 if (wall.IsSideWall) TouchedWallSinceShot = true;
+                if (inGoal)
+                {
+                    // Bateu na rede depois do gol: para ali mesmo.
+                    body.linearVelocity = Vector2.zero;
+                    body.linearDamping = GoalDamping;
+                    return;
+                }
                 WallElastic.OnEnter(body, collision, tuning);
                 return;
             }

@@ -117,16 +117,18 @@ namespace FutebolDeBotao.Editor
             float halfW = FieldWidth * 0.5f;
             float halfH = FieldHeight * 0.5f;
             float t = WallThickness;
-            float sideSegment = (FieldWidth - GoalWidth) * 0.5f;
+            float inset = FieldLayout.WallInset;
+            // O fundo vai do gol até a parede lateral, que fica afastada pelo inset.
+            float sideSegment = (FieldWidth - GoalWidth) * 0.5f + inset;
             float segmentX = GoalWidth * 0.5f + sideSegment * 0.5f;
 
-            CreateWall("Parede esquerda", parent, square, material, new Vector2(-halfW - t * 0.5f, 0f), new Vector2(t, FieldHeight + 2f * t));
-            CreateWall("Parede direita", parent, square, material, new Vector2(halfW + t * 0.5f, 0f), new Vector2(t, FieldHeight + 2f * t));
+            CreateWall("Parede esquerda", parent, square, material, new Vector2(-halfW - inset - t * 0.5f, 0f), new Vector2(t, FieldHeight + 2f * (t + inset)));
+            CreateWall("Parede direita", parent, square, material, new Vector2(halfW + inset + t * 0.5f, 0f), new Vector2(t, FieldHeight + 2f * (t + inset)));
 
             foreach (float sign in new[] { -1f, 1f })
             {
                 string end = sign < 0f ? "baixo" : "cima";
-                float y = sign * (halfH + t * 0.5f);
+                float y = sign * (halfH + inset + t * 0.5f);
                 CreateWall($"Fundo {end} esquerdo", parent, square, material, new Vector2(-segmentX, y), new Vector2(sideSegment, t));
                 CreateWall($"Fundo {end} direito", parent, square, material, new Vector2(segmentX, y), new Vector2(sideSegment, t));
 

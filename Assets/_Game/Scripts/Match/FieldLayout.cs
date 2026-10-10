@@ -13,6 +13,12 @@ namespace FutebolDeBotao
         /// <summary>Fundo do gol (da linha de fundo até a rede de trás).</summary>
         public const float GoalDepth = 0.8f;
 
+        /// <summary>
+        /// A colisão das paredes fica um pouco para dentro da face inclinada desenhada (3 px a 32 px por unidade): bola e
+        /// botões encostam na parede em vez de parar na linha do feltro. As regras continuam usando a linha do feltro.
+        /// </summary>
+        public const float WallInset = 3f / 32f;
+
         /// <summary>Área do goleiro: retângulo na frente de cada gol.</summary>
         public const float AreaWidth = 4f;
         public const float AreaDepth = 1.6f;

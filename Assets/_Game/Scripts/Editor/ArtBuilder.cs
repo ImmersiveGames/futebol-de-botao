@@ -39,13 +39,15 @@ namespace FutebolDeBotao.Editor
         private static readonly Vector2Int WoodOrigin = new(-23, -10);
         private static readonly Vector2Int WoodSize = new(45, 19);
 
-        // Ordem de desenho: madeira, moldura, feltro, marcações, fundo do gol; bola e botões (10); traves e rede por cima.
+        // Ordem de desenho: madeira, moldura, feltro, marcações, fundo do gol, bola, traves e rede, botões (10 a 12).
+        // A bola passa por baixo da rede; os botões encostam na trave sem ficar atrás dela.
         private const int WoodOrder = -30;
         private const int FrameOrder = -25;
         private const int FeltOrder = -20;
         private const int MarksOrder = -15;
         private const int GoalBackOrder = -14;
-        private const int GoalFrontOrder = 20;
+        private const int BallOrder = 7;
+        private const int GoalFrontOrder = 9;
 
         // Sombra preta semitransparente: escurece igual a faixa clara e a escura do feltro.
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.4f);
@@ -72,6 +74,7 @@ namespace FutebolDeBotao.Editor
 
             if (hasBall) BuildBall(ball);
             if (hasTable) BuildTable(ball.transform.parent);
+            AlignWallsToArt();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -112,9 +115,14 @@ namespace FutebolDeBotao.Editor
             if (old != null) Object.DestroyImmediate(old.gameObject);
 
             // O círculo branco do protótipo fica guardado, só desligado.
+            // O destaque da vez (TurnHighlight) copia a ordem dele, então ele também vai para a ordem da bola.
             var placeholder = ball.GetComponent<SpriteRenderer>();
-            int order = placeholder != null ? placeholder.sortingOrder : 10;
-            if (placeholder != null) placeholder.enabled = false;
+            const int order = BallOrder;
+            if (placeholder != null)
+            {
+                placeholder.sortingOrder = order;
+                placeholder.enabled = false;
+            }
 
             // A bola é escalada pelo diâmetro da colisão; o desenho volta para 1:1 (32 px = 1 unidade).
             var root = new GameObject(BallVisualName).transform;
@@ -248,6 +256,37 @@ namespace FutebolDeBotao.Editor
             importer.SetPlatformSettings(platform);
             importer.SaveAndReimport();
             SpriteAtlasUtility.PackAllAtlases(EditorUserBuildSettings.activeBuildTarget);
+        }
+
+        /// <summary>
+        /// Paredes de colisão afastadas <see cref="FieldLayout.WallInset"/> para dentro da face desenhada (a mesma conta
+        /// do "Criar cena da partida"); pode rodar quantas vezes quiser. A rede do gol não muda.
+        /// </summary>
+        private static void AlignWallsToArt()
+        {
+            float inset = FieldLayout.WallInset;
+            float sideSegment = (FieldLayout.Width - FieldLayout.GoalWidth) * 0.5f + inset;
+            foreach (var wall in Object.FindObjectsByType<Wall>())
+            {
+                if (!wall.PushesBack) continue;
+                var t = wall.transform;
+                var position = t.position;
+                var scale = t.localScale;
+                if (Mathf.Abs(position.x) > FieldLayout.HalfWidth)
+                {
+                    position.x = Mathf.Sign(position.x) * (FieldLayout.HalfWidth + inset + scale.x * 0.5f);
+                    scale.y = FieldLayout.Height + 2f * (scale.x + inset);
+                }
+                else if (Mathf.Abs(position.y) > FieldLayout.HalfHeight)
+                {
+                    position.y = Mathf.Sign(position.y) * (FieldLayout.HalfHeight + inset + scale.y * 0.5f);
+                    position.x = Mathf.Sign(position.x) * (FieldLayout.GoalWidth * 0.5f + sideSegment * 0.5f);
+                    scale.x = sideSegment;
+                }
+                else continue;
+                t.position = position;
+                t.localScale = scale;
+            }
         }
 
         /// <summary>Desliga o desenho do protótipo (feltro, linhas, paredes e rede); as colisões continuam.</summary>

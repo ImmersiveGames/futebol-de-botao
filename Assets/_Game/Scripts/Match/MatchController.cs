@@ -821,14 +821,9 @@ namespace FutebolDeBotao
                 message = $"Pênalti: {TeamName(Turn)} vai chutar!";
                 BeginShotCall();
             }
-            else if (InAttackHalf(ball.Body.position, Turn))
-            {
-                // GDD: tiro livre no campo de ataque é chute anunciado.
-                message = $"Tiro livre: {TeamName(Turn)} vai chutar!";
-                BeginShotCall();
-            }
             else
             {
+                // Tiro livre: a vez começa normal; no campo de ataque o "Vai chutar" fica disponível como sempre.
                 message = $"Tiro livre do {TeamName(Turn)}.";
                 Enter(MatchState.Aim);
             }
