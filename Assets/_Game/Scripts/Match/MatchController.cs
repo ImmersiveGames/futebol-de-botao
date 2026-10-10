@@ -247,6 +247,9 @@ namespace FutebolDeBotao
 
             var repulsion = FindAnyObjectByType<WallRepulsion>();
             if (repulsion != null) repulsion.RefreshWalls();
+
+            var art = FindAnyObjectByType<TableArt>();
+            if (art != null) art.SetSmallGoals(!options.hasGoalkeeper);
         }
 
         public void StartMatch()
