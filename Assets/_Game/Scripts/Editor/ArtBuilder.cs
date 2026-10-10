@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -28,6 +29,7 @@ namespace FutebolDeBotao.Editor
         private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
         private const string TilesFolder = "Assets/_Game/Art/Campo/Tiles";
+        private const string FieldAtlasPath = "Assets/_Game/Art/Campo/Campo.spriteatlasv2";
         private const string TableArtName = "Desenho da mesa";
 
         // A mesa: o feltro de 7x11 no centro, a moldura de 9x13 em volta e madeira sobrando bem para fora da tela.
@@ -144,6 +146,7 @@ namespace FutebolDeBotao.Editor
         {
             ConfigureImport(FieldSheetPath);
             if (File.Exists(FieldMarksPath)) ConfigureImport(FieldMarksPath);
+            EnsureFieldAtlas();
             var sprites = LoadSprites(FieldSheetPath);
 
             string[] required =
@@ -211,6 +214,40 @@ namespace FutebolDeBotao.Editor
                 FeltOrigin, FeltSize, big, small);
 
             Debug.Log("[Futebol de Botão] Mesa em pixel art montada (madeira, moldura, feltro, marcações e gols).");
+        }
+
+        /// <summary>
+        /// Tiles lado a lado na mesma imagem "vazam" um pixel do vizinho na emenda (linhas finas no feltro). Um Sprite
+        /// Atlas com folga entre os recortes resolve: a Unity repete a beira de cada recorte na folga.
+        /// </summary>
+        private static void EnsureFieldAtlas()
+        {
+            if (EditorSettings.spritePackerMode != SpritePackerMode.SpriteAtlasV2)
+                EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
+
+            if (!File.Exists(FieldAtlasPath))
+            {
+                var atlas = new SpriteAtlasAsset();
+                atlas.Add(new Object[] { AssetDatabase.LoadAssetAtPath<Texture2D>(FieldSheetPath) });
+                SpriteAtlasAsset.Save(atlas, FieldAtlasPath);
+                AssetDatabase.ImportAsset(FieldAtlasPath);
+            }
+
+            var importer = (SpriteAtlasImporter)AssetImporter.GetAtPath(FieldAtlasPath);
+            importer.includeInBuild = true;
+            importer.packingSettings = new SpriteAtlasPackingSettings
+            {
+                blockOffset = 1, padding = 4, enableRotation = false, enableTightPacking = false, enableAlphaDilation = false,
+            };
+            importer.textureSettings = new SpriteAtlasTextureSettings
+            {
+                filterMode = FilterMode.Point, generateMipMaps = false, readable = false, sRGB = true, anisoLevel = 0,
+            };
+            var platform = importer.GetPlatformSettings("DefaultTexturePlatform");
+            platform.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SetPlatformSettings(platform);
+            importer.SaveAndReimport();
+            SpriteAtlasUtility.PackAllAtlases(EditorUserBuildSettings.activeBuildTarget);
         }
 
         /// <summary>Desliga o desenho do protótipo (feltro, linhas, paredes e rede); as colisões continuam.</summary>
