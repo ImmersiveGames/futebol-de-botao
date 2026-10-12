@@ -34,6 +34,9 @@ namespace FutebolDeBotao.Editor
         private const string ResultScenePath = ScenesFolder + "/Resultado.unity";
         private const string OptionsPath = "Assets/_Game/Data/OpcoesDaPartida.asset";
         private const string CircleSpritePath = "Assets/_Game/Art/Placeholder/Circle.png";
+        private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
+        private const string BrightFeltSprite = "Field_Braight";
+        private const string DarkFeltSprite = "Field_Dark";
 
         private const string MatchSystemsName = "Partida (sistemas)";
         private const string MatchFrameworkName = "Framework (telas)";
@@ -46,6 +49,8 @@ namespace FutebolDeBotao.Editor
         private static readonly Color ButtonColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color TextColor = Color.white;
         private static readonly Color ButtonTextColor = new(0.1f, 0.1f, 0.1f);
+        private static readonly Color TextShadowColor = new(0f, 0f, 0f, 0.6f);
+        private static readonly Vector2 TextShadowDistance = new(3f, -3f);
 
         private static Font font;
 
@@ -199,7 +204,7 @@ namespace FutebolDeBotao.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var canvas = CreateCanvas("Abertura", 0);
-            CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
+            CreateFieldBackground(canvas);
 
             CreateText(canvas, "Título", "Futebol de Botão", 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
             var prompt = CreateText(canvas, "Aperte", TitleScreen.PromptText, 36, new Vector2(0f, -200f), new Vector2(680f, 120f));
@@ -216,7 +221,7 @@ namespace FutebolDeBotao.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var options = AssetDatabase.LoadAssetAtPath<MatchOptions>(OptionsPath);
             var canvas = CreateCanvas("Menu", 0);
-            CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
+            CreateFieldBackground(canvas);
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
 
             // Como jogar (primeira tela): contra a IA (você é o Azul, embaixo) ou 2 jogadores
@@ -274,7 +279,7 @@ namespace FutebolDeBotao.Editor
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var canvas = CreateCanvas("Resultado", 0);
-            CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
+            CreateFieldBackground(canvas);
             var result = canvas.gameObject.AddComponent<ResultScreen>();
 
             CreateText(canvas, "Título", "Fim de jogo", 64, new Vector2(0f, 320f), new Vector2(680f, 110f), FontStyle.Bold);
@@ -428,6 +433,45 @@ namespace FutebolDeBotao.Editor
             return image;
         }
 
+        /// <summary>
+        /// Fundo das telas: faixas horizontais do feltro (clara e escura, a do meio clara), na mesma escala da mesa
+        /// na partida. Sem a arte do campo, fica o verde liso.
+        /// </summary>
+        private static void CreateFieldBackground(Transform canvas)
+        {
+            var background = CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
+            var sprites = new Dictionary<string, Sprite>();
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(FieldSheetPath))
+                if (asset is Sprite sprite) sprites[sprite.name] = sprite;
+            if (!sprites.TryGetValue(BrightFeltSprite, out var bright) || !sprites.TryGetValue(DarkFeltSprite, out var dark))
+            {
+                Debug.LogWarning($"[Futebol de Botão] Sem {BrightFeltSprite}/{DarkFeltSprite} em {FieldSheetPath}: telas com fundo liso.");
+                return;
+            }
+
+            // Altura da tela de referência = 2 x OrthoSize tiles na partida.
+            float tile = ReferenceResolution.y / (FrameworkCameraBuilder.OrthoSize * 2f);
+            int rows = Mathf.CeilToInt(ReferenceResolution.y / tile / 2f) * 2 + 1;
+            for (int row = 0; row < rows; row++)
+            {
+                int fromMiddle = row - rows / 2;
+                var go = new GameObject($"Faixa {row + 1}", typeof(RectTransform));
+                go.transform.SetParent(background.transform, false);
+                var rect = (RectTransform)go.transform;
+                rect.anchorMin = new Vector2(0f, 0.5f);
+                rect.anchorMax = new Vector2(1f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(0f, fromMiddle * tile);
+                rect.sizeDelta = new Vector2(0f, tile);
+                var image = go.AddComponent<Image>();
+                image.sprite = fromMiddle % 2 == 0 ? bright : dark;
+                image.type = Image.Type.Tiled;
+                // Image.Tiled desenha cada tile com (pixels / PPU) x 100 unidades; o multiplicador acerta para "tile".
+                image.pixelsPerUnitMultiplier = 100f / tile;
+                image.raycastTarget = false;
+            }
+        }
+
         private static Text CreateText(Transform parent, string objectName, string content, int size, Vector2 position, Vector2 boxSize,
             FontStyle style = FontStyle.Normal, TextAnchor alignment = TextAnchor.MiddleCenter)
         {
@@ -442,6 +486,9 @@ namespace FutebolDeBotao.Editor
             text.alignment = alignment;
             text.color = TextColor;
             text.raycastTarget = false;
+            var shadow = go.AddComponent<Shadow>();
+            shadow.effectColor = TextShadowColor;
+            shadow.effectDistance = TextShadowDistance;
             return text;
         }
 
@@ -472,6 +519,7 @@ namespace FutebolDeBotao.Editor
 
             var text = CreateText(go.transform, "Texto", label, 32, Vector2.zero, boxSize, FontStyle.Bold);
             text.color = ButtonTextColor;
+            UnityEngine.Object.DestroyImmediate(text.GetComponent<Shadow>());
             Stretch((RectTransform)text.transform, Vector2.zero, Vector2.one);
             return button;
         }
