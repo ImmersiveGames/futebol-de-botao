@@ -108,10 +108,12 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Chute direto na bola, no tiro de meta.</summary>
-        public List<ShotCandidate> BallKickCandidates()
+        public List<ShotCandidate> BallKickCandidates() => BallKickCandidates(ball.Body.position);
+
+        /// <summary>Chutes direto na bola como se ela estivesse em <paramref name="ballPosition"/> (tiro de meta).</summary>
+        public List<ShotCandidate> BallKickCandidates(Vector2 ballPosition)
         {
             var list = new List<ShotCandidate>();
-            Vector2 ballPosition = ball.Body.position;
             float damping = Mathf.Max(ball.Body.linearDamping, 0.1f);
 
             foreach (var target in AdvanceTargets(ballPosition))

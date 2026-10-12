@@ -94,7 +94,9 @@ namespace FutebolDeBotao
         /// <summary>Quem age agora: o atacante na mira e no pênalti, o defensor ajustando o goleiro.</summary>
         public TeamSide ActingSide => State == MatchState.ShotCall ? Opponent(Turn) : Turn;
         /// <summary>Há um "Pronto" esperando (goleiro no Vai chutar ou batedor no pênalti).</summary>
-        public bool CanConfirmReady => !IsHolding && State is (MatchState.ShotCall or MatchState.PenaltySetup);
+        public bool CanConfirmReady => !IsHolding && (State is (MatchState.ShotCall or MatchState.PenaltySetup) || IsPlacingGoalKick);
+        /// <summary>Tiro de meta, primeiro passo: o time arrasta a bola para os lados e aperta "Pronto" antes de mirar.</summary>
+        public bool IsPlacingGoalKick => State == MatchState.GoalKick && goalKickPlacing;
         /// <summary>Um aviso importante está na tela: controles travados, relógio e timer parados, a IA espera.</summary>
         public bool IsHolding => holdTimer > 0f;
         /// <summary>Com um HUD de verdade na cena, o HUD provisório (OnGUI) não é desenhado.</summary>
@@ -113,6 +115,9 @@ namespace FutebolDeBotao
         public Disc FreeKickDisc => freeKickDisc;
         /// <summary>No posicionamento do batedor: true = pênalti (arco atrás da bola), false = tiro livre (volta inteira).</summary>
         public bool IsPenaltySetup => setupIsPenalty;
+
+        private bool goalKickPlacing;
+        private bool draggingGoalKickBall;
 
         public void Configure(MatchOptions matchOptions) => options = matchOptions;
 
@@ -343,8 +348,16 @@ namespace FutebolDeBotao
                     break;
 
                 case MatchState.ShotAim:
+                    if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
+                    break;
+
                 case MatchState.GoalKick:
                     if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
+                    else if (goalKickPlacing && !IsAi(Turn))
+                    {
+                        UpdateGoalKickPlacement();
+                        if (MatchInput.For(Turn).ConfirmPressedThisFrame) FinishGoalKickPlacement();
+                    }
                     break;
 
                 case MatchState.ShotCall:
@@ -396,7 +409,7 @@ namespace FutebolDeBotao
             var state = State;
             bool holding = IsHolding || restoreControls;
             // Na vez da IA o ponteiro não mira.
-            aim.InputEnabled = !holding && (state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick) && !IsAi(Turn);
+            aim.InputEnabled = !holding && (state is MatchState.Aim or MatchState.ShotAim || state == MatchState.GoalKick && !goalKickPlacing) && !IsAi(Turn);
             aim.InputSide = Turn;
             aim.BallKickMode = state == MatchState.GoalKick;
             aim.CanSelect = CanUse;
@@ -442,6 +455,7 @@ namespace FutebolDeBotao
             if (IsHolding) return;
             if (State == MatchState.ShotCall) EnterShotAim();
             else if (State == MatchState.PenaltySetup) FinishPenaltySetup();
+            else if (IsPlacingGoalKick) FinishGoalKickPlacement();
         }
 
         public void RequestPause()
@@ -950,8 +964,85 @@ namespace FutebolDeBotao
             ResetFormation();
 
             GiveTurn(defending);
-            message += $" Tiro de meta do {TeamName(defending)}: arraste a bola.";
+            message += $" Tiro de meta do {TeamName(defending)}: posicione a bola e aperte Pronto.";
+            goalKickPlacing = true;
+            draggingGoalKickBall = false;
             Enter(MatchState.GoalKick);
+        }
+
+        // ---- Tiro de meta: posicionar a bola ----
+
+        /// <summary>Até onde a bola anda para cada lado no tiro de meta: a largura da área.</summary>
+        public float GoalKickHalfRange => FieldLayout.AreaWidth * 0.5f - ball.Radius;
+
+        /// <summary>Arrastar a bola (começando nela) leva ela para os lados; as setas ou A/D também.</summary>
+        private void UpdateGoalKickPlacement()
+        {
+            var input = MatchInput.For(Turn);
+            if (!input.PointerHeld) draggingGoalKickBall = false;
+            else if (input.TryGetPointer(out var screen))
+            {
+                worldCamera = WorldCamera.Resolve(worldCamera);
+                if (worldCamera != null)
+                {
+                    Vector2 world = WorldCamera.ScreenToWorld(worldCamera, screen);
+                    // Área de toque um pouco maior que a bola, que é pequena (igual à mira do tiro de meta).
+                    if (input.PointerPressedThisFrame && !UiPointer.IsOverUi() &&
+                        Vector2.Distance(world, ball.Body.position) <= ball.Radius + 0.3f)
+                        draggingGoalKickBall = true;
+                    if (draggingGoalKickBall)
+                    {
+                        MoveGoalKickBall(world.x);
+                        return;
+                    }
+                }
+            }
+
+            float axis = input.KeeperAxis;
+            if (axis != 0f) MoveGoalKickBall(ball.Body.position.x + axis * 3f * Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Leva a bola do tiro de meta até <paramref name="targetX"/> (dentro da largura da área), parando antes de
+        /// encostar num botão. Usada também pela IA.
+        /// </summary>
+        public void MoveGoalKickBall(float targetX)
+        {
+            if (!IsPlacingGoalKick) return;
+            float range = GoalKickHalfRange;
+            targetX = Mathf.Clamp(targetX, -range, range);
+            Vector2 position = ball.Body.position;
+            float step = Mathf.Sign(targetX - position.x) * 0.02f;
+            while (Mathf.Abs(targetX - position.x) > 0.001f)
+            {
+                var next = new Vector2(Mathf.Abs(targetX - position.x) <= Mathf.Abs(step) ? targetX : position.x + step, position.y);
+                if (!BallSpotFree(next)) break;
+                position = next;
+            }
+            if (position != ball.Body.position) ball.ResetTo(position);
+        }
+
+        private bool BallSpotFree(Vector2 position)
+        {
+            foreach (var other in allDiscs)
+            {
+                if (!other.isActiveAndEnabled) continue;
+                float minDistance = ball.Radius + other.Radius + 0.02f;
+                if ((position - other.Body.position).sqrMagnitude < minDistance * minDistance) return false;
+            }
+            return true;
+        }
+
+        /// <summary>"Pronto" no tiro de meta: a bola fica onde está e começa a mira (no mesmo tempo).</summary>
+        private void FinishGoalKickPlacement()
+        {
+            if (!IsPlacingGoalKick) return;
+            goalKickPlacing = false;
+            draggingGoalKickBall = false;
+            message = $"Tiro de meta do {TeamName(Turn)}: arraste a bola para chutar.";
+            StateVersion++;
+            aim.Cancel();
+            ApplyControls();
         }
 
         /// <summary>Todos os botões na formação inicial; quem cair em cima da bola vai para o lugar livre mais perto.</summary>

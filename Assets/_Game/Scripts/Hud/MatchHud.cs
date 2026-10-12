@@ -130,7 +130,7 @@ namespace FutebolDeBotao
                 : !mine ? $"Vez do {MatchController.TeamName(acting)}"
                 : state == MatchState.ShotCall ? "Ajuste o goleiro"
                 : state == MatchState.PenaltySetup ? "Posicione o batedor"
-                : state == MatchState.GoalKick ? "Tiro de meta"
+                : state == MatchState.GoalKick ? (match.IsPlacingGoalKick ? "Posicione a bola" : "Tiro de meta")
                 : TouchesText(match.TouchesLeft);
             view.Turn.color = TeamColor(active ? acting : side);
 

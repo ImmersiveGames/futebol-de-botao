@@ -79,7 +79,8 @@ namespace FutebolDeBotao
                 case MatchState.Aim:
                 case MatchState.ShotAim:
                 case MatchState.GoalKick:
-                    if (match.Turn == Side) StartCoroutine(PlayTouch());
+                    if (match.Turn != Side) break;
+                    StartCoroutine(match.IsPlacingGoalKick ? PlaceGoalKickBall() : PlayTouch());
                     break;
                 case MatchState.ShotCall:
                     if (match.ActingSide == Side) StartCoroutine(PlaceKeeper());
@@ -538,6 +539,63 @@ namespace FutebolDeBotao
         /// Posiciona o batedor: para cada alvo, põe o botão bem atrás da bola naquela direção (se o lugar estiver livre),
         /// simula os chutes e fica com o melhor ângulo. Um ângulo por quadro, então dá para ver o batedor girando.
         /// </summary>
+        // ---- Tiro de meta ----
+
+        private const int GoalKickSpots = 5;
+
+        /// <summary>
+        /// Tiro de meta: testa algumas posições da bola na largura da área e deixa ela onde o melhor chute tem o caminho
+        /// mais livre e avança mais; depois aperta "Pronto" (a mira e o chute vêm no toque normal).
+        /// </summary>
+        private IEnumerator PlaceGoalKickBall()
+        {
+            busy = true;
+            try
+            {
+                int version = match.StateVersion;
+                yield return new WaitForSeconds(difficulty.thinkSeconds * 0.5f);
+                if (!StillValid(version) || !match.IsPlacingGoalKick) yield break;
+                EnsureBrain();
+
+                Vector2 ballPosition = match.Ball.Body.position;
+                float range = match.GoalKickHalfRange;
+                float bestX = ballPosition.x;
+                float bestScore = BestBallKick(ballPosition);
+                for (int i = 0; i < GoalKickSpots; i++)
+                {
+                    float x = Mathf.Lerp(-range, range, i / (float)(GoalKickSpots - 1));
+                    float score = BestBallKick(new Vector2(x, ballPosition.y));
+                    // Só troca de lugar se ficar claramente melhor.
+                    if (score > bestScore + 0.5f)
+                    {
+                        bestScore = score;
+                        bestX = x;
+                    }
+                }
+
+                if (Mathf.Abs(bestX - ballPosition.x) > 0.01f)
+                {
+                    Debug.Log($"[IA] Tiro de meta: bola de x {ballPosition.x:0.0} para {bestX:0.0} (nota {bestScore:0.0}).");
+                    match.MoveGoalKickBall(bestX);
+                    yield return new WaitForSeconds(0.4f);
+                    if (!StillValid(version)) yield break;
+                }
+                match.ConfirmReady();
+            }
+            finally
+            {
+                busy = false;
+            }
+        }
+
+        private float BestBallKick(Vector2 ballPosition)
+        {
+            float best = float.MinValue;
+            foreach (var candidate in planner.BallKickCandidates(ballPosition))
+                best = Mathf.Max(best, candidate.PreScore);
+            return best;
+        }
+
         private IEnumerator SetUpKicker()
         {
             busy = true;
