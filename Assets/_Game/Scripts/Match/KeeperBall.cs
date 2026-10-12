@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Bola do goleiro: a jogada terminou com a bola parada na área em volta do goleiro (a caixa dele mais uma margem
-    /// dos lados e na frente, e o espaço atrás dele até a linha do gol) ou dentro da boca do gol sem ter entrado inteira.
+    /// dos lados e na frente, e o espaço atrás dele até o fundo do gol, se a bola não entrou inteira).
     /// Vira tiro de meta para o time dele,
     /// não importa quem jogou.
     /// </summary>
@@ -37,15 +37,14 @@ namespace FutebolDeBotao
             float goalLine = FieldLayout.GoalLineY(keeper.Side);
             bool bottom = keeper.Side == TeamSide.Bottom;
 
-            // Bola parada já dentro da boca do gol, sem entrar inteira (não foi gol): também é do goleiro.
-            bool pastLine = bottom ? ballPosition.y < goalLine : ballPosition.y > goalLine;
-            if (pastLine) return Mathf.Abs(ballPosition.x) <= FieldLayout.GoalWidth * 0.5f;
-
             float minX = bounds.min.x - SideMargin - ballRadius;
             float maxX = bounds.max.x + SideMargin + ballRadius;
             float front = (bottom ? bounds.max.y + FrontMargin : bounds.min.y - FrontMargin) + (bottom ? ballRadius : -ballRadius);
-            float minY = bottom ? goalLine : front;
-            float maxY = bottom ? front : goalLine;
+            // Atrás dele vai até o fundo do gol: a bola parada entre o goleiro e o gol, já na boca do gol mas sem entrar
+            // inteira (não foi gol), também é dele. Fora da faixa do goleiro, a bola na boca do gol segue em jogo.
+            float back = bottom ? goalLine - FieldLayout.GoalDepth : goalLine + FieldLayout.GoalDepth;
+            float minY = bottom ? back : front;
+            float maxY = bottom ? front : back;
             return ballPosition.x >= minX && ballPosition.x <= maxX && ballPosition.y >= minY && ballPosition.y <= maxY;
         }
 
