@@ -5,7 +5,8 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Bola do goleiro: a jogada terminou com a bola parada na área em volta do goleiro (a caixa dele mais uma margem
-    /// dos lados e na frente, e o espaço atrás dele até a linha do gol). Vira tiro de meta para o time dele,
+    /// dos lados e na frente, e o espaço atrás dele até a linha do gol) ou dentro da boca do gol sem ter entrado inteira.
+    /// Vira tiro de meta para o time dele,
     /// não importa quem jogou.
     /// </summary>
     public static class KeeperBall
@@ -35,6 +36,10 @@ namespace FutebolDeBotao
             var bounds = box.bounds;
             float goalLine = FieldLayout.GoalLineY(keeper.Side);
             bool bottom = keeper.Side == TeamSide.Bottom;
+
+            // Bola parada já dentro da boca do gol, sem entrar inteira (não foi gol): também é do goleiro.
+            bool pastLine = bottom ? ballPosition.y < goalLine : ballPosition.y > goalLine;
+            if (pastLine) return Mathf.Abs(ballPosition.x) <= FieldLayout.GoalWidth * 0.5f;
 
             float minX = bounds.min.x - SideMargin - ballRadius;
             float maxX = bounds.max.x + SideMargin + ballRadius;
