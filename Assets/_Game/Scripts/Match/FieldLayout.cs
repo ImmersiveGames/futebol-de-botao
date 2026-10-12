@@ -45,15 +45,9 @@ namespace FutebolDeBotao
             return sameSide && fromGoalLine <= AreaDepth;
         }
 
-        /// <summary>
-        /// Na boca do gol a linha desenhada tem 3 px: 2 px no feltro (marcações) e 1 px no fundo do gol, além da beira
-        /// do feltro. A bola só passou inteira quando passa também desse pixel.
-        /// </summary>
-        public const float GoalLineOutside = 1f / 32f;
-
-        /// <summary>A bola passou inteira da linha de fundo (o centro está a mais de um raio além da linha desenhada).</summary>
+        /// <summary>A bola passou inteira da linha de fundo (o centro está a mais de um raio para dentro do gol).</summary>
         public static bool BallFullyInGoal(Vector2 ballPosition, float ballRadius) =>
-            Mathf.Abs(ballPosition.y) >= HalfHeight + GoalLineOutside + ballRadius;
+            Mathf.Abs(ballPosition.y) >= HalfHeight + ballRadius;
 
         /// <summary>Marca do pênalti contra quem defende <paramref name="defending"/>.</summary>
         public static Vector2 PenaltySpot(TeamSide defending) =>
