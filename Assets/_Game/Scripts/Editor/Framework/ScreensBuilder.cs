@@ -35,6 +35,8 @@ namespace FutebolDeBotao.Editor
         private const string OptionsPath = "Assets/_Game/Data/OpcoesDaPartida.asset";
         private const string CircleSpritePath = "Assets/_Game/Art/Placeholder/Circle.png";
         private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
+        private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
+        private const string BallSheetPath = "Assets/_Game/Art/Ball/Ball_SpriteSheet.png";
         private const string BrightFeltSprite = "Field_Braight";
         private const string DarkFeltSprite = "Field_Dark";
 
@@ -257,7 +259,7 @@ namespace FutebolDeBotao.Editor
             // Seleção de times no campo desenhado ("Jogar" vai para a Partida). Monta a UI sozinha no Awake.
             var selectionPanel = CreateGroup(canvas, "Seleção de times");
             var selection = selectionPanel.gameObject.AddComponent<TeamSelectionScreen>();
-            selection.Configure(menu, options, AssetDatabase.LoadAssetAtPath<Sprite>(CircleSpritePath));
+            selection.Configure(menu, options, AssetDatabase.LoadAssetAtPath<Sprite>(CircleSpritePath), LoadTableSprites());
             menu.SetSelection(selection);
             selectionPanel.gameObject.SetActive(false);
 
@@ -470,6 +472,16 @@ namespace FutebolDeBotao.Editor
                 image.pixelsPerUnitMultiplier = 100f / tile;
                 image.raycastTarget = false;
             }
+        }
+
+        /// <summary>Recortes da mesa, das marcações e da bola para o campo desenhado da seleção de times.</summary>
+        private static Sprite[] LoadTableSprites()
+        {
+            var sprites = new List<Sprite>();
+            foreach (var path in new[] { FieldSheetPath, FieldMarksPath, BallSheetPath })
+                foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+                    if (asset is Sprite sprite) sprites.Add(sprite);
+            return sprites.ToArray();
         }
 
         private static Text CreateText(Transform parent, string objectName, string content, int size, Vector2 position, Vector2 boxSize,

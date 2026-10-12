@@ -33,6 +33,9 @@ namespace FutebolDeBotao
         [SerializeField] private MatchOptions defaults;
         [Tooltip("Círculo branco usado nos botões, na bola e no escudo provisório.")]
         [SerializeField] private Sprite circle;
+        [Tooltip("Recortes da mesa e da bola (Field_Sprites, Field_Marks e Ball_SpriteSheet), achados pelo nome. " +
+                 "Sem eles, o campo é desenhado com formas lisas.")]
+        [SerializeField] private Sprite[] tableSprites;
 
         private sealed class HalfView
         {
@@ -49,14 +52,19 @@ namespace FutebolDeBotao
 
         private readonly Dictionary<TeamSide, HalfView> halves = new();
         private RectTransform field;
+        private GameObject bigGoals;
+        private GameObject smallGoals;
+        private GameObject bigPoles;
+        private GameObject smallPoles;
         private Font font;
         private bool built;
 
-        public void Configure(MenuScreen menuScreen, MatchOptions defaultOptions, Sprite circleSprite)
+        public void Configure(MenuScreen menuScreen, MatchOptions defaultOptions, Sprite circleSprite, Sprite[] tableArt)
         {
             menu = menuScreen;
             defaults = defaultOptions;
             circle = circleSprite;
+            tableSprites = tableArt;
         }
 
         private void Awake() => Build();
@@ -159,6 +167,10 @@ namespace FutebolDeBotao
                 }
 
                 view.Keeper.gameObject.SetActive(options.hasGoalkeeper);
+                SetActive(bigGoals, options.hasGoalkeeper);
+                SetActive(bigPoles, options.hasGoalkeeper);
+                SetActive(smallGoals, !options.hasGoalkeeper);
+                SetActive(smallPoles, !options.hasGoalkeeper);
                 view.Keeper.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
 
                 // Sem escudo, um círculo nas cores do time.
@@ -187,11 +199,114 @@ namespace FutebolDeBotao
             var root = (RectTransform)transform;
             Stretch(CreateImage(root, "Fundo", Background, null).rectTransform);
 
+            var art = new Dictionary<string, Sprite>();
+            if (tableSprites != null)
+                foreach (var sprite in tableSprites)
+                    if (sprite != null) art[sprite.name] = sprite;
+            bool hasArt = System.Array.TrueForAll(RequiredArt, art.ContainsKey);
+            if (hasArt) BuildTableArt(root, art);
+            else BuildPlainTable(root);
+
+            // Metades: a de cima é a de baixo girada 180°.
+            halves[TeamSide.Bottom] = BuildHalf(TeamSide.Bottom);
+            halves[TeamSide.Top] = BuildHalf(TeamSide.Top);
+
+            // Traves e rede por cima dos botões, como na Partida.
+            if (hasArt)
+            {
+                bigPoles = CreateGoalPieces(field, "Traves grandes", art, "Pole");
+                smallPoles = CreateGoalPieces(field, "Traves pequenas", art, "Small_Pole");
+            }
+
+            // Faixa do meio-campo.
+            CreateButton(field, "Voltar", "Voltar", new Vector2(-2.45f, 0f), new Vector2(1.5f, 0.56f), Back);
+            CreateButton(field, "Jogar", "Jogar", new Vector2(2.45f, 0f), new Vector2(1.5f, 0.56f), Play);
+
+            Update();
+        }
+
+        // Mesa em pixel art: 9 x 13 tiles (1 tile = 1 unidade do campo), com as mesmas peças da Partida.
+        private static readonly string[] RequiredArt =
+        {
+            "Wall_Fill", "Wall_Top", "Wall_Bottom", "Wall_Left", "Wall_Right",
+            "Top_Corner_L", "Top_Corner_R", "Bottom_Corner_L", "Bottom_Corner_R", "Field_Braight", "Field_Dark",
+        };
+        private static readonly string[] GoalPieces = { "Corner_Left", "Center", "Corner_Right" };
+        private static readonly Vector2Int WoodTiles = new(45, 29);
+        private static readonly Color BallShadowColor = new(0f, 0f, 0f, 0.4f);
+
+        private void BuildTableArt(RectTransform root, Dictionary<string, Sprite> art)
+        {
+            float halfW = FieldLayout.HalfWidth + 0.5f, halfH = FieldLayout.HalfHeight + 0.5f;
+            field = CreateRect(root, "Campo", Vector2.zero, new Vector2(halfW, halfH) * 2f * Unit);
+
+            // Madeira por toda a tela, na mesma escala da mesa.
+            CreateTiled(field, "Madeira", art["Wall_Fill"], Vector2.zero, WoodTiles);
+
+            // Moldura: faixas das paredes e os 4 cantos.
+            var horizontal = new Vector2(FieldLayout.Width, 1f);
+            var vertical = new Vector2(1f, FieldLayout.Height);
+            CreateTiled(field, "Parede de cima", art["Wall_Top"], new Vector2(0f, halfH), horizontal);
+            CreateTiled(field, "Parede de baixo", art["Wall_Bottom"], new Vector2(0f, -halfH), horizontal);
+            CreateTiled(field, "Parede da esquerda", art["Wall_Left"], new Vector2(-halfW, 0f), vertical);
+            CreateTiled(field, "Parede da direita", art["Wall_Right"], new Vector2(halfW, 0f), vertical);
+            CreateImage(field, "Canto de cima esquerdo", Color.white, art["Top_Corner_L"], new Vector2(-halfW, halfH), Vector2.one);
+            CreateImage(field, "Canto de cima direito", Color.white, art["Top_Corner_R"], new Vector2(halfW, halfH), Vector2.one);
+            CreateImage(field, "Canto de baixo esquerdo", Color.white, art["Bottom_Corner_L"], new Vector2(-halfW, -halfH), Vector2.one);
+            CreateImage(field, "Canto de baixo direito", Color.white, art["Bottom_Corner_R"], new Vector2(halfW, -halfH), Vector2.one);
+
+            // Feltro: faixas horizontais, clara embaixo (o meio fica claro).
+            int rows = Mathf.RoundToInt(FieldLayout.Height);
+            for (int row = 0; row < rows; row++)
+                CreateTiled(field, $"Feltro {row + 1}", art[row % 2 == 0 ? "Field_Braight" : "Field_Dark"],
+                    new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal);
+
+            if (art.TryGetValue("Field_Marks", out var marks))
+                CreateImage(field, "Marcações", Color.white, marks, Vector2.zero, new Vector2(FieldLayout.Width, FieldLayout.Height));
+
+            // Fundo dos gols embaixo da bola e dos botões (grande com goleiro, pequeno sem).
+            bigGoals = CreateGoalPieces(field, "Gols grandes", art, "Goal");
+            smallGoals = CreateGoalPieces(field, "Gols pequenos", art, "Small_Goal");
+
+            // Bola no meio: sombra, desenho e luz, 1 tile cada.
+            if (art.TryGetValue("Ball_Shadow", out var shadow)) CreateImage(field, "Sombra da bola", BallShadowColor, shadow, Vector2.zero, Vector2.one);
+            if (art.TryGetValue("Ball_Frame_1", out var ball)) CreateImage(field, "Bola", Color.white, ball, Vector2.zero, Vector2.one);
+            else CreateImage(field, "Bola", Color.white, circle, Vector2.zero, Vector2.one * 0.4f);
+            if (art.TryGetValue("Ball_Light", out var light)) CreateImage(field, "Luz da bola", Color.white, light, Vector2.zero, Vector2.one);
+        }
+
+        /// <summary>Um par de gols (cima e baixo) com 3 peças cada, no lugar dos 3 tiles do meio da moldura. Nulo se faltar recorte.</summary>
+        private static GameObject CreateGoalPieces(Transform parent, string groupName, Dictionary<string, Sprite> art, string prefix)
+        {
+            foreach (var end in new[] { "Top", "Bottom" })
+                foreach (var piece in GoalPieces)
+                    if (!art.ContainsKey($"{prefix}_{end}_{piece}")) return null;
+
+            var group = CreateRect(parent, groupName, Vector2.zero, Vector2.zero);
+            float y = FieldLayout.HalfHeight + 0.5f;
+            foreach (var (end, sign) in new[] { ("Top", 1f), ("Bottom", -1f) })
+                for (int i = 0; i < GoalPieces.Length; i++)
+                    CreateImage(group, $"{end} {i + 1}", Color.white, art[$"{prefix}_{end}_{GoalPieces[i]}"], new Vector2(i - 1, sign * y), Vector2.one);
+            return group.gameObject;
+        }
+
+        /// <summary>Imagem repetida tile a tile (32 px = 1 unidade do campo = <see cref="Unit"/> da UI).</summary>
+        private static Image CreateTiled(Transform parent, string objectName, Sprite sprite, Vector2 position, Vector2 tiles)
+        {
+            var image = CreateImage(parent, objectName, Color.white, sprite, position, tiles);
+            image.type = Image.Type.Tiled;
+            // Image.Tiled desenha cada tile com (pixels / PPU) x 100 unidades da UI; Unit = 100, então 1 tile = 1 unidade.
+            image.pixelsPerUnitMultiplier = 100f / Unit;
+            return image;
+        }
+
+        // Desenho liso do protótipo, para quando a arte da mesa não está no projeto.
+        private void BuildPlainTable(RectTransform root)
+        {
             float width = FieldLayout.Width + 2f * Wall;
             float height = FieldLayout.Height + 2f * FieldLayout.GoalDepth;
             field = CreateRect(root, "Campo", Vector2.zero, new Vector2(width, height) * Unit);
 
-            // Mesa: paredes, gols, feltro e linhas (as mesmas medidas da Partida).
             CreateImage(field, "Paredes", WallColor, null, Vector2.zero, new Vector2(width, FieldLayout.Height + 2f * Wall));
             foreach (float sign in new[] { -1f, 1f })
                 CreateImage(field, sign < 0f ? "Gol de baixo" : "Gol de cima", GoalColor, null,
@@ -214,16 +329,11 @@ namespace FutebolDeBotao
                 CreateImage(field, "Marca do pênalti", LineColor, circle, FieldLayout.PenaltySpot(defending), Vector2.one * 0.15f);
             }
             CreateImage(field, "Bola", Color.white, circle, Vector2.zero, Vector2.one * 0.4f);
+        }
 
-            // Metades: a de cima é a de baixo girada 180°.
-            halves[TeamSide.Bottom] = BuildHalf(TeamSide.Bottom);
-            halves[TeamSide.Top] = BuildHalf(TeamSide.Top);
-
-            // Faixa do meio-campo.
-            CreateButton(field, "Voltar", "Voltar", new Vector2(-2.45f, 0f), new Vector2(1.5f, 0.56f), Back);
-            CreateButton(field, "Jogar", "Jogar", new Vector2(2.45f, 0f), new Vector2(1.5f, 0.56f), Play);
-
-            Update();
+        private static void SetActive(GameObject target, bool active)
+        {
+            if (target != null) target.SetActive(active);
         }
 
         private HalfView BuildHalf(TeamSide side)
