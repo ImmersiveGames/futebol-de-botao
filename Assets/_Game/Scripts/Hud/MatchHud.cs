@@ -26,6 +26,11 @@ namespace FutebolDeBotao
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.45f);
         private static readonly Color ButtonColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ButtonTextColor = new(0.1f, 0.1f, 0.1f);
+        // "Vai chutar" pulsando para ninguém esquecer de avisar antes do chute a gol.
+        private static readonly Color GlowColor = new(1f, 0.85f, 0.25f);
+        private const float GlowSpeed = 5f;
+        private const float GlowScale = 0.08f;
+        private const string ShotCallLabel = "Vai chutar";
 
         /// <summary>Elementos de um jogador (seus dois cantos no celular, ou o painel do PC).</summary>
         private sealed class PlayerView
@@ -136,13 +141,24 @@ namespace FutebolDeBotao
             string action = ActionFor(side);
             view.Action.gameObject.SetActive(action != null);
             if (action != null) view.ActionLabel.text = action;
+            Glow(view.Action, action == ShotCallLabel);
+        }
+
+        /// <summary>Pulsa a cor, a borda e o tamanho do botão (ou volta ao normal).</summary>
+        private static void Glow(Button button, bool on)
+        {
+            float pulse = on ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * GlowSpeed) : 0f;
+            if (button.targetGraphic != null) button.targetGraphic.color = Color.Lerp(ButtonColor, GlowColor, pulse);
+            if (button.TryGetComponent<Outline>(out var outline))
+                outline.effectColor = new Color(GlowColor.r, GlowColor.g, GlowColor.b, pulse);
+            button.transform.localScale = Vector3.one * (1f + GlowScale * pulse);
         }
 
         /// <summary>Texto do botão de ação desse jogador agora, ou nulo se ele não tem ação.</summary>
         private string ActionFor(TeamSide side)
         {
             if (match.IsAi(side)) return null;
-            if (match.CanCallShot && match.Turn == side) return "Vai chutar";
+            if (match.CanCallShot && match.Turn == side) return ShotCallLabel;
             if (match.CanConfirmReady && match.ActingSide == side) return "Pronto";
             return null;
         }
@@ -449,6 +465,9 @@ namespace FutebolDeBotao
             image.color = ButtonColor;
             var button = go.AddComponent<Button>();
             button.targetGraphic = image;
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = Color.clear;
+            outline.effectDistance = new Vector2(4f, -4f);
 
             labelText = CreateText(go.transform, "Texto", size, FontStyle.Bold, Vector2.zero, box);
             labelText.text = label;
