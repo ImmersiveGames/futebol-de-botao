@@ -24,6 +24,9 @@ namespace FutebolDeBotao
         /// <summary>Fundo da área: 48 px no desenho das marcações (1,5 unidade).</summary>
         public const float AreaDepth = 1.5f;
 
+        /// <summary>Raio do círculo central até o meio da linha (47,5 px no desenho das marcações).</summary>
+        public const float CenterCircleRadius = 47.5f / 32f;
+
         /// <summary>Marca do pênalti: no meio do campo do defensor.</summary>
         public const float PenaltyDistanceFromGoal = HalfHeight * 0.5f;
 

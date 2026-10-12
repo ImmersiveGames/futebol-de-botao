@@ -301,6 +301,7 @@ namespace FutebolDeBotao
             foreach (var keeper in keepers)
                 if (keeper.isActiveAndEnabled) keeper.ResetToCenter();
             ball.ResetTo(Vector2.zero);
+            KeepOutOfCenterCircle(Opponent(side));
 
             GiveTurn(side);
             message = $"Saída do {TeamName(side)}.";
@@ -1046,6 +1047,28 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Todos os botões na formação inicial; quem cair em cima da bola vai para o lugar livre mais perto.</summary>
+        /// <summary>
+        /// Na saída, os botões de quem não sai que caem dentro do círculo central vão para a linha dele (o centro do
+        /// botão em cima da linha), na mesma direção. Quem dá a saída pode ficar dentro.
+        /// </summary>
+        private void KeepOutOfCenterCircle(TeamSide side)
+        {
+            if (!discs.TryGetValue(side, out var team)) return;
+            float radius = FieldLayout.CenterCircleRadius;
+            foreach (var disc in team)
+            {
+                if (!disc.isActiveAndEnabled) continue;
+                Vector2 position = disc.Body.position;
+                if (position.sqrMagnitude >= radius * radius) continue;
+                // No meio exato, recua para o próprio campo.
+                Vector2 direction = position.sqrMagnitude > 0.0001f ? position.normalized : -FieldLayout.AttackDirection(side);
+                Vector2 target = direction * radius;
+                disc.PlaceAt(IsFreeSpot(target, disc, null, disc.Radius + ball.Radius + 0.05f)
+                    ? target
+                    : FindFreeSpot(direction * (radius + disc.Radius), disc, null, disc.Radius + ball.Radius + 0.05f));
+            }
+        }
+
         private void ResetFormation()
         {
             foreach (var pair in discs)
