@@ -226,16 +226,11 @@ namespace FutebolDeBotao.Editor
             CreateFieldBackground(canvas);
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
 
-            // Como jogar (primeira tela): contra a IA (você é o Azul, embaixo) ou 2 jogadores
+            // Primeira tela do Menu: o título da Abertura no mesmo lugar e, embaixo, Um jogador (contra a IA) ou Dois jogadores.
             var modePanel = CreateGroup(canvas, "Como jogar");
-            CreateText(modePanel, "Título", "Como jogar?", 52, new Vector2(0f, 360f), new Vector2(680f, 90f), FontStyle.Bold);
-            CreateText(modePanel, "Contra a IA", "Contra a IA", 34, new Vector2(0f, 240f), new Vector2(680f, 60f), FontStyle.Normal);
-            for (int level = 0; level < 3; level++)
-            {
-                string levelName = AiDifficulty.DisplayName((AiLevel)level);
-                CreateIntButton(modePanel, $"IA {levelName}", levelName, new Vector2(0f, 130f - level * 110f), new Vector2(420f, 90f), menu.PlayVsAi, level);
-            }
-            CreateButton(modePanel, "2 jogadores", "2 jogadores", new Vector2(0f, -240f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
+            CreateText(modePanel, "Título", "Futebol de Botão", 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
+            CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -180f), new Vector2(420f, 90f), menu.PlayOnePlayer);
+            CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -300f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
 
             // Opções da partida (GDD), depois do modo; "Avançar" abre a Seleção de times
             var optionsPanel = CreateGroup(canvas, "Opções da partida");
@@ -243,17 +238,19 @@ namespace FutebolDeBotao.Editor
             var modeLabel = CreateText(optionsPanel, "Modo", "-", 30, new Vector2(0f, 370f), new Vector2(680f, 50f));
             var kinds = (MatchOptionKind[])Enum.GetValues(typeof(MatchOptionKind));
             var values = new Text[kinds.Length];
+            var rows = new RectTransform[kinds.Length];
             for (int i = 0; i < kinds.Length; i++)
             {
-                float y = 280f - i * 90f;
+                float y = 290f - i * MenuScreen.OptionRowSpacing;
                 var row = CreateGroup(optionsPanel, MenuScreen.Label(kinds[i]));
+                rows[i] = (RectTransform)row;
                 CreateText(row, "Nome", MenuScreen.Label(kinds[i]), 30, new Vector2(-170f, y), new Vector2(300f, 70f), FontStyle.Normal, TextAnchor.MiddleLeft);
                 CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(70f, 70f), menu.Previous, i);
                 values[i] = CreateText(row, "Valor", "-", 30, new Vector2(165f, y), new Vector2(170f, 70f), FontStyle.Bold);
                 CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
             }
-            CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-170f, -420f), new Vector2(300f, 90f), menu.ShowMode);
-            CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(170f, -420f), new Vector2(300f, 90f), menu.ShowSelection);
+            CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-140f, -450f), new Vector2(240f, 70f), menu.ShowMode);
+            CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(140f, -450f), new Vector2(240f, 70f), menu.ShowSelection);
             optionsPanel.gameObject.SetActive(false);
 
             // Seleção de times no campo desenhado ("Jogar" vai para a Partida). Monta a UI sozinha no Awake.
@@ -264,7 +261,7 @@ namespace FutebolDeBotao.Editor
             selectionPanel.gameObject.SetActive(false);
 
             var trigger = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "menu.iniciar");
-            menu.Configure(options, trigger, modePanel.gameObject, optionsPanel.gameObject, modeLabel, values);
+            menu.Configure(options, trigger, modePanel.gameObject, optionsPanel.gameObject, modeLabel, values, rows);
 
             // Jogadores: contra a IA o Menu faz o Join do Jogador 1 (escopo Route).
             var players = new GameObject("Jogadores");
