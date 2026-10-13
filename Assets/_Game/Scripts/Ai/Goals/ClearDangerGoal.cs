@@ -31,6 +31,6 @@ namespace FutebolDeBotao
         }
 
         public override bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) =>
-            !verdict.Risky && verdict.Score > 0f;
+            verdict.SafeFor(difficulty) && verdict.Score > 0f;
     }
 }

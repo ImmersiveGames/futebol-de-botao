@@ -37,10 +37,13 @@ namespace FutebolDeBotao
         public int ScoreDifference;
         public float SecondsLeft;
         public bool HasYellow;
+        /// <summary>Botões que a IA testa na bola (os mais perto dela, conforme o nível).</summary>
         public List<Disc> Usable;
+        /// <summary>Todos os botões que podem jogar agora (o toque seguro escolhe entre eles).</summary>
+        public List<Disc> AllUsable;
 
         public static AiSituation Read(MatchController match, TeamSide side, ShotPlanner planner, ShotPlanner opponentPlanner,
-            AiDifficulty difficulty, List<Disc> usable)
+            AiDifficulty difficulty, List<Disc> usable, List<Disc> allUsable)
         {
             var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
             Vector2 ball = match.Ball.Body.position;
@@ -61,7 +64,8 @@ namespace FutebolDeBotao
                 ScoreDifference = match.Score(side) - match.Score(opponent),
                 SecondsLeft = match.ClockSeconds,
                 HasYellow = match.HasYellow(side),
-                Usable = usable
+                Usable = usable,
+                AllUsable = allUsable
             };
 
             if (!situation.IsBallKick && usable.Count > 0)

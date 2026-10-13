@@ -17,13 +17,14 @@ namespace FutebolDeBotao
             in AiScoreContext context) => BaseScore(result, situation, context);
 
         /// <summary>
-        /// Jogada com risco ou ruim: às vezes a IA arrisca mesmo assim, às vezes desiste e vai para o próximo objetivo
-        /// (fechar o gol ou só posicionar). As chances vêm do nível.
+        /// Falta certa nunca. Jogada com risco ou ruim: às vezes a IA arrisca mesmo assim, às vezes desiste e vai para o
+        /// próximo objetivo (fechar o gol ou só posicionar). As chances vêm do nível.
         /// </summary>
         public override bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty)
         {
+            if (verdict.Foul) return false;
             if (verdict.OwnGoalRisk) return Random.value >= difficulty.ownGoalDefendChance;
-            bool poor = verdict.Foul || verdict.FoulNearby || verdict.Score < difficulty.poorShotScore;
+            bool poor = verdict.FoulChance > difficulty.maxFoulChance || verdict.Score < difficulty.poorShotScore;
             return !poor || Random.value >= difficulty.repositionChance;
         }
     }

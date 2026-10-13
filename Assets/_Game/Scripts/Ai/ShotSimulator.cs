@@ -66,6 +66,7 @@ namespace FutebolDeBotao
         private float ballRadius = 0.2f;
         private TeamSide? keeperOverrideSide;
         private float keeperOverrideX;
+        private Vector2? ballOverride;
 
         /// <summary>Passos de física simulados desde a criação (para o log de desempenho).</summary>
         public int TotalSteps { get; private set; }
@@ -124,6 +125,11 @@ namespace FutebolDeBotao
 
         public void ClearKeeperOverride() => keeperOverrideSide = null;
 
+        /// <summary>Nas próximas simulações a bola começa aqui, não onde está (para testar lugares no tiro de meta).</summary>
+        public void OverrideBallPosition(Vector2 position) => ballOverride = position;
+
+        public void ClearBallOverride() => ballOverride = null;
+
         /// <summary>
         /// Simula um peteleco a partir da mesa de verdade como está agora.
         /// <paramref name="shooter"/> nulo = chute direto na bola (tiro de meta).
@@ -147,6 +153,7 @@ namespace FutebolDeBotao
                 body.WasOnBall = false;
                 if (body.Kind == Kind.Keeper && body.Side == keeperOverrideSide)
                     body.Copy.position = new Vector2(keeperOverrideX, body.Source.position.y);
+                if (body == ball && ballOverride.HasValue) body.Copy.position = ballOverride.Value;
             }
 
             SimBody shot = shooter != null && bySource.TryGetValue(shooter, out var found) ? found : ball;

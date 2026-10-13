@@ -127,7 +127,7 @@ namespace FutebolDeBotao
 
         private string Describe(AiDecision decision)
         {
-            if (decision.Goal == null) return "nenhuma ação serviu, bate reto na bola";
+            if (decision.Goal == null) return "nenhum objetivo achou jogada, bate reto na bola";
             var text = new StringBuilder();
             text.Append(decision.Goal.Name);
             if (decision.NoGoalAccepted) text.Append(" (nenhum objetivo aceitou)");
@@ -140,14 +140,18 @@ namespace FutebolDeBotao
             return text.ToString();
         }
 
+        /// <summary>"falta certa" ou as chances com o erro do nível: "falta 29%, perde a bola 43%".</summary>
         private static string Risks(in AiVerdict verdict)
         {
             var text = new StringBuilder();
-            if (verdict.Foul) text.Append("falta");
-            if (verdict.FoulNearby) text.Append(text.Length > 0 ? "," : string.Empty).Append("falta se errar");
-            if (verdict.OwnGoalRisk) text.Append(text.Length > 0 ? "," : string.Empty).Append("gol contra");
+            if (verdict.Foul) text.Append("falta certa");
+            else if (verdict.FoulChance > 0f) text.Append("falta ").Append(Percent(verdict.FoulChance));
+            if (verdict.OwnGoalChance > 0f) text.Append(text.Length > 0 ? ", " : string.Empty).Append("gol contra ").Append(Percent(verdict.OwnGoalChance));
+            if (verdict.LoseChance > 0f) text.Append(text.Length > 0 ? ", " : string.Empty).Append("perde a bola ").Append(Percent(verdict.LoseChance));
             return text.ToString();
         }
+
+        private static string Percent(float chance) => Mathf.RoundToInt(chance * 100f).ToString(Number) + "%";
 
         private string SideName(TeamSide? touch) => touch == null ? "ninguem" : touch == side ? "IA" : "adversario";
 

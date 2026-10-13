@@ -32,12 +32,15 @@ namespace FutebolDeBotao
         [Range(0f, 1f)] public float repositionChance = 0.5f;
         [Tooltip("Nota abaixo da qual a melhor jogada conta como ruim.")]
         public float poorShotScore = 0f;
+        [Tooltip("Chance de falta (testando o erro de mira e de força) acima da qual a jogada conta como ruim. " +
+                 "Falta certa (sem erro) nunca é aceita. Fácil 0,5; Médio 0,35; Difícil 0,2.")]
+        [Range(0f, 1f)] public float maxFoulChance = 0.35f;
         [Tooltip("Quando toda jogada na bola tem risco de gol contra (testando o erro de mira e de força), chance de só " +
                  "pôr um botão bloqueando entre a bola e o gol. Fácil 0,4; Médio 0,85; Difícil 1.")]
         [Range(0f, 1f)] public float ownGoalDefendChance = 0.85f;
         [Tooltip("Chance, a cada toque, de a IA olhar o perigo de passar a vez (o adversário ter chute fácil) e, no último " +
-                 "toque, fechar o gol com um botão. Fácil 0; Médio 0,5; Difícil 1.")]
-        [Range(0f, 1f)] public float dangerAwareness = 0.5f;
+                 "toque, fechar o gol com um botão. Fácil 0,4; Médio 0,75; Difícil 1.")]
+        [Range(0f, 1f)] public float dangerAwareness = 0.75f;
 
         [Header("Erro na execução")]
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
@@ -98,7 +101,8 @@ namespace FutebolDeBotao
                     difficulty.foulCaution = 0.5f;
                     difficulty.repositionChance = 0.2f;
                     difficulty.ownGoalDefendChance = 0.4f;
-                    difficulty.dangerAwareness = 0f;
+                    difficulty.dangerAwareness = 0.4f;
+                    difficulty.maxFoulChance = 0.5f;
                     difficulty.angleErrorDegrees = 8f;
                     difficulty.powerError = 0.15f;
                     difficulty.shotCallDistance = 3f;
@@ -115,6 +119,7 @@ namespace FutebolDeBotao
                     difficulty.repositionChance = 0.8f;
                     difficulty.ownGoalDefendChance = 1f;
                     difficulty.dangerAwareness = 1f;
+                    difficulty.maxFoulChance = 0.2f;
                     difficulty.angleErrorDegrees = 1.5f;
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;

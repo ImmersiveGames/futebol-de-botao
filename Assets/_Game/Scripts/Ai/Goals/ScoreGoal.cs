@@ -25,6 +25,6 @@ namespace FutebolDeBotao
 
         // Chute anunciado tem que sair. Sem goleiro, um chute arriscado pode dar lugar a outro objetivo.
         public override bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) =>
-            situation.State == MatchState.ShotAim || !verdict.Risky;
+            situation.State == MatchState.ShotAim || verdict.SafeFor(difficulty);
     }
 }

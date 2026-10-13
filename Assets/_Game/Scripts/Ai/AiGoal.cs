@@ -27,8 +27,16 @@ namespace FutebolDeBotao
         public bool FoulNearby;
         /// <summary>Com o erro de mira ou de força, alguma versão vira gol contra.</summary>
         public bool OwnGoalRisk;
+        /// <summary>Chances (0 a 1) entre a jogada e as versões com o erro do nível.</summary>
+        public float FoulChance;
+        public float OwnGoalChance;
+        /// <summary>Último toque não fica com a IA (a vez passa).</summary>
+        public float LoseChance;
 
         public bool Risky => Foul || FoulNearby || OwnGoalRisk;
+
+        /// <summary>Sem falta certa, sem risco de gol contra e com chance de falta que o nível aceita.</summary>
+        public bool SafeFor(AiDifficulty difficulty) => !Foul && !OwnGoalRisk && FoulChance <= difficulty.maxFoulChance;
     }
 
     /// <summary>
@@ -51,7 +59,7 @@ namespace FutebolDeBotao
             in AiScoreContext context);
 
         /// <summary>A melhor jogada atinge o objetivo? Não: o decisor tenta o próximo objetivo.</summary>
-        public virtual bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) => !verdict.Risky;
+        public virtual bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) => verdict.SafeFor(difficulty);
 
         /// <summary>Toques que sobram se a vez continuar depois desta jogada.</summary>
         protected static int TouchesAfter(AiSituation situation) => situation.TouchesLeft - 1;

@@ -108,14 +108,15 @@ namespace FutebolDeBotao
                 if (!StillValid(version)) yield break;
                 EnsureBrain();
 
-                var usable = UsableDiscs();
+                var allUsable = UsableDiscs();
+                var usable = allUsable.GetRange(0, Mathf.Min(difficulty.discsToTest, allUsable.Count));
                 if (match.State != MatchState.GoalKick && usable.Count == 0)
                 {
                     yield return new WaitForSeconds(0.5f);
                     yield break;
                 }
 
-                var situation = AiSituation.Read(match, Side, planner, OpponentPlanner(), difficulty, usable);
+                var situation = AiSituation.Read(match, Side, planner, OpponentPlanner(), difficulty, usable, allUsable);
                 AiDecision decision = null;
                 yield return brain.Decide(situation, match, aim.Tuning, difficulty, () => StillValid(version), d => decision = d);
                 if (decision == null || !StillValid(version)) yield break;
@@ -178,7 +179,6 @@ namespace FutebolDeBotao
             foreach (var disc in match.AllDiscs)
                 if (match.CanUse(disc)) usable.Add(disc);
             usable.Sort((a, b) => (a.Body.position - ballPosition).sqrMagnitude.CompareTo((b.Body.position - ballPosition).sqrMagnitude));
-            if (usable.Count > difficulty.discsToTest) usable.RemoveRange(difficulty.discsToTest, usable.Count - difficulty.discsToTest);
             return usable;
         }
 
@@ -369,10 +369,12 @@ namespace FutebolDeBotao
         // ---- Tiro de meta ----
 
         private const int GoalKickSpots = 5;
+        private const int GoalKickSimulationsPerSpot = 4;
 
         /// <summary>
-        /// Tiro de meta: testa algumas posições da bola na largura da área e deixa ela onde o melhor chute tem o caminho
-        /// mais livre e avança mais; depois aperta "Pronto" (a mira e o chute vêm no toque normal).
+        /// Tiro de meta: testa algumas posições da bola na largura da área, simulando os melhores chutes de cada uma, e
+        /// deixa a bola onde o melhor chute dá a melhor nota (avança sem bater em ninguém); depois aperta "Pronto" (a
+        /// mira e o chute vêm no toque normal). Uma posição por quadro.
         /// </summary>
         private IEnumerator PlaceGoalKickBall()
         {
@@ -386,26 +388,43 @@ namespace FutebolDeBotao
 
                 Vector2 ballPosition = match.Ball.Body.position;
                 float range = match.GoalKickHalfRange;
+                simulator.Sync();
+                float currentScore = BestBallKick(ballPosition);
+                float bestScore = currentScore;
                 float bestX = ballPosition.x;
-                float bestScore = BestBallKick(ballPosition);
-                for (int i = 0; i < GoalKickSpots; i++)
+                try
                 {
-                    float x = Mathf.Lerp(-range, range, i / (float)(GoalKickSpots - 1));
-                    float score = BestBallKick(new Vector2(x, ballPosition.y));
-                    // Só troca de lugar se ficar claramente melhor.
-                    if (score > bestScore + 0.5f)
+                    for (int i = 0; i < GoalKickSpots; i++)
                     {
-                        bestScore = score;
-                        bestX = x;
+                        float x = Mathf.Lerp(-range, range, i / (float)(GoalKickSpots - 1));
+                        var spot = new Vector2(x, ballPosition.y);
+                        if (Mathf.Abs(x - ballPosition.x) < 0.05f || !BallSpotFree(spot)) continue;
+                        float score = BestBallKick(spot);
+                        if (score > bestScore)
+                        {
+                            bestScore = score;
+                            bestX = x;
+                        }
+                        yield return null;
+                        if (!StillValid(version) || !match.IsPlacingGoalKick) yield break;
                     }
                 }
-
-                if (Mathf.Abs(bestX - ballPosition.x) > 0.01f)
+                finally
                 {
-                    Debug.Log($"[IA] Tiro de meta: bola de x {ballPosition.x:0.0} para {bestX:0.0} (nota {bestScore:0.0}).");
+                    simulator.ClearBallOverride();
+                }
+
+                // Só troca de lugar se ficar claramente melhor.
+                if (Mathf.Abs(bestX - ballPosition.x) > 0.01f && bestScore > currentScore + 2f)
+                {
+                    Debug.Log($"[IA] Tiro de meta: bola de x {ballPosition.x:0.0} para {bestX:0.0} (nota {currentScore:0} para {bestScore:0}).");
                     match.MoveGoalKickBall(bestX);
                     yield return new WaitForSeconds(0.4f);
                     if (!StillValid(version)) yield break;
+                }
+                else
+                {
+                    Debug.Log($"[IA] Tiro de meta: bola fica em x {ballPosition.x:0.0} (nota {currentScore:0}).");
                 }
                 match.ConfirmReady();
             }
@@ -415,12 +434,35 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>Melhor nota simulada de um chute direto na bola como se ela estivesse em <paramref name="ballPosition"/>.</summary>
         private float BestBallKick(Vector2 ballPosition)
         {
+            var candidates = planner.BallKickCandidates(ballPosition);
+            if (candidates.Count == 0) return float.MinValue;
+            candidates.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
+            simulator.OverrideBallPosition(ballPosition);
+            float maxImpulse = aim.Tuning.ballKickMaxImpulse;
             float best = float.MinValue;
-            foreach (var candidate in planner.BallKickCandidates(ballPosition))
-                best = Mathf.Max(best, candidate.PreScore);
+            int touchesAfter = match.TouchesLeft - 1;
+            for (int i = 0; i < Mathf.Min(GoalKickSimulationsPerSpot, candidates.Count); i++)
+            {
+                var candidate = candidates[i];
+                best = Mathf.Max(best, SimulateAndScore(null, candidate.Direction, candidate.Power01, maxImpulse, true, false,
+                    touchesAfter, out _, out _));
+            }
             return best;
+        }
+
+        /// <summary>A bola cabe ali sem encostar em botão (o mesmo teste da partida ao arrastar a bola).</summary>
+        private bool BallSpotFree(Vector2 position)
+        {
+            foreach (var disc in match.AllDiscs)
+            {
+                if (disc == null || !disc.isActiveAndEnabled) continue;
+                float minDistance = match.Ball.Radius + disc.Radius + 0.02f;
+                if ((position - disc.Body.position).sqrMagnitude < minDistance * minDistance) return false;
+            }
+            return true;
         }
 
         private IEnumerator SetUpKicker()

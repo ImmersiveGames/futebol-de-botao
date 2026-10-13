@@ -63,9 +63,9 @@ namespace FutebolDeBotao
             public override string Name => "Posicionar botão";
             public override string Effect => "botão no ponto, sem tocar na bola (a vez passa)";
             public override bool TouchesBall => false;
-            public override bool CanRun(AiSituation s) => s.State == MatchState.Aim && !s.IsFreeKick && s.Usable.Count > 0;
+            public override bool CanRun(AiSituation s) => s.State == MatchState.Aim && !s.IsFreeKick && s.AllUsable.Count > 0;
             public override List<ShotCandidate> Candidates(AiSituation s, ShotPlanner planner, MatchController match) =>
-                planner.PositionCandidates(s.Usable, match.AllDiscs);
+                planner.PositionCandidates(s.AllUsable, match.AllDiscs);
         }
     }
 }

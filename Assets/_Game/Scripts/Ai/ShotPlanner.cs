@@ -19,6 +19,8 @@ namespace FutebolDeBotao
         /// <summary>Tem adversário ou goleiro no caminho da bola até o alvo.</summary>
         public bool BallBlocked;
         public Vector2 Target;
+        /// <summary>Alvo para o lado ou para trás (quando não há jogada boa para a frente; a parede devolve a bola).</summary>
+        public bool Wide;
     }
 
     /// <summary>
@@ -32,6 +34,10 @@ namespace FutebolDeBotao
         private static readonly float[] AdvanceOffsets = { -1.5f, 0f, 1.5f };
         private static readonly float[] GoalOffsets = { -0.8f, -0.4f, 0f, 0.4f, 0.8f };
         private static readonly float[] PowerScales = { 0.85f, 1f, 1.2f };
+        private const float WideSideDistance = 2.5f;
+        private const float WideBackDistance = 1.5f;
+        /// <summary>Empurrãozinho do toque seguro: um botão anda só isso, longe de tudo.</summary>
+        private const float NudgeDistance = 0.6f;
 
         private static readonly ContactFilter2D NoFilter = ContactFilter2D.noFilter;
         private readonly RaycastHit2D[] hits = new RaycastHit2D[16];
@@ -78,7 +84,14 @@ namespace FutebolDeBotao
 
             foreach (var disc in usable)
             foreach (var target in targets)
-                AddDiscCandidates(list, disc, ballPosition, target, scoring);
+                AddDiscCandidates(list, disc, ballPosition, target, scoring, false);
+
+            // Também para os lados e para trás: com a bola atrás dos botões (no canto, perto do gol) não há jogada
+            // para a frente, e a parede devolve a bola. A simulação diz se presta.
+            if (!scoring)
+                foreach (var disc in usable)
+                foreach (var target in WideTargets(ballPosition))
+                    AddDiscCandidates(list, disc, ballPosition, target, false, true);
 
             return list;
         }
@@ -207,6 +220,31 @@ namespace FutebolDeBotao
                 });
             }
 
+            // Empurrãozinho: cada botão anda um pouco para trás ou para os lados, longe de tudo. Nota baixa, só para o
+            // toque seguro nunca ficar sem saída.
+            foreach (var disc in usable)
+            foreach (var step in new[] { -Attack, Vector2.left, Vector2.right })
+            {
+                Vector2 from = disc.Body.position;
+                Vector2 point = from + step * NudgeDistance;
+                point = new Vector2(Mathf.Clamp(point.x, -maxX, maxX), Mathf.Clamp(point.y, -maxY, maxY));
+                Vector2 travel = point - from;
+                float distance = travel.magnitude;
+                if (distance < 0.3f) continue;
+                Vector2 direction = travel / distance;
+                if (!PathClear(disc, direction, distance + 0.3f)) continue;
+                float speed = distance * Mathf.Max(disc.Body.linearDamping, 0.1f);
+                float power = speed * disc.Body.mass / Mathf.Max(tuning.maxImpulse, 0.01f);
+                list.Add(new ShotCandidate
+                {
+                    Disc = disc,
+                    Direction = direction,
+                    Power01 = Mathf.Clamp(power, MinPower, 1f),
+                    Target = point,
+                    PreScore = 1f - Vector2.Distance(from, ballPosition) * 0.05f
+                });
+            }
+
             list.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
             return list;
         }
@@ -241,7 +279,8 @@ namespace FutebolDeBotao
             return false;
         }
 
-        private void AddDiscCandidates(List<ShotCandidate> list, Disc disc, Vector2 ballPosition, Vector2 target, bool scoring)
+        private void AddDiscCandidates(List<ShotCandidate> list, Disc disc, Vector2 ballPosition, Vector2 target, bool scoring,
+            bool wide)
         {
             // Sinuca: para a bola ir na direção do alvo, o botão tem que bater nela pelo lado oposto ("bola fantasma").
             Vector2 toTarget = target - ballPosition;
@@ -265,6 +304,13 @@ namespace FutebolDeBotao
             bool ballBlocked = BallPathBlocked(ballPosition, ballDirection, length, disc);
 
             float preScore = scoring ? 20f : Progress(toTarget) * 2f;
+            // Bola perto do próprio gol: alvo que a afasta do gol vale mais (para os lados também serve).
+            if (!scoring)
+            {
+                Vector2 ownGoal = new(0f, FieldLayout.GoalLineY(side));
+                float fromGoal = Vector2.Distance(ballPosition, ownGoal);
+                if (fromGoal < DangerDistance) preScore += (Vector2.Distance(target, ownGoal) - fromGoal) * 2f;
+            }
             if (foulRisk) preScore -= 30f;
             if (blocked) preScore -= 25f;
             if (ballBlocked) preScore -= 8f;
@@ -281,7 +327,8 @@ namespace FutebolDeBotao
                     FoulRisk = foulRisk,
                     Blocked = blocked,
                     BallBlocked = ballBlocked,
-                    PreScore = preScore
+                    PreScore = preScore,
+                    Wide = wide
                 });
             }
         }
@@ -324,6 +371,25 @@ namespace FutebolDeBotao
                 var target = ballPosition + Attack * distance + new Vector2(offset, 0f);
                 targets.Add(new Vector2(Mathf.Clamp(target.x, -maxX, maxX), Mathf.Clamp(target.y, -maxY, maxY)));
             }
+            return targets;
+        }
+
+        /// <summary>Alvos para os lados e na diagonal para trás da bola.</summary>
+        private List<Vector2> WideTargets(Vector2 ballPosition)
+        {
+            var targets = new List<Vector2>();
+            float maxX = FieldLayout.HalfWidth - 0.4f;
+            float maxY = FieldLayout.HalfHeight - 0.4f;
+            var raw = new[]
+            {
+                ballPosition + new Vector2(-WideSideDistance, 0f),
+                ballPosition + new Vector2(WideSideDistance, 0f),
+                ballPosition - Attack * WideBackDistance + new Vector2(-WideBackDistance, 0f),
+                ballPosition - Attack * WideBackDistance + new Vector2(WideBackDistance, 0f),
+                ballPosition - Attack * WideBackDistance
+            };
+            foreach (var target in raw)
+                targets.Add(new Vector2(Mathf.Clamp(target.x, -maxX, maxX), Mathf.Clamp(target.y, -maxY, maxY)));
             return targets;
         }
 

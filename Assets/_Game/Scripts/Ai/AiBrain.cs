@@ -45,6 +45,7 @@ namespace FutebolDeBotao
         /// <summary>Se as melhores têm risco, testa mais algumas procurando uma segura.</summary>
         private const int MaxRobustChecks = 6;
         private const int PositionSimulations = 6;
+        private const int MaxPositionSimulations = 14;
 
         /// <summary>Uma jogada simulada de uma ação: o resultado sem erro e, se já testadas, as versões com erro.</summary>
         private sealed class Trial
@@ -136,12 +137,20 @@ namespace FutebolDeBotao
                     if (aborted) yield break;
                     trials[action] = list;
                 }
-                if (list.Count == 0) continue;
+                if (list.Count == 0)
+                {
+                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(" sem jogada");
+                    continue;
+                }
 
                 Rated? pick = null;
                 yield return Rate(goal, action, list, situation, context, difficulty, maxImpulse, r => pick = r);
                 if (aborted) yield break;
-                if (pick == null) continue;
+                if (pick == null)
+                {
+                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(" sem jogada");
+                    continue;
+                }
 
                 var decision = new AiDecision
                 {
@@ -159,7 +168,9 @@ namespace FutebolDeBotao
                 }
                 rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(' ')
                     .Append(pick.Value.Verdict.Score.ToString("0"));
-                fallback ??= decision;
+                if (pick.Value.Verdict.Foul) rejected.Append(" (falta)");
+                // Se nenhum aceitar, fica a do objetivo mais alto; jogada sem falta certa ganha de uma com falta.
+                if (fallback == null || (fallback.Verdict.Foul && !decision.Verdict.Foul)) fallback = decision;
             }
 
             if (chosen == null && fallback != null)
@@ -182,23 +193,30 @@ namespace FutebolDeBotao
             float maxImpulse, Action<List<Trial>> done)
         {
             var candidates = action.Candidates(situation, planner, match);
-            List<ShotCandidate> queue;
+            var list = new List<Trial>();
             if (action.TouchesBall)
             {
                 candidates.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
-                queue = Diversify(candidates, difficulty.simulations);
+                foreach (var candidate in Diversify(candidates, difficulty.simulations))
+                {
+                    list.Add(new Trial { Candidate = candidate, Main = Simulate(candidate.Disc, candidate.Direction, candidate.Power01, maxImpulse) });
+                    if (Budget()) yield return Pause();
+                    if (aborted) yield break;
+                }
             }
             else
             {
-                queue = candidates.GetRange(0, Mathf.Min(PositionSimulations, candidates.Count));
-            }
-
-            var list = new List<Trial>(queue.Count);
-            foreach (var candidate in queue)
-            {
-                list.Add(new Trial { Candidate = candidate, Main = Simulate(candidate.Disc, candidate.Direction, candidate.Power01, maxImpulse) });
-                if (Budget()) yield return Pause();
-                if (aborted) yield break;
+                // Posicionamento: segue na lista (já em ordem de nota) até ter algumas que não tocam em nada.
+                int valid = 0;
+                for (int i = 0; i < candidates.Count && valid < PositionSimulations && i < MaxPositionSimulations; i++)
+                {
+                    var candidate = candidates[i];
+                    var main = Simulate(candidate.Disc, candidate.Direction, candidate.Power01, maxImpulse);
+                    list.Add(new Trial { Candidate = candidate, Main = main });
+                    if (planner.ScorePosition(main, candidate) != null) valid++;
+                    if (Budget()) yield return Pause();
+                    if (aborted) yield break;
+                }
             }
             done(list);
         }
@@ -218,7 +236,15 @@ namespace FutebolDeBotao
                 rated.Add(new Rated
                 {
                     Trial = trial,
-                    Verdict = new AiVerdict { Score = score.Value, Foul = trial.Main.Foul, OwnGoalRisk = trial.Main.GoalOf == side },
+                    Verdict = new AiVerdict
+                    {
+                        Score = score.Value,
+                        Foul = trial.Main.Foul,
+                        OwnGoalRisk = trial.Main.GoalOf == side,
+                        FoulChance = trial.Main.Foul ? 1f : 0f,
+                        OwnGoalChance = trial.Main.GoalOf == side ? 1f : 0f,
+                        LoseChance = Loses(trial.Main, situation) ? 1f : 0f
+                    },
                     // Posicionamento não toca na bola: não precisa do teste com erro.
                     Checked = !action.TouchesBall
                 });
@@ -250,18 +276,32 @@ namespace FutebolDeBotao
                         }
                         float sum = entry.Verdict.Score;
                         int count = 1;
+                        int fouls = 0, ownGoals = entry.Verdict.OwnGoalRisk ? 1 : 0, loses = entry.Verdict.LoseChance > 0f ? 1 : 0;
                         foreach (var variant in entry.Trial.Variants)
                         {
-                            if (variant.Foul) entry.Verdict.FoulNearby = true;
-                            if (variant.GoalOf == side) entry.Verdict.OwnGoalRisk = true;
+                            if (variant.Foul)
+                            {
+                                entry.Verdict.FoulNearby = true;
+                                fouls++;
+                            }
+                            if (variant.GoalOf == side)
+                            {
+                                entry.Verdict.OwnGoalRisk = true;
+                                ownGoals++;
+                            }
+                            if (Loses(variant, situation)) loses++;
                             float? score = goal.Score(variant, entry.Trial.Candidate, action, situation, context);
                             if (score == null) continue;
                             sum += score.Value;
                             count++;
                         }
                         entry.Verdict.Score = sum / count;
+                        float samples = entry.Trial.Variants.Length + 1;
+                        entry.Verdict.FoulChance = fouls / samples;
+                        entry.Verdict.OwnGoalChance = ownGoals / samples;
+                        entry.Verdict.LoseChance = loses / samples;
                     }
-                    if (!entry.Verdict.Risky) foundSafe = true;
+                    if (entry.Verdict.SafeFor(difficulty)) foundSafe = true;
                     rated[i] = entry;
                 }
                 rated.Sort((a, b) =>
@@ -276,24 +316,36 @@ namespace FutebolDeBotao
             int first = 0;
             for (int i = 0; i < rated.Count && rated[i].Checked; i++)
             {
-                if (rated[i].Verdict.Risky) continue;
+                if (!rated[i].Verdict.SafeFor(difficulty)) continue;
                 first = i;
                 break;
             }
             float best = rated[first].Verdict.Score;
             var pool = new List<Rated> { rated[first] };
             for (int i = 0; i < rated.Count && rated[i].Checked && pool.Count < difficulty.pickAmongBest; i++)
-                if (i != first && !rated[i].Verdict.Risky && rated[i].Verdict.Score >= best - PickWindow) pool.Add(rated[i]);
+                if (i != first && rated[i].Verdict.SafeFor(difficulty) && rated[i].Verdict.Score >= best - PickWindow) pool.Add(rated[i]);
             done(pool[Random.Range(0, pool.Count)]);
         }
 
-        /// <summary>A jogada com o erro do nível: mira para cada lado, força para mais e para menos.</summary>
+        /// <summary>A vez passa: o último toque não fica com a IA (no tiro de meta, ninguém tocar conta como dela).</summary>
+        private bool Loses(in SimResult result, AiSituation situation)
+        {
+            if (result.Foul) return true;
+            if (situation.IsBallKick && result.LastTouchSide == null) return false;
+            return result.LastTouchSide != side;
+        }
+
+        /// <summary>A jogada com o erro do nível: mira para cada lado, força para mais e para menos, e combinadas.</summary>
         private SimResult[] Variants(in ShotCandidate candidate, AiDifficulty difficulty, float maxImpulse)
         {
             float spread = difficulty.angleErrorDegrees * 0.75f;
             float powerSpread = difficulty.powerError * 0.75f;
-            var variants = new List<SimResult>(4);
-            foreach (var (angle, powerScale) in new[] { (-spread, 1f), (spread, 1f), (0f, 1f - powerSpread), (0f, 1f + powerSpread) })
+            var variants = new List<SimResult>(6);
+            foreach (var (angle, powerScale) in new[]
+                     {
+                         (-spread, 1f), (spread, 1f), (0f, 1f - powerSpread), (0f, 1f + powerSpread),
+                         (-spread, 1f + powerSpread), (spread, 1f - powerSpread)
+                     })
             {
                 if (Mathf.Abs(angle) < 0.01f && Mathf.Abs(powerScale - 1f) < 0.001f) continue;
                 Vector2 tilted = Quaternion.Euler(0f, 0f, angle) * candidate.Direction;
@@ -330,17 +382,28 @@ namespace FutebolDeBotao
         {
             var queue = new List<ShotCandidate>();
             var taken = new bool[sorted.Count];
-            var discs = new HashSet<Disc>();
-            for (int i = 0; i < sorted.Count && queue.Count < count; i++)
-            {
-                var disc = sorted[i].Disc;
-                if (disc == null || !discs.Add(disc)) continue;
-                queue.Add(sorted[i]);
-                taken[i] = true;
-            }
+            // Uma parte fica para as jogadas para o lado e para trás, que perdem na nota da geometria mas salvam quando
+            // a bola está atrás dos botões.
+            bool hasWide = sorted.Exists(c => c.Wide);
+            int wideSlots = hasWide ? Mathf.Max(1, count / 4) : 0;
+            Take(sorted, taken, queue, count - wideSlots, false);
+            Take(sorted, taken, queue, count, true);
             for (int i = 0; i < sorted.Count && queue.Count < count; i++)
                 if (!taken[i]) queue.Add(sorted[i]);
             return queue;
+        }
+
+        /// <summary>Até a fila ter <paramref name="limit"/>: a melhor jogada de cada botão, do tipo pedido.</summary>
+        private static void Take(List<ShotCandidate> sorted, bool[] taken, List<ShotCandidate> queue, int limit, bool wide)
+        {
+            var discs = new HashSet<Disc>();
+            for (int i = 0; i < sorted.Count && queue.Count < limit; i++)
+            {
+                var disc = sorted[i].Disc;
+                if (taken[i] || sorted[i].Wide != wide || disc == null || !discs.Add(disc)) continue;
+                queue.Add(sorted[i]);
+                taken[i] = true;
+            }
         }
 
         /// <summary>Nenhuma jogada serviu: bate reto na bola com força média.</summary>
