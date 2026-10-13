@@ -260,7 +260,8 @@ namespace FutebolDeBotao.Editor
             var optionsNext = CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(140f, -450f), new Vector2(240f, 70f), menu.ShowSelection);
             optionItems.Add(Item(optionsBack));
             optionItems.Add(Item(optionsNext));
-            AddNavigator(optionsPanel, optionsBack, optionItems.ToArray());
+            // Só o Jogador 1 mexe nas Opções.
+            optionsPanel.gameObject.AddComponent<MenuNavigator>().Configure(optionItems.ToArray(), optionsBack, 0, 1);
             optionsPanel.gameObject.SetActive(false);
 
             // Controles: cada jogador escolhe o dispositivo (só com mais de um). Monta a UI sozinha ao abrir.

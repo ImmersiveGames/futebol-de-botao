@@ -10,6 +10,9 @@ namespace FutebolDeBotao
     /// Em cada metade, à esquerda, escudo, nome e abreviação com as setas do time; à direita, as setas do esquema.
     /// A metade de cima fica girada 180° para o Jogador 2 (base da versão de celular, 2 jogadores na mesma tela).
     /// Contra a IA, ela sorteia time e esquema ao abrir a tela. A UI é montada no Awake.
+    /// Cada metade tem o seu Pronto e a partida começa com os dois prontos (contra a IA, só o de baixo). Com dispositivos
+    /// separados (tela Controles), cada jogador tem o próprio cursor e só mexe na sua metade; revezando ou contra a IA,
+    /// um cursor só passa pelas duas. Pronto marcado trava as setas daquele time; Q/B desmarca.
     /// </summary>
     public sealed class TeamSelectionScreen : MonoBehaviour
     {
@@ -28,6 +31,11 @@ namespace FutebolDeBotao
         private static readonly Color ButtonColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ButtonTextColor = new(0.1f, 0.1f, 0.1f);
         private static readonly Color SoftText = new(1f, 1f, 1f, 0.75f);
+        private static readonly Color ReadyColor = new(0.55f, 0.9f, 0.55f);
+        private static readonly Color SecondPlayerFrame = new(0.45f, 0.85f, 1f, 1f);
+        private static readonly Vector2 MiddleButtonSize = new(1.5f, 0.5f);
+        private const float MiddleButtonX = 2.45f;
+        private const float MiddleButtonY = -0.32f;
 
         [SerializeField] private MenuScreen menu;
         [SerializeField] private MatchOptions defaults;
@@ -50,6 +58,12 @@ namespace FutebolDeBotao
             public Text Style;
             public MenuEntry TeamItem;
             public MenuEntry SchemeItem;
+            public RectTransform Root;
+            public Button Ready;
+            public MenuEntry ReadyItem;
+            public Button[] Arrows;
+            public MenuNavigator Navigator;
+            public bool IsReady;
         }
 
         private readonly Dictionary<TeamSide, HalfView> halves = new();
@@ -60,6 +74,8 @@ namespace FutebolDeBotao
         private GameObject smallPoles;
         private Font font;
         private bool built;
+        private bool starting;
+        private MenuNavigator sharedNavigator;
 
         public void Configure(MenuScreen menuScreen, MatchOptions defaultOptions, Sprite circleSprite, Sprite[] tableArt)
         {
@@ -88,6 +104,17 @@ namespace FutebolDeBotao
                 MatchSession.SetSchemeIndex(TeamSide.Top, discs, Random.Range(0, catalog.SchemeCount(discs)));
             }
             EnsureDifferentTeams();
+
+            starting = false;
+            foreach (var pair in halves) SetReady(pair.Key, false);
+            halves[TeamSide.Top].Ready.gameObject.SetActive(MatchSession.VsAi != true);
+
+            // Um cursor por jogador só com um dispositivo para cada um.
+            bool separate = MatchSession.VsAi != true && !MatchSession.SharedDevice && MatchSession.Player2Device != null;
+            sharedNavigator.enabled = false;
+            foreach (var pair in halves) pair.Value.Navigator.enabled = false;
+            sharedNavigator.enabled = !separate;
+            foreach (var pair in halves) pair.Value.Navigator.enabled = separate;
             Refresh();
         }
 
@@ -118,6 +145,40 @@ namespace FutebolDeBotao
         public void Play()
         {
             if (menu != null) menu.Play();
+        }
+
+        /// <summary>Pronto do time: marca ou desmarca; com todos prontos, vai para a Partida.</summary>
+        public void ToggleReady(TeamSide side)
+        {
+            var view = halves[side];
+            SetReady(side, !view.IsReady);
+            view.Navigator.Select(view.ReadyItem);
+            sharedNavigator.Select(view.ReadyItem);
+
+            bool bottomReady = halves[TeamSide.Bottom].IsReady;
+            bool topReady = MatchSession.VsAi == true || halves[TeamSide.Top].IsReady;
+            if (bottomReady && topReady && !starting)
+            {
+                starting = true;
+                Play();
+            }
+        }
+
+        private void SetReady(TeamSide side, bool ready)
+        {
+            var view = halves[side];
+            view.IsReady = ready;
+            foreach (var arrow in view.Arrows) arrow.interactable = !ready;
+            ((Image)view.Ready.targetGraphic).color = ready ? ReadyColor : ButtonColor;
+            view.Ready.GetComponentInChildren<Text>().text = ready ? "Pronto!" : "Pronto";
+        }
+
+        /// <summary>Q/B de um jogador com cursor próprio: desmarca o Pronto; sem Pronto, o Jogador 1 volta às Opções.</summary>
+        private void SideBack(TeamSide side)
+        {
+            if (starting) return;
+            if (halves[side].IsReady) SetReady(side, false);
+            else if (side == TeamSide.Bottom) Back();
         }
 
         private void EnsureDifferentTeams()
@@ -220,19 +281,29 @@ namespace FutebolDeBotao
                 smallPoles = CreateGoalPieces(field, "Traves pequenas", art, "Small_Pole");
             }
 
-            // Faixa do meio-campo.
-            var back = CreateButton(field, "Voltar", "Voltar", new Vector2(-2.45f, 0f), new Vector2(1.5f, 0.56f), Back);
-            var play = CreateButton(field, "Jogar", "Jogar", new Vector2(2.45f, 0f), new Vector2(1.5f, 0.56f), Play);
-
-            // Teclado/controle: de cima para baixo na tela; começa no time de baixo (o seu contra a IA).
-            var backItem = back.gameObject.AddComponent<MenuEntry>();
-            backItem.Configure(back);
-            var playItem = play.gameObject.AddComponent<MenuEntry>();
-            playItem.Configure(play);
+            // Faixa do meio-campo: o Voltar é do Jogador 1 (fica na metade de baixo); cada Pronto à direita do seu dono.
             var top = halves[TeamSide.Top];
             var bottom = halves[TeamSide.Bottom];
-            gameObject.AddComponent<MenuNavigator>().Configure(
-                new[] { top.TeamItem, top.SchemeItem, backItem, playItem, bottom.TeamItem, bottom.SchemeItem }, back, 4);
+            var back = CreateButton(bottom.Root, "Voltar", "Voltar", new Vector2(-MiddleButtonX, MiddleButtonY), MiddleButtonSize, Back);
+            var backItem = back.gameObject.AddComponent<MenuEntry>();
+            backItem.Configure(back);
+
+            // Teclado/controle, um cursor só (contra a IA ou revezando): de cima para baixo na tela; começa no time de baixo.
+            sharedNavigator = gameObject.AddComponent<MenuNavigator>();
+            sharedNavigator.Configure(new[]
+            {
+                top.TeamItem, top.SchemeItem, top.ReadyItem, backItem, bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem
+            }, back, 5, 1);
+
+            // Um cursor por jogador, cada um na sua metade (começa no time).
+            bottom.Navigator = bottom.Root.gameObject.AddComponent<MenuNavigator>();
+            bottom.Navigator.Configure(new[] { backItem, bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem }, back, 2, 1);
+            bottom.Navigator.BackAction = () => SideBack(TeamSide.Bottom);
+            top.Navigator = top.Root.gameObject.AddComponent<MenuNavigator>();
+            top.Navigator.Configure(new[] { top.ReadyItem, top.TeamItem, top.SchemeItem }, null, 1, 2);
+            top.Navigator.SetFrameColor(SecondPlayerFrame);
+            top.Navigator.BackAction = () => SideBack(TeamSide.Top);
+            top.Navigator.enabled = bottom.Navigator.enabled = false;
 
             Update();
         }
@@ -353,6 +424,7 @@ namespace FutebolDeBotao
             var view = new HalfView();
             var half = CreateRect(field, side == TeamSide.Bottom ? "Time de baixo" : "Time de cima", Vector2.zero, Vector2.zero);
             if (side == TeamSide.Top) half.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            view.Root = half;
 
             view.Keeper = CreateImage(half, "Goleiro", Color.white, null, new Vector2(0f, -(FieldLayout.HalfHeight - 0.35f)), new Vector2(1f, 0.25f));
             for (int i = 0; i < 5; i++)
@@ -388,6 +460,11 @@ namespace FutebolDeBotao
             view.SchemeItem = CreateRect(half, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SchemeItem.Configure(null, previousScheme, nextScheme, schemeTitle.rectTransform, view.Scheme.rectTransform,
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
+
+            view.Arrows = new[] { previousTeam, nextTeam, previousScheme, nextScheme };
+            view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, MiddleButtonY), MiddleButtonSize, () => ToggleReady(side));
+            view.ReadyItem = view.Ready.gameObject.AddComponent<MenuEntry>();
+            view.ReadyItem.Configure(view.Ready);
             return view;
         }
 

@@ -25,6 +25,29 @@ namespace FutebolDeBotao
             foreach (var gamepad in Gamepad.all) devices.Add(gamepad);
         }
 
+        /// <summary>
+        /// Dispositivos do jogador (1 ou 2) escolhidos na tela Controles, com o mouse junto do teclado. Nulo = qualquer um:
+        /// sem dono, revezando no mesmo dispositivo, ou o dispositivo escolhido não está mais conectado.
+        /// </summary>
+        public static InputDevice[] DevicesOf(int player)
+        {
+            if (player == 0 || MatchSession.SharedDevice) return null;
+            var device = player == 1 ? MatchSession.Player1Device : MatchSession.Player2Device;
+            if (device == null || !device.added) return null;
+            if (device is Keyboard && Mouse.current != null) return new InputDevice[] { device, Mouse.current };
+            return new[] { device };
+        }
+
+        /// <summary>De qual jogador é o ponteiro (mouse vai com o teclado; toque com o toque). 0 = de ninguém ou dos dois.</summary>
+        public static int PointerOwner(Pointer pointer)
+        {
+            if (pointer == null || MatchSession.SharedDevice) return 0;
+            bool Owns(InputDevice device) => device != null && (device == pointer || (pointer is Mouse && device is Keyboard));
+            if (Owns(MatchSession.Player1Device)) return 1;
+            if (Owns(MatchSession.Player2Device)) return 2;
+            return 0;
+        }
+
         /// <summary>Nome na tela: "Teclado e mouse", "Toque" ou "Controle N" (N pela ordem em <paramref name="devices"/>).</summary>
         public static string Label(InputDevice device, List<InputDevice> devices)
         {

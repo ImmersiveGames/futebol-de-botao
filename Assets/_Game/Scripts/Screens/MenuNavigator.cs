@@ -8,7 +8,8 @@ namespace FutebolDeBotao
     /// <summary>
     /// Navegação de um painel de menu pelo teclado/controle (qualquer dispositivo): cima/baixo anda entre os itens na
     /// ordem da lista; esquerda/direita muda o valor numa linha de opção, ou anda entre botões; E/A confirma; Q/B aperta
-    /// o "Voltar" do painel. O item escolhido ganha uma moldura amarela pulsando, só enquanto se usa teclado/controle.
+    /// o "Voltar" do painel. O item escolhido ganha uma moldura pulsando, só enquanto se usa teclado/controle.
+    /// Com um dono (Jogador 1 ou 2), só o dispositivo dele navega, e o mouse/toque de outro jogador não clica no painel.
     /// </summary>
     public sealed class MenuNavigator : MonoBehaviour
     {
@@ -26,9 +27,16 @@ namespace FutebolDeBotao
         [SerializeField] private int startIndex;
         [Tooltip("Botão apertado pelo Q/B. Vazio: Voltar não faz nada.")]
         [SerializeField] private Button back;
+        [Tooltip("Dono do painel: 0 = qualquer dispositivo, 1 = Jogador 1, 2 = Jogador 2 (dispositivos da tela Controles).")]
+        [SerializeField] private int player;
+        [SerializeField] private Color frameColor = FrameColor;
 
-        private static InputActionAsset controls;
-        private static InputAction navigate, confirm, backAction;
+        /// <summary>Quando definido, o Q/B chama isto no lugar do botão Voltar.</summary>
+        public System.Action BackAction { get; set; }
+
+        private InputActionAsset controls;
+        private InputAction navigate, confirm, backAction;
+        private CanvasGroup group;
 
         private int index;
         private int enabledFrame;
@@ -37,19 +45,45 @@ namespace FutebolDeBotao
         private RectTransform frame;
         private Image[] bars;
 
-        public void Configure(MenuEntry[] menuItems, Button backButton, int start = 0)
+        public void Configure(MenuEntry[] menuItems, Button backButton, int start = 0, int owner = 0)
         {
             items = menuItems ?? new MenuEntry[0];
             back = backButton;
             startIndex = start;
+            player = owner;
             // Criado já ligado (AddComponent em tempo de execução): o OnEnable rodou antes da lista existir.
             if (isActiveAndEnabled) ResetSelection();
+        }
+
+        public void SetFrameColor(Color color) => frameColor = color;
+
+        /// <summary>Põe o cursor no item (por exemplo, no Pronto clicado com o mouse).</summary>
+        public void Select(MenuEntry entry)
+        {
+            int i = System.Array.IndexOf(items, entry);
+            if (i >= 0) index = i;
         }
 
         private void OnEnable()
         {
             EnsureControls();
+            var owned = DeviceChoice.DevicesOf(player);
+            if (owned != null) controls.devices = owned;
+            else controls.devices = null;
+            controls.Enable();
             ResetSelection();
+        }
+
+        private void OnDisable()
+        {
+            if (controls != null) controls.Disable();
+            if (frame != null) frame.gameObject.SetActive(false);
+            if (group != null) group.blocksRaycasts = true;
+        }
+
+        private void OnDestroy()
+        {
+            if (controls != null) Destroy(controls);
         }
 
         private void ResetSelection()
@@ -61,7 +95,7 @@ namespace FutebolDeBotao
             enabledFrame = Time.frameCount;
         }
 
-        private static void EnsureControls()
+        private void EnsureControls()
         {
             if (controls != null) return;
             controls = ControlsDefinition.CreateMenu();
@@ -69,7 +103,6 @@ namespace FutebolDeBotao
             navigate = map.FindAction(ControlsDefinition.MenuNavigate);
             confirm = map.FindAction(ControlsDefinition.MenuConfirm);
             backAction = map.FindAction(ControlsDefinition.MenuBack);
-            map.Enable();
         }
 
         private void Update()
@@ -82,6 +115,7 @@ namespace FutebolDeBotao
 
             var pointer = Pointer.current;
             if (pointer != null && pointer.press.wasPressedThisFrame) PadMode.Active = false;
+            UpdatePointerBlock(pointer);
 
             if (Time.frameCount != enabledFrame) ReadInput();
             UpdateFrame();
@@ -122,7 +156,8 @@ namespace FutebolDeBotao
 
             if (backed)
             {
-                if (back != null && back.isActiveAndEnabled && back.interactable) back.onClick.Invoke();
+                if (BackAction != null) BackAction();
+                else if (back != null && back.isActiveAndEnabled && back.interactable) back.onClick.Invoke();
                 return;
             }
 
@@ -154,6 +189,21 @@ namespace FutebolDeBotao
             index = start;
         }
 
+        /// <summary>O mouse/toque de outro jogador não clica neste painel.</summary>
+        private void UpdatePointerBlock(Pointer pointer)
+        {
+            if (player == 0) return;
+            int owner = DeviceChoice.PointerOwner(pointer);
+            bool blocked = owner != 0 && owner != player;
+            if (group == null)
+            {
+                if (!blocked) return;
+                group = GetComponent<CanvasGroup>();
+                if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+            }
+            group.blocksRaycasts = !blocked;
+        }
+
         private bool IsAvailable(int i) => i >= 0 && i < items.Length && items[i] != null && items[i].IsAvailable;
 
         // ---- Destaque ----
@@ -183,7 +233,7 @@ namespace FutebolDeBotao
             frame.sizeDelta = bounds.size;
 
             float alpha = Mathf.Lerp(0.45f, 1f, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * PulseSpeed));
-            var color = FrameColor;
+            var color = frameColor;
             color.a = alpha;
             foreach (var bar in bars) bar.color = color;
         }
