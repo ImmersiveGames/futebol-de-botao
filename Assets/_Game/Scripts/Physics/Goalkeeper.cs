@@ -18,7 +18,8 @@ namespace FutebolDeBotao
         [SerializeField] private bool trackBallForTesting;
         [SerializeField] private Ball ball;
 
-        private const float ContactGap = 0.005f;
+        // Folga até a bola/botão: a física 2D já encosta (e empurra) a 2 x Default Contact Offset (0,01 cada collider).
+        private const float ContactGap = 0.03f;
 
         private readonly RaycastHit2D[] hits = new RaycastHit2D[8];
         private ContactFilter2D blockers = new() { useTriggers = false };
