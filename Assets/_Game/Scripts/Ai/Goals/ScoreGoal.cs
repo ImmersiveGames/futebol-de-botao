@@ -12,6 +12,7 @@ namespace FutebolDeBotao
 
         public override string Name => "Marcar";
         public override IReadOnlyList<AiAction> Actions => ActionList;
+        public override bool PlansAhead => false;
 
         public override float Priority(AiSituation situation)
         {

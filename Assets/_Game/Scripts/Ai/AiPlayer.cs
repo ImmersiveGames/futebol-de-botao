@@ -213,6 +213,8 @@ namespace FutebolDeBotao
             planner.GoalWidth = match.GoalWidth;
             planner.FarFoulDistance = match.Options.farFoulDistance;
             planner.HasYellow = match.HasYellow(Side);
+            planner.AllDiscs = match.AllDiscs;
+            planner.Keepers = match.Keepers;
             simulator.FoulsEnabled = match.Options.fouls;
             simulator.GoalWidth = match.GoalWidth;
             brain ??= new AiBrain(Side, planner, simulator);

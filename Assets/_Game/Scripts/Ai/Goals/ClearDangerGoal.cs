@@ -8,6 +8,9 @@ namespace FutebolDeBotao
     {
         private static readonly AiAction[] ActionList = { AiAction.KickBallForward };
 
+        /// <summary>A bola tem que terminar pelo menos isto mais longe do próprio gol.</summary>
+        private const float MinGain = 0.3f;
+
         public override string Name => "Tirar do perigo";
         public override IReadOnlyList<AiAction> Actions => ActionList;
 
@@ -26,7 +29,12 @@ namespace FutebolDeBotao
             if (result.Foul || result.GoalOf != null) return score;
             // Além da conta padrão (que já gosta de afastar), cada unidade longe do gol vale mais.
             var ownGoal = new Vector2(0f, FieldLayout.GoalLineY(situation.Side));
-            score += (Vector2.Distance(result.BallEnd, ownGoal) - situation.BallToOwnGoal) * 2f;
+            float gained = Vector2.Distance(result.BallEnd, ownGoal) - situation.BallToOwnGoal;
+            score += gained * 2f;
+            // Tirar do perigo é afastar: bola que fica onde estava ou chega mais perto do gol não serve.
+            if (gained < MinGain) score -= 30f;
+            // Bola parada na própria área continua perigo.
+            if (FieldLayout.InArea(result.BallEnd, situation.Side)) score -= 15f;
             return score;
         }
 

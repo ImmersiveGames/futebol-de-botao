@@ -8,12 +8,14 @@ namespace FutebolDeBotao
         public readonly ShotPlanner Planner;
         public readonly bool GoalAfterWallIsValid;
         public readonly float FoulCaution;
+        public readonly float WallStuckPenalty;
 
-        public AiScoreContext(ShotPlanner planner, bool goalAfterWallIsValid, float foulCaution)
+        public AiScoreContext(ShotPlanner planner, bool goalAfterWallIsValid, float foulCaution, float wallStuckPenalty)
         {
             Planner = planner;
             GoalAfterWallIsValid = goalAfterWallIsValid;
             FoulCaution = foulCaution;
+            WallStuckPenalty = wallStuckPenalty;
         }
     }
 
@@ -32,6 +34,9 @@ namespace FutebolDeBotao
         public float OwnGoalChance;
         /// <summary>Último toque não fica com a IA (a vez passa).</summary>
         public float LoseChance;
+        /// <summary>Parte da nota que veio do toque seguinte (já somada em <see cref="Score"/>).</summary>
+        public float Follow;
+        public bool HasFollow;
 
         public bool Risky => Foul || FoulNearby || OwnGoalRisk;
 
@@ -58,6 +63,9 @@ namespace FutebolDeBotao
         public abstract float? Score(in SimResult result, in ShotCandidate candidate, AiAction action, AiSituation situation,
             in AiScoreContext context);
 
+        /// <summary>O decisor também testa o toque seguinte das melhores jogadas (jogadas na bola que não são o chute a gol).</summary>
+        public virtual bool PlansAhead => true;
+
         /// <summary>A melhor jogada atinge o objetivo? Não: o decisor tenta o próximo objetivo.</summary>
         public virtual bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) => verdict.SafeFor(difficulty);
 
@@ -65,15 +73,29 @@ namespace FutebolDeBotao
         protected static int TouchesAfter(AiSituation situation) => situation.TouchesLeft - 1;
 
         /// <summary>Nota padrão da jogada na bola (gol, falta, gol contra, posse, avanço; ShotPlanner.Score).</summary>
-        protected static float BaseScore(in SimResult result, AiSituation situation, in AiScoreContext context) =>
-            context.Planner.Score(result, situation.IsBallKick, situation.GoalsCount, context.GoalAfterWallIsValid,
+        protected static float BaseScore(in SimResult result, AiSituation situation, in AiScoreContext context)
+        {
+            float score = context.Planner.Score(result, situation.IsBallKick, situation.GoalsCount, context.GoalAfterWallIsValid,
                 TouchesAfter(situation), context.FoulCaution);
+            // Quem não pensa o toque seguinte (Fácil) pelo menos evita deixar a bola grudada na parede com a vez continuando.
+            if (context.WallStuckPenalty > 0f && TouchesAfter(situation) > 0 && KeepsBall(result, situation))
+                score -= context.WallStuckPenalty * ShotPlanner.WallsTouching(result.BallEnd);
+            return score;
+        }
 
-        /// <summary>Os objetivos do passo 1 (o "Preparar o chute" entra com o plano de 2 toques).</summary>
+        /// <summary>A jogada termina sem falta nem gol e com o último toque da IA (no tiro de meta, ninguém tocar conta).</summary>
+        protected static bool KeepsBall(in SimResult result, AiSituation situation)
+        {
+            if (result.Foul || result.GoalOf != null) return false;
+            var last = result.LastTouchSide ?? (situation.IsBallKick ? situation.Side : (TeamSide?)null);
+            return last == situation.Side;
+        }
+
         public static readonly AiGoal[] All =
         {
             new ScoreGoal(),
             new ClearDangerGoal(),
+            new PrepareShotGoal(),
             new CloseGoalGoal(),
             new AdvanceGoal(),
             new SafeTouchGoal()

@@ -41,6 +41,9 @@ namespace FutebolDeBotao
         public List<Disc> Usable;
         /// <summary>Todos os botões que podem jogar agora (o toque seguro escolhe entre eles).</summary>
         public List<Disc> AllUsable;
+        /// <summary>Todos os botões da IA em campo (no toque seguinte qualquer um joga, mesmo depois de um tiro livre).</summary>
+        public List<Disc> TeamDiscs;
+        public bool HasGoalkeeper;
 
         public static AiSituation Read(MatchController match, TeamSide side, ShotPlanner planner, ShotPlanner opponentPlanner,
             AiDifficulty difficulty, List<Disc> usable, List<Disc> allUsable)
@@ -65,8 +68,12 @@ namespace FutebolDeBotao
                 SecondsLeft = match.ClockSeconds,
                 HasYellow = match.HasYellow(side),
                 Usable = usable,
-                AllUsable = allUsable
+                AllUsable = allUsable,
+                TeamDiscs = new List<Disc>(),
+                HasGoalkeeper = match.Options.hasGoalkeeper
             };
+            foreach (var disc in match.AllDiscs)
+                if (disc != null && disc.isActiveAndEnabled && disc.Side == side) situation.TeamDiscs.Add(disc);
 
             if (!situation.IsBallKick && usable.Count > 0)
                 situation.HasClearShot = planner.HasClearShot(usable);

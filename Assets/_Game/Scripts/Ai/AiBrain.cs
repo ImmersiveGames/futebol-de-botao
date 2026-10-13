@@ -26,6 +26,8 @@ namespace FutebolDeBotao
         public string GoalsLine;
         /// <summary>Objetivos tentados que não aceitaram a jogada deles.</summary>
         public string Rejected;
+        /// <summary>O melhor toque seguinte que a IA viu para a jogada escolhida (vazio se não pensou).</summary>
+        public string FollowLine = string.Empty;
         public int Simulations;
         public int Steps;
         public double Milliseconds;
@@ -46,6 +48,10 @@ namespace FutebolDeBotao
         private const int MaxRobustChecks = 6;
         private const int PositionSimulations = 6;
         private const int MaxPositionSimulations = 14;
+        /// <summary>Quanto o toque seguinte pesa na nota (o futuro é incerto).</summary>
+        private const float FollowWeight = 0.7f;
+        /// <summary>Nota do toque seguinte quando não existe jogada nenhuma (bola sem saída).</summary>
+        private const float DeadEndScore = -20f;
 
         /// <summary>Uma jogada simulada de uma ação: o resultado sem erro e, se já testadas, as versões com erro.</summary>
         private sealed class Trial
@@ -53,12 +59,17 @@ namespace FutebolDeBotao
             public ShotCandidate Candidate;
             public SimResult Main;
             public SimResult[] Variants;
+            /// <summary>Nota do melhor toque seguinte (nulo: ainda não pensou).</summary>
+            public float? Follow;
+            public string FollowLine;
         }
 
         private struct Rated
         {
             public Trial Trial;
             public AiVerdict Verdict;
+            /// <summary>Nota da jogada sem erro, sem o toque seguinte.</summary>
+            public float Immediate;
             public bool Checked;
         }
 
@@ -66,6 +77,7 @@ namespace FutebolDeBotao
         private readonly ShotPlanner planner;
         private readonly ShotSimulator simulator;
         private readonly Dictionary<AiAction, List<Trial>> trials = new();
+        private PhysicsTuning currentTuning;
         private readonly Stopwatch frame = new();
         private Func<bool> stillValid;
         private bool aborted;
@@ -87,13 +99,15 @@ namespace FutebolDeBotao
             Func<bool> valid, Action<AiDecision> done)
         {
             trials.Clear();
+            currentTuning = tuning;
             stillValid = valid;
             aborted = false;
             simulations = 0;
             computeMs = 0;
             int stepsBefore = simulator.TotalSteps;
             float maxImpulse = situation.IsBallKick ? tuning.ballKickMaxImpulse : tuning.maxImpulse;
-            var context = new AiScoreContext(planner, match.Options.goalAfterWallIsValid, difficulty.foulCaution);
+            var context = new AiScoreContext(planner, match.Options.goalAfterWallIsValid, difficulty.foulCaution,
+                difficulty.wallStuckPenalty);
 
             // Objetivos que valem agora, do mais alto para o mais baixo (empate: a ordem da lista).
             var goals = new List<(AiGoal Goal, float Priority)>();
@@ -159,7 +173,8 @@ namespace FutebolDeBotao
                     Candidate = pick.Value.Trial.Candidate,
                     Verdict = pick.Value.Verdict,
                     Expected = pick.Value.Trial.Main,
-                    HasExpected = true
+                    HasExpected = true,
+                    FollowLine = pick.Value.Verdict.HasFollow ? pick.Value.Trial.FollowLine ?? string.Empty : string.Empty
                 };
                 if (goal.Accepts(pick.Value.Verdict, situation, difficulty))
                 {
@@ -236,6 +251,7 @@ namespace FutebolDeBotao
                 rated.Add(new Rated
                 {
                     Trial = trial,
+                    Immediate = score.Value,
                     Verdict = new AiVerdict
                     {
                         Score = score.Value,
@@ -257,6 +273,30 @@ namespace FutebolDeBotao
             }
             rated.Sort((a, b) => b.Verdict.Score.CompareTo(a.Verdict.Score));
 
+            // Pensar o toque seguinte: as melhores jogadas que ficam com a bola também são testadas um toque à frente,
+            // para não levar a bola a um canto sem saída.
+            if (action.TouchesBall && goal.PlansAhead && difficulty.planAhead > 0 && situation.TouchesLeft > 1)
+            {
+                int planned = 0;
+                for (int i = 0; i < rated.Count && planned < difficulty.planAhead; i++)
+                {
+                    var entry = rated[i];
+                    var main = entry.Trial.Main;
+                    if (main.Foul || main.GoalOf != null || main.End == null || Loses(main, situation)) continue;
+                    if (entry.Trial.Follow == null)
+                    {
+                        yield return FollowUp(entry.Trial, situation, context, difficulty);
+                        if (aborted) yield break;
+                    }
+                    entry.Verdict.Follow = entry.Trial.Follow.GetValueOrDefault() * FollowWeight;
+                    entry.Verdict.HasFollow = true;
+                    entry.Verdict.Score += entry.Verdict.Follow;
+                    rated[i] = entry;
+                    planned++;
+                }
+                rated.Sort((a, b) => b.Verdict.Score.CompareTo(a.Verdict.Score));
+            }
+
             if (action.TouchesBall)
             {
                 int checks = 0;
@@ -275,7 +315,7 @@ namespace FutebolDeBotao
                             if (Budget()) yield return Pause();
                             if (aborted) yield break;
                         }
-                        float sum = entry.Verdict.Score;
+                        float sum = entry.Immediate;
                         int count = 1;
                         int fouls = 0, ownGoals = entry.Verdict.OwnGoalRisk ? 1 : 0, loses = entry.Verdict.LoseChance > 0f ? 1 : 0;
                         foreach (var variant in entry.Trial.Variants)
@@ -296,7 +336,7 @@ namespace FutebolDeBotao
                             sum += score.Value;
                             count++;
                         }
-                        entry.Verdict.Score = sum / count;
+                        entry.Verdict.Score = sum / count + entry.Verdict.Follow;
                         float samples = entry.Trial.Variants.Length + 1;
                         entry.Verdict.FoulChance = fouls / samples;
                         entry.Verdict.OwnGoalChance = ownGoals / samples;
@@ -326,6 +366,47 @@ namespace FutebolDeBotao
             for (int i = 0; i < rated.Count && rated[i].Checked && pool.Count < difficulty.pickAmongBest; i++)
                 if (i != first && rated[i].Verdict.SafeFor(difficulty) && rated[i].Verdict.Score >= best - PickWindow) pool.Add(rated[i]);
             done(pool[Random.Range(0, pool.Count)]);
+        }
+
+        /// <summary>
+        /// O melhor toque seguinte a partir de onde a jogada parou: gera jogadas pela geometria nas posições simuladas,
+        /// simula algumas (sem erro) e fica com a melhor nota. Sem jogada nenhuma: bola sem saída.
+        /// </summary>
+        private IEnumerator FollowUp(Trial trial, AiSituation situation, AiScoreContext context, AiDifficulty difficulty)
+        {
+            var state = trial.Main.End;
+            int touchesAfter = situation.TouchesLeft - 2;
+            bool attackHalf = FieldLayout.AttackDirection(side).y * state.Ball.y > 0f;
+            bool goalsCount = !situation.HasGoalkeeper && attackHalf;
+            var discs = ShotPlanner.Nearest(state, situation.TeamDiscs, difficulty.discsToTest);
+            var candidates = planner.FollowUpCandidates(state, discs, goalsCount);
+            if (Budget()) yield return Pause();
+            if (aborted) yield break;
+            float best = DeadEndScore;
+            string line = "sem saída";
+            foreach (var candidate in Diversify(candidates, difficulty.followUpSimulations))
+            {
+                var watch = Stopwatch.StartNew();
+                var next = simulator.Simulate(candidate.Disc.Body, candidate.Direction * (candidate.Power01 * currentTuning.maxImpulse),
+                    side, state);
+                computeMs += watch.Elapsed.TotalMilliseconds;
+                simulations++;
+
+                float score = planner.Score(next, false, goalsCount, context.GoalAfterWallIsValid, touchesAfter,
+                    context.FoulCaution, state.Ball);
+                if (touchesAfter > 0 && !next.Foul && next.GoalOf == null && next.LastTouchSide == side &&
+                    planner.HasShotSetup(next.End, situation.TeamDiscs, situation.ShotCallDistance))
+                    score += ShotPlanner.ShotSetupBonus;
+                if (score > best)
+                {
+                    best = score;
+                    line = $"{candidate.Disc.name} nota {score:0}" + (next.GoalOf != null && next.GoalOf != side ? " (gol)" : string.Empty);
+                }
+                if (Budget()) yield return Pause();
+                if (aborted) yield break;
+            }
+            trial.Follow = best;
+            trial.FollowLine = line;
         }
 
         /// <summary>A vez passa: o último toque não fica com a IA (no tiro de meta, ninguém tocar conta como dela).</summary>

@@ -60,6 +60,18 @@ namespace FutebolDeBotao
         /// <summary>Largura da boca do gol (menor sem goleiro): os alvos de chute ficam dentro dela.</summary>
         public float GoalWidth { get; set; } = FieldLayout.GoalWidth;
 
+        /// <summary>Todos os botões e goleiros da mesa (para conferir caminhos num momento simulado).</summary>
+        public IReadOnlyList<Disc> AllDiscs { get; set; }
+        public IReadOnlyList<Goalkeeper> Keepers { get; set; }
+
+        /// <summary>Bônus na nota quando a jogada deixa um chute livre para o toque seguinte (Preparar o chute).</summary>
+        public const float ShotSetupBonus = 25f;
+
+        /// <summary>Bola a menos que isto da parede: grudada nela (no canto, nas duas).</summary>
+        private const float WallNear = 0.45f;
+        /// <summary>Passo do círculo que confere o caminho num momento simulado.</summary>
+        private const float PathStep = 0.1f;
+
         public ShotPlanner(TeamSide aiSide, PhysicsTuning physicsTuning, Ball matchBall)
         {
             side = aiSide;
@@ -94,6 +106,81 @@ namespace FutebolDeBotao
                     AddDiscCandidates(list, disc, ballPosition, target, false, true);
 
             return list;
+        }
+
+        /// <summary>
+        /// Jogadas do toque seguinte, a partir de um momento simulado (onde a bola e os botões pararam). O caminho é
+        /// conferido nas posições desse momento, sem a física da mesa de verdade. Em ordem de nota da geometria.
+        /// </summary>
+        public List<ShotCandidate> FollowUpCandidates(SimState state, IReadOnlyList<Disc> discs, bool scoring)
+        {
+            var list = new List<ShotCandidate>();
+            Vector2 ballPosition = state.Ball;
+            var targets = scoring ? GoalTargets() : AdvanceTargets(ballPosition);
+            foreach (var disc in discs)
+            {
+                foreach (var target in targets)
+                    AddDiscCandidates(list, disc, ballPosition, target, scoring, false, state);
+                if (!scoring)
+                    foreach (var target in WideTargets(ballPosition))
+                        AddDiscCandidates(list, disc, ballPosition, target, false, true, state);
+            }
+            list.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
+            return list;
+        }
+
+        /// <summary>
+        /// Neste momento simulado, algum botão teria chute a gol livre (sem adversário no caminho, sem força máxima)
+        /// com a bola perto do gol? É o "Preparar o chute": no toque seguinte dá para anunciar o Vai chutar.
+        /// </summary>
+        public bool HasShotSetup(SimState state, IReadOnlyList<Disc> discs, float maxDistance)
+        {
+            if (state == null) return false;
+            Vector2 goal = new(0f, FieldLayout.GoalLineY(Opponent));
+            if (Vector2.Distance(state.Ball, goal) > maxDistance || Progress(state.Ball) <= 0f) return false;
+            ignoreKeepers = true;
+            try
+            {
+                var targets = GoalTargets();
+                setupList.Clear();
+                foreach (var disc in Nearest(state, discs, SetupDiscs))
+                foreach (var target in targets)
+                {
+                    int before = setupList.Count;
+                    AddDiscCandidates(setupList, disc, state.Ball, target, true, false, state);
+                    for (int i = before; i < setupList.Count; i++)
+                    {
+                        var candidate = setupList[i];
+                        if (!candidate.FoulRisk && !candidate.Blocked && !candidate.BallBlocked && candidate.Power01 < 1f) return true;
+                    }
+                }
+                return false;
+            }
+            finally { ignoreKeepers = false; }
+        }
+
+        /// <summary>Quantos botões (os mais perto da bola) contam para o chute preparado.</summary>
+        private const int SetupDiscs = 3;
+        private readonly List<ShotCandidate> setupList = new();
+
+        /// <summary>Os <paramref name="count"/> botões mais perto da bola neste momento simulado.</summary>
+        public static List<Disc> Nearest(SimState state, IReadOnlyList<Disc> discs, int count)
+        {
+            var list = new List<Disc>(discs);
+            Vector2 ballPosition = state.Ball;
+            list.Sort((a, b) => (state.PositionOf(a.Body) - ballPosition).sqrMagnitude
+                .CompareTo((state.PositionOf(b.Body) - ballPosition).sqrMagnitude));
+            if (list.Count > count) list.RemoveRange(count, list.Count - count);
+            return list;
+        }
+
+        /// <summary>Quantas paredes a bola está encostando (0, 1 ou 2 no canto).</summary>
+        public static int WallsTouching(Vector2 ballPosition)
+        {
+            int walls = 0;
+            if (FieldLayout.HalfWidth - Mathf.Abs(ballPosition.x) < WallNear) walls++;
+            if (FieldLayout.HalfHeight - Mathf.Abs(ballPosition.y) < WallNear) walls++;
+            return walls;
         }
 
         /// <summary>
@@ -280,7 +367,7 @@ namespace FutebolDeBotao
         }
 
         private void AddDiscCandidates(List<ShotCandidate> list, Disc disc, Vector2 ballPosition, Vector2 target, bool scoring,
-            bool wide)
+            bool wide, SimState state = null)
         {
             // Sinuca: para a bola ir na direção do alvo, o botão tem que bater nela pelo lado oposto ("bola fantasma").
             Vector2 toTarget = target - ballPosition;
@@ -288,7 +375,7 @@ namespace FutebolDeBotao
             if (length < 0.1f) return;
             Vector2 ballDirection = toTarget / length;
 
-            Vector2 discPosition = disc.Body.position;
+            Vector2 discPosition = state != null ? state.PositionOf(disc.Body) : disc.Body.position;
             Vector2 ghost = ballPosition - ballDirection * (ball.Radius + disc.Radius);
             Vector2 toGhost = ghost - discPosition;
             float travel = toGhost.magnitude;
@@ -300,8 +387,17 @@ namespace FutebolDeBotao
             if (cut < 0.35f) return;
 
             float power = PowerFor(disc, travel, cut, scoring ? length + 1.5f : length);
-            CheckDiscPath(disc, aimDirection, travel, out bool foulRisk, out bool blocked);
-            bool ballBlocked = BallPathBlocked(ballPosition, ballDirection, length, disc);
+            bool foulRisk, blocked, ballBlocked;
+            if (state == null)
+            {
+                CheckDiscPath(disc, aimDirection, travel, out foulRisk, out blocked);
+                ballBlocked = BallPathBlocked(ballPosition, ballDirection, length, disc);
+            }
+            else
+            {
+                CheckDiscPathIn(state, disc, discPosition, aimDirection, travel, out foulRisk, out blocked);
+                ballBlocked = BallPathBlockedIn(state, ballPosition, ballDirection, length, disc);
+            }
 
             float preScore = scoring ? 20f : Progress(toTarget) * 2f;
             // Bola perto do próprio gol: alvo que a afasta do gol vale mais (para os lados também serve).
@@ -380,7 +476,7 @@ namespace FutebolDeBotao
         /// </summary>
         private List<Vector2> WideTargets(Vector2 ballPosition)
         {
-            return new List<Vector2>
+            var targets = new List<Vector2>
             {
                 ballPosition + new Vector2(-WideSideDistance, 0f),
                 ballPosition + new Vector2(WideSideDistance, 0f),
@@ -391,6 +487,31 @@ namespace FutebolDeBotao
                 ballPosition + Attack * WideBackDistance + new Vector2(-WideSideDistance, 0f),
                 ballPosition + Attack * WideBackDistance + new Vector2(WideSideDistance, 0f)
             };
+            AddWallTargets(targets, ballPosition);
+            return targets;
+        }
+
+        /// <summary>
+        /// Bola encostada numa parede: toques de lado, ao longo dela, um pouco para dentro da parede (o botão não
+        /// cabe entre a bola e a parede, então bate de lado e a parede vai guiando a bola para fora do canto).
+        /// </summary>
+        private static void AddWallTargets(List<Vector2> targets, Vector2 ballPosition)
+        {
+            const float along = 2.5f;
+            const float inward = 0.8f;
+            if (FieldLayout.HalfWidth - Mathf.Abs(ballPosition.x) < WallNear)
+            {
+                float toWall = Mathf.Sign(ballPosition.x);
+                targets.Add(ballPosition + new Vector2(toWall * inward, along));
+                targets.Add(ballPosition + new Vector2(toWall * inward, -along));
+            }
+            // Na boca do gol não tem parede: o toque "para dentro" seria para o gol.
+            if (FieldLayout.HalfHeight - Mathf.Abs(ballPosition.y) < WallNear && Mathf.Abs(ballPosition.x) > FieldLayout.GoalWidth * 0.5f + 0.3f)
+            {
+                float toWall = Mathf.Sign(ballPosition.y);
+                targets.Add(ballPosition + new Vector2(along, toWall * inward));
+                targets.Add(ballPosition + new Vector2(-along, toWall * inward));
+            }
         }
 
         /// <summary>Quanto um deslocamento avança na direção do gol adversário.</summary>
@@ -450,6 +571,110 @@ namespace FutebolDeBotao
             return false;
         }
 
+        // ---- Caminho livre num momento simulado (sem física: um círculo andando em passos) ----
+
+        private enum Obstacle { None, Ball, Teammate, Opponent, OwnKeeper, OpponentKeeper, Wall }
+
+        /// <summary>Mesmo que <see cref="CheckDiscPath"/>, nas posições de um momento simulado.</summary>
+        private void CheckDiscPathIn(SimState state, Disc disc, Vector2 from, Vector2 direction, float distance,
+            out bool foulRisk, out bool blocked)
+        {
+            foulRisk = false;
+            blocked = false;
+            var hit = FirstObstacle(state, from, direction, distance + 0.05f, disc.Radius * 0.95f, disc, true);
+            if (hit is Obstacle.Opponent or Obstacle.OpponentKeeper) foulRisk = FoulsEnabled;
+            else if (hit is Obstacle.Teammate or Obstacle.OwnKeeper or Obstacle.Wall) blocked = true;
+        }
+
+        /// <summary>Mesmo que <see cref="BallPathBlocked"/>, nas posições de um momento simulado.</summary>
+        private bool BallPathBlockedIn(SimState state, Vector2 from, Vector2 direction, float distance, Disc shooter)
+        {
+            Prepare(state);
+            float radius = ball.Radius * 0.95f;
+            for (float travelled = PathStep; travelled <= distance; travelled += PathStep)
+            {
+                Vector2 point = from + direction * travelled;
+                foreach (var other in stateDiscs)
+                    if (other.Disc != shooter && other.Disc.Side != side && Vector2.Distance(point, other.Position) < other.Radius + radius)
+                        return true;
+                if (ignoreKeepers) continue;
+                foreach (var keeper in stateKeepers)
+                    if (BoxOverlaps(keeper.Center, keeper.Half, point, radius)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>O que um círculo andando de <paramref name="from"/> encontra primeiro (a bola conta como chegar).</summary>
+        private Obstacle FirstObstacle(SimState state, Vector2 from, Vector2 direction, float distance, float radius, Disc self,
+            bool stopAtBall)
+        {
+            Prepare(state);
+            float maxX = FieldLayout.HalfWidth + FieldLayout.WallInset - radius;
+            float maxY = FieldLayout.HalfHeight + FieldLayout.WallInset - radius;
+            for (float travelled = PathStep; travelled <= distance + 0.001f; travelled += PathStep)
+            {
+                Vector2 point = from + direction * Mathf.Min(travelled, distance);
+                if (stopAtBall && Vector2.Distance(point, state.Ball) < radius + ball.Radius) return Obstacle.Ball;
+                foreach (var other in stateDiscs)
+                    if (other.Disc != self && Vector2.Distance(point, other.Position) < radius + other.Radius)
+                        return other.Disc.Side == side ? Obstacle.Teammate : Obstacle.Opponent;
+                foreach (var keeper in stateKeepers)
+                    if (BoxOverlaps(keeper.Center, keeper.Half, point, radius))
+                        return keeper.Side == side ? Obstacle.OwnKeeper : Obstacle.OpponentKeeper;
+                if (Mathf.Abs(point.x) > maxX || Mathf.Abs(point.y) > maxY) return Obstacle.Wall;
+            }
+            return Obstacle.None;
+        }
+
+        private struct StateDisc
+        {
+            public Disc Disc;
+            public Vector2 Position;
+            public float Radius;
+        }
+
+        private struct StateKeeper
+        {
+            public TeamSide Side;
+            public Vector2 Center;
+            public Vector2 Half;
+        }
+
+        private readonly List<StateDisc> stateDiscs = new();
+        private readonly List<StateKeeper> stateKeepers = new();
+        private SimState preparedState;
+
+        /// <summary>Lê uma vez as posições e tamanhos de botões e goleiros do momento simulado.</summary>
+        private void Prepare(SimState state)
+        {
+            if (state == preparedState) return;
+            preparedState = state;
+            stateDiscs.Clear();
+            stateKeepers.Clear();
+            if (AllDiscs != null)
+                foreach (var disc in AllDiscs)
+                    if (disc != null && disc.isActiveAndEnabled)
+                        stateDiscs.Add(new StateDisc { Disc = disc, Position = state.PositionOf(disc.Body), Radius = disc.Radius });
+            if (Keepers != null)
+                foreach (var keeper in Keepers)
+                {
+                    if (keeper == null || !keeper.isActiveAndEnabled || !keeper.TryGetComponent(out BoxCollider2D box)) continue;
+                    stateKeepers.Add(new StateKeeper
+                    {
+                        Side = keeper.Side,
+                        Center = state.PositionOf(keeper.GetComponent<Rigidbody2D>()) + box.offset,
+                        Half = Vector2.Scale(box.size, keeper.transform.lossyScale) * 0.5f
+                    });
+                }
+        }
+
+        private static bool BoxOverlaps(Vector2 center, Vector2 half, Vector2 point, float radius)
+        {
+            Vector2 closest = new(Mathf.Clamp(point.x, center.x - half.x, center.x + half.x),
+                Mathf.Clamp(point.y, center.y - half.y, center.y + half.y));
+            return (point - closest).sqrMagnitude < radius * radius;
+        }
+
         private void SortByDistance(int count)
         {
             for (int i = 1; i < count; i++)
@@ -472,9 +697,9 @@ namespace FutebolDeBotao
         /// <paramref name="touchesLeftAfter"/>: toques que sobram se a vez continuar.
         /// </summary>
         public float Score(in SimResult result, bool isBallKick, bool goalsCount, bool goalAfterWallIsValid,
-            int touchesLeftAfter, float foulCaution)
+            int touchesLeftAfter, float foulCaution, Vector2? from = null)
         {
-            Vector2 start = ball.Body.position;
+            Vector2 start = from ?? ball.Body.position;
 
             if (result.Foul)
             {

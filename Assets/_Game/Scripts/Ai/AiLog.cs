@@ -16,7 +16,7 @@ namespace FutebolDeBotao
         private static readonly CultureInfo Number = CultureInfo.InvariantCulture;
         private const string Header =
             "nivel;tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
-            "bola_esperada;ultimo_toque_esperado;gol_esperado;simulacoes;ms;bola_real;ultimo_toque_real;avisos";
+            "bola_esperada;ultimo_toque_esperado;gol_esperado;segundo_toque;simulacoes;ms;bola_real;ultimo_toque_real;avisos";
 
         private readonly TeamSide side;
         private readonly string level;
@@ -58,6 +58,7 @@ namespace FutebolDeBotao
                 Field(decision.HasExpected ? Point(e.BallEnd) : string.Empty),
                 Field(decision.HasExpected ? SideName(e.LastTouchSide) : string.Empty),
                 Field(decision.HasExpected && e.GoalOf != null ? (e.GoalOf == side ? "contra" : "a favor") : string.Empty),
+                Field(decision.FollowLine),
                 Field(decision.Simulations.ToString(Number)),
                 Field(decision.Milliseconds.ToString("0.0", Number)));
             notices.Clear();
@@ -100,7 +101,7 @@ namespace FutebolDeBotao
                 Field(string.Format(Number, "{0:0.00};{1:0.00}", direction.x, direction.y)),
                 Field(power.ToString("0.00", Number)),
                 Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty),
-                Field(string.Empty), Field(string.Empty));
+                Field(string.Empty), Field(string.Empty), Field(string.Empty));
             notices.Clear();
 #endif
         }
@@ -174,6 +175,7 @@ namespace FutebolDeBotao
             if (decision.Action.IsInstant) return text.ToString();
             text.Append(" com ").Append(decision.Candidate.Disc != null ? decision.Candidate.Disc.name : "a bola");
             text.Append(", nota ").Append(decision.Verdict.Score.ToString("0"));
+            if (decision.FollowLine.Length > 0) text.Append(" (segundo toque: ").Append(decision.FollowLine).Append(')');
             string risks = Risks(decision.Verdict);
             if (risks.Length > 0) text.Append(" (").Append(risks).Append(')');
             return text.ToString();

@@ -26,6 +26,16 @@ namespace FutebolDeBotao
         [Tooltip("Quanto a IA evita jogadas com risco de falta. 1 = evita bastante; menor = arrisca mais.")]
         [Range(0f, 1f)] public float foulCaution = 1f;
 
+        [Header("Pensar o toque seguinte")]
+        [Tooltip("Quantas das melhores jogadas (que ficam com a bola) a IA testa também o toque seguinte, para não deixar a " +
+                 "bola num lugar sem saída. 0 = não pensa. Fácil 0; Médio 2; Difícil 4.")]
+        [Min(0)] public int planAhead = 2;
+        [Tooltip("Quantas jogadas do toque seguinte vão para a mesa simulada, para cada jogada testada.")]
+        [Min(1)] public int followUpSimulations = 4;
+        [Tooltip("Desconto na nota quando a bola fica grudada numa parede (dobra no canto) e a vez continua. Serve para " +
+                 "quem não pensa o toque seguinte. Fácil 8; Médio e Difícil 0.")]
+        [Min(0f)] public float wallStuckPenalty = 0f;
+
         [Header("Posicionamento")]
         [Tooltip("Quando a melhor jogada é ruim (falta provável ou sem boa chance na bola), chance de só reposicionar um " +
                  "botão sem tocar na bola, em vez de arriscar. A vez passa. Fácil ~0,2; Médio ~0,5; Difícil ~0,8.")]
@@ -99,6 +109,9 @@ namespace FutebolDeBotao
                     difficulty.simulations = 4;
                     difficulty.pickAmongBest = 3;
                     difficulty.foulCaution = 0.5f;
+                    difficulty.planAhead = 0;
+                    difficulty.followUpSimulations = 3;
+                    difficulty.wallStuckPenalty = 8f;
                     difficulty.repositionChance = 0.2f;
                     difficulty.ownGoalDefendChance = 0.4f;
                     difficulty.dangerAwareness = 0.4f;
@@ -116,6 +129,8 @@ namespace FutebolDeBotao
                     difficulty.simulations = 12;
                     difficulty.pickAmongBest = 1;
                     difficulty.foulCaution = 1f;
+                    difficulty.planAhead = 4;
+                    difficulty.followUpSimulations = 6;
                     difficulty.repositionChance = 0.8f;
                     difficulty.ownGoalDefendChance = 1f;
                     difficulty.dangerAwareness = 1f;

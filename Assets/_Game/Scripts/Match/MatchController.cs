@@ -926,10 +926,11 @@ namespace FutebolDeBotao
             enteredBall.StopInGoal();
             pendingGoal = goal;
 
-            // Gol contra (último toque de um botão de quem defende) vale sempre.
+            // Gol contra vale sempre: a jogada era de quem defende este gol (mesmo que a bola tenha batido num adversário)
+            // ou o último toque foi de um botão de quem defende.
             // Os outros só valem num "Vai chutar" (sem goleiro: chute do campo de ataque) e, por padrão, sem a bola tocar a parede lateral.
             var lastDisc = enteredBall.LastDiscTouch;
-            bool ownGoal = lastDisc != null && lastDisc.Side == goal.DefendingSide;
+            bool ownGoal = Turn == goal.DefendingSide || lastDisc != null && lastDisc.Side == goal.DefendingSide;
             bool wallOk = options.goalAfterWallIsValid || !enteredBall.TouchedWallSinceShot;
             bool called = options.hasGoalkeeper ? shotWasCalled : shotFromAttackHalf;
             pendingGoalValid = ownGoal || (called && wallOk);

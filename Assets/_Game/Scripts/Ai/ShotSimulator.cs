@@ -24,6 +24,26 @@ namespace FutebolDeBotao
         /// <summary>Onde o botão do peteleco parou (ou estava, se a jogada parou numa falta).</summary>
         public Vector2 ShooterEnd;
         public int Steps;
+        /// <summary>Onde tudo parou (para simular o toque seguinte a partir daí). Nulo se a jogada parou numa falta.</summary>
+        public SimState End;
+    }
+
+    /// <summary>Posições de todos os corpos da mesa simulada num momento (o fim de uma jogada).</summary>
+    public sealed class SimState
+    {
+        internal Rigidbody2D[] Sources;
+        internal Vector2[] Positions;
+        internal int BallIndex = -1;
+
+        public Vector2 Ball => BallIndex >= 0 ? Positions[BallIndex] : Vector2.zero;
+
+        /// <summary>Onde está o corpo da mesa de verdade <paramref name="source"/> neste momento.</summary>
+        public Vector2 PositionOf(Rigidbody2D source)
+        {
+            for (int i = 0; i < Sources.Length; i++)
+                if (Sources[i] == source) return Positions[i];
+            return source != null ? source.position : Vector2.zero;
+        }
     }
 
     /// <summary>
@@ -67,6 +87,7 @@ namespace FutebolDeBotao
         private TeamSide? keeperOverrideSide;
         private float keeperOverrideX;
         private Vector2? ballOverride;
+        private Rigidbody2D[] sources;
 
         /// <summary>Passos de física simulados desde a criação (para o log de desempenho).</summary>
         public int TotalSteps { get; private set; }
@@ -137,15 +158,17 @@ namespace FutebolDeBotao
         /// <summary>Opção da partida: desligada, bater em adversário não para a jogada.</summary>
         public bool FoulsEnabled { get; set; } = true;
 
-        public SimResult Simulate(Rigidbody2D shooter, Vector2 impulse, TeamSide shooterSide)
+        /// <param name="from">Começa deste momento simulado, não da mesa de verdade (o toque seguinte da IA).</param>
+        public SimResult Simulate(Rigidbody2D shooter, Vector2 impulse, TeamSide shooterSide, SimState from = null)
         {
             var result = new SimResult();
             if (ball == null) return result;
 
-            foreach (var body in bodies)
+            for (int index = 0; index < bodies.Count; index++)
             {
+                var body = bodies[index];
                 if (!body.Copy.gameObject.activeSelf) continue;
-                body.Copy.position = body.Source.position;
+                body.Copy.position = from != null ? from.Positions[index] : body.Source.position;
                 body.Copy.rotation = body.Source.rotation;
                 body.Copy.linearVelocity = Vector2.zero;
                 body.Copy.angularVelocity = 0f;
@@ -153,7 +176,7 @@ namespace FutebolDeBotao
                 body.WasOnBall = false;
                 if (body.Kind == Kind.Keeper && body.Side == keeperOverrideSide)
                     body.Copy.position = new Vector2(keeperOverrideX, body.Source.position.y);
-                if (body == ball && ballOverride.HasValue) body.Copy.position = ballOverride.Value;
+                if (body == ball && ballOverride.HasValue && from == null) body.Copy.position = ballOverride.Value;
             }
 
             SimBody shot = shooter != null && bySource.TryGetValue(shooter, out var found) ? found : ball;
@@ -268,7 +291,20 @@ namespace FutebolDeBotao
 
             result.BallEnd = ball.Copy.position;
             result.ShooterEnd = shot.Copy.position;
+            result.End = Capture();
             return result;
+        }
+
+        private SimState Capture()
+        {
+            if (sources == null)
+            {
+                sources = new Rigidbody2D[bodies.Count];
+                for (int i = 0; i < bodies.Count; i++) sources[i] = bodies[i].Source;
+            }
+            var state = new SimState { Sources = sources, Positions = new Vector2[bodies.Count], BallIndex = bodies.IndexOf(ball) };
+            for (int i = 0; i < bodies.Count; i++) state.Positions[i] = bodies[i].Copy.position;
+            return state;
         }
 
         /// <summary>Mesma regra do jogo (BallRebound): a bola rebate nos botões parados que não são o do peteleco.</summary>
