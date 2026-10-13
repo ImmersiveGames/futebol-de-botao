@@ -360,7 +360,7 @@ namespace FutebolDeBotao
 
                 case MatchState.ShotCall:
                     bool ready = !IsAi(Opponent(Turn)) && MatchInput.For(Opponent(Turn)).SelectPressedThisFrame;
-                    if (stateTimer <= 0f || ready) EnterShotAim();
+                    if (stateTimer <= 0f || ready) FinishShotCall();
                     break;
 
                 case MatchState.PenaltySetup:
@@ -469,7 +469,7 @@ namespace FutebolDeBotao
         public void ConfirmReady()
         {
             if (IsHolding) return;
-            if (State == MatchState.ShotCall) EnterShotAim();
+            if (State == MatchState.ShotCall) FinishShotCall();
             else if (State == MatchState.PenaltySetup) FinishPenaltySetup();
             else if (IsPlacingGoalKick) FinishGoalKickPlacement();
         }
@@ -502,6 +502,16 @@ namespace FutebolDeBotao
 
             message += $" {TeamName(Opponent(Turn))} ajusta o goleiro.";
             Enter(MatchState.ShotCall);
+        }
+
+        /// <summary>
+        /// Goleiro pronto: com a bola encostada nele ou atrás dele (área do goleiro), é bola do goleiro, porque o atacante
+        /// só chegaria nela fazendo falta no goleiro. Senão, o atacante chuta.
+        /// </summary>
+        private void FinishShotCall()
+        {
+            if (TryKeeperZoneGoalKick()) return;
+            EnterShotAim();
         }
 
         private void EnterShotAim()
@@ -1218,7 +1228,7 @@ namespace FutebolDeBotao
 
             var buttonRect = new Rect(x, y + 6f, 220f, 42f);
             if (CanCallShot && GUI.Button(buttonRect, "Vai chutar (V)", button)) TryCallShot();
-            if (State == MatchState.ShotCall && GUI.Button(buttonRect, "Pronto (Espaço)", button)) EnterShotAim();
+            if (State == MatchState.ShotCall && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishShotCall();
             if (State == MatchState.PenaltySetup && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishPenaltySetup();
 
             float screenWidth = Screen.width / scale;

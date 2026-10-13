@@ -4,6 +4,8 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Goleiro caixinha: desliza só no eixo X, dentro dos limites da área, com velocidade limitada.
+    /// Não empurra nada: para encostado na bola ou num botão que estiver no caminho (é cinemático, empurraria com força
+    /// infinita). Quando a bola vem nele, ela bate e volta normalmente.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
     public sealed class Goalkeeper : MonoBehaviour
@@ -16,6 +18,10 @@ namespace FutebolDeBotao
         [SerializeField] private bool trackBallForTesting;
         [SerializeField] private Ball ball;
 
+        private const float ContactGap = 0.005f;
+
+        private readonly RaycastHit2D[] hits = new RaycastHit2D[8];
+        private ContactFilter2D blockers = new() { useTriggers = false };
         private Rigidbody2D body;
         private float centerX;
         private float targetX;
@@ -64,8 +70,27 @@ namespace FutebolDeBotao
 
             float speed = tuning != null ? tuning.goalkeeperSpeed : 3f;
             var position = body.position;
-            position.x = Mathf.MoveTowards(position.x, targetX, speed * Time.fixedDeltaTime);
+            float step = Mathf.MoveTowards(position.x, targetX, speed * Time.fixedDeltaTime) - position.x;
+            if (Mathf.Approximately(step, 0f)) return;
+            position.x += Allowed(step);
             body.MovePosition(position);
+        }
+
+        /// <summary>Quanto dá para andar de <paramref name="step"/> sem entrar na bola ou num botão (para encostado).</summary>
+        private float Allowed(float step)
+        {
+            var direction = new Vector2(Mathf.Sign(step), 0f);
+            float distance = Mathf.Abs(step);
+            int count = body.Cast(direction, blockers, hits, distance + ContactGap);
+            for (int i = 0; i < count; i++)
+            {
+                var hit = hits[i];
+                // Só o que se mexe segura o goleiro (bola e botões); o que fica para trás não.
+                if (hit.rigidbody == null || hit.rigidbody.bodyType != RigidbodyType2D.Dynamic) continue;
+                if (Vector2.Dot(hit.normal, direction) >= 0f) continue;
+                distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - ContactGap));
+            }
+            return direction.x * distance;
         }
     }
 }
