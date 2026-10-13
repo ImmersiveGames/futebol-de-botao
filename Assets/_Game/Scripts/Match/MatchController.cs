@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Immersive.Framework.ActivityFlow;
-using Immersive.Framework.ActivityRestart;
 using Immersive.Framework.GameFlow;
 using Immersive.Framework.Pause;
 using UnityEngine;
@@ -24,9 +23,7 @@ namespace FutebolDeBotao
         [Header("Framework")]
         [Tooltip("Route Request Trigger que leva à tela de Resultado no fim do tempo.")]
         [SerializeField] private RouteRequestTrigger resultRoute;
-        [Tooltip("Activity Restart Trigger usado pela tecla R e pelo Reiniciar da pausa.")]
-        [SerializeField] private ActivityRestartTrigger restartTrigger;
-        [Tooltip("Pause Request Trigger usado pelo botão Pausa e pela tecla Esc.")]
+        [Tooltip("Pause Request Trigger usado pelo botão Pausa e por Esc/Start.")]
         [SerializeField] private PauseRequestTrigger pauseTrigger;
         [Header("IA")]
         [Tooltip("Só quando a partida abre direto, sem passar pelo Menu (teste no editor): o time de cima joga pela IA. " +
@@ -121,10 +118,9 @@ namespace FutebolDeBotao
 
         public void Configure(MatchOptions matchOptions) => options = matchOptions;
 
-        public void ConfigureFramework(RouteRequestTrigger result, ActivityRestartTrigger restart, PauseRequestTrigger pause)
+        public void ConfigureFramework(RouteRequestTrigger result, PauseRequestTrigger pause)
         {
             resultRoute = result;
-            restartTrigger = restart;
             pauseTrigger = pause;
         }
 
@@ -311,18 +307,11 @@ namespace FutebolDeBotao
 
         private void Update()
         {
-            // Com o Jogador 1 na sessão, o Esc é dele (Pause PlayerInput Binding do framework); sem ninguém, lê o teclado direto.
-            var keyboard = Keyboard.current;
-            if (!CoachActor.AnyPauseBound && keyboard != null && keyboard.escapeKey.wasPressedThisFrame && pauseTrigger != null)
+            // Com o Jogador 1 na sessão, o Esc/Start é dele (Pause PlayerInput Binding do framework); sem ninguém, lê o
+            // teclado e os controles direto. Reiniciar fica só no menu de pausa.
+            if (!CoachActor.AnyPauseBound && DirectPausePressed() && pauseTrigger != null)
                 pauseTrigger.TogglePause();
             if (Paused) return;
-
-            // R: só quem age agora (na vez da IA, o Reiniciar fica na pausa).
-            if (!IsAi(ActingSide) && MatchInput.For(ActingSide).RestartPressedThisFrame && restartTrigger != null)
-            {
-                restartTrigger.RequestActivityRestart();
-                return;
-            }
 
             if (IsHolding)
             {
@@ -357,18 +346,18 @@ namespace FutebolDeBotao
                     else if (goalKickPlacing && !IsAi(Turn))
                     {
                         UpdateGoalKickPlacement();
-                        if (MatchInput.For(Turn).ConfirmPressedThisFrame) FinishGoalKickPlacement();
+                        if (MatchInput.For(Turn).SelectPressedThisFrame) FinishGoalKickPlacement();
                     }
                     break;
 
                 case MatchState.ShotCall:
-                    bool ready = !IsAi(Opponent(Turn)) && MatchInput.For(Opponent(Turn)).ConfirmPressedThisFrame;
+                    bool ready = !IsAi(Opponent(Turn)) && MatchInput.For(Opponent(Turn)).SelectPressedThisFrame;
                     if (stateTimer <= 0f || ready) EnterShotAim();
                     break;
 
                 case MatchState.PenaltySetup:
                     UpdatePenaltySetup();
-                    bool placed = !IsAi(Turn) && MatchInput.For(Turn).ConfirmPressedThisFrame;
+                    bool placed = !IsAi(Turn) && MatchInput.For(Turn).SelectPressedThisFrame;
                     if (stateTimer <= 0f || placed) FinishPenaltySetup();
                     break;
 
@@ -380,6 +369,15 @@ namespace FutebolDeBotao
                     if (stateTimer <= 0f && !resultRequested) RequestResult();
                     break;
             }
+        }
+
+        private static bool DirectPausePressed()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) return true;
+            foreach (var gamepad in Gamepad.all)
+                if (gamepad.startButton.wasPressedThisFrame) return true;
+            return false;
         }
 
         // GDD: o relógio corre só durante a mira.
@@ -801,7 +799,7 @@ namespace FutebolDeBotao
             return Vector2.SignedAngle(back, disc.Body.position - ball.Body.position);
         }
 
-        /// <summary>Arrastar (ou setas/A-D) gira o batedor em volta da bola (no pênalti, dentro do arco).</summary>
+        /// <summary>Arrastar (ou A/D, setas, analógico, D-pad) gira o batedor em volta da bola (no pênalti, dentro do arco).</summary>
         private void UpdatePenaltySetup()
         {
             var disc = freeKickDisc;
@@ -825,7 +823,8 @@ namespace FutebolDeBotao
                 }
             }
 
-            float axis = input.KeeperAxis;
+            // Direita leva o batedor (atrás da bola) para a direita de quem joga.
+            float axis = input.SideAxis * MatchInput.TurnSign(Turn);
             if (axis != 0f) TryPlaceKicker(disc, PenaltyAngle(disc) + axis * 90f * Time.deltaTime);
         }
 
@@ -976,7 +975,7 @@ namespace FutebolDeBotao
         /// <summary>Até onde a bola anda para cada lado no tiro de meta: a largura da área.</summary>
         public float GoalKickHalfRange => FieldLayout.AreaWidth * 0.5f - ball.Radius;
 
-        /// <summary>Arrastar a bola (começando nela) leva ela para os lados; as setas ou A/D também.</summary>
+        /// <summary>Arrastar a bola (começando nela) leva ela para os lados; A/D, setas, analógico e D-pad também.</summary>
         private void UpdateGoalKickPlacement()
         {
             var input = MatchInput.For(Turn);
@@ -999,7 +998,7 @@ namespace FutebolDeBotao
                 }
             }
 
-            float axis = input.KeeperAxis;
+            float axis = input.SideAxis * MatchInput.ScreenSign(Turn);
             if (axis != 0f) MoveGoalKickBall(ball.Body.position.x + axis * 3f * Time.deltaTime);
         }
 

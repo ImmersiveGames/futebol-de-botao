@@ -21,11 +21,14 @@ namespace FutebolDeBotao
         [Header("Ações do mapa Jogo")]
         [SerializeField] private InputActionReference point;
         [SerializeField] private InputActionReference press;
-        [SerializeField] private InputActionReference cancel;
-        [SerializeField] private InputActionReference keeperAxis;
-        [SerializeField] private InputActionReference confirm;
+        [SerializeField] private InputActionReference back;
+        [SerializeField] private InputActionReference side;
+        [SerializeField] private InputActionReference aimRotate;
+        [SerializeField] private InputActionReference aimStick;
+        [SerializeField] private InputActionReference power;
+        [SerializeField] private InputActionReference select;
+        [SerializeField] private InputActionReference kick;
         [SerializeField] private InputActionReference shotCall;
-        [SerializeField] private InputActionReference restart;
 
         private static readonly List<CoachActor> Active = new();
 
@@ -62,18 +65,20 @@ namespace FutebolDeBotao
             return true;
         }
 
-        public void Configure(PlayerGameplayInputReader inputReader, InputActionReference pointAction, InputActionReference pressAction,
-            InputActionReference cancelAction, InputActionReference keeperAxisAction, InputActionReference confirmAction,
-            InputActionReference shotCallAction, InputActionReference restartAction)
+        /// <summary>Liga o leitor e as ações do mapa Jogo (nomes em ControlsDefinition).</summary>
+        public void Configure(PlayerGameplayInputReader inputReader, System.Func<string, InputActionReference> action)
         {
             reader = inputReader;
-            point = pointAction;
-            press = pressAction;
-            cancel = cancelAction;
-            keeperAxis = keeperAxisAction;
-            confirm = confirmAction;
-            shotCall = shotCallAction;
-            restart = restartAction;
+            point = action(ControlsDefinition.Point);
+            press = action(ControlsDefinition.Press);
+            back = action(ControlsDefinition.Back);
+            side = action(ControlsDefinition.Side);
+            aimRotate = action(ControlsDefinition.AimRotate);
+            aimStick = action(ControlsDefinition.AimStick);
+            power = action(ControlsDefinition.Power);
+            select = action(ControlsDefinition.Select);
+            kick = action(ControlsDefinition.Kick);
+            shotCall = action(ControlsDefinition.ShotCall);
         }
 
         private void OnEnable()
@@ -98,14 +103,17 @@ namespace FutebolDeBotao
         public bool PointerReleasedThisFrame =>
             reader != null && press != null && reader.TryWasReleasedThisFrame(press, out bool released) && released;
         public bool PointerHeld => reader != null && press != null && reader.TryIsPressed(press, out bool held) && held;
-        public bool CancelPressedThisFrame => WasPressed(cancel);
-
-        public float KeeperAxis =>
-            reader != null && keeperAxis != null && reader.TryReadValue(keeperAxis, out float axis) ? Mathf.Clamp(axis, -1f, 1f) : 0f;
-
-        public bool ConfirmPressedThisFrame => WasPressed(confirm);
+        public bool BackPressedThisFrame => WasPressed(back);
+        public float SideAxis => ReadAxis(side);
+        public float AimRotateAxis => ReadAxis(aimRotate);
+        public Vector2 AimStick => reader != null && aimStick != null && reader.TryReadValue(aimStick, out Vector2 value) ? value : Vector2.zero;
+        public float PowerAxis => ReadAxis(power);
+        public bool SelectPressedThisFrame => WasPressed(select);
+        public bool KickPressedThisFrame => WasPressed(kick);
         public bool ShotCallPressedThisFrame => WasPressed(shotCall);
-        public bool RestartPressedThisFrame => WasPressed(restart);
+
+        private float ReadAxis(InputActionReference action) =>
+            reader != null && action != null && reader.TryReadValue(action, out float axis) ? Mathf.Clamp(axis, -1f, 1f) : 0f;
 
         private bool WasPressed(InputActionReference action) =>
             reader != null && action != null && reader.TryWasPressedThisFrame(action, out bool pressed) && pressed;

@@ -17,7 +17,7 @@ namespace FutebolDeBotao.Editor
     /// Monta os jogadores no formato do Immersive Framework (Manager-Provisioned):
     /// controles (Input Actions), perfis de sessão, vagas e Actor, o prefab do Actor (técnico) e o prefab do host,
     /// liga a Player Session na Game Application, a participação na Activity "Jogo" e o provisionamento na Persistent Content.
-    /// Pode rodar de novo: perfis e prefabs são atualizados; os controles só são criados se ainda não existem.
+    /// Pode rodar de novo: controles, perfis e prefabs são atualizados.
     /// </summary>
     public static class PlayersBuilder
     {
@@ -32,10 +32,8 @@ namespace FutebolDeBotao.Editor
         private const string PersistentScenePath = "Assets/_Game/Scenes/PersistentContent.unity";
         private const string ActivityPath = "Assets/_Game/App/Jogo.asset";
 
-        public const string GameplayMap = "Jogo";
-        public const string GlobalMap = "Global";
-        private const string KeyboardMouse = "Teclado e mouse";
-        private const string Touch = "Toque";
+        public const string GameplayMap = ControlsDefinition.GameplayMap;
+        public const string GlobalMap = ControlsDefinition.GlobalMap;
 
         [MenuItem("Futebol de Botão/Criar jogadores")]
         public static void Build()
@@ -89,46 +87,51 @@ namespace FutebolDeBotao.Editor
 
         // ---- Controles ----
 
+        /// <summary>
+        /// Grava o Controles.inputactions a partir de ControlsDefinition (sempre, para as teclas novas entrarem).
+        /// Os ids das ações saem do nome, então rodar de novo não muda o arquivo à toa.
+        /// </summary>
         private static InputActionAsset LoadOrCreateControls()
         {
-            if (AssetDatabase.LoadAssetAtPath<InputActionAsset>(ControlsPath) == null)
+            var asset = ControlsDefinition.Create();
+            try
             {
-                var asset = ScriptableObject.CreateInstance<InputActionAsset>();
-                asset.name = "Controles";
-                asset.AddControlScheme(KeyboardMouse).WithRequiredDevice("<Keyboard>").WithRequiredDevice("<Mouse>");
-                asset.AddControlScheme(Touch).WithRequiredDevice("<Touchscreen>");
+                // Garante que todo mapa e ação já tem id antes de gerar o texto.
+                foreach (var map in asset.actionMaps)
+                {
+                    _ = map.id;
+                    foreach (var action in map.actions) _ = action.id;
+                }
+                string json = asset.ToJson();
+                foreach (var map in asset.actionMaps)
+                {
+                    json = json.Replace(map.id.ToString(), StableId(map.name).ToString());
+                    foreach (var action in map.actions)
+                        json = json.Replace(action.id.ToString(), StableId(map.name + "/" + action.name).ToString());
+                    for (int i = 0; i < map.bindings.Count; i++)
+                        json = json.Replace(map.bindings[i].id.ToString(), StableId(map.name + "#" + i).ToString());
+                }
 
-                const string both = KeyboardMouse + ";" + Touch;
-                var game = asset.AddActionMap(GameplayMap);
-                var point = game.AddAction("Apontar", InputActionType.PassThrough);
-                point.expectedControlType = "Vector2";
-                point.AddBinding("<Pointer>/position", groups: both);
-                var press = game.AddAction("Pressionar", InputActionType.Button);
-                press.AddBinding("<Pointer>/press", groups: both);
-                game.AddAction("Cancelar", InputActionType.Button).AddBinding("<Mouse>/rightButton", groups: KeyboardMouse);
-                var keeper = game.AddAction("MoverGoleiro", InputActionType.Value);
-                keeper.expectedControlType = "Axis";
-                keeper.AddCompositeBinding("1DAxis")
-                    .With("Negative", "<Keyboard>/leftArrow", KeyboardMouse)
-                    .With("Positive", "<Keyboard>/rightArrow", KeyboardMouse);
-                keeper.AddCompositeBinding("1DAxis")
-                    .With("Negative", "<Keyboard>/a", KeyboardMouse)
-                    .With("Positive", "<Keyboard>/d", KeyboardMouse);
-                game.AddAction("Confirmar", InputActionType.Button).AddBinding("<Keyboard>/space", groups: KeyboardMouse);
-                game.AddAction("VaiChutar", InputActionType.Button).AddBinding("<Keyboard>/v", groups: KeyboardMouse);
-                game.AddAction("Reiniciar", InputActionType.Button).AddBinding("<Keyboard>/r", groups: KeyboardMouse);
-
-                var global = asset.AddActionMap(GlobalMap);
-                global.AddAction("Pausa", InputActionType.Button).AddBinding("<Keyboard>/escape", groups: KeyboardMouse);
-
-                File.WriteAllText(ControlsPath, asset.ToJson());
+                if (!File.Exists(ControlsPath) || File.ReadAllText(ControlsPath) != json)
+                {
+                    File.WriteAllText(ControlsPath, json);
+                    AssetDatabase.ImportAsset(ControlsPath, ImportAssetOptions.ForceSynchronousImport);
+                }
+            }
+            finally
+            {
                 Object.DestroyImmediate(asset);
-                AssetDatabase.ImportAsset(ControlsPath, ImportAssetOptions.ForceSynchronousImport);
             }
 
             var controls = AssetDatabase.LoadAssetAtPath<InputActionAsset>(ControlsPath);
             if (controls == null) Debug.LogError($"[Futebol de Botão] Não consegui importar {ControlsPath}.");
             return controls;
+        }
+
+        private static System.Guid StableId(string key)
+        {
+            using var md5 = System.Security.Cryptography.MD5.Create();
+            return new System.Guid(md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes("futebol.controles." + key)));
         }
 
         private static InputActionReference Action(InputActionAsset controls, string map, string action)
@@ -174,14 +177,7 @@ namespace FutebolDeBotao.Editor
                 if (declaration == null) declaration = root.AddComponent<PlayerActorDeclaration>();
                 var reader = root.AddComponent<PlayerGameplayInputReader>();
                 var coach = root.AddComponent<CoachActor>();
-                coach.Configure(reader,
-                    Action(controls, GameplayMap, "Apontar"),
-                    Action(controls, GameplayMap, "Pressionar"),
-                    Action(controls, GameplayMap, "Cancelar"),
-                    Action(controls, GameplayMap, "MoverGoleiro"),
-                    Action(controls, GameplayMap, "Confirmar"),
-                    Action(controls, GameplayMap, "VaiChutar"),
-                    Action(controls, GameplayMap, "Reiniciar"));
+                coach.Configure(reader, name => Action(controls, GameplayMap, name));
                 Set(host, so => so.FindProperty("playerActorDeclaration").objectReferenceValue = declaration);
 
                 var prefab = PrefabUtility.SaveAsPrefabAsset(root, ActorPrefabPath);
@@ -225,9 +221,9 @@ namespace FutebolDeBotao.Editor
                     mapReference.FindPropertyRelative("cachedActionMapName").stringValue = map.name;
                 });
 
-                // Esc no mapa Global: o framework liga só no primeiro jogador que entrou (o Jogador 1).
+                // Esc/Start no mapa Global: o framework liga só no primeiro jogador que entrou (o Jogador 1).
                 var pause = root.AddComponent<PlayerPauseInput>();
-                Set(pause, so => so.FindProperty("pauseAction").objectReferenceValue = Action(controls, GlobalMap, "Pausa"));
+                Set(pause, so => so.FindProperty("pauseAction").objectReferenceValue = Action(controls, GlobalMap, ControlsDefinition.Pause));
 
                 return PrefabUtility.SaveAsPrefabAsset(root, HostPrefabPath);
             }

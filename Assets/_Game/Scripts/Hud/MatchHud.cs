@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace FutebolDeBotao
@@ -374,7 +375,11 @@ namespace FutebolDeBotao
             view.Pause = CreateButton(panel, "Pausa", "Pausa (Esc)", 26, Vector2.zero, new Vector2(240f, 56f), out _);
             SetTop((RectTransform)view.Pause.transform, -345f);
             view.Pause.onClick.AddListener(match.RequestPause);
-            CreateTopText(panel, "Dicas", 18, -420f, 60f).text = "R: reiniciar\nBotão direito: cancelar mira";
+            var tips = CreateTopText(panel, "Dicas", 17, -520f, 190f);
+            tips.alignment = TextAnchor.UpperLeft;
+            tips.text = "Mouse: arraste do botão para trás e solte\n" +
+                        "Teclado: A/D escolhe o botão, E seleciona, A/D gira, W/S força, Espaço chuta, Q volta, C vai chutar\n" +
+                        "Controle: analógico/D-pad escolhe, A seleciona, analógico mira, analógico dir. força, X chuta, B volta, LB/RB vai chutar";
             pcPanel = view;
         }
 
@@ -465,6 +470,13 @@ namespace FutebolDeBotao
             image.color = ButtonColor;
             var button = go.AddComponent<Button>();
             button.targetGraphic = image;
+            // Sem seleção depois do clique: senão Espaço/E/A do teclado e do controle "apertam" o botão de novo.
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
+            button.onClick.AddListener(() =>
+            {
+                var events = EventSystem.current;
+                if (events != null) events.SetSelectedGameObject(null);
+            });
             var outline = go.AddComponent<Outline>();
             outline.effectColor = Color.clear;
             outline.effectDistance = new Vector2(4f, -4f);

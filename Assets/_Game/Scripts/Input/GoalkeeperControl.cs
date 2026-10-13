@@ -4,7 +4,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Deixa o defensor mover o goleiro durante o "Vai chutar": segurar o mouse (ou o dedo) e arrastar para os lados.
-    /// Setas ou A/D também movem.
+    /// A/D, setas, analógico esquerdo e D-pad também movem (direita = direita de quem defende).
     /// </summary>
     public sealed class GoalkeeperControl : MonoBehaviour
     {
@@ -30,7 +30,7 @@ namespace FutebolDeBotao
             var keeper = FindKeeper(ControlledSide.Value);
             if (keeper == null) return;
 
-            // Lê o técnico (Actor) do defensor, ou o mouse/teclado direto quando o time não tem técnico.
+            // Lê o técnico (Actor) do defensor, ou os dispositivos direto quando o time não tem técnico.
             var input = MatchInput.For(ControlledSide.Value);
             if (input.PointerHeld && input.TryGetPointer(out var screen) && !UiPointer.IsOverUi())
             {
@@ -46,7 +46,7 @@ namespace FutebolDeBotao
                 }
             }
 
-            float axis = input.KeeperAxis;
+            float axis = input.SideAxis * MatchInput.ScreenSign(ControlledSide.Value);
             if (axis != 0f) keeper.SetTargetX(keeper.transform.position.x + axis * keyboardSpeed * Time.deltaTime);
         }
 

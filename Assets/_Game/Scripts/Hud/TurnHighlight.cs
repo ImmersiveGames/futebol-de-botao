@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Brilho de quem é a vez: um halo pulsando atrás dos botões que podem ser usados agora
-    /// (mais forte no botão sendo mirado), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
+    /// (mais forte no botão sendo mirado; no teclado/controle só no botão do cursor), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
     /// </summary>
     public sealed class TurnHighlight : MonoBehaviour
     {
@@ -38,10 +38,14 @@ namespace FutebolDeBotao
             float pulse = Mathf.Lerp(MinAlpha, MaxAlpha, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * PulseSpeed));
             bool discsActive = !paused && state is MatchState.Aim or MatchState.ShotAim or MatchState.PenaltySetup;
             var selected = aim != null && aim.IsAiming && !aim.IsBallKick ? aim.SelectedDisc : null;
+            // Teclado/controle: só o botão do cursor brilha (com mouse/toque brilham todos os que podem jogar).
+            var cursor = aim != null && AimController.PadMode && aim.InputEnabled && state is MatchState.Aim or MatchState.ShotAim
+                ? aim.CursorDisc
+                : null;
 
             foreach (var pair in discHalos)
             {
-                bool on = discsActive && pair.Key != null && match.CanUse(pair.Key);
+                bool on = discsActive && pair.Key != null && match.CanUse(pair.Key) && (cursor == null || pair.Key == cursor);
                 bool isSelected = on && pair.Key == selected;
                 Show(pair.Value, on, isSelected ? SelectedAlpha : pulse, isSelected ? SelectedScale : HaloScale);
             }

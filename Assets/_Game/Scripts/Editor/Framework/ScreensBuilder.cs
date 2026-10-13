@@ -335,7 +335,6 @@ namespace FutebolDeBotao.Editor
 
             var matchSo = new SerializedObject(match);
             matchSo.FindProperty("resultRoute").objectReferenceValue = toResult;
-            matchSo.FindProperty("restartTrigger").objectReferenceValue = restart;
             matchSo.FindProperty("pauseTrigger").objectReferenceValue = pause;
             matchSo.ApplyModifiedPropertiesWithoutUndo();
 

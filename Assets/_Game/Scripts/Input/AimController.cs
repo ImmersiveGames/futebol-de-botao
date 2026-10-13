@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FutebolDeBotao
@@ -6,6 +7,8 @@ namespace FutebolDeBotao
     /// <summary>
     /// Mira por arrasto, igual para mouse e toque: toca no botão, arrasta para trás e solta.
     /// A distância do arrasto define a força. No modo chute na bola (tiro de meta) o arrasto é feito na própria bola.
+    /// Teclado e controle: um cursor anda entre os botões (começa no mais perto da bola), Escolher abre a mira apontando
+    /// para a bola com força média, girar/apontar e a força ajustam, Chutar solta e Voltar volta um passo.
     /// </summary>
     public sealed class AimController : MonoBehaviour
     {
@@ -13,9 +16,27 @@ namespace FutebolDeBotao
         [SerializeField] private MotionMonitor motionMonitor;
         [SerializeField] private Camera worldCamera;
 
+        // Teclado/controle.
+        private const float CursorThreshold = 0.5f;
+        private const float CursorRepeatDelay = 0.35f;
+        private const float CursorRepeatRate = 0.18f;
+        private const float StickThreshold = 0.5f;
+        private const float RotateSlowSpeed = 25f;
+        private const float RotateFastSpeed = 140f;
+        private const float RotateRampSeconds = 0.8f;
+        private const float PowerSpeed = 0.8f;
+        private const float StartPower = 0.5f;
+
         private Ball ball;
         private Vector2 pointerWorld;
         private bool scripted;
+
+        private readonly List<Disc> candidates = new();
+        private bool ready;
+        private bool padAiming;
+        private int cursorDirection;
+        private float cursorRepeatAt;
+        private float rotateHeld;
 
         public bool IsAiming { get; private set; }
         public Disc SelectedDisc { get; private set; }
@@ -40,6 +61,11 @@ namespace FutebolDeBotao
         public bool BallKickMode { get; set; }
 
         public PhysicsTuning Tuning => tuning;
+
+        /// <summary>Último comando veio do teclado/controle (e não do mouse/toque): o brilho mostra só o cursor.</summary>
+        public static bool PadMode { get; private set; }
+        /// <summary>Botão onde está o cursor do teclado/controle (nulo fora da vez).</summary>
+        public Disc CursorDisc { get; private set; }
 
         /// <summary>Peteleco disparado: (botão, impulso).</summary>
         public event Action<Disc, Vector2> Flicked;
@@ -69,33 +95,218 @@ namespace FutebolDeBotao
             if (!InputEnabled || Time.timeScale <= 0f)
             {
                 Cancel();
+                ready = false;
                 return;
             }
 
             if (motionMonitor != null && motionMonitor.IsMoving)
             {
                 Cancel();
+                ready = false;
                 return;
             }
 
-            // Lê o técnico (Actor) do time da vez, ou o mouse/teclado direto quando o time não tem técnico.
+            // Lê o técnico (Actor) do time da vez, ou os dispositivos direto quando o time não tem técnico.
             var input = MatchInput.For(InputSide);
-            if (!input.TryGetPointer(out var screen)) return;
-            pointerWorld = WorldCamera.ScreenToWorld(worldCamera, screen);
 
-            if (input.PointerPressedThisFrame && !UiPointer.IsOverUi()) TryBegin();
-
-            if (!IsAiming) return;
-
-            if (input.CancelPressedThisFrame)
+            // Começo da vez: o cursor vai para o botão mais perto da bola. Nada mais é lido neste quadro, para a tecla
+            // que acabou de fechar a fase anterior (Pronto, por exemplo) não escolher um botão sem querer.
+            if (!ready)
             {
+                ready = true;
+                ResetCursor();
+                return;
+            }
+
+            if (input.TryGetPointer(out var screen))
+            {
+                pointerWorld = WorldCamera.ScreenToWorld(worldCamera, screen);
+                if (input.PointerPressedThisFrame && !UiPointer.IsOverUi())
+                {
+                    PadMode = false;
+                    if (padAiming) Cancel();
+                    TryBegin();
+                }
+            }
+
+            if (IsAiming && !padAiming)
+            {
+                if (input.BackPressedThisFrame)
+                {
+                    Cancel();
+                    return;
+                }
+
+                UpdateAim();
+
+                if (input.PointerReleasedThisFrame) Release();
+                return;
+            }
+
+            UpdatePad(input);
+        }
+
+        // ---- Teclado e controle ----
+
+        private void UpdatePad(ITeamInput input)
+        {
+            if (!padAiming)
+            {
+                if (!BallKickMode) UpdateCursor(input);
+                if (input.SelectPressedThisFrame)
+                {
+                    PadMode = true;
+                    BeginPad();
+                }
+                return;
+            }
+
+            if (input.BackPressedThisFrame)
+            {
+                // Volta um passo: a mira fecha e o cursor fica no botão que estava escolhido.
+                PadMode = true;
                 Cancel();
                 return;
             }
 
-            UpdateAim();
+            float sign = MatchInput.ScreenSign(InputSide);
+            Vector2 stick = input.AimStick;
+            if (stick.magnitude >= StickThreshold)
+            {
+                // O analógico aponta e a mira fica onde parou quando ele volta ao centro.
+                PadMode = true;
+                Direction = (stick * sign).normalized;
+            }
 
-            if (input.PointerReleasedThisFrame) Release();
+            float rotate = input.AimRotateAxis;
+            if (Mathf.Abs(rotate) > 0.1f)
+            {
+                // Começa devagar (ajuste fino) e acelera segurando. Direita leva a ponta da mira para a direita de quem joga.
+                PadMode = true;
+                rotateHeld += Time.deltaTime;
+                float speed = Mathf.Lerp(RotateSlowSpeed, RotateFastSpeed, rotateHeld / RotateRampSeconds);
+                float degrees = -rotate * speed * MatchInput.TurnSign(InputSide) * Time.deltaTime;
+                Direction = Rotate(Direction, degrees);
+            }
+            else rotateHeld = 0f;
+
+            float power = input.PowerAxis;
+            if (Mathf.Abs(power) > 0.1f)
+            {
+                PadMode = true;
+                Power01 = Mathf.Clamp(Power01 + power * PowerSpeed * Time.deltaTime, MinPadPower, 1f);
+            }
+
+            if (input.KickPressedThisFrame)
+            {
+                PadMode = true;
+                Release();
+            }
+        }
+
+        /// <summary>Força mínima do teclado/controle: a mesma do menor arrasto que conta como chute.</summary>
+        private float MinPadPower => tuning.maxDragDistance > 0f ? tuning.minDragDistance / tuning.maxDragDistance : 0.05f;
+
+        /// <summary>Abre a mira no botão do cursor (ou na bola, no tiro de meta), apontando para a bola, com força média.</summary>
+        private void BeginPad()
+        {
+            if (BallKickMode)
+            {
+                if (ball == null) return;
+                IsBallKick = true;
+                Direction = FieldLayout.AttackDirection(InputSide);
+            }
+            else
+            {
+                if (CursorDisc == null || !IsSelectable(CursorDisc)) ResetCursor();
+                if (CursorDisc == null) return;
+                SelectedDisc = CursorDisc;
+                Vector2 toBall = ball != null ? ball.Body.position - SelectedDisc.Body.position : Vector2.zero;
+                Direction = toBall.sqrMagnitude > 0.0001f ? toBall.normalized : FieldLayout.AttackDirection(InputSide);
+            }
+
+            IsAiming = true;
+            padAiming = true;
+            Power01 = StartPower;
+            rotateHeld = 0f;
+        }
+
+        private void UpdateCursor(ITeamInput input)
+        {
+            float axis = input.SideAxis;
+            int direction = axis >= CursorThreshold ? 1 : axis <= -CursorThreshold ? -1 : 0;
+            if (direction == 0)
+            {
+                cursorDirection = 0;
+                return;
+            }
+
+            bool step = direction != cursorDirection || Time.unscaledTime >= cursorRepeatAt;
+            if (!step) return;
+            cursorRepeatAt = Time.unscaledTime + (direction != cursorDirection ? CursorRepeatDelay : CursorRepeatRate);
+            cursorDirection = direction;
+
+            // O primeiro toque depois de usar o mouse só mostra o cursor.
+            if (!PadMode || CursorDisc == null || !IsSelectable(CursorDisc))
+            {
+                PadMode = true;
+                if (CursorDisc == null || !IsSelectable(CursorDisc)) ResetCursor();
+                return;
+            }
+
+            MoveCursor(direction);
+        }
+
+        /// <summary>Próximo botão para a direita (1) ou esquerda (-1) na tela de quem joga; no fim da fila volta para o outro lado.</summary>
+        private void MoveCursor(int direction)
+        {
+            CollectCandidates();
+            if (candidates.Count == 0) return;
+            float sign = MatchInput.ScreenSign(InputSide);
+            candidates.Sort((a, b) =>
+            {
+                int byX = (a.Body.position.x * sign).CompareTo(b.Body.position.x * sign);
+                return byX != 0 ? byX : (a.Body.position.y * sign).CompareTo(b.Body.position.y * sign);
+            });
+            int index = candidates.IndexOf(CursorDisc);
+            index = index < 0 ? 0 : (index + direction + candidates.Count) % candidates.Count;
+            CursorDisc = candidates[index];
+        }
+
+        /// <summary>Cursor no botão mais perto da bola entre os que podem jogar agora.</summary>
+        private void ResetCursor()
+        {
+            CursorDisc = null;
+            if (BallKickMode) return;
+            CollectCandidates();
+            float best = float.MaxValue;
+            Vector2 target = ball != null ? ball.Body.position : Vector2.zero;
+            foreach (var disc in candidates)
+            {
+                float distance = (disc.Body.position - target).sqrMagnitude;
+                if (distance < best)
+                {
+                    best = distance;
+                    CursorDisc = disc;
+                }
+            }
+        }
+
+        private void CollectCandidates()
+        {
+            candidates.Clear();
+            foreach (var disc in FindObjectsByType<Disc>())
+                if (IsSelectable(disc)) candidates.Add(disc);
+        }
+
+        private bool IsSelectable(Disc disc) =>
+            disc != null && disc.isActiveAndEnabled && (CanSelect == null || CanSelect(disc));
+
+        private static Vector2 Rotate(Vector2 v, float degrees)
+        {
+            float radians = degrees * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(radians), sin = Mathf.Sin(radians);
+            return new Vector2(v.x * cos - v.y * sin, v.x * sin + v.y * cos);
         }
 
         private void TryBegin()
@@ -198,6 +409,9 @@ namespace FutebolDeBotao
 
         public void Cancel()
         {
+            // Depois de mirar pelo teclado/controle, o cursor fica no botão que estava escolhido.
+            if (padAiming && SelectedDisc != null) CursorDisc = SelectedDisc;
+            padAiming = false;
             scripted = false;
             IsAiming = false;
             IsBallKick = false;
