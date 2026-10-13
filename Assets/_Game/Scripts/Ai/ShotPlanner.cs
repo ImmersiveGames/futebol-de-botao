@@ -514,6 +514,24 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>Zona de chute: bola na frente do gol adversário, a uma distância boa de chute.</summary>
+        private const float ShootingZoneBonus = 6f;
+        /// <summary>Bola colada na linha de fundo adversária, fora das traves: sem ângulo para chutar.</summary>
+        private const float DeadZonePenalty = 12f;
+
+        /// <summary>Quanto vale ter a bola parada neste lugar do ataque (zona de chute ou linha de fundo).</summary>
+        private float ZoneValue(Vector2 position)
+        {
+            if (Progress(position) <= 0f) return 0f;
+            float fromLine = FieldLayout.HalfHeight - Mathf.Abs(position.y);
+            float outside = Mathf.Abs(position.x) - (GoalWidth * 0.5f + 0.2f);
+            if (fromLine < 1f && outside > 0f)
+                return -DeadZonePenalty * (1f - fromLine) * Mathf.Clamp01(outside / 0.6f);
+            float toGoal = Vector2.Distance(position, new Vector2(0f, FieldLayout.GoalLineY(Opponent)));
+            if (toGoal >= 1.5f && toGoal <= 4.5f && Mathf.Abs(position.x) < 1.8f) return ShootingZoneBonus;
+            return 0f;
+        }
+
         /// <summary>Quanto um deslocamento avança na direção do gol adversário.</summary>
         private float Progress(Vector2 delta) => Vector2.Dot(delta, Attack);
 
@@ -733,6 +751,9 @@ namespace FutebolDeBotao
 
             Vector2 end = result.BallEnd;
             score += Progress(end - start) * 3f;
+            // No ataque, o lugar conta mais que só avançar: na frente do gol é bom, na linha de fundo fora das traves
+            // não tem ângulo.
+            if (lastTouch == side) score += ZoneValue(end) - ZoneValue(start);
 
             // Bola perto do próprio gol: tirar de lá vale mais que atacar, inclusive afastando para os lados.
             Vector2 ownGoalCenter = new(0f, FieldLayout.GoalLineY(side));
