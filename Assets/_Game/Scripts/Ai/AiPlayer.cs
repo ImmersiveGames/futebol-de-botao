@@ -295,7 +295,6 @@ namespace FutebolDeBotao
             }
 
             double computeMs = 0;
-            int stepsBefore = simulator.TotalSteps;
             simulator.Sync();
             float maxImpulse = aim.Tuning.maxImpulse;
             var conceded = new float[KeeperPositions];
@@ -350,8 +349,6 @@ namespace FutebolDeBotao
                 }
             }
 
-            Debug.Log($"[IA] Goleiro: {threats.Count} chutes x {KeeperPositions} posições, pensou {computeMs:0.0} ms " +
-                      $"({simulator.TotalSteps - stepsBefore} passos de física). Fica em x={bestX:0.00} (peso dos gols que ainda entram: {least:0.0}).");
             keeperThreats = threats;
             keeperXs = xs;
             keeperConceded = conceded;
@@ -455,14 +452,9 @@ namespace FutebolDeBotao
                 // Só troca de lugar se ficar claramente melhor.
                 if (Mathf.Abs(bestX - ballPosition.x) > 0.01f && bestScore > currentScore + 2f)
                 {
-                    Debug.Log($"[IA] Tiro de meta: bola de x {ballPosition.x:0.0} para {bestX:0.0} (nota {currentScore:0} para {bestScore:0}).");
                     match.MoveGoalKickBall(bestX);
                     yield return new WaitForSeconds(0.4f);
                     if (!StillValid(version)) yield break;
-                }
-                else
-                {
-                    Debug.Log($"[IA] Tiro de meta: bola fica em x {ballPosition.x:0.0} (nota {currentScore:0}).");
                 }
                 match.ConfirmReady();
             }
@@ -556,8 +548,6 @@ namespace FutebolDeBotao
                         while (pool < angles.Count && pool < difficulty.pickAmongBest && angles[pool].score >= angles[0].score - PickWindow) pool++;
                         var pick = angles[Random.Range(0, pool)];
                         match.TryPlaceKicker(pick.angle);
-                        Debug.Log($"[IA] {(match.IsPenaltySetup ? "Pênalti" : "Tiro livre")}: testou {angles.Count} posições do batedor, " +
-                                  $"escolheu {pick.angle:0}° (nota {pick.score:0}; melhor {angles[0].score:0}).");
                     }
                 }
 

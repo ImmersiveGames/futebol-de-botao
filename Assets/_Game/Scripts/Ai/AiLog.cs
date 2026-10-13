@@ -31,13 +31,10 @@ namespace FutebolDeBotao
             level = difficulty != null ? difficulty.name.Replace(" (padrão)", string.Empty) : "?";
         }
 
-        /// <summary>A IA decidiu: escreve no console e guarda a linha esperando o resultado real.</summary>
+        /// <summary>A IA decidiu: guarda a linha esperando o resultado real.</summary>
         public void Decided(AiDecision decision, AiSituation situation, MatchController match)
         {
             Flush();
-            Debug.Log($"[IA] {level} {situation.State} toque {match.TouchesLeft}: {Describe(decision)} | objetivos: {decision.GoalsLine}" +
-                      (decision.Rejected.Length > 0 ? $" | recusados: {decision.Rejected}" : string.Empty) +
-                      $" | {situation.Describe()} | {decision.Simulations} simulações, {decision.Milliseconds:0.0} ms.");
 #if UNITY_EDITOR
             var c = decision.Candidate;
             var e = decision.Expected;
@@ -126,8 +123,6 @@ namespace FutebolDeBotao
             var positions = new StringBuilder();
             for (int i = 0; i < xs.Length; i++)
                 positions.Append(i > 0 ? " " : string.Empty).Append(string.Format(c, "x{0:0.0}={1:0.0}", xs[i], conceded[i]));
-            Debug.Log($"[IA] {level} goleiro: previu {threats.Count} chutes [{predicted}]; gols por posição [{positions}]; " +
-                      string.Format(c, "fica em x={0:0.00} (com erro {1:0.00}).", bestX, targetX));
 #if UNITY_EDITOR
             Write(string.Join(";",
                 Field(level),

@@ -123,6 +123,8 @@ namespace FutebolDeBotao
                 line.Append(line.Length > 0 ? " > " : string.Empty).Append(goal.Name).Append(' ').Append(priority.ToString("0"));
 
             var rejected = new StringBuilder();
+            AiDecision pendingCall = null;
+            float callValue = 0f;
             AiDecision fallback = null;
             AiDecision chosen = null;
             simulator.Sync();
@@ -141,17 +143,18 @@ namespace FutebolDeBotao
 
                 if (action.IsInstant)
                 {
-                    // Vai chutar: só anuncia se algum chute passa do goleiro que o adversário vai posicionar.
+                    // Vai chutar: a chance de o chute passar do goleiro que o adversário vai posicionar. Não espera o
+                    // chute perfeito: no fim compara o que o chute vale (gol ou bola perdida) com a melhor outra jogada.
                     float chance = 0f;
                     string callLine = string.Empty;
                     yield return ShotCallChance(situation, match, difficulty, (c, l) => { chance = c; callLine = l; });
                     if (aborted) yield break;
+                    callValue = chance * GoalValue + (1f - chance) * MissValue;
+                    callLine += $", vale {callValue:0}";
                     if (chance >= difficulty.callShotChance)
-                    {
-                        chosen = new AiDecision { Goal = goal, Action = action, FollowLine = callLine };
-                        break;
-                    }
-                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(' ').Append(callLine);
+                        pendingCall = new AiDecision { Goal = goal, Action = action, FollowLine = callLine };
+                    else
+                        rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(' ').Append(callLine);
                     continue;
                 }
 
@@ -209,6 +212,23 @@ namespace FutebolDeBotao
                     yield return WeakTouch(situation, chosen.Goal, maxImpulse, d => weak = d);
                     if (aborted) yield break;
                     if (weak != null) chosen = weak;
+                }
+            }
+            // O chute vale mais que a outra jogada? Então anuncia (a outra fica nos recusados para o log).
+            if (pendingCall != null)
+            {
+                float other = chosen != null && chosen.HasExpected ? chosen.Verdict.Score : float.MinValue;
+                if (callValue >= other)
+                {
+                    if (chosen != null && chosen.Goal != null)
+                        rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(chosen.Goal.Name).Append(' ')
+                            .Append(other.ToString("0")).Append(" (o chute vale mais)");
+                    chosen = pendingCall;
+                }
+                else
+                {
+                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(pendingCall.Goal.Name).Append(' ')
+                        .Append(pendingCall.FollowLine).Append($" (menos que {other:0})");
                 }
             }
             chosen ??= new AiDecision { Candidate = Straight(situation, match) };
@@ -432,6 +452,10 @@ namespace FutebolDeBotao
         }
 
         private const int KeeperPositions = 9;
+        /// <summary>Quanto vale anunciar o Vai chutar: gol (a mesma nota do ShotPlanner) ou chute que não entra (a bola
+        /// costuma ficar com o goleiro dele).</summary>
+        private const float GoalValue = 150f;
+        private const float MissValue = -15f;
         /// <summary>O goleiro do jogador fica perto do melhor lugar, mas não exato: até isto para cada lado.</summary>
         private const float HumanKeeperError = 0.35f;
 
