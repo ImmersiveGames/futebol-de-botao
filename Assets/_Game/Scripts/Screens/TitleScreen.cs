@@ -39,20 +39,28 @@ namespace FutebolDeBotao
             if (menuRoute != null && AnyPressed()) menuRoute.RequestRoute();
         }
 
+        /// <summary>Qualquer tecla, clique ou toque. Teclado/controle já liga o destaque dos menus; mouse/toque desliga.</summary>
         private static bool AnyPressed()
         {
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.anyKey.wasPressedThisFrame) return true;
+            if (keyboard != null && keyboard.anyKey.wasPressedThisFrame) return Pressed(pad: true);
 
             var mouse = Mouse.current;
             if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame ||
-                                  mouse.middleButton.wasPressedThisFrame)) return true;
+                                  mouse.middleButton.wasPressedThisFrame)) return Pressed(pad: false);
 
             var touch = Touchscreen.current;
-            if (touch != null && touch.primaryTouch.press.wasPressedThisFrame) return true;
+            if (touch != null && touch.primaryTouch.press.wasPressedThisFrame) return Pressed(pad: false);
 
-            var gamepad = Gamepad.current;
-            return gamepad != null && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame);
+            foreach (var gamepad in Gamepad.all)
+                if (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame) return Pressed(pad: true);
+            return false;
+        }
+
+        private static bool Pressed(bool pad)
+        {
+            PadMode.Active = pad;
+            return true;
         }
     }
 }

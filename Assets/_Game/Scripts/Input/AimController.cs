@@ -63,7 +63,11 @@ namespace FutebolDeBotao
         public PhysicsTuning Tuning => tuning;
 
         /// <summary>Último comando veio do teclado/controle (e não do mouse/toque): o brilho mostra só o cursor.</summary>
-        public static bool PadMode { get; private set; }
+        public static bool PadMode
+        {
+            get => FutebolDeBotao.PadMode.Active;
+            private set => FutebolDeBotao.PadMode.Active = value;
+        }
         /// <summary>Botão onde está o cursor do teclado/controle (nulo fora da vez).</summary>
         public Disc CursorDisc { get; private set; }
 

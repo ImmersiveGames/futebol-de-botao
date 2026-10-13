@@ -104,6 +104,41 @@ namespace FutebolDeBotao
             return asset;
         }
 
+        public const string MenuMap = "Menu";
+        public const string MenuNavigate = "Navegar";
+        public const string MenuConfirm = "Confirmar";
+        public const string MenuBack = "Voltar";
+
+        /// <summary>
+        /// Navegação dos menus (qualquer dispositivo): WASD/setas, analógico esq. e D-pad; E/A confirma; Q/B volta.
+        /// Só existe em tempo de execução (MenuNavigator), não vai para o Controles.inputactions.
+        /// </summary>
+        public static InputActionAsset CreateMenu()
+        {
+            var asset = ScriptableObject.CreateInstance<InputActionAsset>();
+            asset.name = "Menus";
+            var map = asset.AddActionMap(MenuMap);
+
+            var navigate = map.AddAction(MenuNavigate, InputActionType.Value);
+            navigate.expectedControlType = "Vector2";
+            navigate.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s").With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
+            navigate.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow")
+                .With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
+            navigate.AddBinding("<Gamepad>/leftStick");
+            navigate.AddBinding("<Gamepad>/dpad");
+
+            var confirm = map.AddAction(MenuConfirm, InputActionType.Button);
+            confirm.AddBinding("<Keyboard>/e");
+            confirm.AddBinding("<Gamepad>/buttonSouth");
+
+            var back = map.AddAction(MenuBack, InputActionType.Button);
+            back.AddBinding("<Keyboard>/q");
+            back.AddBinding("<Gamepad>/buttonEast");
+            return asset;
+        }
+
         private static InputAction Axis(InputActionMap map, string name)
         {
             var action = map.AddAction(name, InputActionType.Value);

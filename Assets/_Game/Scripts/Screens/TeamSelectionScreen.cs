@@ -48,6 +48,8 @@ namespace FutebolDeBotao
             public Text Abbreviation;
             public Text Scheme;
             public Text Style;
+            public MenuItem TeamItem;
+            public MenuItem SchemeItem;
         }
 
         private readonly Dictionary<TeamSide, HalfView> halves = new();
@@ -219,8 +221,18 @@ namespace FutebolDeBotao
             }
 
             // Faixa do meio-campo.
-            CreateButton(field, "Voltar", "Voltar", new Vector2(-2.45f, 0f), new Vector2(1.5f, 0.56f), Back);
-            CreateButton(field, "Jogar", "Jogar", new Vector2(2.45f, 0f), new Vector2(1.5f, 0.56f), Play);
+            var back = CreateButton(field, "Voltar", "Voltar", new Vector2(-2.45f, 0f), new Vector2(1.5f, 0.56f), Back);
+            var play = CreateButton(field, "Jogar", "Jogar", new Vector2(2.45f, 0f), new Vector2(1.5f, 0.56f), Play);
+
+            // Teclado/controle: de cima para baixo na tela; começa no time de baixo (o seu contra a IA).
+            var backItem = back.gameObject.AddComponent<MenuItem>();
+            backItem.Configure(back);
+            var playItem = play.gameObject.AddComponent<MenuItem>();
+            playItem.Configure(play);
+            var top = halves[TeamSide.Top];
+            var bottom = halves[TeamSide.Bottom];
+            gameObject.AddComponent<MenuNavigator>().Configure(
+                new[] { top.TeamItem, top.SchemeItem, backItem, playItem, bottom.TeamItem, bottom.SchemeItem }, back, 4);
 
             Update();
         }
@@ -359,16 +371,23 @@ namespace FutebolDeBotao
             view.Crest.preserveAspect = true;
             view.Name = CreateText(half, "Nome", 22, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.32f));
             view.Abbreviation = CreateText(half, "Abreviação", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY - 0.17f), new Vector2(1.4f, 0.26f));
-            CreateButton(half, "Time anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, -1));
-            CreateButton(half, "Próximo time", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, 1));
+            var previousTeam = CreateButton(half, "Time anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, -1));
+            var nextTeam = CreateButton(half, "Próximo time", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, 1));
+            view.TeamItem = CreateRect(half, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuItem>();
+            view.TeamItem.Configure(null, previousTeam, nextTeam, view.CrestRing.rectTransform, view.Name.rectTransform,
+                view.Abbreviation.rectTransform, (RectTransform)previousTeam.transform, (RectTransform)nextTeam.transform);
 
             // Direita: o esquema tático.
             x = StripX;
-            CreateText(half, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f)).text = "Esquema";
+            var schemeTitle = CreateText(half, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f));
+            schemeTitle.text = "Esquema";
             view.Scheme = CreateText(half, "Nome do esquema", 32, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.5f), new Vector2(1.4f, 0.44f));
             view.Style = CreateText(half, "Estilo", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.26f));
-            CreateButton(half, "Esquema anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, -1));
-            CreateButton(half, "Próximo esquema", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, 1));
+            var previousScheme = CreateButton(half, "Esquema anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, -1));
+            var nextScheme = CreateButton(half, "Próximo esquema", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, 1));
+            view.SchemeItem = CreateRect(half, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuItem>();
+            view.SchemeItem.Configure(null, previousScheme, nextScheme, schemeTitle.rectTransform, view.Scheme.rectTransform,
+                view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
             return view;
         }
 
@@ -411,7 +430,7 @@ namespace FutebolDeBotao
             return text;
         }
 
-        private void CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action)
+        private Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action)
         {
             var image = CreateImage(parent, objectName, ButtonColor, null, position, size);
             image.raycastTarget = true;
@@ -421,6 +440,7 @@ namespace FutebolDeBotao
             var text = CreateText(image.rectTransform, "Texto", 26, FontStyle.Bold, ButtonTextColor, Vector2.zero, size);
             text.text = label;
             Stretch(text.rectTransform);
+            return button;
         }
 
         private static void Stretch(RectTransform rect)

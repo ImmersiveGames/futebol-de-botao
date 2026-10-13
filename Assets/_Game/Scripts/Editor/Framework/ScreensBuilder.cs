@@ -229,8 +229,9 @@ namespace FutebolDeBotao.Editor
             // Primeira tela do Menu: o título da Abertura no mesmo lugar e, embaixo, Um jogador (contra a IA) ou Dois jogadores.
             var modePanel = CreateGroup(canvas, "Como jogar");
             CreateText(modePanel, "Título", "Futebol de Botão", 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
-            CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -180f), new Vector2(420f, 90f), menu.PlayOnePlayer);
-            CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -300f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
+            var onePlayer = CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -180f), new Vector2(420f, 90f), menu.PlayOnePlayer);
+            var twoPlayers = CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -300f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
+            AddNavigator(modePanel, null, Item(onePlayer), Item(twoPlayers));
 
             // Opções da partida (GDD), depois do modo; "Avançar" abre a Seleção de times
             var optionsPanel = CreateGroup(canvas, "Opções da partida");
@@ -239,18 +240,27 @@ namespace FutebolDeBotao.Editor
             var kinds = (MatchOptionKind[])Enum.GetValues(typeof(MatchOptionKind));
             var values = new Text[kinds.Length];
             var rows = new RectTransform[kinds.Length];
+            var optionItems = new List<MenuItem>();
             for (int i = 0; i < kinds.Length; i++)
             {
                 float y = 290f - i * MenuScreen.OptionRowSpacing;
                 var row = CreateGroup(optionsPanel, MenuScreen.Label(kinds[i]));
                 rows[i] = (RectTransform)row;
-                CreateText(row, "Nome", MenuScreen.Label(kinds[i]), 30, new Vector2(-170f, y), new Vector2(300f, 70f), FontStyle.Normal, TextAnchor.MiddleLeft);
-                CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(70f, 70f), menu.Previous, i);
+                var name = CreateText(row, "Nome", MenuScreen.Label(kinds[i]), 30, new Vector2(-170f, y), new Vector2(300f, 70f), FontStyle.Normal, TextAnchor.MiddleLeft);
+                var previous = CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(70f, 70f), menu.Previous, i);
                 values[i] = CreateText(row, "Valor", "-", 30, new Vector2(165f, y), new Vector2(170f, 70f), FontStyle.Bold);
-                CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
+                var next = CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
+                // Teclado/controle: esquerda/direita apertam as setas da linha.
+                var item = row.gameObject.AddComponent<MenuItem>();
+                item.Configure(null, previous, next, name.rectTransform, (RectTransform)previous.transform,
+                    values[i].rectTransform, (RectTransform)next.transform);
+                optionItems.Add(item);
             }
-            CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-140f, -450f), new Vector2(240f, 70f), menu.ShowMode);
-            CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(140f, -450f), new Vector2(240f, 70f), menu.ShowSelection);
+            var optionsBack = CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-140f, -450f), new Vector2(240f, 70f), menu.ShowMode);
+            var optionsNext = CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(140f, -450f), new Vector2(240f, 70f), menu.ShowSelection);
+            optionItems.Add(Item(optionsBack));
+            optionItems.Add(Item(optionsNext));
+            AddNavigator(optionsPanel, optionsBack, optionItems.ToArray());
             optionsPanel.gameObject.SetActive(false);
 
             // Seleção de times no campo desenhado ("Jogar" vai para a Partida). Monta a UI sozinha no Awake.
@@ -284,12 +294,13 @@ namespace FutebolDeBotao.Editor
             CreateText(canvas, "Título", "Fim de jogo", 64, new Vector2(0f, 320f), new Vector2(680f, 110f), FontStyle.Bold);
             var score = CreateText(canvas, "Placar", "Azul 0 x 0 Vermelho", 48, new Vector2(0f, 160f), new Vector2(680f, 90f), FontStyle.Bold);
             var verdict = CreateText(canvas, "Vencedor", "Empate!", 38, new Vector2(0f, 60f), new Vector2(680f, 80f));
-            CreateButton(canvas, "Jogar de novo", "Jogar de novo", new Vector2(0f, -120f), new Vector2(420f, 90f), result.PlayAgain);
-            CreateButton(canvas, "Menu", "Menu", new Vector2(0f, -240f), new Vector2(420f, 90f), result.BackToMenu);
+            var again = CreateButton(canvas, "Jogar de novo", "Jogar de novo", new Vector2(0f, -120f), new Vector2(420f, 90f), result.PlayAgain);
+            var toMenu = CreateButton(canvas, "Menu", "Menu", new Vector2(0f, -240f), new Vector2(420f, 90f), result.BackToMenu);
+            AddNavigator(canvas, toMenu, Item(again), Item(toMenu));
 
-            var again = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "resultado.jogar_de_novo");
-            var menu = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "resultado.menu");
-            result.Configure(score, verdict, again, menu);
+            var againRoute = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "resultado.jogar_de_novo");
+            var toMenuRoute = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "resultado.menu");
+            result.Configure(score, verdict, againRoute, toMenuRoute);
 
             AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic);
             EditorSceneManager.SaveScene(scene, ResultScenePath);
@@ -369,9 +380,10 @@ namespace FutebolDeBotao.Editor
             // O framework exige o CanvasGroup no mesmo objeto do Surface Root.
             var group = panel.gameObject.AddComponent<CanvasGroup>();
             CreateText(panel.transform, "Título", "Pausa", 64, new Vector2(0f, 260f), new Vector2(600f, 110f), FontStyle.Bold);
-            CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 80f), new Vector2(420f, 90f), pauseMenu.Resume);
-            CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -40f), new Vector2(420f, 90f), pauseMenu.Restart);
-            CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -160f), new Vector2(420f, 90f), pauseMenu.BackToMenu);
+            var resume = CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 80f), new Vector2(420f, 90f), pauseMenu.Resume);
+            var restartButton = CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -40f), new Vector2(420f, 90f), pauseMenu.Restart);
+            var menuButton = CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -160f), new Vector2(420f, 90f), pauseMenu.BackToMenu);
+            AddNavigator(panel.transform, resume, Item(resume), Item(restartButton), Item(menuButton));
             panel.gameObject.SetActive(false);
 
             var adapter = canvas.gameObject.AddComponent<UnityPauseSurfaceAdapter>();
@@ -412,6 +424,18 @@ namespace FutebolDeBotao.Editor
             go.AddComponent<GraphicRaycaster>();
             return go.transform;
         }
+
+        /// <summary>Botão que o teclado/controle alcança (Confirmar aperta).</summary>
+        private static MenuItem Item(Button button)
+        {
+            var item = button.gameObject.AddComponent<MenuItem>();
+            item.Configure(button);
+            return item;
+        }
+
+        /// <summary>Navegação do painel pelo teclado/controle, na ordem dos itens; Q/B aperta <paramref name="back"/>.</summary>
+        private static void AddNavigator(Transform panel, Button back, params MenuItem[] items) =>
+            panel.gameObject.AddComponent<MenuNavigator>().Configure(items, back);
 
         private static Transform CreateGroup(Transform parent, string objectName)
         {
