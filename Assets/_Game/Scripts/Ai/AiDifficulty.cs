@@ -65,7 +65,7 @@ namespace FutebolDeBotao
                  "o adversário deve pô-lo e com o erro do nível. Fácil 0,3; Médio 0,4; Difícil 0,5.")]
         [Range(0f, 1f)] public float callShotChance = 0.4f;
         [Tooltip("Erro máximo do goleiro da IA, em unidades para cada lado.")]
-        [Min(0f)] public float keeperError = 0.25f;
+        [Min(0f)] public float keeperError = 0.35f;
         [Tooltip("Quantos chutes do adversário o goleiro da IA considera para escolher onde ficar. Mais = cobre melhor o gol.")]
         [Min(1)] public int keeperShotsToConsider = 6;
 
@@ -143,7 +143,7 @@ namespace FutebolDeBotao
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;
                     difficulty.callShotChance = 0.5f;
-                    difficulty.keeperError = 0.08f;
+                    difficulty.keeperError = 0.2f;
                     difficulty.keeperShotsToConsider = 10;
                     difficulty.thinkSeconds = 0.3f;
                     difficulty.aimSeconds = 0.6f;
