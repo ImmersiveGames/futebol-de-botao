@@ -7,7 +7,7 @@ namespace FutebolDeBotao
     /// Um item que o teclado/controle alcança num menu (MenuNavigator): um botão (Confirmar aperta) ou uma linha de opção
     /// com setas (esquerda/direita apertam "&lt;" e "&gt;"; Confirmar aperta "&gt;").
     /// </summary>
-    public sealed class MenuItem : MonoBehaviour
+    public sealed class MenuEntry : MonoBehaviour
     {
         [Tooltip("Botão apertado pelo Confirmar. Vazio numa linha de opção: Confirmar avança o valor.")]
         [SerializeField] private Button confirm;

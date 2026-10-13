@@ -21,7 +21,7 @@ namespace FutebolDeBotao
         private static readonly Color FrameColor = new(1f, 0.85f, 0.25f, 1f);
 
         [Tooltip("Itens na ordem de navegação (de cima para baixo).")]
-        [SerializeField] private MenuItem[] items = new MenuItem[0];
+        [SerializeField] private MenuEntry[] items = new MenuEntry[0];
         [Tooltip("Item escolhido ao abrir o painel.")]
         [SerializeField] private int startIndex;
         [Tooltip("Botão apertado pelo Q/B. Vazio: Voltar não faz nada.")]
@@ -37,9 +37,9 @@ namespace FutebolDeBotao
         private RectTransform frame;
         private Image[] bars;
 
-        public void Configure(MenuItem[] menuItems, Button backButton, int start = 0)
+        public void Configure(MenuEntry[] menuItems, Button backButton, int start = 0)
         {
-            items = menuItems ?? new MenuItem[0];
+            items = menuItems ?? new MenuEntry[0];
             back = backButton;
             startIndex = start;
             // Criado já ligado (AddComponent em tempo de execução): o OnEnable rodou antes da lista existir.

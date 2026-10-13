@@ -48,8 +48,8 @@ namespace FutebolDeBotao
             public Text Abbreviation;
             public Text Scheme;
             public Text Style;
-            public MenuItem TeamItem;
-            public MenuItem SchemeItem;
+            public MenuEntry TeamItem;
+            public MenuEntry SchemeItem;
         }
 
         private readonly Dictionary<TeamSide, HalfView> halves = new();
@@ -225,9 +225,9 @@ namespace FutebolDeBotao
             var play = CreateButton(field, "Jogar", "Jogar", new Vector2(2.45f, 0f), new Vector2(1.5f, 0.56f), Play);
 
             // Teclado/controle: de cima para baixo na tela; começa no time de baixo (o seu contra a IA).
-            var backItem = back.gameObject.AddComponent<MenuItem>();
+            var backItem = back.gameObject.AddComponent<MenuEntry>();
             backItem.Configure(back);
-            var playItem = play.gameObject.AddComponent<MenuItem>();
+            var playItem = play.gameObject.AddComponent<MenuEntry>();
             playItem.Configure(play);
             var top = halves[TeamSide.Top];
             var bottom = halves[TeamSide.Bottom];
@@ -373,7 +373,7 @@ namespace FutebolDeBotao
             view.Abbreviation = CreateText(half, "Abreviação", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY - 0.17f), new Vector2(1.4f, 0.26f));
             var previousTeam = CreateButton(half, "Time anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, -1));
             var nextTeam = CreateButton(half, "Próximo time", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, 1));
-            view.TeamItem = CreateRect(half, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuItem>();
+            view.TeamItem = CreateRect(half, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.TeamItem.Configure(null, previousTeam, nextTeam, view.CrestRing.rectTransform, view.Name.rectTransform,
                 view.Abbreviation.rectTransform, (RectTransform)previousTeam.transform, (RectTransform)nextTeam.transform);
 
@@ -385,7 +385,7 @@ namespace FutebolDeBotao
             view.Style = CreateText(half, "Estilo", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.26f));
             var previousScheme = CreateButton(half, "Esquema anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, -1));
             var nextScheme = CreateButton(half, "Próximo esquema", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, 1));
-            view.SchemeItem = CreateRect(half, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuItem>();
+            view.SchemeItem = CreateRect(half, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SchemeItem.Configure(null, previousScheme, nextScheme, schemeTitle.rectTransform, view.Scheme.rectTransform,
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
             return view;

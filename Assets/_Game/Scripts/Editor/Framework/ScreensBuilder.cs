@@ -240,7 +240,7 @@ namespace FutebolDeBotao.Editor
             var kinds = (MatchOptionKind[])Enum.GetValues(typeof(MatchOptionKind));
             var values = new Text[kinds.Length];
             var rows = new RectTransform[kinds.Length];
-            var optionItems = new List<MenuItem>();
+            var optionItems = new List<MenuEntry>();
             for (int i = 0; i < kinds.Length; i++)
             {
                 float y = 290f - i * MenuScreen.OptionRowSpacing;
@@ -251,7 +251,7 @@ namespace FutebolDeBotao.Editor
                 values[i] = CreateText(row, "Valor", "-", 30, new Vector2(165f, y), new Vector2(170f, 70f), FontStyle.Bold);
                 var next = CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
                 // Teclado/controle: esquerda/direita apertam as setas da linha.
-                var item = row.gameObject.AddComponent<MenuItem>();
+                var item = row.gameObject.AddComponent<MenuEntry>();
                 item.Configure(null, previous, next, name.rectTransform, (RectTransform)previous.transform,
                     values[i].rectTransform, (RectTransform)next.transform);
                 optionItems.Add(item);
@@ -426,15 +426,15 @@ namespace FutebolDeBotao.Editor
         }
 
         /// <summary>Botão que o teclado/controle alcança (Confirmar aperta).</summary>
-        private static MenuItem Item(Button button)
+        private static MenuEntry Item(Button button)
         {
-            var item = button.gameObject.AddComponent<MenuItem>();
+            var item = button.gameObject.AddComponent<MenuEntry>();
             item.Configure(button);
             return item;
         }
 
         /// <summary>Navegação do painel pelo teclado/controle, na ordem dos itens; Q/B aperta <paramref name="back"/>.</summary>
-        private static void AddNavigator(Transform panel, Button back, params MenuItem[] items) =>
+        private static void AddNavigator(Transform panel, Button back, params MenuEntry[] items) =>
             panel.gameObject.AddComponent<MenuNavigator>().Configure(items, back);
 
         private static Transform CreateGroup(Transform parent, string objectName)
