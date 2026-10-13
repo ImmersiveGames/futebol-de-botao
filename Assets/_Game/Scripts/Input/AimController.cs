@@ -154,9 +154,20 @@ namespace FutebolDeBotao
 
         private void UpdatePad(ITeamInput input)
         {
+            if (!padAiming && BallKickMode)
+            {
+                // Tiro de meta: só existe a bola, então a mira já abre nela (qualquer comando do teclado/controle liga).
+                bool anyPad = input.SelectPressedThisFrame || input.AimStick.magnitude >= StickThreshold ||
+                              Mathf.Abs(input.AimRotateAxis) > 0.1f || Mathf.Abs(input.PowerAxis) > 0.1f;
+                if (anyPad) PadMode = true;
+                if (!PadMode) return;
+                BeginPad();
+                return;
+            }
+
             if (!padAiming)
             {
-                if (!BallKickMode) UpdateCursor(input);
+                UpdateCursor(input);
                 if (input.SelectPressedThisFrame)
                 {
                     PadMode = true;
@@ -165,9 +176,10 @@ namespace FutebolDeBotao
                 return;
             }
 
-            if (input.BackPressedThisFrame)
+            if (input.BackPressedThisFrame && !IsBallKick)
             {
                 // Volta um passo: a mira fecha e o cursor fica no botão que estava escolhido.
+                // No tiro de meta não há outra coisa para escolher, então Voltar não fecha a mira.
                 PadMode = true;
                 Cancel();
                 return;
