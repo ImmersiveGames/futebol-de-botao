@@ -4,12 +4,12 @@
     "maps": [
         {
             "name": "Jogo",
-            "id": "fbb83896-f04e-46ff-9460-7a09ce3f7b87",
+            "id": "bfafd1d2-c58f-07ed-e88e-dad5ecc8ab00",
             "actions": [
                 {
                     "name": "Apontar",
                     "type": "PassThrough",
-                    "id": "4ba1bf89-c711-4e84-b390-361f76d90366",
+                    "id": "5f6e16b0-9bfe-c618-0600-968327b42549",
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
@@ -18,25 +18,52 @@
                 {
                     "name": "Pressionar",
                     "type": "Button",
-                    "id": "448f5854-ba8d-4f5b-b760-bb9818c6f267",
+                    "id": "ed419d82-d241-1e15-23ac-e5af8ded5416",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Cancelar",
+                    "name": "Voltar",
                     "type": "Button",
-                    "id": "3122c609-3cf1-4693-aeb7-ef4a767fa835",
+                    "id": "12e1652e-1693-6815-089b-16eba1d573be",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
                 },
                 {
-                    "name": "MoverGoleiro",
+                    "name": "Lados",
                     "type": "Value",
-                    "id": "8ee13298-3230-48d8-b56d-df86f9db92b5",
+                    "id": "51b63e5e-e971-fe88-9e84-777d79e0912b",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "GirarMira",
+                    "type": "Value",
+                    "id": "ec009aed-8c27-bb6a-9f5e-78a6bd33a613",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "ApontarMira",
+                    "type": "Value",
+                    "id": "35fb4a02-0666-7f35-890c-22ad03cd0c88",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Forca",
+                    "type": "Value",
+                    "id": "40ae4b93-09bd-a9b9-ce40-b8f1b52a2026",
                     "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
@@ -45,7 +72,16 @@
                 {
                     "name": "Confirmar",
                     "type": "Button",
-                    "id": "debe7c6f-33a8-48e6-a15d-3ac4edea1b4f",
+                    "id": "dbc6658e-d838-f209-e071-05966f5c4c57",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Chutar",
+                    "type": "Button",
+                    "id": "631d230d-3ae3-0912-802d-c7df2b321d91",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -54,16 +90,7 @@
                 {
                     "name": "VaiChutar",
                     "type": "Button",
-                    "id": "466b518c-3d4d-459a-8f78-2bf64d28fc40",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Reiniciar",
-                    "type": "Button",
-                    "id": "53cc8a2e-0d1c-471f-8180-1736d01009b5",
+                    "id": "070e26ad-f45d-ca65-81bf-25ae14f31c6f",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -73,7 +100,7 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "2da02fea-8cad-4953-af96-8c45aa86eb28",
+                    "id": "0d4d11db-b259-db0c-6d17-38483a081acd",
                     "path": "<Pointer>/position",
                     "interactions": "",
                     "processors": "",
@@ -84,7 +111,7 @@
                 },
                 {
                     "name": "",
-                    "id": "44ebd619-8dbd-4e19-a3f6-9b0ca29c3b79",
+                    "id": "d3500f7d-7e61-396d-d965-35de89adf52b",
                     "path": "<Pointer>/press",
                     "interactions": "",
                     "processors": "",
@@ -95,85 +122,338 @@
                 },
                 {
                     "name": "",
-                    "id": "457c316b-3271-45c5-9919-8621aa1a9019",
+                    "id": "175df880-4cad-3305-7ca3-694ecaf644a4",
                     "path": "<Mouse>/rightButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "Teclado e mouse",
-                    "action": "Cancelar",
+                    "action": "Voltar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0981927b-8efa-c560-a65e-55397ded7fe5",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Voltar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "72fad96b-8cd5-64a7-9a48-62735342ec6e",
+                    "path": "<Gamepad>/buttonEast",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "Voltar",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "1DAxis",
-                    "id": "3c4f8ba1-aea6-4f23-88f1-772bf7564688",
+                    "id": "5480934c-78b9-fb31-0f1e-96130d67feeb",
                     "path": "1DAxis",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "MoverGoleiro",
+                    "action": "Lados",
                     "isComposite": true,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "Negative",
-                    "id": "28f7a55c-bb41-433d-a960-6dfb38513141",
-                    "path": "<Keyboard>/leftArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Teclado e mouse",
-                    "action": "MoverGoleiro",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "Positive",
-                    "id": "fce1b910-8acc-4f08-a435-c1c606a4f12f",
-                    "path": "<Keyboard>/rightArrow",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Teclado e mouse",
-                    "action": "MoverGoleiro",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "1DAxis",
-                    "id": "3529475b-f54f-431e-bcd5-d3d1832f60a9",
-                    "path": "1DAxis",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MoverGoleiro",
-                    "isComposite": true,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "Negative",
-                    "id": "6edf92fa-5c8c-4d34-9da7-171c5ebadbcc",
+                    "id": "b18b90e7-62aa-513d-d9dd-d595f46a12da",
                     "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
                     "groups": "Teclado e mouse",
-                    "action": "MoverGoleiro",
+                    "action": "Lados",
                     "isComposite": false,
                     "isPartOfComposite": true
                 },
                 {
                     "name": "Positive",
-                    "id": "e1ebcbf5-5593-4d0b-ae49-ee6747133b16",
+                    "id": "474d005c-32b7-3014-71f1-f7087cb8af16",
                     "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
                     "groups": "Teclado e mouse",
-                    "action": "MoverGoleiro",
+                    "action": "Lados",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "3c486e64-5d5a-dbf3-788b-206e39542e00",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Lados",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "058ef603-d06a-e61a-a75b-c0dcb4a941a6",
+                    "path": "<Keyboard>/leftArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Lados",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "7e8bd489-dd85-e6a6-4a6f-66e67f3b1cec",
+                    "path": "<Keyboard>/rightArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Lados",
                     "isComposite": false,
                     "isPartOfComposite": true
                 },
                 {
                     "name": "",
-                    "id": "79206106-ebb4-42fb-919d-b94e51d42050",
-                    "path": "<Keyboard>/space",
+                    "id": "5d5bf2f0-e948-e6b9-a719-2f3202aca182",
+                    "path": "<Gamepad>/leftStick/x",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "Lados",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "c0063223-575c-0d0c-3701-09291cf3064c",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Lados",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "1cf16f65-f630-6096-a06f-a676287590b3",
+                    "path": "<Gamepad>/dpad/left",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "Lados",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "77472660-5afe-378d-01d5-cdd590005c9e",
+                    "path": "<Gamepad>/dpad/right",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "Lados",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "180da0f8-c3e8-3d02-bcdd-ac7cc1dfb15c",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GirarMira",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "73c6c34f-aa9c-b687-a509-d9227a266fce",
+                    "path": "<Keyboard>/a",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "GirarMira",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "977d610c-2b22-52b9-0bba-aa839136cb93",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "GirarMira",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "89d162a0-a7e6-170f-c72d-8c542c9caa53",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GirarMira",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "653f23f2-d9a7-f41d-7629-47b27c8337bf",
+                    "path": "<Keyboard>/leftArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "GirarMira",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "2f896dfe-d3af-e26f-b430-31f1ee344c21",
+                    "path": "<Keyboard>/rightArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "GirarMira",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "c45bec6e-29e4-2a6c-5d91-a31cefc13a9b",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GirarMira",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "0b2d220e-053e-c828-3038-8cf345e92d3f",
+                    "path": "<Gamepad>/dpad/left",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "GirarMira",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "2b456c96-e401-1450-ff2c-abb2c706e5ec",
+                    "path": "<Gamepad>/dpad/right",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "GirarMira",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "7dd005bf-767f-437b-2a15-8a98a3a0271f",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "ApontarMira",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "cd004c69-1096-7269-d108-3d6c81abe5ec",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Forca",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "243f14ef-d10b-9c66-1913-3f02995ef463",
+                    "path": "<Keyboard>/s",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Forca",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "608f1002-2b43-3e87-9e24-b14a05663a27",
+                    "path": "<Keyboard>/w",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Forca",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1DAxis",
+                    "id": "7042b4aa-f8e5-1d78-2d72-d3744c9553c9",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Forca",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "Negative",
+                    "id": "495e665c-9058-afa8-1f0e-cedba2399a9a",
+                    "path": "<Keyboard>/downArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Forca",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "Positive",
+                    "id": "f4515e83-415b-dc08-962d-a7e445b91555",
+                    "path": "<Keyboard>/upArrow",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Forca",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "8a55d4e9-f16d-166a-ecc7-844a4a6d075e",
+                    "path": "<Gamepad>/rightStick/y",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "Forca",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "acc45689-e32a-ad7f-d1a1-79071a8ede4f",
+                    "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
                     "groups": "Teclado e mouse",
@@ -183,8 +463,41 @@
                 },
                 {
                     "name": "",
-                    "id": "3880c2ea-05fe-4a45-9e67-793e324d8d7d",
-                    "path": "<Keyboard>/v",
+                    "id": "b1f978b1-54de-398b-859a-4d8af4fe8948",
+                    "path": "<Gamepad>/buttonSouth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "Confirmar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ba0812a6-b636-d060-8a3f-d475007aa999",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Teclado e mouse",
+                    "action": "Chutar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1ba38a17-cb42-d7a0-feb6-c42d51119e53",
+                    "path": "<Gamepad>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "Chutar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "259885ef-6f03-31b4-46ac-427ce7b26bab",
+                    "path": "<Keyboard>/c",
                     "interactions": "",
                     "processors": "",
                     "groups": "Teclado e mouse",
@@ -194,12 +507,23 @@
                 },
                 {
                     "name": "",
-                    "id": "f62f66d4-23b1-4771-ab96-b79d6eb4a4a6",
-                    "path": "<Keyboard>/r",
+                    "id": "43323c72-a91d-37c8-795a-71308bca3d17",
+                    "path": "<Gamepad>/leftShoulder",
                     "interactions": "",
                     "processors": "",
-                    "groups": "Teclado e mouse",
-                    "action": "Reiniciar",
+                    "groups": "Controle",
+                    "action": "VaiChutar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9ab6c95c-6a0a-068f-b56f-9bba2825a3df",
+                    "path": "<Gamepad>/rightShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
+                    "action": "VaiChutar",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -207,12 +531,12 @@
         },
         {
             "name": "Global",
-            "id": "fb659f46-105d-4ddf-949f-3aa475137ef0",
+            "id": "1c13af4c-fc78-4087-1e16-fae004d79263",
             "actions": [
                 {
                     "name": "Pausa",
                     "type": "Button",
-                    "id": "cf7c6af3-d254-41b1-a355-d98bfd9a1fe8",
+                    "id": "01827e89-9c91-b2b6-36cc-28a855369492",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -222,11 +546,22 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "7fd5cee8-8b76-4bbf-a166-fc7f75eb0e0b",
+                    "id": "3d34f0bc-b377-60c7-568a-0c6bbc120dd8",
                     "path": "<Keyboard>/escape",
                     "interactions": "",
                     "processors": "",
                     "groups": "Teclado e mouse",
+                    "action": "Pausa",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ff030751-e911-9324-f25f-59b02aa30413",
+                    "path": "<Gamepad>/start",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Controle",
                     "action": "Pausa",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -257,6 +592,17 @@
             "devices": [
                 {
                     "devicePath": "<Touchscreen>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        },
+        {
+            "name": "Controle",
+            "bindingGroup": "Controle",
+            "devices": [
+                {
+                    "devicePath": "<Gamepad>",
                     "isOptional": false,
                     "isOR": false
                 }
