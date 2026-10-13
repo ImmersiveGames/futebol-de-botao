@@ -39,7 +39,7 @@ namespace FutebolDeBotao
             match = matchController;
             Side = side;
             difficulty = aiDifficulty;
-            log = new AiLog(side);
+            log = new AiLog(side, aiDifficulty);
             match.Noticed += log.Noticed;
         }
 

@@ -8,34 +8,40 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Registro das decisões da IA: uma linha no console por toque e, no editor, um CSV por partida em
-    /// Logs/IA/partida-AAAAMMDD-HHMM.csv (na pasta do projeto) com os fatos, os objetivos, a jogada, a nota esperada
+    /// Logs/IA/partida-AAAAMMDD-HHMM-Nivel.csv (na pasta do projeto) com os fatos, os objetivos, a jogada, a nota esperada
     /// e o que aconteceu de verdade (onde a bola parou, último toque, avisos como gol ou falta).
     /// </summary>
     public sealed class AiLog : IDisposable
     {
         private static readonly CultureInfo Number = CultureInfo.InvariantCulture;
         private const string Header =
-            "tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
+            "nivel;tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
             "bola_esperada;ultimo_toque_esperado;gol_esperado;simulacoes;ms;bola_real;ultimo_toque_real;avisos";
 
         private readonly TeamSide side;
+        private readonly string level;
         private StreamWriter writer;
         private string pending;
         private readonly StringBuilder notices = new();
 
-        public AiLog(TeamSide aiSide) => side = aiSide;
+        public AiLog(TeamSide aiSide, AiDifficulty difficulty)
+        {
+            side = aiSide;
+            level = difficulty != null ? difficulty.name.Replace(" (padrão)", string.Empty) : "?";
+        }
 
         /// <summary>A IA decidiu: escreve no console e guarda a linha esperando o resultado real.</summary>
         public void Decided(AiDecision decision, AiSituation situation, MatchController match)
         {
             Flush();
-            Debug.Log($"[IA] {situation.State} toque {match.TouchesLeft}: {Describe(decision)} | objetivos: {decision.GoalsLine}" +
+            Debug.Log($"[IA] {level} {situation.State} toque {match.TouchesLeft}: {Describe(decision)} | objetivos: {decision.GoalsLine}" +
                       (decision.Rejected.Length > 0 ? $" | recusados: {decision.Rejected}" : string.Empty) +
                       $" | {situation.Describe()} | {decision.Simulations} simulações, {decision.Milliseconds:0.0} ms.");
 #if UNITY_EDITOR
             var c = decision.Candidate;
             var e = decision.Expected;
             pending = string.Join(";",
+                Field(level),
                 Field(Mathf.FloorToInt(match.ClockSeconds).ToString(Number)),
                 Field($"{match.Score(side)}x{match.Score(side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom)}"),
                 Field(match.TouchesLeft.ToString(Number)),
@@ -103,7 +109,7 @@ namespace FutebolDeBotao
                 {
                     string folder = Path.Combine(Application.dataPath, "..", "Logs", "IA");
                     Directory.CreateDirectory(folder);
-                    string path = Path.Combine(folder, $"partida-{DateTime.Now:yyyyMMdd-HHmm}.csv");
+                    string path = Path.Combine(folder, $"partida-{DateTime.Now:yyyyMMdd-HHmm}-{FileSafe(level)}.csv");
                     bool exists = File.Exists(path);
                     writer = new StreamWriter(path, true, new UTF8Encoding(true)) { AutoFlush = true };
                     if (!exists) writer.WriteLine(Header);
@@ -146,6 +152,15 @@ namespace FutebolDeBotao
         private string SideName(TeamSide? touch) => touch == null ? "ninguem" : touch == side ? "IA" : "adversario";
 
         private static string Point(Vector2 point) => string.Format(Number, "{0:0.00};{1:0.00}", point.x, point.y);
+
+        /// <summary>Nome do nível sem acento e espaço, para o nome do arquivo ("Difícil" → "Dificil").</summary>
+        private static string FileSafe(string text)
+        {
+            var plain = new StringBuilder();
+            foreach (char c in text.Normalize(NormalizationForm.FormD))
+                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(c)) plain.Append(c);
+            return plain.Length > 0 ? plain.ToString() : "IA";
+        }
 
         private static string Field(string value) => "\"" + (value ?? string.Empty).Replace("\"", "\"\"") + "\"";
     }
