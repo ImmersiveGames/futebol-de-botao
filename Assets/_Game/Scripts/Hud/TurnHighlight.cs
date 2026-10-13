@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Brilho de quem é a vez: um halo pulsando atrás dos botões que podem ser usados agora
-    /// (mais forte no botão sendo mirado; no teclado/controle só no botão do cursor), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
+    /// (mais forte, e ainda pulsando, no botão sendo mirado; no teclado/controle só no botão do cursor), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
     /// </summary>
     public sealed class TurnHighlight : MonoBehaviour
     {
@@ -16,7 +16,8 @@ namespace FutebolDeBotao
         private const float PulseSpeed = 4f;
         private const float MinAlpha = 0.25f;
         private const float MaxAlpha = 0.55f;
-        private const float SelectedAlpha = 0.85f;
+        private const float SelectedMinAlpha = 0.5f;
+        private const float SelectedMaxAlpha = 0.95f;
 
         [SerializeField] private MatchController match;
 
@@ -35,7 +36,10 @@ namespace FutebolDeBotao
 
             var state = match.State;
             bool paused = Time.timeScale <= 0f;
-            float pulse = Mathf.Lerp(MinAlpha, MaxAlpha, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * PulseSpeed));
+            float wave = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * PulseSpeed);
+            float pulse = Mathf.Lerp(MinAlpha, MaxAlpha, wave);
+            // O escolhido continua piscando, mais forte que os outros.
+            float selectedPulse = Mathf.Lerp(SelectedMinAlpha, SelectedMaxAlpha, wave);
             bool discsActive = !paused && state is MatchState.Aim or MatchState.ShotAim or MatchState.PenaltySetup;
             var selected = aim != null && aim.IsAiming && !aim.IsBallKick ? aim.SelectedDisc : null;
             // Teclado/controle: só o botão do cursor brilha (com mouse/toque brilham todos os que podem jogar).
@@ -47,12 +51,12 @@ namespace FutebolDeBotao
             {
                 bool on = discsActive && pair.Key != null && match.CanUse(pair.Key) && (cursor == null || pair.Key == cursor);
                 bool isSelected = on && pair.Key == selected;
-                Show(pair.Value, on, isSelected ? SelectedAlpha : pulse, isSelected ? SelectedScale : HaloScale);
+                Show(pair.Value, on, isSelected ? selectedPulse : pulse, isSelected ? SelectedScale : HaloScale);
             }
 
             bool ballOn = !paused && state == MatchState.GoalKick;
             bool ballSelected = ballOn && aim != null && aim.IsAiming && aim.IsBallKick;
-            Show(ballHalo, ballOn, ballSelected ? SelectedAlpha : pulse, ballSelected ? SelectedScale : HaloScale);
+            Show(ballHalo, ballOn, ballSelected ? selectedPulse : pulse, ballSelected ? SelectedScale : HaloScale);
 
             // No "Vai chutar" quem age é o defensor, ajustando o goleiro.
             foreach (var pair in keeperHalos)
