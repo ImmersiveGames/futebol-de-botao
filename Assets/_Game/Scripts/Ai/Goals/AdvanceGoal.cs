@@ -25,6 +25,9 @@ namespace FutebolDeBotao
             if (verdict.Foul) return false;
             if (verdict.OwnGoalRisk) return Random.value >= difficulty.ownGoalDefendChance;
             bool poor = verdict.FoulChance > difficulty.maxFoulChance || verdict.Score < difficulty.poorShotScore;
+            // Com toques sobrando, posicionar entrega a vez: só vale desistir se a jogada também perderia a bola.
+            if (poor && !situation.IsLastTouch && verdict.FoulChance <= difficulty.maxFoulChance && verdict.LoseChance < 0.5f)
+                return true;
             return !poor || Random.value >= difficulty.repositionChance;
         }
     }

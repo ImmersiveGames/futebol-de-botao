@@ -374,13 +374,13 @@ namespace FutebolDeBotao
             return targets;
         }
 
-        /// <summary>Alvos para os lados e na diagonal para trás da bola.</summary>
+        /// <summary>
+        /// Alvos para os lados e na diagonal para trás da bola. Não ficam presos dentro do campo: com a bola encostada
+        /// na parede, o toque possível é contra ela, e a simulação mostra a bola voltando.
+        /// </summary>
         private List<Vector2> WideTargets(Vector2 ballPosition)
         {
-            var targets = new List<Vector2>();
-            float maxX = FieldLayout.HalfWidth - 0.4f;
-            float maxY = FieldLayout.HalfHeight - 0.4f;
-            var raw = new[]
+            return new List<Vector2>
             {
                 ballPosition + new Vector2(-WideSideDistance, 0f),
                 ballPosition + new Vector2(WideSideDistance, 0f),
@@ -388,9 +388,6 @@ namespace FutebolDeBotao
                 ballPosition - Attack * WideBackDistance + new Vector2(WideBackDistance, 0f),
                 ballPosition - Attack * WideBackDistance
             };
-            foreach (var target in raw)
-                targets.Add(new Vector2(Mathf.Clamp(target.x, -maxX, maxX), Mathf.Clamp(target.y, -maxY, maxY)));
-            return targets;
         }
 
         /// <summary>Quanto um deslocamento avança na direção do gol adversário.</summary>

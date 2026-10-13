@@ -66,6 +66,45 @@ namespace FutebolDeBotao
 #endif
         }
 
+        /// <summary>
+        /// Jogada do jogador (no editor, para comparar com as da IA): a mesma linha, com objetivo "jogador", e o resultado
+        /// real quando tudo parar.
+        /// </summary>
+        public void PlayerShot(Disc disc, Vector2 impulse, float maxImpulse, MatchController match)
+        {
+            Flush();
+#if UNITY_EDITOR
+            var c = Number;
+            Vector2 ball = match.Ball.Body.position;
+            var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            // A partida já contou o toque quando o peteleco sai (estado Moving): o toque desta jogada é um a mais.
+            int touches = match.State == MatchState.Moving ? match.TouchesLeft + 1 : match.TouchesLeft;
+            string facts = string.Join(" ",
+                string.Format(c, "bola=({0:0.0};{1:0.0})", ball.x, ball.y),
+                string.Format(c, "gol_jogador={0:0.0}", Vector2.Distance(ball, new Vector2(0f, FieldLayout.GoalLineY(opponent)))),
+                string.Format(c, "gol_ia={0:0.0}", Vector2.Distance(ball, new Vector2(0f, FieldLayout.GoalLineY(side)))),
+                $"toques={touches}");
+            Vector2 direction = impulse.normalized;
+            float power = maxImpulse > 0f ? impulse.magnitude / maxImpulse : 0f;
+            pending = string.Join(";",
+                Field(level),
+                Field(Mathf.FloorToInt(match.ClockSeconds).ToString(Number)),
+                Field($"{match.Score(side)}x{match.Score(opponent)}"),
+                Field(touches.ToString(Number)),
+                Field(facts),
+                Field(string.Empty),
+                Field("jogador"),
+                Field(string.Empty),
+                Field(disc != null ? "Peteleco" : "Chute na bola"),
+                Field(disc != null ? disc.name : "bola"),
+                Field(string.Format(Number, "{0:0.00};{1:0.00}", direction.x, direction.y)),
+                Field(power.ToString("0.00", Number)),
+                Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty),
+                Field(string.Empty), Field(string.Empty));
+            notices.Clear();
+#endif
+        }
+
         /// <summary>Um aviso da partida (gol, falta, cartão...) durante a jogada da IA.</summary>
         public void Noticed(MatchNotice notice)
         {
@@ -153,7 +192,7 @@ namespace FutebolDeBotao
 
         private static string Percent(float chance) => Mathf.RoundToInt(chance * 100f).ToString(Number) + "%";
 
-        private string SideName(TeamSide? touch) => touch == null ? "ninguem" : touch == side ? "IA" : "adversario";
+        private string SideName(TeamSide? touch) => touch == null ? "ninguem" : touch == side ? "IA" : "jogador";
 
         private static string Point(Vector2 point) => string.Format(Number, "{0:0.00};{1:0.00}", point.x, point.y);
 

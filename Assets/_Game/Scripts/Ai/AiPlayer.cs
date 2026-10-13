@@ -48,11 +48,21 @@ namespace FutebolDeBotao
             aim = FindAnyObjectByType<AimController>();
             monitor = FindAnyObjectByType<MotionMonitor>();
             if (monitor != null) monitor.Settled += OnSettled;
+            if (aim != null)
+            {
+                aim.Flicked += OnFlicked;
+                aim.BallKicked += OnBallKicked;
+            }
         }
 
         private void OnDestroy()
         {
             if (monitor != null) monitor.Settled -= OnSettled;
+            if (aim != null)
+            {
+                aim.Flicked -= OnFlicked;
+                aim.BallKicked -= OnBallKicked;
+            }
             if (match != null && log != null) match.Noticed -= log.Noticed;
             log?.Dispose();
             log = null;
@@ -60,7 +70,20 @@ namespace FutebolDeBotao
             simulator = null;
         }
 
-        /// <summary>Tudo parou: se era a jogada da IA, o log anota onde a bola ficou.</summary>
+        // Jogadas do jogador também vão para o log (a IA solta pelo mesmo AimController, mas na vez dela).
+        private void OnFlicked(Disc disc, Vector2 impulse)
+        {
+            if (match != null && log != null && match.Turn != Side && aim != null)
+                log.PlayerShot(disc, impulse, aim.Tuning.maxImpulse, match);
+        }
+
+        private void OnBallKicked(Vector2 impulse)
+        {
+            if (match != null && log != null && match.Turn != Side && aim != null)
+                log.PlayerShot(null, impulse, aim.Tuning.ballKickMaxImpulse, match);
+        }
+
+        /// <summary>Tudo parou: se era a jogada da IA ou do jogador, o log anota onde a bola ficou.</summary>
         private void OnSettled()
         {
             if (match != null) log?.Finish(match);

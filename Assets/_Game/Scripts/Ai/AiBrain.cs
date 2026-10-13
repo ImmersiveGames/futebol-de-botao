@@ -243,7 +243,8 @@ namespace FutebolDeBotao
                         OwnGoalRisk = trial.Main.GoalOf == side,
                         FoulChance = trial.Main.Foul ? 1f : 0f,
                         OwnGoalChance = trial.Main.GoalOf == side ? 1f : 0f,
-                        LoseChance = Loses(trial.Main, situation) ? 1f : 0f
+                        // Posicionar sempre passa a vez: não conta como perder a bola.
+                        LoseChance = action.TouchesBall && Loses(trial.Main, situation) ? 1f : 0f
                     },
                     // Posicionamento não toca na bola: não precisa do teste com erro.
                     Checked = !action.TouchesBall
