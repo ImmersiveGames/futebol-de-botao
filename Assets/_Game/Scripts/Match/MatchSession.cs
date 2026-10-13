@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace FutebolDeBotao
 {
@@ -31,6 +32,15 @@ namespace FutebolDeBotao
 
         /// <summary>Modo escolhido no Menu: true = contra a IA, false = 2 jogadores. Nulo: a partida abriu sem passar pelo Menu.</summary>
         public static bool? VsAi { get; set; }
+
+        /// <summary>Dispositivo do Jogador 1 escolhido na tela Controles. Nulo: sem escolha (a Unity dá o primeiro livre).</summary>
+        public static InputDevice Player1Device { get; set; }
+
+        /// <summary>Dispositivo do Jogador 2 (só em Dois jogadores com dispositivos diferentes).</summary>
+        public static InputDevice Player2Device { get; set; }
+
+        /// <summary>Dois jogadores no mesmo dispositivo, revezando (a partida lê os dispositivos direto).</summary>
+        public static bool SharedDevice { get; set; }
 
         /// <summary>Nível da IA escolhido no Menu.</summary>
         public static AiLevel AiLevel { get; set; } = AiLevel.Medium;

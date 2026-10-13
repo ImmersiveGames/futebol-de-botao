@@ -1,13 +1,18 @@
+using System;
+using System.Collections;
 using Immersive.Framework.PlayerParticipation;
 using Immersive.Framework.PlayerSlots;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// No Menu, acerta quem está na sessão antes da partida.
-    /// Contra a IA: só o Jogador 1 (Azul, embaixo). 2 jogadores: por enquanto ninguém entra e a partida lê o
-    /// mouse/teclado direto, até o framework aceitar dois jogadores no mesmo dispositivo.
+    /// No Menu, acerta quem está na sessão antes da partida, com os dispositivos escolhidos na tela Controles.
+    /// Contra a IA: só o Jogador 1. Dois jogadores com dispositivos diferentes: Jogador 1 e Jogador 2, cada um com o seu
+    /// (os dois viram Actors). Dois jogadores no mesmo dispositivo: ninguém entra e a partida lê os dispositivos direto,
+    /// até o framework aceitar dois jogadores no mesmo dispositivo.
+    /// Sempre tira todo mundo antes e entra de novo alguns quadros depois, para o dispositivo já estar livre.
     /// </summary>
     public sealed class MenuPlayers : MonoBehaviour
     {
@@ -16,39 +21,62 @@ namespace FutebolDeBotao
         [Tooltip("Player Session Observer do Menu (escopo Route).")]
         [SerializeField] private PlayerSessionObserver session;
 
+        private bool busy;
+
         public void Configure(PlayerSessionObserver observer) => session = observer;
 
-        /// <summary>Contra a IA: garante o Jogador 1 e tira o Jogador 2.</summary>
-        public void PrepareVsAi()
+        /// <summary>Acerta os jogadores do modo escolhido e chama <paramref name="done"/> (mesmo se algo falhar).</summary>
+        public void Prepare(Action done)
         {
-            if (!TryGetObservation(out var access, out var observation)) return;
+            if (busy) return;
+            StartCoroutine(PrepareRoutine(done));
+        }
 
-            bool player1Joined = false;
-            foreach (var slot in observation.Slots)
+        private IEnumerator PrepareRoutine(Action done)
+        {
+            busy = true;
+            if (TryGetObservation(out var access, out var observation))
             {
-                if (!slot.IsJoined) continue;
-                if (slot.Slot.PlayerSlotId == PlayerSlotId.Player1) player1Joined = true;
-                else Leave(access, slot);
-            }
-            if (player1Joined) return;
+                bool anyLeft = false;
+                foreach (var slot in observation.Slots)
+                {
+                    if (!slot.IsJoined) continue;
+                    Leave(access, slot);
+                    anyLeft = true;
+                }
+                // O PlayerInput de quem saiu some no fim do quadro; o dispositivo só fica livre depois.
+                if (anyLeft)
+                {
+                    yield return null;
+                    yield return null;
+                }
 
+                if (MatchSession.VsAi == true) Join(MatchSession.Player1Device, "contra a IA");
+                else if (!MatchSession.SharedDevice && MatchSession.Player1Device != null && MatchSession.Player2Device != null)
+                {
+                    Join(MatchSession.Player1Device, "dois jogadores: jogador 1");
+                    yield return null;
+                    Join(MatchSession.Player2Device, "dois jogadores: jogador 2");
+                }
+            }
+            busy = false;
+            done?.Invoke();
+        }
+
+        /// <summary>Join com o dispositivo (e o esquema dele). Sem dispositivo, a Unity dá o primeiro esquema que os livres atendem.</summary>
+        private void Join(InputDevice device, string reason)
+        {
             if (!session.TryGetJoinAccess(out var join, out string issue))
             {
                 Debug.LogWarning($"[Jogadores] Join indisponível no Menu: {issue}");
                 return;
             }
-            // Sem dispositivo: a Unity dá ao Jogador 1 o primeiro esquema que os dispositivos livres atendem (teclado e mouse ou toque).
-            var result = join.RequestJoin(new LocalPlayerJoinRequest(Source, "contra a IA"));
-            if (result.Succeeded) Debug.Log($"[Jogadores] {result.Slot.PlayerSlotId} entrou.");
-            else Debug.LogWarning($"[Jogadores] Join do Jogador 1 falhou: {result.Status} {result.Message}");
-        }
-
-        /// <summary>2 jogadores: tira todo mundo (a partida volta a ler o mouse/teclado direto).</summary>
-        public void PrepareTwoPlayers()
-        {
-            if (!TryGetObservation(out var access, out var observation)) return;
-            foreach (var slot in observation.Slots)
-                if (slot.IsJoined) Leave(access, slot);
+            var request = device != null && device.added
+                ? new LocalPlayerJoinRequest(Source, reason, device, DeviceChoice.SchemeFor(device))
+                : new LocalPlayerJoinRequest(Source, reason);
+            var result = join.RequestJoin(request);
+            if (result.Succeeded) Debug.Log($"[Jogadores] {result.Slot.PlayerSlotId} entrou ({(device != null ? device.displayName : "sem dispositivo")}).");
+            else Debug.LogWarning($"[Jogadores] Join falhou ({reason}): {result.Status} {result.Message}");
         }
 
         private bool TryGetObservation(out IPlayerSessionScopedAccess access, out PlayerSessionScopedObservationSnapshot observation)

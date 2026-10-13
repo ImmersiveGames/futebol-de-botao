@@ -256,12 +256,19 @@ namespace FutebolDeBotao.Editor
                     values[i].rectTransform, (RectTransform)next.transform);
                 optionItems.Add(item);
             }
-            var optionsBack = CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-140f, -450f), new Vector2(240f, 70f), menu.ShowMode);
+            var optionsBack = CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-140f, -450f), new Vector2(240f, 70f), menu.BackFromOptions);
             var optionsNext = CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(140f, -450f), new Vector2(240f, 70f), menu.ShowSelection);
             optionItems.Add(Item(optionsBack));
             optionItems.Add(Item(optionsNext));
             AddNavigator(optionsPanel, optionsBack, optionItems.ToArray());
             optionsPanel.gameObject.SetActive(false);
+
+            // Controles: cada jogador escolhe o dispositivo (só com mais de um). Monta a UI sozinha ao abrir.
+            var devicesPanel = CreateGroup(canvas, "Controles");
+            var devices = devicesPanel.gameObject.AddComponent<DeviceSelectionScreen>();
+            devices.Configure(menu);
+            menu.SetDevices(devices);
+            devicesPanel.gameObject.SetActive(false);
 
             // Seleção de times no campo desenhado ("Jogar" vai para a Partida). Monta a UI sozinha no Awake.
             var selectionPanel = CreateGroup(canvas, "Seleção de times");

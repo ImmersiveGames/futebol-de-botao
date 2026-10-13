@@ -18,8 +18,9 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: começa com Um jogador (contra a IA) ou Dois jogadores; escolhido o modo, abre as Opções da partida (com a
-    /// dificuldade da IA só em Um jogador), depois a Seleção de times, e "Jogar" pede a Route da Partida.
+    /// Menu: começa com Um jogador (contra a IA) ou Dois jogadores; escolhido o modo, abre os Controles (só com mais de
+    /// um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
+    /// "Jogar" põe os jogadores na sessão e pede a Route da Partida.
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
@@ -33,6 +34,8 @@ namespace FutebolDeBotao
         [SerializeField] private GameObject modePanel;
         [SerializeField] private GameObject optionsPanel;
         [SerializeField] private TeamSelectionScreen selection;
+        [Tooltip("Tela Controles: cada jogador escolhe o dispositivo. Vazio: pula direto para as Opções.")]
+        [SerializeField] private DeviceSelectionScreen devices;
         [Tooltip("Mostra nas Opções o modo escolhido.")]
         [SerializeField] private Text modeLabel;
         [Tooltip("Acerta quem está na sessão (Jogador 1 contra a IA). Vazio: a partida lê o mouse/teclado direto.")]
@@ -41,6 +44,8 @@ namespace FutebolDeBotao
         [SerializeField] private Text[] valueLabels = new Text[0];
         [Tooltip("Uma linha por opção, na ordem de MatchOptionKind.")]
         [SerializeField] private RectTransform[] optionRows = new RectTransform[0];
+
+        private bool devicesShown;
 
         public void Configure(MatchOptions defaultOptions, RouteRequestTrigger match, GameObject modeRoot, GameObject optionsRoot,
             Text mode, Text[] values, RectTransform[] rows)
@@ -64,26 +69,42 @@ namespace FutebolDeBotao
         public void PlayOnePlayer()
         {
             MatchSession.VsAi = true;
-            ShowOptions();
+            OpenDevices();
         }
 
-        /// <summary>2 jogadores no mesmo aparelho. Abre as Opções.</summary>
+        /// <summary>2 jogadores: cada um no seu dispositivo ou revezando o mesmo. Abre os Controles ou as Opções.</summary>
         public void PlayTwoPlayers()
         {
             MatchSession.VsAi = false;
-            ShowOptions();
+            OpenDevices();
         }
 
-        /// <summary>"Jogar" na Seleção de times: acerta os jogadores do modo escolhido e vai para a Partida.</summary>
+        /// <summary>Controles, quando há mais de um dispositivo; senão o único fica escolhido e vai para as Opções.</summary>
+        private void OpenDevices()
+        {
+            devicesShown = devices != null && devices.Open();
+            if (devicesShown) Show(devices.gameObject);
+            else ShowOptions();
+        }
+
+        /// <summary>Os Controles terminaram: segue para as Opções.</summary>
+        public void ShowOptionsFromDevices() => ShowOptions();
+
+        /// <summary>"Voltar" nas Opções: volta aos Controles se eles apareceram, senão à primeira tela.</summary>
+        public void BackFromOptions()
+        {
+            if (devicesShown) OpenDevices();
+            else ShowMode();
+        }
+
+        /// <summary>"Jogar" na Seleção de times: põe os jogadores na sessão (com os dispositivos) e vai para a Partida.</summary>
         public void Play()
         {
-            if (players != null)
-            {
-                if (MatchSession.VsAi == true) players.PrepareVsAi();
-                else players.PrepareTwoPlayers();
-            }
-            RequestMatch();
+            if (players != null) players.Prepare(RequestMatch);
+            else RequestMatch();
         }
+
+        public void SetDevices(DeviceSelectionScreen deviceSelection) => devices = deviceSelection;
 
         public void SetPlayers(MenuPlayers menuPlayers) => players = menuPlayers;
 
@@ -119,7 +140,8 @@ namespace FutebolDeBotao
 
         private void Show(GameObject panel)
         {
-            foreach (var other in new[] { modePanel, optionsPanel, selection != null ? selection.gameObject : null })
+            foreach (var other in new[] { modePanel, optionsPanel, selection != null ? selection.gameObject : null,
+                         devices != null ? devices.gameObject : null })
                 if (other != null) other.SetActive(other == panel);
         }
 
