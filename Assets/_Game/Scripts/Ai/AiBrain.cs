@@ -141,8 +141,18 @@ namespace FutebolDeBotao
 
                 if (action.IsInstant)
                 {
-                    chosen = new AiDecision { Goal = goal, Action = action };
-                    break;
+                    // Vai chutar: só anuncia se algum chute passa do goleiro que o adversário vai posicionar.
+                    float chance = 0f;
+                    string callLine = string.Empty;
+                    yield return ShotCallChance(situation, match, difficulty, (c, l) => { chance = c; callLine = l; });
+                    if (aborted) yield break;
+                    if (chance >= difficulty.callShotChance)
+                    {
+                        chosen = new AiDecision { Goal = goal, Action = action, FollowLine = callLine };
+                        break;
+                    }
+                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(' ').Append(callLine);
+                    continue;
                 }
 
                 if (!trials.TryGetValue(action, out var list))
@@ -366,6 +376,87 @@ namespace FutebolDeBotao
             for (int i = 0; i < rated.Count && rated[i].Checked && pool.Count < difficulty.pickAmongBest; i++)
                 if (i != first && rated[i].Verdict.SafeFor(difficulty) && rated[i].Verdict.Score >= best - PickWindow) pool.Add(rated[i]);
             done(pool[Random.Range(0, pool.Count)]);
+        }
+
+        private const int KeeperPositions = 9;
+
+        /// <summary>
+        /// Chance de gol se anunciar o Vai chutar agora. A IA imagina o goleiro do adversário onde menos chutes dela
+        /// entram (a mesma conta do goleiro da IA), e testa cada chute contra ele com o erro do nível. Devolve a chance
+        /// do melhor chute e uma linha para o log.
+        /// </summary>
+        private IEnumerator ShotCallChance(AiSituation situation, MatchController match, AiDifficulty difficulty,
+            Action<float, string> done)
+        {
+            var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            Goalkeeper keeper = null;
+            foreach (var k in match.Keepers)
+                if (k != null && k.isActiveAndEnabled && k.Side == opponent) keeper = k;
+            var shots = planner.GoalThreats(situation.AllUsable, difficulty.keeperShotsToConsider);
+            if (keeper == null || shots.Count == 0)
+            {
+                done(0f, shots.Count == 0 ? "sem chute livre" : "sem goleiro");
+                yield break;
+            }
+
+            float maxImpulse = currentTuning.maxImpulse;
+            bool wallOk = match.Options.goalAfterWallIsValid;
+            bool Scores(in SimResult r) => r.GoalOf == opponent && (wallOk || !r.BallTouchedWall);
+
+            float bestChance = 0f, keeperX = 0f;
+            string bestShot = string.Empty;
+            try
+            {
+                // Onde o goleiro dele fica: a posição em que entram menos chutes (chutes fáceis pesam mais).
+                float least = float.MaxValue;
+                float center = (keeper.MinX + keeper.MaxX) * 0.5f;
+                for (int p = 0; p < KeeperPositions; p++)
+                {
+                    float x = Mathf.Lerp(keeper.MinX, keeper.MaxX, p / (KeeperPositions - 1f));
+                    simulator.OverrideKeeperX(opponent, x);
+                    float conceded = 0f;
+                    foreach (var shot in shots)
+                    {
+                        if (!Scores(Simulate(shot.Disc, shot.Direction, shot.Power01, maxImpulse))) continue;
+                        float weight = 1f / (0.5f + shot.Power01);
+                        if (shot.BallBlocked) weight *= 0.7f;
+                        conceded += weight;
+                    }
+                    if (conceded < least - 0.001f || (Mathf.Abs(conceded - least) <= 0.001f && Mathf.Abs(x - center) < Mathf.Abs(keeperX - center)))
+                    {
+                        least = conceded;
+                        keeperX = x;
+                    }
+                    if (Budget()) yield return Pause();
+                    if (aborted) yield break;
+                }
+
+                // Contra esse goleiro, cada chute com o erro do nível.
+                simulator.OverrideKeeperX(opponent, keeperX);
+                foreach (var shot in shots)
+                {
+                    int goals = Scores(Simulate(shot.Disc, shot.Direction, shot.Power01, maxImpulse)) ? 1 : 0;
+                    var variants = Variants(shot, difficulty, maxImpulse);
+                    foreach (var variant in variants)
+                        if (Scores(variant)) goals++;
+                    float chance = goals / (variants.Length + 1f);
+                    if (chance > bestChance)
+                    {
+                        bestChance = chance;
+                        bestShot = shot.Disc.name;
+                    }
+                    if (Budget()) yield return Pause();
+                    if (aborted) yield break;
+                }
+            }
+            finally
+            {
+                simulator.ClearKeeperOverride();
+            }
+
+            string line = $"chute contra o goleiro em x={keeperX:0.00}: {Mathf.RoundToInt(bestChance * 100f)}%" +
+                          (bestShot.Length > 0 ? $" ({bestShot})" : string.Empty);
+            done(bestChance, line);
         }
 
         /// <summary>

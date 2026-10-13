@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -16,7 +17,7 @@ namespace FutebolDeBotao
         private static readonly CultureInfo Number = CultureInfo.InvariantCulture;
         private const string Header =
             "nivel;tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
-            "bola_esperada;ultimo_toque_esperado;gol_esperado;segundo_toque;simulacoes;ms;bola_real;ultimo_toque_real;avisos";
+            "bola_esperada;ultimo_toque_esperado;gol_esperado;plano;simulacoes;ms;bola_real;ultimo_toque_real;avisos";
 
         private readonly TeamSide side;
         private readonly string level;
@@ -106,6 +107,51 @@ namespace FutebolDeBotao
 #endif
         }
 
+        /// <summary>
+        /// O goleiro da IA se posicionou para o chute anunciado do jogador: os chutes que ela previu, o peso dos gols em
+        /// cada posição testada, onde ficou (com o erro do nível). A jogada do jogador vem na linha seguinte.
+        /// </summary>
+        public void KeeperPlaced(MatchController match, IReadOnlyList<ShotCandidate> threats, float[] xs, float[] conceded,
+            float bestX, float targetX, double milliseconds)
+        {
+            Flush();
+            var c = Number;
+            Vector2 ball = match.Ball.Body.position;
+            var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var predicted = new StringBuilder();
+            foreach (var threat in threats)
+                predicted.Append(predicted.Length > 0 ? ", " : string.Empty)
+                    .Append(threat.Disc != null ? threat.Disc.name : "bola")
+                    .Append(string.Format(c, " ({0:0.00};{1:0.00}) força {2:0.00}", threat.Direction.x, threat.Direction.y, threat.Power01));
+            var positions = new StringBuilder();
+            for (int i = 0; i < xs.Length; i++)
+                positions.Append(i > 0 ? " " : string.Empty).Append(string.Format(c, "x{0:0.0}={1:0.0}", xs[i], conceded[i]));
+            Debug.Log($"[IA] {level} goleiro: previu {threats.Count} chutes [{predicted}]; gols por posição [{positions}]; " +
+                      string.Format(c, "fica em x={0:0.00} (com erro {1:0.00}).", bestX, targetX));
+#if UNITY_EDITOR
+            Write(string.Join(";",
+                Field(level),
+                Field(Mathf.FloorToInt(match.ClockSeconds).ToString(c)),
+                Field($"{match.Score(side)}x{match.Score(opponent)}"),
+                Field(match.TouchesLeft.ToString(c)),
+                Field(string.Format(c, "bola=({0:0.0};{1:0.0}) gol_ia={2:0.0} chutes_previstos=[{3}]", ball.x, ball.y,
+                    Vector2.Distance(ball, new Vector2(0f, FieldLayout.GoalLineY(side))), predicted)),
+                Field(positions.ToString()),
+                Field("goleiro"),
+                Field(string.Empty),
+                Field("Posicionar goleiro"),
+                Field("goleiro"),
+                Field(string.Format(c, "x={0:0.00}", targetX)),
+                Field(string.Empty),
+                Field(string.Format(c, "{0:0.0}", conceded.Length > 0 ? Mathf.Min(conceded) : 0f)),
+                Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty),
+                Field(string.Format(c, "melhor x={0:0.00}", bestX)),
+                Field((threats.Count * xs.Length).ToString(c)),
+                Field(milliseconds.ToString("0.0", c)),
+                Field(string.Empty), Field(string.Empty), Field(string.Empty)));
+#endif
+        }
+
         /// <summary>Um aviso da partida (gol, falta, cartão...) durante a jogada da IA.</summary>
         public void Noticed(MatchNotice notice)
         {
@@ -172,7 +218,11 @@ namespace FutebolDeBotao
             text.Append(decision.Goal.Name);
             if (decision.NoGoalAccepted) text.Append(" (nenhum objetivo aceitou)");
             text.Append(" → ").Append(decision.Action.Name);
-            if (decision.Action.IsInstant) return text.ToString();
+            if (decision.Action.IsInstant)
+            {
+                if (decision.FollowLine.Length > 0) text.Append(" (").Append(decision.FollowLine).Append(')');
+                return text.ToString();
+            }
             text.Append(" com ").Append(decision.Candidate.Disc != null ? decision.Candidate.Disc.name : "a bola");
             text.Append(", nota ").Append(decision.Verdict.Score.ToString("0"));
             if (decision.FollowLine.Length > 0) text.Append(" (segundo toque: ").Append(decision.FollowLine).Append(')');

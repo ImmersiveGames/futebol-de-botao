@@ -250,6 +250,8 @@ namespace FutebolDeBotao
                     if (!StillValid(version)) yield break;
                     float targetX = (bestX ?? PredictShotX()) + Random.Range(-difficulty.keeperError, difficulty.keeperError);
                     keeper.SetTargetX(targetX);
+                    if (bestX != null && keeperThreats != null)
+                        log.KeeperPlaced(match, keeperThreats, keeperXs, keeperConceded, bestX.Value, targetX, keeperMs);
                     float speed = aim.Tuning != null ? Mathf.Max(aim.Tuning.goalkeeperSpeed, 0.1f) : 3f;
                     travelSeconds = Mathf.Min(Mathf.Abs(targetX - keeper.transform.position.x) / speed, 2.5f);
                 }
@@ -265,6 +267,12 @@ namespace FutebolDeBotao
 
         private const int KeeperPositions = 9;
 
+        // A última conta do goleiro, para o log.
+        private List<ShotCandidate> keeperThreats;
+        private float[] keeperXs;
+        private float[] keeperConceded;
+        private double keeperMs;
+
         /// <summary>
         /// Onde o goleiro deixa passar menos gols: pega os chutes a gol mais prováveis do adversário (quantos, conforme
         /// o nível), simula cada um contra várias posições do goleiro e fica com a que sofre menos. Chutes mais fáceis
@@ -279,6 +287,7 @@ namespace FutebolDeBotao
                 if (match.CanUse(disc)) usable.Add(disc);
 
             var threats = OpponentPlanner().GoalThreats(usable, difficulty.keeperShotsToConsider);
+            keeperThreats = null;
             if (threats.Count == 0)
             {
                 done(null);
@@ -343,6 +352,10 @@ namespace FutebolDeBotao
 
             Debug.Log($"[IA] Goleiro: {threats.Count} chutes x {KeeperPositions} posições, pensou {computeMs:0.0} ms " +
                       $"({simulator.TotalSteps - stepsBefore} passos de física). Fica em x={bestX:0.00} (peso dos gols que ainda entram: {least:0.0}).");
+            keeperThreats = threats;
+            keeperXs = xs;
+            keeperConceded = conceded;
+            keeperMs = computeMs;
             done(bestX);
         }
 

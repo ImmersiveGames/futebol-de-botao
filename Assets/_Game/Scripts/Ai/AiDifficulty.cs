@@ -61,6 +61,9 @@ namespace FutebolDeBotao
         [Header("Vai chutar e goleiro")]
         [Tooltip("Anuncia o \"Vai chutar\" quando a bola está a esta distância do gol (ou menos) e o caminho está livre.")]
         [Min(0f)] public float shotCallDistance = 4.5f;
+        [Tooltip("Só anuncia o Vai chutar se o melhor chute entra pelo menos nesta fração das vezes, contra o goleiro onde " +
+                 "o adversário deve pô-lo e com o erro do nível. Fácil 0,3; Médio 0,4; Difícil 0,5.")]
+        [Range(0f, 1f)] public float callShotChance = 0.4f;
         [Tooltip("Erro máximo do goleiro da IA, em unidades para cada lado.")]
         [Min(0f)] public float keeperError = 0.25f;
         [Tooltip("Quantos chutes do adversário o goleiro da IA considera para escolher onde ficar. Mais = cobre melhor o gol.")]
@@ -119,6 +122,7 @@ namespace FutebolDeBotao
                     difficulty.angleErrorDegrees = 8f;
                     difficulty.powerError = 0.15f;
                     difficulty.shotCallDistance = 3f;
+                    difficulty.callShotChance = 0.3f;
                     difficulty.keeperError = 0.5f;
                     difficulty.keeperShotsToConsider = 3;
                     difficulty.thinkSeconds = 0.6f;
@@ -138,6 +142,7 @@ namespace FutebolDeBotao
                     difficulty.angleErrorDegrees = 1.5f;
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;
+                    difficulty.callShotChance = 0.5f;
                     difficulty.keeperError = 0.08f;
                     difficulty.keeperShotsToConsider = 10;
                     difficulty.thinkSeconds = 0.3f;
