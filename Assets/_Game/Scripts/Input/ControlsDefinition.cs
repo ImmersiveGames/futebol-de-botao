@@ -76,10 +76,12 @@ namespace FutebolDeBotao
             Keys(rotate, "<Keyboard>/a", "<Keyboard>/d", KeyboardMouse);
             Keys(rotate, "<Keyboard>/leftArrow", "<Keyboard>/rightArrow", KeyboardMouse);
             Keys(rotate, "<Gamepad>/dpad/left", "<Gamepad>/dpad/right", Gamepad);
+            // O analógico gira a mira igual ao d-pad (apontar direto mudava a mira ao soltar o analógico).
+            rotate.AddBinding("<Gamepad>/leftStick/x", groups: Gamepad);
 
+            // Sem ligação: o analógico não aponta mais a mira (fica a ação para não mexer nos leitores).
             var stick = game.AddAction(AimStick, InputActionType.Value);
             stick.expectedControlType = "Vector2";
-            stick.AddBinding("<Gamepad>/leftStick", groups: Gamepad);
 
             var power = Axis(game, Power);
             Keys(power, "<Keyboard>/s", "<Keyboard>/w", KeyboardMouse);

@@ -185,15 +185,6 @@ namespace FutebolDeBotao
                 return;
             }
 
-            float sign = MatchInput.ScreenSign(InputSide);
-            Vector2 stick = input.AimStick;
-            if (stick.magnitude >= StickThreshold)
-            {
-                // O analógico aponta e a mira fica onde parou quando ele volta ao centro.
-                PadMode = true;
-                Direction = (stick * sign).normalized;
-            }
-
             float rotate = input.AimRotateAxis;
             if (Mathf.Abs(rotate) > 0.1f)
             {

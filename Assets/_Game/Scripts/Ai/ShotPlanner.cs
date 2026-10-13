@@ -386,7 +386,10 @@ namespace FutebolDeBotao
                 ballPosition + new Vector2(WideSideDistance, 0f),
                 ballPosition - Attack * WideBackDistance + new Vector2(-WideBackDistance, 0f),
                 ballPosition - Attack * WideBackDistance + new Vector2(WideBackDistance, 0f),
-                ballPosition - Attack * WideBackDistance
+                ballPosition - Attack * WideBackDistance,
+                // Diagonal para a frente, para o canto e a parede devolverem a bola (tirar do canto).
+                ballPosition + Attack * WideBackDistance + new Vector2(-WideSideDistance, 0f),
+                ballPosition + Attack * WideBackDistance + new Vector2(WideSideDistance, 0f)
             };
         }
 
