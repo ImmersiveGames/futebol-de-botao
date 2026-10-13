@@ -48,6 +48,24 @@ namespace FutebolDeBotao
             return 0;
         }
 
+        /// <summary>Quem pausou: 1 ou 2 mexe no menu de pausa; 0 = qualquer um.</summary>
+        public static int PausedBy { get; set; }
+
+        /// <summary>
+        /// Dono do dispositivo: 1 ou 2; 0 quando ninguém escolheu dispositivo ou os dois revezam; -1 quando é de ninguém
+        /// (há donos e este não foi escolhido).
+        /// </summary>
+        public static int OwnerOf(InputDevice device)
+        {
+            if (MatchSession.SharedDevice) return 0;
+            var first = MatchSession.Player1Device;
+            var second = MatchSession.Player2Device;
+            if (first == null && second == null) return 0;
+            if (device == first) return 1;
+            if (device == second) return 2;
+            return -1;
+        }
+
         /// <summary>Nome na tela: "Teclado e mouse", "Toque" ou "Controle N" (N pela ordem em <paramref name="devices"/>).</summary>
         public static string Label(InputDevice device, List<InputDevice> devices)
         {

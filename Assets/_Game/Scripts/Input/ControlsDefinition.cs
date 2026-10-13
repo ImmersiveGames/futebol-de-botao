@@ -38,7 +38,10 @@ namespace FutebolDeBotao
         public const string Kick = "Chutar";
         /// <summary>"Vai chutar". C, LB, RB.</summary>
         public const string ShotCall = "VaiChutar";
-        /// <summary>Pausa (mapa Global). Esc, Start.</summary>
+        /// <summary>
+        /// Pausa (mapa Global), sem teclas: o framework exige a ação no Jogador, mas quem lê o Esc/Start é a partida,
+        /// por dispositivo, para os dois jogadores poderem pausar (MatchController).
+        /// </summary>
         public const string Pause = "Pausa";
 
         /// <summary>Cria o asset com os esquemas, os mapas, as ações e as teclas.</summary>
@@ -97,9 +100,7 @@ namespace FutebolDeBotao
             shotCall.AddBinding("<Gamepad>/rightShoulder", groups: Gamepad);
 
             var global = asset.AddActionMap(GlobalMap);
-            var pause = global.AddAction(Pause, InputActionType.Button);
-            pause.AddBinding("<Keyboard>/escape", groups: KeyboardMouse);
-            pause.AddBinding("<Gamepad>/start", groups: Gamepad);
+            global.AddAction(Pause, InputActionType.Button);
 
             return asset;
         }

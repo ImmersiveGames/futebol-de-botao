@@ -307,10 +307,18 @@ namespace FutebolDeBotao
 
         private void Update()
         {
-            // Com o Jogador 1 na sessão, o Esc/Start é dele (Pause PlayerInput Binding do framework); sem ninguém, lê o
-            // teclado e os controles direto. Reiniciar fica só no menu de pausa.
-            if (!CoachActor.AnyPauseBound && DirectPausePressed() && pauseTrigger != null)
-                pauseTrigger.TogglePause();
+            // Esc/Start de cada jogador, no próprio dispositivo: quem pausou mexe no menu e só ele tira a pausa por aqui.
+            // Reiniciar fica só no menu de pausa.
+            if (pauseTrigger != null && TryGetPausePress(out int pressedBy))
+            {
+                if (!Paused)
+                {
+                    DeviceChoice.PausedBy = pressedBy;
+                    pauseTrigger.RequestPause();
+                }
+                else if (DeviceChoice.PausedBy == 0 || pressedBy == 0 || pressedBy == DeviceChoice.PausedBy)
+                    pauseTrigger.RequestResume();
+            }
             if (Paused) return;
 
             if (IsHolding)
@@ -371,13 +379,22 @@ namespace FutebolDeBotao
             }
         }
 
-        private static bool DirectPausePressed()
+        /// <summary>Esc ou Start apertado agora num dispositivo de jogador; <paramref name="player"/> = dono (0 = qualquer um).</summary>
+        private static bool TryGetPausePress(out int player)
         {
+            player = 0;
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) return true;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && TryOwner(keyboard, out player)) return true;
             foreach (var gamepad in Gamepad.all)
-                if (gamepad.startButton.wasPressedThisFrame) return true;
+                if (gamepad.startButton.wasPressedThisFrame && TryOwner(gamepad, out player)) return true;
             return false;
+        }
+
+        // Dispositivo que ninguém escolheu na tela Controles não pausa.
+        private static bool TryOwner(InputDevice device, out int player)
+        {
+            player = DeviceChoice.OwnerOf(device);
+            return player >= 0;
         }
 
         // GDD: o relógio corre só durante a mira.
@@ -457,8 +474,10 @@ namespace FutebolDeBotao
             else if (IsPlacingGoalKick) FinishGoalKickPlacement();
         }
 
+        /// <summary>Botão de pausa do HUD: o menu fica com o dono do mouse/toque que clicou.</summary>
         public void RequestPause()
         {
+            DeviceChoice.PausedBy = DeviceChoice.PointerOwner(Pointer.current);
             if (pauseTrigger != null) pauseTrigger.RequestPause();
         }
 

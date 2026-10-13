@@ -391,7 +391,10 @@ namespace FutebolDeBotao.Editor
             var resume = CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 80f), new Vector2(420f, 90f), pauseMenu.Resume);
             var restartButton = CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -40f), new Vector2(420f, 90f), pauseMenu.Restart);
             var menuButton = CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -160f), new Vector2(420f, 90f), pauseMenu.BackToMenu);
-            AddNavigator(panel.transform, resume, Item(resume), Item(restartButton), Item(menuButton));
+            // Quem pausou mexe no menu (Esc/Start do próprio dispositivo, ou o mouse/toque dele).
+            var pauseNavigator = panel.gameObject.AddComponent<MenuNavigator>();
+            pauseNavigator.Configure(new[] { Item(resume), Item(restartButton), Item(menuButton) }, resume);
+            pauseNavigator.FollowPauser();
             panel.gameObject.SetActive(false);
 
             var adapter = canvas.gameObject.AddComponent<UnityPauseSurfaceAdapter>();

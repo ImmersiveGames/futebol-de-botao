@@ -221,7 +221,7 @@ namespace FutebolDeBotao.Editor
                     mapReference.FindPropertyRelative("cachedActionMapName").stringValue = map.name;
                 });
 
-                // Esc/Start no mapa Global: o framework liga só no primeiro jogador que entrou (o Jogador 1).
+                // O framework exige a ação de pausa no Jogador; ela fica sem teclas e a partida lê o Esc/Start por dispositivo.
                 var pause = root.AddComponent<PlayerPauseInput>();
                 Set(pause, so => so.FindProperty("pauseAction").objectReferenceValue = Action(controls, GlobalMap, ControlsDefinition.Pause));
 

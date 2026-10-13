@@ -30,6 +30,8 @@ namespace FutebolDeBotao
         [Tooltip("Dono do painel: 0 = qualquer dispositivo, 1 = Jogador 1, 2 = Jogador 2 (dispositivos da tela Controles).")]
         [SerializeField] private int player;
         [SerializeField] private Color frameColor = FrameColor;
+        [Tooltip("Menu de pausa: o dono é quem pausou (DeviceChoice.PausedBy).")]
+        [SerializeField] private bool followPauser;
 
         /// <summary>Quando definido, o Q/B chama isto no lugar do botão Voltar.</summary>
         public System.Action BackAction { get; set; }
@@ -37,6 +39,7 @@ namespace FutebolDeBotao
         private InputActionAsset controls;
         private InputAction navigate, confirm, backAction;
         private CanvasGroup group;
+        private Image blocker;
 
         private int index;
         private int enabledFrame;
@@ -57,6 +60,8 @@ namespace FutebolDeBotao
 
         public void SetFrameColor(Color color) => frameColor = color;
 
+        public void FollowPauser() => followPauser = true;
+
         /// <summary>Põe o cursor no item (por exemplo, no Pronto clicado com o mouse).</summary>
         public void Select(MenuEntry entry)
         {
@@ -67,6 +72,7 @@ namespace FutebolDeBotao
         private void OnEnable()
         {
             EnsureControls();
+            if (followPauser) player = DeviceChoice.PausedBy;
             var owned = DeviceChoice.DevicesOf(player);
             if (owned != null) controls.devices = owned;
             else controls.devices = null;
@@ -79,6 +85,7 @@ namespace FutebolDeBotao
             if (controls != null) controls.Disable();
             if (frame != null) frame.gameObject.SetActive(false);
             if (group != null) group.blocksRaycasts = true;
+            if (blocker != null) blocker.gameObject.SetActive(false);
         }
 
         private void OnDestroy()
@@ -195,13 +202,31 @@ namespace FutebolDeBotao
             if (player == 0) return;
             int owner = DeviceChoice.PointerOwner(pointer);
             bool blocked = owner != 0 && owner != player;
-            if (group == null)
+            if (group == null && blocker == null)
             {
                 if (!blocked) return;
-                group = GetComponent<CanvasGroup>();
-                if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+                // Um CanvasGroup que já existe é de outro (o da pausa é do framework): aí uma tampa invisível segura os cliques.
+                if (GetComponent<CanvasGroup>() == null) group = gameObject.AddComponent<CanvasGroup>();
+                else blocker = CreateBlocker();
             }
-            group.blocksRaycasts = !blocked;
+            if (group != null) group.blocksRaycasts = !blocked;
+            if (blocker != null)
+            {
+                blocker.gameObject.SetActive(blocked);
+                blocker.transform.SetAsLastSibling();
+            }
+        }
+
+        private Image CreateBlocker()
+        {
+            var image = new GameObject("Bloqueio de clique", typeof(RectTransform)).AddComponent<Image>();
+            image.transform.SetParent(transform, false);
+            image.color = Color.clear;
+            var rect = image.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            return image;
         }
 
         private bool IsAvailable(int i) => i >= 0 && i < items.Length && items[i] != null && items[i].IsAvailable;

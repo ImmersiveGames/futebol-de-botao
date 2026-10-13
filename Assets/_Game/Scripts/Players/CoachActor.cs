@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Immersive.Framework.Pause;
 using Immersive.Framework.PlayerParticipation;
 using Immersive.Framework.PlayerSlots;
 using UnityEngine;
@@ -33,7 +32,6 @@ namespace FutebolDeBotao
         private static readonly List<CoachActor> Active = new();
 
         private LocalPlayerHostAuthoring host;
-        private PlayerPauseInput pauseInput;
 
         /// <summary>Lado do time de cada vaga.</summary>
         public static TeamSide SideFor(PlayerSlotId slot) => slot == PlayerSlotId.Player2 ? TeamSide.Top : TeamSide.Bottom;
@@ -44,17 +42,6 @@ namespace FutebolDeBotao
             foreach (var coach in Active)
                 if (coach.TryGetSide(out var coachSide) && coachSide == side) return coach;
             return null;
-        }
-
-        /// <summary>Algum técnico tem o Esc ligado pelo framework (Pause PlayerInput Binding). Aí a partida não lê o Esc direto.</summary>
-        public static bool AnyPauseBound
-        {
-            get
-            {
-                foreach (var coach in Active)
-                    if (coach.pauseInput != null && coach.pauseInput.HasActiveBinding) return true;
-                return false;
-            }
         }
 
         public bool TryGetSide(out TeamSide side)
@@ -85,7 +72,6 @@ namespace FutebolDeBotao
         {
             if (reader == null) reader = GetComponent<PlayerGameplayInputReader>();
             host = GetComponentInParent<LocalPlayerHostAuthoring>();
-            pauseInput = host != null ? host.GetComponent<PlayerPauseInput>() : null;
             if (!Active.Contains(this)) Active.Add(this);
         }
 
