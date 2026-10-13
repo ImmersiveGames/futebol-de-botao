@@ -35,6 +35,9 @@ namespace FutebolDeBotao
         [Tooltip("Quando toda jogada na bola tem risco de gol contra (testando o erro de mira e de força), chance de só " +
                  "pôr um botão bloqueando entre a bola e o gol. Fácil 0,4; Médio 0,85; Difícil 1.")]
         [Range(0f, 1f)] public float ownGoalDefendChance = 0.85f;
+        [Tooltip("Chance, a cada toque, de a IA olhar o perigo de passar a vez (o adversário ter chute fácil) e, no último " +
+                 "toque, fechar o gol com um botão. Fácil 0; Médio 0,5; Difícil 1.")]
+        [Range(0f, 1f)] public float dangerAwareness = 0.5f;
 
         [Header("Erro na execução")]
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
@@ -95,6 +98,7 @@ namespace FutebolDeBotao
                     difficulty.foulCaution = 0.5f;
                     difficulty.repositionChance = 0.2f;
                     difficulty.ownGoalDefendChance = 0.4f;
+                    difficulty.dangerAwareness = 0f;
                     difficulty.angleErrorDegrees = 8f;
                     difficulty.powerError = 0.15f;
                     difficulty.shotCallDistance = 3f;
@@ -110,6 +114,7 @@ namespace FutebolDeBotao
                     difficulty.foulCaution = 1f;
                     difficulty.repositionChance = 0.8f;
                     difficulty.ownGoalDefendChance = 1f;
+                    difficulty.dangerAwareness = 1f;
                     difficulty.angleErrorDegrees = 1.5f;
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;

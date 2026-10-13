@@ -7,35 +7,16 @@ using Debug = UnityEngine.Debug;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Joga um time pela IA. Na vez dela: escolhe os botões perto da bola, gera jogadas por geometria, simula as
-    /// melhores na mesa invisível, dá nota, escolhe com um erro conforme o nível e mostra a mira antes de soltar.
-    /// Numa jogada ruim pode só reposicionar um botão. Também anuncia o "Vai chutar", posiciona o goleiro quando o
-    /// adversário anuncia e escolhe onde pôr o batedor no tiro livre e no pênalti.
+    /// Joga um time pela IA. Na vez dela: lê a situação (AiSituation), o cérebro (AiBrain) escolhe pelos objetivos
+    /// (marcar, tirar do perigo, fechar o gol, avançar, toque seguro) a ação e a jogada simulada, e a IA executa com
+    /// um erro conforme o nível, mostrando a mira antes de soltar. Também posiciona o goleiro quando o adversário
+    /// anuncia e escolhe onde pôr o batedor no tiro livre, no pênalti e a bola no tiro de meta.
     /// O peteleco sai pelo AimController, o mesmo caminho do jogador, então as regras são as mesmas.
     /// </summary>
     public sealed class AiPlayer : MonoBehaviour
     {
-        private const float FrameBudgetMs = 4f;
         private const float PickWindow = 30f;
-        private const int RobustChecks = 3;
-        /// <summary>Se as melhores têm risco de gol contra, testa mais algumas procurando uma segura.</summary>
-        private const int MaxRobustChecks = 6;
-        private const int PositionSimulations = 6;
         private const int KickSimulationsPerAngle = 3;
-
-        private struct Scored
-        {
-            public ShotCandidate Candidate;
-            public float Score;
-            /// <summary>A jogada simulada (sem erro) dá falta.</summary>
-            public bool Foul;
-            /// <summary>Com o erro de ângulo para um dos lados, dá falta.</summary>
-            public bool FoulNearby;
-            /// <summary>Com o erro de mira ou de força do nível, alguma versão vira gol contra.</summary>
-            public bool OwnGoalRisk;
-            /// <summary>Passou pelo teste com erro (só estas entram no sorteio).</summary>
-            public bool Checked;
-        }
 
         private MatchController match;
         private AiDifficulty difficulty;
@@ -44,27 +25,45 @@ namespace FutebolDeBotao
         private ShotPlanner planner;
         private ShotSimulator simulator;
         private ShotPlanner attackerPlanner;
+        private AiBrain brain;
+        private AiLog log;
         private bool busy;
 
         public TeamSide Side { get; private set; }
 
         public void Configure(MatchController matchController, TeamSide side, AiDifficulty aiDifficulty)
         {
+            // Nova partida: um log novo (o arquivo é por partida).
+            if (match != null && log != null) match.Noticed -= log.Noticed;
+            log?.Dispose();
             match = matchController;
             Side = side;
             difficulty = aiDifficulty;
+            log = new AiLog(side);
+            match.Noticed += log.Noticed;
         }
 
         private void Start()
         {
             aim = FindAnyObjectByType<AimController>();
             monitor = FindAnyObjectByType<MotionMonitor>();
+            if (monitor != null) monitor.Settled += OnSettled;
         }
 
         private void OnDestroy()
         {
+            if (monitor != null) monitor.Settled -= OnSettled;
+            if (match != null && log != null) match.Noticed -= log.Noticed;
+            log?.Dispose();
+            log = null;
             simulator?.Dispose();
             simulator = null;
+        }
+
+        /// <summary>Tudo parou: se era a jogada da IA, o log anota onde a bola ficou.</summary>
+        private void OnSettled()
+        {
+            if (match != null) log?.Finish(match);
         }
 
         private void Update()
@@ -95,179 +94,50 @@ namespace FutebolDeBotao
 
         // ---- Toque ----
 
+        /// <summary>
+        /// Um toque: lê a situação, o cérebro (AiBrain) escolhe o objetivo e a jogada, o log registra e a IA executa
+        /// com o erro do nível.
+        /// </summary>
         private IEnumerator PlayTouch()
         {
             busy = true;
             try
             {
                 int version = match.StateVersion;
-                var state = match.State;
                 yield return new WaitForSeconds(difficulty.thinkSeconds);
                 if (!StillValid(version)) yield break;
                 EnsureBrain();
 
-                bool ballKick = state == MatchState.GoalKick;
                 var usable = UsableDiscs();
-                if (!ballKick && usable.Count == 0)
+                if (match.State != MatchState.GoalKick && usable.Count == 0)
                 {
                     yield return new WaitForSeconds(0.5f);
                     yield break;
                 }
 
-                if (state == MatchState.Aim && match.CanCallShot && planner.ShouldCallShot(usable, difficulty.shotCallDistance))
+                var situation = AiSituation.Read(match, Side, planner, OpponentPlanner(), difficulty, usable);
+                AiDecision decision = null;
+                yield return brain.Decide(situation, match, aim.Tuning, difficulty, () => StillValid(version), d => decision = d);
+                if (decision == null || !StillValid(version)) yield break;
+                log.Decided(decision, situation, match);
+
+                if (decision.Action == AiAction.CallShot)
                 {
-                    Debug.Log("[IA] Anunciou o \"Vai chutar\".");
                     match.TryCallShot();
                     yield break;
                 }
 
-                // Gol só vale num chute anunciado (sem goleiro: com a bola no campo de ataque).
-                bool goalsCount = match.GoalWouldCount;
-                var candidates = ballKick ? planner.BallKickCandidates() : planner.DiscCandidates(usable, goalsCount);
-                if (candidates.Count == 0) candidates.Add(Fallback(usable, ballKick));
-                candidates.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
+                // Erro de execução conforme o nível: é ele que faz a IA errar e, às vezes, cometer falta. No
+                // posicionamento só metade do erro de mira.
+                var pick = decision.Candidate;
+                bool placing = decision.Action != null && !decision.Action.TouchesBall;
+                float angleError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees) * (placing ? 0.5f : 1f);
+                Vector2 direction = Quaternion.Euler(0f, 0f, angleError) * pick.Direction;
+                float power = placing
+                    ? pick.Power01
+                    : Mathf.Clamp(pick.Power01 * (1f + Random.Range(-difficulty.powerError, difficulty.powerError)), 0.1f, 1f);
 
-                var tuning = aim.Tuning;
-                float maxImpulse = ballKick ? tuning.ballKickMaxImpulse : tuning.maxImpulse;
-                int touchesAfter = match.TouchesLeft - 1;
-                var queue = Diversify(candidates, difficulty.simulations);
-                var scored = new List<Scored>(queue.Count);
-
-                simulator.Sync();
-                int stepsBefore = simulator.TotalSteps;
-                int fouls = 0;
-                double computeMs = 0;
-                var frame = Stopwatch.StartNew();
-
-                foreach (var candidate in queue)
-                {
-                    var watch = Stopwatch.StartNew();
-                    float score = SimulateAndScore(candidate.Disc, candidate.Direction, candidate.Power01, maxImpulse,
-                        ballKick, goalsCount, touchesAfter, out bool foul, out bool ownGoal);
-                    computeMs += watch.Elapsed.TotalMilliseconds;
-                    if (foul) fouls++;
-                    scored.Add(new Scored { Candidate = candidate, Score = score, Foul = foul, OwnGoalRisk = ownGoal });
-
-                    // Divide a conta em quadros para o jogo não travar.
-                    if (frame.Elapsed.TotalMilliseconds > FrameBudgetMs)
-                    {
-                        yield return null;
-                        if (!StillValid(version)) yield break;
-                        frame.Restart();
-                    }
-                }
-
-                // Robustez: as melhores também são testadas com o erro de mira para cada lado e com o erro de força
-                // para mais e para menos, e ficam com a média. Assim a IA foge de jogadas em que um errinho vira falta
-                // ou gol contra. Se as melhores têm risco de gol contra, testa mais algumas procurando uma segura.
-                scored.Sort((a, b) => b.Score.CompareTo(a.Score));
-                float spread = difficulty.angleErrorDegrees * 0.75f;
-                float powerSpread = difficulty.powerError * 0.75f;
-                int checks = 0;
-                bool foundSafe = false;
-                for (int i = 0; i < scored.Count && checks < MaxRobustChecks; i++)
-                {
-                    if (checks >= RobustChecks && foundSafe) break;
-                    var entry = scored[i];
-                    checks++;
-                    entry.Checked = true;
-                    if (!entry.Foul)
-                    {
-                        float sum = entry.Score;
-                        int count = 1;
-                        foreach (var (angle, powerScale) in new[] { (-spread, 1f), (spread, 1f), (0f, 1f - powerSpread), (0f, 1f + powerSpread) })
-                        {
-                            if (Mathf.Abs(angle) < 0.01f && Mathf.Abs(powerScale - 1f) < 0.001f) continue;
-                            var watch = Stopwatch.StartNew();
-                            Vector2 tilted = Quaternion.Euler(0f, 0f, angle) * entry.Candidate.Direction;
-                            float power01 = Mathf.Clamp(entry.Candidate.Power01 * powerScale, 0.1f, 1f);
-                            sum += SimulateAndScore(entry.Candidate.Disc, tilted, power01, maxImpulse,
-                                ballKick, goalsCount, touchesAfter, out bool foul, out bool ownGoal);
-                            count++;
-                            computeMs += watch.Elapsed.TotalMilliseconds;
-                            if (foul)
-                            {
-                                fouls++;
-                                entry.FoulNearby = true;
-                            }
-                            if (ownGoal) entry.OwnGoalRisk = true;
-                        }
-                        entry.Score = sum / count;
-                    }
-                    if (!entry.Foul && !entry.OwnGoalRisk) foundSafe = true;
-                    scored[i] = entry;
-
-                    if (frame.Elapsed.TotalMilliseconds > FrameBudgetMs)
-                    {
-                        yield return null;
-                        if (!StillValid(version)) yield break;
-                        frame.Restart();
-                    }
-                }
-                scored.Sort((a, b) =>
-                {
-                    if (a.Checked != b.Checked) return a.Checked ? -1 : 1;
-                    return b.Score.CompareTo(a.Score);
-                });
-
-                // Sorteio entre as melhores testadas. Jogada com falta ou risco de gol contra só sai se não houver uma
-                // segura entre as testadas.
-                int first = 0;
-                for (int i = 0; i < scored.Count && scored[i].Checked; i++)
-                {
-                    if (scored[i].Foul || scored[i].OwnGoalRisk) continue;
-                    first = i;
-                    break;
-                }
-                bool allRisky = !foundSafe;
-                float best = scored[first].Score;
-                var pool = new List<Scored> { scored[first] };
-                for (int i = 0; i < scored.Count && scored[i].Checked && pool.Count < difficulty.pickAmongBest; i++)
-                    if (i != first && !scored[i].Foul && !scored[i].OwnGoalRisk && scored[i].Score >= best - PickWindow) pool.Add(scored[i]);
-                var pick = pool[Random.Range(0, pool.Count)];
-
-                // Toda jogada na bola arrisca gol contra: em vez de arriscar, põe um botão bloqueando o caminho do gol.
-                if (allRisky && pick.OwnGoalRisk && state == MatchState.Aim && match.FreeKickDisc == null &&
-                    Random.value < difficulty.ownGoalDefendChance &&
-                    TryFindPosition(usable, maxImpulse, out var block, out float blockScore))
-                {
-                    Debug.Log($"[IA] {state}: toda jogada tem risco de gol contra (melhor nota {pick.Score:0}); " +
-                              $"posiciona {block.Disc.name} para defender, nota {blockScore:0}.");
-                    float blockError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees) * 0.5f;
-                    Vector2 blockDirection = Quaternion.Euler(0f, 0f, blockError) * block.Direction;
-                    yield return ShowAimAndRelease(version, block.Disc, blockDirection, block.Power01);
-                    yield break;
-                }
-
-                // Jogada ruim (falta provável ou nada de bom na bola): às vezes a IA só se posiciona. Mais no Difícil.
-                bool poor = pick.Foul || pick.FoulNearby || pick.Score < difficulty.poorShotScore;
-                if (poor && state == MatchState.Aim && match.FreeKickDisc == null && Random.value < difficulty.repositionChance &&
-                    TryFindPosition(usable, maxImpulse, out var move, out float moveScore))
-                {
-                    Debug.Log($"[IA] {state}: jogada ruim (nota {pick.Score:0}{(pick.Foul ? ", com falta" : pick.FoulNearby ? ", falta se errar" : string.Empty)}); " +
-                              $"posiciona {move.Disc.name} sem tocar na bola, nota {moveScore:0}.");
-                    float moveError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees) * 0.5f;
-                    Vector2 moveDirection = Quaternion.Euler(0f, 0f, moveError) * move.Direction;
-                    yield return ShowAimAndRelease(version, move.Disc, moveDirection, move.Power01);
-                    yield break;
-                }
-
-                // Erro de execução conforme o nível: é ele que faz a IA errar e, às vezes, cometer falta.
-                float angleError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees);
-                Vector2 direction = Quaternion.Euler(0f, 0f, angleError) * pick.Candidate.Direction;
-                float power = Mathf.Clamp(pick.Candidate.Power01 * (1f + Random.Range(-difficulty.powerError, difficulty.powerError)), 0.1f, 1f);
-
-                int discsTried = 0;
-                var seen = new HashSet<Disc>();
-                foreach (var entry in scored)
-                    if (entry.Candidate.Disc != null && seen.Add(entry.Candidate.Disc)) discsTried++;
-                Debug.Log($"[IA] {state}: pensou {computeMs:0.0} ms ({queue.Count} jogadas de {discsTried} botões, " +
-                          $"{simulator.TotalSteps - stepsBefore} passos de física, {fouls} simulações com falta). " +
-                          $"Escolhida: {(pick.Candidate.Disc != null ? pick.Candidate.Disc.name : "bola")}, nota {pick.Score:0}" +
-                          $"{(pick.Foul ? " (com falta)" : pick.FoulNearby ? " (falta se errar)" : string.Empty)}" +
-                          $"{(pick.OwnGoalRisk ? " (risco de gol contra)" : string.Empty)}; melhor {best:0}.");
-
-                yield return ShowAimAndRelease(version, ballKick ? null : pick.Candidate.Disc, direction, power);
+                yield return ShowAimAndRelease(version, situation.IsBallKick ? null : pick.Disc, direction, power);
             }
             finally
             {
@@ -282,45 +152,6 @@ namespace FutebolDeBotao
             foul = result.Foul;
             ownGoal = result.GoalOf == Side;
             return planner.Score(result, ballKick, goalsCount, match.Options.goalAfterWallIsValid, touchesAfter, difficulty.foulCaution);
-        }
-
-        /// <summary>Melhor posicionamento que a simulação confirma (sem tocar na bola nem em adversário).</summary>
-        private bool TryFindPosition(List<Disc> usable, float maxImpulse, out ShotCandidate best, out float bestScore)
-        {
-            best = default;
-            bestScore = float.MinValue;
-            var candidates = planner.PositionCandidates(usable, match.AllDiscs);
-            for (int i = 0; i < Mathf.Min(PositionSimulations, candidates.Count); i++)
-            {
-                var candidate = candidates[i];
-                var result = simulator.Simulate(candidate.Disc.Body, candidate.Direction * (candidate.Power01 * maxImpulse), Side);
-                float? score = planner.ScorePosition(result, candidate);
-                if (score == null || score.Value <= bestScore) continue;
-                best = candidate;
-                bestScore = score.Value;
-            }
-            return best.Disc != null;
-        }
-
-        /// <summary>
-        /// Escolhe quem vai para a mesa simulada: primeiro a melhor jogada de cada botão (para a IA sempre comparar
-        /// botões diferentes), depois as outras pela nota da geometria.
-        /// </summary>
-        private static List<ShotCandidate> Diversify(List<ShotCandidate> sorted, int count)
-        {
-            var queue = new List<ShotCandidate>();
-            var taken = new bool[sorted.Count];
-            var discs = new HashSet<Disc>();
-            for (int i = 0; i < sorted.Count && queue.Count < count; i++)
-            {
-                var disc = sorted[i].Disc;
-                if (disc == null || !discs.Add(disc)) continue;
-                queue.Add(sorted[i]);
-                taken[i] = true;
-            }
-            for (int i = 0; i < sorted.Count && queue.Count < count; i++)
-                if (!taken[i]) queue.Add(sorted[i]);
-            return queue;
         }
 
         /// <summary>Mostra a mira e a barra de força enchendo, como um jogador arrastando, e solta.</summary>
@@ -351,17 +182,6 @@ namespace FutebolDeBotao
             return usable;
         }
 
-        /// <summary>Nenhuma jogada passou na geometria: bate reto na bola com força média.</summary>
-        private ShotCandidate Fallback(List<Disc> usable, bool ballKick)
-        {
-            if (ballKick || usable.Count == 0)
-                return new ShotCandidate { Direction = FieldLayout.AttackDirection(Side), Power01 = 0.6f };
-
-            var disc = usable[0];
-            var toBall = match.Ball.Body.position - disc.Body.position;
-            return new ShotCandidate { Disc = disc, Direction = toBall.normalized, Power01 = 0.5f };
-        }
-
         private void EnsureBrain()
         {
             planner ??= new ShotPlanner(Side, aim.Tuning, match.Ball);
@@ -372,6 +192,16 @@ namespace FutebolDeBotao
             planner.HasYellow = match.HasYellow(Side);
             simulator.FoulsEnabled = match.Options.fouls;
             simulator.GoalWidth = match.GoalWidth;
+            brain ??= new AiBrain(Side, planner, simulator);
+        }
+
+        /// <summary>O planejador do adversário: chutes que ele teria (goleiro da IA e perigo de passar a vez).</summary>
+        private ShotPlanner OpponentPlanner()
+        {
+            attackerPlanner ??= new ShotPlanner(Opponent(Side), aim.Tuning, match.Ball);
+            attackerPlanner.FoulsEnabled = match.Options.fouls;
+            attackerPlanner.GoalWidth = match.GoalWidth;
+            return attackerPlanner;
         }
 
         // ---- Goleiro ----
@@ -423,10 +253,7 @@ namespace FutebolDeBotao
             foreach (var disc in match.AllDiscs)
                 if (match.CanUse(disc)) usable.Add(disc);
 
-            attackerPlanner ??= new ShotPlanner(attacker, aim.Tuning, match.Ball);
-            attackerPlanner.FoulsEnabled = match.Options.fouls;
-            attackerPlanner.GoalWidth = match.GoalWidth;
-            var threats = attackerPlanner.GoalThreats(usable, difficulty.keeperShotsToConsider);
+            var threats = OpponentPlanner().GoalThreats(usable, difficulty.keeperShotsToConsider);
             if (threats.Count == 0)
             {
                 done(null);

@@ -1,0 +1,152 @@
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using UnityEngine;
+
+namespace FutebolDeBotao
+{
+    /// <summary>
+    /// Registro das decisões da IA: uma linha no console por toque e, no editor, um CSV por partida em
+    /// Logs/IA/partida-AAAAMMDD-HHMM.csv (na pasta do projeto) com os fatos, os objetivos, a jogada, a nota esperada
+    /// e o que aconteceu de verdade (onde a bola parou, último toque, avisos como gol ou falta).
+    /// </summary>
+    public sealed class AiLog : IDisposable
+    {
+        private static readonly CultureInfo Number = CultureInfo.InvariantCulture;
+        private const string Header =
+            "tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
+            "bola_esperada;ultimo_toque_esperado;gol_esperado;simulacoes;ms;bola_real;ultimo_toque_real;avisos";
+
+        private readonly TeamSide side;
+        private StreamWriter writer;
+        private string pending;
+        private readonly StringBuilder notices = new();
+
+        public AiLog(TeamSide aiSide) => side = aiSide;
+
+        /// <summary>A IA decidiu: escreve no console e guarda a linha esperando o resultado real.</summary>
+        public void Decided(AiDecision decision, AiSituation situation, MatchController match)
+        {
+            Flush();
+            Debug.Log($"[IA] {situation.State} toque {match.TouchesLeft}: {Describe(decision)} | objetivos: {decision.GoalsLine}" +
+                      (decision.Rejected.Length > 0 ? $" | recusados: {decision.Rejected}" : string.Empty) +
+                      $" | {situation.Describe()} | {decision.Simulations} simulações, {decision.Milliseconds:0.0} ms.");
+#if UNITY_EDITOR
+            var c = decision.Candidate;
+            var e = decision.Expected;
+            pending = string.Join(";",
+                Field(Mathf.FloorToInt(match.ClockSeconds).ToString(Number)),
+                Field($"{match.Score(side)}x{match.Score(side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom)}"),
+                Field(match.TouchesLeft.ToString(Number)),
+                Field(situation.Describe()),
+                Field(decision.GoalsLine),
+                Field(decision.Goal != null ? decision.Goal.Name + (decision.NoGoalAccepted ? " (nenhum aceitou)" : string.Empty) : "nenhum"),
+                Field(decision.Rejected),
+                Field(decision.Action != null ? decision.Action.Name : "bater reto na bola"),
+                Field(c.Disc != null ? c.Disc.name : decision.Action != null && decision.Action.IsInstant ? string.Empty : "bola"),
+                Field(decision.Action != null && decision.Action.IsInstant ? string.Empty : string.Format(Number, "{0:0.00};{1:0.00}", c.Direction.x, c.Direction.y)),
+                Field(decision.Action != null && decision.Action.IsInstant ? string.Empty : c.Power01.ToString("0.00", Number)),
+                Field(decision.HasExpected ? decision.Verdict.Score.ToString("0", Number) : string.Empty),
+                Field(Risks(decision.Verdict)),
+                Field(decision.HasExpected ? Point(e.BallEnd) : string.Empty),
+                Field(decision.HasExpected ? SideName(e.LastTouchSide) : string.Empty),
+                Field(decision.HasExpected && e.GoalOf != null ? (e.GoalOf == side ? "contra" : "a favor") : string.Empty),
+                Field(decision.Simulations.ToString(Number)),
+                Field(decision.Milliseconds.ToString("0.0", Number)));
+            notices.Clear();
+            // Anúncio do Vai chutar não mexe nada: a linha sai na hora.
+            if (decision.Action != null && decision.Action.IsInstant) Finish(match);
+#endif
+        }
+
+        /// <summary>Um aviso da partida (gol, falta, cartão...) durante a jogada da IA.</summary>
+        public void Noticed(MatchNotice notice)
+        {
+            if (pending == null) return;
+            notices.Append(notices.Length > 0 ? "," : string.Empty).Append(notice);
+        }
+
+        /// <summary>A jogada da IA terminou: completa a linha com o que aconteceu de verdade.</summary>
+        public void Finish(MatchController match)
+        {
+            if (pending == null) return;
+            var ball = match.Ball;
+            Write(pending + ";" + string.Join(";",
+                Field(Point(ball.Body.position)),
+                Field(SideName(ball.LastTouchSide)),
+                Field(notices.ToString())));
+            pending = null;
+        }
+
+        /// <summary>A jogada não terminou normal (falta parou tudo, reinício): escreve o que tiver.</summary>
+        private void Flush()
+        {
+            if (pending == null) return;
+            Write(pending + ";;;" + Field(notices.ToString()));
+            pending = null;
+        }
+
+        public void Dispose()
+        {
+            Flush();
+            writer?.Dispose();
+            writer = null;
+        }
+
+        private void Write(string line)
+        {
+#if UNITY_EDITOR
+            try
+            {
+                if (writer == null)
+                {
+                    string folder = Path.Combine(Application.dataPath, "..", "Logs", "IA");
+                    Directory.CreateDirectory(folder);
+                    string path = Path.Combine(folder, $"partida-{DateTime.Now:yyyyMMdd-HHmm}.csv");
+                    bool exists = File.Exists(path);
+                    writer = new StreamWriter(path, true, new UTF8Encoding(true)) { AutoFlush = true };
+                    if (!exists) writer.WriteLine(Header);
+                    Debug.Log($"[IA] Log da partida: {Path.GetFullPath(path)}");
+                }
+                writer.WriteLine(line);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"[IA] Não deu para escrever o log: {exception.Message}");
+                writer = null;
+            }
+#endif
+        }
+
+        private string Describe(AiDecision decision)
+        {
+            if (decision.Goal == null) return "nenhuma ação serviu, bate reto na bola";
+            var text = new StringBuilder();
+            text.Append(decision.Goal.Name);
+            if (decision.NoGoalAccepted) text.Append(" (nenhum objetivo aceitou)");
+            text.Append(" → ").Append(decision.Action.Name);
+            if (decision.Action.IsInstant) return text.ToString();
+            text.Append(" com ").Append(decision.Candidate.Disc != null ? decision.Candidate.Disc.name : "a bola");
+            text.Append(", nota ").Append(decision.Verdict.Score.ToString("0"));
+            string risks = Risks(decision.Verdict);
+            if (risks.Length > 0) text.Append(" (").Append(risks).Append(')');
+            return text.ToString();
+        }
+
+        private static string Risks(in AiVerdict verdict)
+        {
+            var text = new StringBuilder();
+            if (verdict.Foul) text.Append("falta");
+            if (verdict.FoulNearby) text.Append(text.Length > 0 ? "," : string.Empty).Append("falta se errar");
+            if (verdict.OwnGoalRisk) text.Append(text.Length > 0 ? "," : string.Empty).Append("gol contra");
+            return text.ToString();
+        }
+
+        private string SideName(TeamSide? touch) => touch == null ? "ninguem" : touch == side ? "IA" : "adversario";
+
+        private static string Point(Vector2 point) => string.Format(Number, "{0:0.00};{1:0.00}", point.x, point.y);
+
+        private static string Field(string value) => "\"" + (value ?? string.Empty).Replace("\"", "\"\"") + "\"";
+    }
+}

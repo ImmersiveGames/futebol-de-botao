@@ -230,7 +230,12 @@ namespace FutebolDeBotao
             Vector2 ballPosition = ball.Body.position;
             Vector2 goal = new(0f, FieldLayout.GoalLineY(Opponent));
             if (Vector2.Distance(ballPosition, goal) > maxDistance) return false;
+            return HasClearShot(usable);
+        }
 
+        /// <summary>Algum botão tem chute a gol sem risco de falta, com caminho livre e sem precisar da força máxima.</summary>
+        public bool HasClearShot(IReadOnlyList<Disc> usable)
+        {
             foreach (var candidate in DiscCandidates(usable, true))
                 if (!candidate.FoulRisk && !candidate.Blocked && !candidate.BallBlocked && candidate.Power01 < 1f) return true;
             return false;
