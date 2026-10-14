@@ -273,7 +273,7 @@ namespace FutebolDeBotao
         {
             if (built) return;
             built = true;
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = GameFont.Get();
             var root = (RectTransform)transform;
 
             CreateText(root, "Título", "Controles", 52, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 90f));

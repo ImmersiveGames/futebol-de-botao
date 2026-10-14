@@ -79,7 +79,7 @@ namespace FutebolDeBotao
             }
 
             match.ExternalHud = true;
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = GameFont.Get();
             BuildCorners();
             BuildMessages();
             BuildPcPanel();

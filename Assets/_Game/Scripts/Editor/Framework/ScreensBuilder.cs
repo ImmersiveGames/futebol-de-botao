@@ -66,7 +66,7 @@ namespace FutebolDeBotao.Editor
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = GameFont.Get();
             TeamsBuilder.CreateAssets();
 
             var app = FindGameApplication();

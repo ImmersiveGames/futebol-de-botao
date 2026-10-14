@@ -257,7 +257,7 @@ namespace FutebolDeBotao
         {
             if (built) return;
             built = true;
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = GameFont.Get();
 
             var root = (RectTransform)transform;
             Stretch(CreateImage(root, "Fundo", Background, null).rectTransform);
