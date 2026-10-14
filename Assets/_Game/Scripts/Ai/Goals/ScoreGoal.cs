@@ -4,9 +4,9 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Marcar: dá pra chutar? Com goleiro, anuncia o "Vai chutar" se a chance passa do mínimo (a conta da chance fica
-    /// no AiBrain) e depois chuta. Sem goleiro, com a bola no ataque, chuta direto se a chance passa do mínimo.
-    /// A conta: gol que vale.
+    /// Marcar: dá pra chutar? Com goleiro, anuncia o "Vai chutar" sempre que tem chute livre (sem conta de chance) e
+    /// depois chuta no canto que o goleiro cobre pior. Sem goleiro, com a bola no ataque, chuta direto se algum chute
+    /// entra. A conta: gol que vale.
     /// </summary>
     public sealed class ScoreGoal : AiGoal
     {
@@ -23,9 +23,8 @@ namespace FutebolDeBotao
             return GoalOutcome(result, situation, context) is float goal && goal > 0f ? 100f : 0f;
         }
 
-        // Chute anunciado tem que sair. Sem goleiro: só se a chance passa do mínimo, senão segue para os outros objetivos.
+        // Chute anunciado tem que sair. Sem goleiro: chuta se alguma versão do chute entra, senão segue para os outros.
         public override bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) =>
-            situation.State == MatchState.ShotAim ||
-            (verdict.SafeFor(difficulty) && verdict.Score / 100f >= NeededChance(situation, difficulty));
+            situation.State == MatchState.ShotAim || (verdict.SafeFor(difficulty) && verdict.Score > 0f);
     }
 }

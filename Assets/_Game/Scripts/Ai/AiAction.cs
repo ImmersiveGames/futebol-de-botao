@@ -42,12 +42,16 @@ namespace FutebolDeBotao
         {
             public override string Name => "Chutar a gol";
             public override string Effect => "gol";
-            public override bool CanRun(AiSituation s) => s.GoalsCount && !s.IsBallKick && s.Usable.Count > 0;
+            public override bool CanRun(AiSituation s) => s.GoalsCount && !s.IsBallKick && s.AllUsable.Count > 0;
+            // Todos os botões que podem jogar: o chute pode vir do mais longe, que o adversário não esperava.
             public override List<ShotCandidate> Candidates(AiSituation s, ShotPlanner planner, MatchController match) =>
-                planner.DiscCandidates(s.Usable, true);
+                planner.DiscCandidates(s.AllUsable, true);
         }
 
-        /// <summary>Anuncia o "Vai chutar": o próximo toque vale gol e o adversário ajusta o goleiro.</summary>
+        /// <summary>
+        /// Anuncia o "Vai chutar": o próximo toque vale gol e o adversário ajusta o goleiro. Anuncia sempre que algum
+        /// botão tem chute livre, a bola está a distância de chute e o goleiro não alcança a bola (sem conta de chance).
+        /// </summary>
         private sealed class CallShotAction : AiAction
         {
             public override string Name => "Anunciar o Vai chutar";

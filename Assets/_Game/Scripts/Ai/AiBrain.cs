@@ -128,20 +128,13 @@ namespace FutebolDeBotao
 
                 if (action.IsInstant)
                 {
-                    // Vai chutar: a chance de o chute passar do goleiro que o adversário vai posicionar.
-                    float chance = 0f;
-                    string callLine = string.Empty;
-                    yield return ShotCallChance(situation, match, difficulty, (c, l) => { chance = c; callLine = l; });
-                    if (aborted) yield break;
-                    float needed = AiGoal.NeededChance(situation, difficulty);
-                    callLine += $", precisa {Mathf.RoundToInt(needed * 100f)}%";
-                    if (chance >= needed)
-                    {
-                        chosen = new AiDecision { Goal = goal, Action = action, FollowLine = callLine };
-                        break;
-                    }
-                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(' ').Append(callLine);
-                    continue;
+                    // Vai chutar: a ação só roda com chute livre, então anuncia. Quem chuta e onde, a IA decide depois,
+                    // contra o goleiro já posicionado.
+                    var names = new StringBuilder();
+                    foreach (var disc in situation.ClearShooters)
+                        names.Append(names.Length > 0 ? ", " : string.Empty).Append(disc.name);
+                    chosen = new AiDecision { Goal = goal, Action = action, FollowLine = $"chute livre: {names}" };
+                    break;
                 }
 
                 if (!trials.TryGetValue(action, out var list))
@@ -159,7 +152,8 @@ namespace FutebolDeBotao
                 }
                 if (pick == null)
                 {
-                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(" sem jogada");
+                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(" sem jogada")
+                        .Append(NoPlayReason(list));
                     continue;
                 }
 
@@ -384,100 +378,6 @@ namespace FutebolDeBotao
             done(pool[Random.Range(0, pool.Count)]);
         }
 
-        private const int KeeperPositions = 9;
-        /// <summary>O goleiro do jogador fica perto do melhor lugar, mas não exato: até isto para cada lado.</summary>
-        private const float HumanKeeperError = 0.35f;
-
-        /// <summary>
-        /// Chance de gol se anunciar o Vai chutar agora. A IA imagina o goleiro do adversário perto de onde menos chutes
-        /// dela entram (a mesma conta do goleiro da IA), com o erro de uma pessoa. Para cada posição provável do goleiro
-        /// ela escolhe o melhor chute contra ele (testado com o erro do nível) e faz a média. Devolve a chance e uma
-        /// linha para o log.
-        /// </summary>
-        private IEnumerator ShotCallChance(AiSituation situation, MatchController match, AiDifficulty difficulty,
-            Action<float, string> done)
-        {
-            var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
-            Goalkeeper keeper = null;
-            foreach (var k in match.Keepers)
-                if (k != null && k.isActiveAndEnabled && k.Side == opponent) keeper = k;
-            var shots = planner.GoalThreats(situation.AllUsable, difficulty.keeperShotsToConsider);
-            if (keeper == null || shots.Count == 0)
-            {
-                done(0f, shots.Count == 0 ? "sem chute livre" : "sem goleiro");
-                yield break;
-            }
-
-            float maxImpulse = currentTuning.maxImpulse;
-            bool wallOk = match.Options.goalAfterWallIsValid;
-            bool Scores(in SimResult r) => r.GoalOf == opponent && (wallOk || !r.BallTouchedWall);
-
-            var xs = new float[KeeperPositions];
-            var conceded = new float[KeeperPositions];
-            var best = new float[KeeperPositions];
-            var bestShot = new string[KeeperPositions];
-            try
-            {
-                for (int p = 0; p < KeeperPositions; p++)
-                {
-                    xs[p] = Mathf.Lerp(keeper.MinX, keeper.MaxX, p / (KeeperPositions - 1f));
-                    simulator.OverrideKeeperX(opponent, xs[p]);
-                    bestShot[p] = string.Empty;
-                    foreach (var shot in shots)
-                    {
-                        if (!Scores(Simulate(shot.Disc, shot.Direction, shot.Power01, maxImpulse))) continue;
-                        // Onde o jogador põe o goleiro: chutes fáceis pesam mais (a mesma conta do goleiro da IA).
-                        float weight = 1f / (0.5f + shot.Power01);
-                        if (shot.BallBlocked) weight *= 0.7f;
-                        conceded[p] += weight;
-
-                        // Este chute entra com o goleiro aqui: quantas vezes, com o erro do nível?
-                        int goals = 1;
-                        var variants = Variants(shot, difficulty, maxImpulse);
-                        foreach (var variant in variants)
-                            if (Scores(variant)) goals++;
-                        float chance = goals / (variants.Length + 1f);
-                        if (chance > best[p])
-                        {
-                            best[p] = chance;
-                            bestShot[p] = shot.Disc.name;
-                        }
-                        if (Budget()) yield return Pause();
-                        if (aborted) yield break;
-                    }
-                    if (Budget()) yield return Pause();
-                    if (aborted) yield break;
-                }
-            }
-            finally
-            {
-                simulator.ClearKeeperOverride();
-            }
-
-            // O melhor lugar para o goleiro (empate: o mais perto do centro) e a média das posições em volta dele.
-            float center = (keeper.MinX + keeper.MaxX) * 0.5f;
-            int ideal = 0;
-            for (int p = 1; p < KeeperPositions; p++)
-                if (conceded[p] < conceded[ideal] - 0.001f ||
-                    (Mathf.Abs(conceded[p] - conceded[ideal]) <= 0.001f && Mathf.Abs(xs[p] - center) < Mathf.Abs(xs[ideal] - center)))
-                    ideal = p;
-            float sum = 0f;
-            int count = 0;
-            int bestNear = ideal;
-            for (int p = 0; p < KeeperPositions; p++)
-            {
-                if (Mathf.Abs(xs[p] - xs[ideal]) > HumanKeeperError + 0.001f) continue;
-                sum += best[p];
-                count++;
-                if (best[p] > best[bestNear]) bestNear = p;
-            }
-            float average = count > 0 ? sum / count : 0f;
-
-            string line = $"chute contra o goleiro perto de x={xs[ideal]:0.00}: {Mathf.RoundToInt(average * 100f)}%" +
-                          (bestShot[bestNear].Length > 0 ? $" ({bestShot[bestNear]})" : string.Empty);
-            done(average, line);
-        }
-
         /// <summary>
         /// O melhor toque seguinte a partir de onde a jogada parou: gera jogadas pela geometria nas posições simuladas,
         /// simula algumas (sem erro) e fica com a melhor nota do mesmo objetivo. Sem jogada nenhuma: bola sem saída.
@@ -514,6 +414,15 @@ namespace FutebolDeBotao
             }
             trial.Follow = best;
             trial.FollowLine = line;
+        }
+
+        /// <summary>Por que nenhuma jogada serviu (para o log): nenhuma gerada ou todas dão falta.</summary>
+        private static string NoPlayReason(List<Trial> list)
+        {
+            if (list.Count == 0) return " (nenhum toque possível)";
+            foreach (var trial in list)
+                if (!trial.Main.Foul) return string.Empty;
+            return $" (as {list.Count} dão falta)";
         }
 
         /// <summary>A vez passa: o último toque não fica com a IA (no tiro de meta, ninguém tocar conta como dela).</summary>

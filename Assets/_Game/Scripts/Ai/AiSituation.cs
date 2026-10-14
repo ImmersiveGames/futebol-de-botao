@@ -27,8 +27,9 @@ namespace FutebolDeBotao
         public bool IsBallKick;
         public bool IsFreeKick;
         public bool CanCallShot;
-        /// <summary>Tem chute a gol com caminho livre até a bola e da bola até o gol (sem contar o goleiro).</summary>
-        public bool HasClearShot;
+        /// <summary>Botões com chute a gol com caminho livre até a bola e da bola até o gol (sem contar o goleiro).</summary>
+        public List<Disc> ClearShooters = new();
+        public bool HasClearShot => ClearShooters.Count > 0;
         public float ShotCallDistance;
         /// <summary>O goleiro adversário consegue chegar na bola: no Vai chutar ela viraria dele.</summary>
         public bool KeeperCanTakeBall;
@@ -80,8 +81,9 @@ namespace FutebolDeBotao
                 (disc.Side == side ? situation.TeamDiscs : situation.OpponentDiscs).Add(disc);
             }
 
-            if (!situation.IsBallKick && usable.Count > 0)
-                situation.HasClearShot = planner.HasClearShot(usable);
+            // Qualquer botão que pode jogar conta, não só os mais perto da bola: o mais longe também pode ter ângulo.
+            if (!situation.IsBallKick && allUsable.Count > 0)
+                situation.ClearShooters = planner.ClearShooters(allUsable);
             situation.KeeperCanTakeBall = KeeperBall.CanReach(ball, match.Ball.Radius, KeeperBall.Find(match.Keepers, opponent));
             return situation;
         }
@@ -98,7 +100,7 @@ namespace FutebolDeBotao
                 string.Format(c, "gol_adversario={0:0.0}", BallToOpponentGoal),
                 $"toques={TouchesLeft}",
                 $"vale_gol={(GoalsCount ? 1 : 0)}",
-                $"chute_livre={(HasClearShot ? 1 : 0)}",
+                $"chute_livre={ClearShooters.Count}",
                 $"goleiro_alcanca={(KeeperCanTakeBall ? 1 : 0)}",
                 $"placar={ScoreDifference:+0;-0;0}",
                 string.Format(c, "tempo={0:0}s", SecondsLeft),

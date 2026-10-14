@@ -70,13 +70,6 @@ namespace FutebolDeBotao
         public virtual bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) => verdict.SafeFor(difficulty);
 
         /// <summary>
-        /// Chance mínima de gol para chutar: a do nível (com a personalidade); no último toque basta a metade, porque
-        /// a vez vai passar de qualquer jeito.
-        /// </summary>
-        public static float NeededChance(AiSituation situation, AiDifficulty difficulty) =>
-            situation.IsLastTouch ? difficulty.callShotChance * 0.5f : difficulty.callShotChance;
-
-        /// <summary>
         /// Nota quando a jogada acaba em gol: gol contra é o pior; gol que vale é o melhor; gol que não vale (anulado)
         /// entrega um tiro de meta. Nulo: não teve gol.
         /// </summary>

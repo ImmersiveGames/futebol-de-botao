@@ -131,34 +131,35 @@ namespace FutebolDeBotao
         /// Neste momento simulado, algum botão teria chute a gol livre (sem adversário no caminho, sem força máxima)
         /// com a bola perto do gol? É o "Preparar o chute": no toque seguinte dá para anunciar o Vai chutar.
         /// </summary>
-        public bool HasShotSetup(SimState state, IReadOnlyList<Disc> discs, float maxDistance)
+        public bool HasShotSetup(SimState state, IReadOnlyList<Disc> discs, float maxDistance) =>
+            ShotSetupCount(state, discs, maxDistance, 1) > 0;
+
+        /// <summary>
+        /// Quantos botões teriam chute a gol livre neste momento simulado (para em <paramref name="enough"/>). Mais de um
+        /// engana o adversário: ele não sabe de qual vem o chute para posicionar o goleiro.
+        /// </summary>
+        public int ShotSetupCount(SimState state, IReadOnlyList<Disc> discs, float maxDistance, int enough = int.MaxValue)
         {
-            if (state == null) return false;
+            if (state == null) return 0;
             Vector2 goal = new(0f, FieldLayout.GoalLineY(Opponent));
-            if (Vector2.Distance(state.Ball, goal) > maxDistance || Progress(state.Ball) <= 0f) return false;
+            if (Vector2.Distance(state.Ball, goal) > maxDistance || Progress(state.Ball) <= 0f) return 0;
+            int count = 0;
             ignoreKeepers = true;
             try
             {
                 var targets = GoalTargets();
-                setupList.Clear();
-                foreach (var disc in Nearest(state, discs, SetupDiscs))
-                foreach (var target in targets)
+                foreach (var disc in discs)
                 {
-                    int before = setupList.Count;
-                    AddDiscCandidates(setupList, disc, state.Ball, target, true, false, state);
-                    for (int i = before; i < setupList.Count; i++)
-                    {
-                        var candidate = setupList[i];
-                        if (!candidate.FoulRisk && !candidate.Blocked && !candidate.BallBlocked && candidate.Power01 < 1f) return true;
-                    }
+                    setupList.Clear();
+                    foreach (var target in targets)
+                        AddDiscCandidates(setupList, disc, state.Ball, target, true, false, state);
+                    if (setupList.Exists(IsClear) && ++count >= enough) break;
                 }
-                return false;
+                return count;
             }
             finally { ignoreKeepers = false; }
         }
 
-        /// <summary>Quantos botões (os mais perto da bola) contam para o chute preparado.</summary>
-        private const int SetupDiscs = 3;
         private readonly List<ShotCandidate> setupList = new();
 
         /// <summary>Os <paramref name="count"/> botões mais perto da bola neste momento simulado.</summary>
@@ -348,12 +349,33 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Algum botão tem chute a gol sem risco de falta, com caminho livre e sem precisar da força máxima.</summary>
-        public bool HasClearShot(IReadOnlyList<Disc> usable)
+        public bool HasClearShot(IReadOnlyList<Disc> usable) => ClearShooters(usable).Count > 0;
+
+        /// <summary>
+        /// Botões com chute a gol livre agora: sem risco de falta, caminho livre até a bola e da bola até o gol, sem
+        /// precisar da força máxima. O goleiro não conta (ele ainda vai se mexer depois do Vai chutar).
+        /// </summary>
+        public List<Disc> ClearShooters(IReadOnlyList<Disc> discs)
         {
-            foreach (var candidate in DiscCandidates(usable, true))
-                if (!candidate.FoulRisk && !candidate.Blocked && !candidate.BallBlocked && candidate.Power01 < 1f) return true;
-            return false;
+            var shooters = new List<Disc>();
+            Vector2 ballPosition = ball.Body.position;
+            var targets = GoalTargets();
+            ignoreKeepers = true;
+            try
+            {
+                foreach (var disc in discs)
+                {
+                    setupList.Clear();
+                    foreach (var target in targets)
+                        AddDiscCandidates(setupList, disc, ballPosition, target, true, false);
+                    if (setupList.Exists(IsClear)) shooters.Add(disc);
+                }
+            }
+            finally { ignoreKeepers = false; }
+            return shooters;
         }
+
+        private static bool IsClear(ShotCandidate c) => !c.FoulRisk && !c.Blocked && !c.BallBlocked && c.Power01 < 1f;
 
         private void AddDiscCandidates(List<ShotCandidate> list, Disc disc, Vector2 ballPosition, Vector2 target, bool scoring,
             bool wide, SimState state = null)

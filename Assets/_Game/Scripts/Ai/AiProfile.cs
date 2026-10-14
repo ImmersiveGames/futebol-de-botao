@@ -11,21 +11,21 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Personalidade da IA: o nível diz quão bem ela joga, o perfil mexe só em duas coisas, a chance mínima para chutar
-    /// e o risco de falta que ela aceita. Assets em Resources/IA/Perfis (Ofensivo, Equilibrado, Defensivo).
+    /// Personalidade da IA: o nível diz quão bem ela joga, o perfil mexe só em duas coisas, de quão longe ela anuncia o
+    /// Vai chutar e o risco de falta que ela aceita. Assets em Resources/IA/Perfis (Ofensivo, Equilibrado, Defensivo).
     /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Perfil da IA", fileName = "PerfilDaIA")]
     public sealed class AiProfile : ScriptableObject
     {
-        [Tooltip("Somado à chance mínima para chutar do nível. Negativo chuta mais. Ofensivo -0,05; Defensivo 0,05.")]
-        public float callShotChanceOffset = 0f;
+        [Tooltip("Somado à distância do gol para anunciar o Vai chutar do nível. Ofensivo 0,5 (de mais longe); Defensivo -0,5.")]
+        public float shotCallDistanceOffset = 0f;
         [Tooltip("Somado à chance de falta que o nível aceita. Ofensivo 0,1; Defensivo -0,05.")]
         public float maxFoulChanceOffset = 0f;
 
         /// <summary>Escreve em <paramref name="into"/> a mistura de <paramref name="a"/> (t = 0) com <paramref name="b"/> (t = 1).</summary>
         public static void Blend(AiProfile a, AiProfile b, float t, AiProfile into)
         {
-            into.callShotChanceOffset = Mathf.Lerp(a.callShotChanceOffset, b.callShotChanceOffset, t);
+            into.shotCallDistanceOffset = Mathf.Lerp(a.shotCallDistanceOffset, b.shotCallDistanceOffset, t);
             into.maxFoulChanceOffset = Mathf.Lerp(a.maxFoulChanceOffset, b.maxFoulChanceOffset, t);
         }
 
@@ -33,7 +33,7 @@ namespace FutebolDeBotao
         public void Apply(AiDifficulty level, AiDifficulty into)
         {
             JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(level), into);
-            into.callShotChance = Mathf.Clamp01(level.callShotChance + callShotChanceOffset);
+            into.shotCallDistance = Mathf.Max(0f, level.shotCallDistance + shotCallDistanceOffset);
             into.maxFoulChance = Mathf.Clamp01(level.maxFoulChance + maxFoulChanceOffset);
         }
 
@@ -76,11 +76,11 @@ namespace FutebolDeBotao
             switch (style)
             {
                 case AiStyle.Offensive:
-                    profile.callShotChanceOffset = -0.05f;
+                    profile.shotCallDistanceOffset = 0.5f;
                     profile.maxFoulChanceOffset = 0.1f;
                     break;
                 case AiStyle.Defensive:
-                    profile.callShotChanceOffset = 0.05f;
+                    profile.shotCallDistanceOffset = -0.5f;
                     profile.maxFoulChanceOffset = -0.05f;
                     break;
             }
