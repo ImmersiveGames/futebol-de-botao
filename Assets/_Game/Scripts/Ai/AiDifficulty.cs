@@ -40,8 +40,8 @@ namespace FutebolDeBotao
         [Tooltip("Erro máximo na força, em fração (0,08 = 8% a mais ou a menos).")]
         [Range(0f, 0.5f)] public float powerError = 0.08f;
 
-        [Header("Vai chutar e goleiro")]
-        [Tooltip("Anuncia o \"Vai chutar\" quando a bola está a esta distância do gol (ou menos) e o caminho está livre.")]
+        [Header("Pro Gol! e goleiro")]
+        [Tooltip("Anuncia o \"Pro Gol!\" quando a bola está a esta distância do gol (ou menos) e o caminho está livre.")]
         [Min(0f)] public float shotCallDistance = 4.5f;
         [Tooltip("Erro máximo do goleiro da IA, em unidades para cada lado.")]
         [Min(0f)] public float keeperError = 0.35f;

@@ -32,7 +32,7 @@ namespace FutebolDeBotao
         [Header("Mira")]
         public AimAssistMode aimAssist = AimAssistMode.Short;
         [Min(1f)] public float aimTimeSeconds = 30f;
-        [Tooltip("Tempo que o defensor tem para ajustar o goleiro depois do \"Vai chutar\".")]
+        [Tooltip("Tempo que o defensor tem para ajustar o goleiro depois do \"Pro Gol!\".")]
         [Min(1f)] public float shotCallSeconds = 30f;
 
         [Header("Pênalti")]

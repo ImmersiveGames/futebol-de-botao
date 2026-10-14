@@ -17,7 +17,7 @@ namespace FutebolDeBotao
     [CreateAssetMenu(menuName = "Futebol de Botão/Perfil da IA", fileName = "PerfilDaIA")]
     public sealed class AiProfile : ScriptableObject
     {
-        [Tooltip("Somado à distância do gol para anunciar o Vai chutar do nível. Ofensivo 0,5 (de mais longe); Defensivo -0,5.")]
+        [Tooltip("Somado à distância do gol para anunciar o Pro Gol! do nível. Ofensivo 0,5 (de mais longe); Defensivo -0,5.")]
         public float shotCallDistanceOffset = 0f;
         [Tooltip("Somado à chance de falta que o nível aceita. Ofensivo 0,1; Defensivo -0,05.")]
         public float maxFoulChanceOffset = 0f;

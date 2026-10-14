@@ -484,7 +484,7 @@ namespace FutebolDeBotao
         public void TryCallShot()
         {
             if (!CanCallShot) return;
-            message = $"{TeamName(Turn)}: vai chutar!";
+            message = $"{TeamName(Turn)}: Pro Gol!";
             BeginShotCall();
         }
 
@@ -944,7 +944,7 @@ namespace FutebolDeBotao
             else
             {
                 message = called ? "Gol anulado: a bola tocou a parede lateral."
-                    : options.hasGoalkeeper ? "Gol anulado: não avisou o \"Vai chutar\"."
+                    : options.hasGoalkeeper ? "Gol anulado: não avisou o \"Pro Gol!\"."
                     : "Gol anulado: chute do campo de defesa.";
             }
 
@@ -1228,7 +1228,7 @@ namespace FutebolDeBotao
             }
 
             var buttonRect = new Rect(x, y + 6f, 220f, 42f);
-            if (CanCallShot && GUI.Button(buttonRect, "Vai chutar (V)", button)) TryCallShot();
+            if (CanCallShot && GUI.Button(buttonRect, "Pro Gol! (V)", button)) TryCallShot();
             if (State == MatchState.ShotCall && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishShotCall();
             if (State == MatchState.PenaltySetup && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishPenaltySetup();
 

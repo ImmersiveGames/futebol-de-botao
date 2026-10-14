@@ -54,7 +54,7 @@ namespace FutebolDeBotao
         /// </summary>
         private sealed class CallShotAction : AiAction
         {
-            public override string Name => "Anunciar o Vai chutar";
+            public override string Name => "Anunciar o Pro Gol!";
             public override string Effect => "próximo toque vale gol";
             public override bool IsInstant => true;
             public override bool CanRun(AiSituation s) =>

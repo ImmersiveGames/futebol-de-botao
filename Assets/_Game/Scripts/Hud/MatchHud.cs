@@ -31,7 +31,7 @@ namespace FutebolDeBotao
         private static readonly Color GlowColor = new(1f, 0.85f, 0.25f);
         private const float GlowSpeed = 5f;
         private const float GlowScale = 0.08f;
-        private const string ShotCallLabel = "Vai chutar";
+        private const string ShotCallLabel = "Pro Gol!";
 
         /// <summary>Elementos de um jogador (seus dois cantos no celular, ou o painel do PC).</summary>
         private sealed class PlayerView
@@ -281,7 +281,7 @@ namespace FutebolDeBotao
                 CreatePanel(right.transform, PanelColor);
                 view.Turn = CreateText(right.transform, "Vez", 24, FontStyle.Bold, new Vector2(0f, 42f), new Vector2(250f, 36f));
                 view.Timer = CreateText(right.transform, "Timer", 26, FontStyle.Bold, new Vector2(0f, 6f), new Vector2(250f, 34f));
-                view.Action = CreateButton(right.transform, "Ação", "Vai chutar", 24, new Vector2(0f, -38f), new Vector2(220f, 44f), out view.ActionLabel);
+                view.Action = CreateButton(right.transform, "Ação", "Pro Gol!", 24, new Vector2(0f, -38f), new Vector2(220f, 44f), out view.ActionLabel);
                 var actionSide = side;
                 view.Action.onClick.AddListener(() => OnAction(actionSide));
 
@@ -369,7 +369,7 @@ namespace FutebolDeBotao
             view.Clock = CreateTopText(panel, "Relógio", 30, -95f, 44f);
             view.Turn = CreateTopText(panel, "Vez", 26, -150f, 60f);
             view.Timer = CreateTopText(panel, "Timer", 26, -205f, 40f);
-            view.Action = CreateButton(panel, "Ação", "Vai chutar", 26, Vector2.zero, new Vector2(240f, 56f), out view.ActionLabel);
+            view.Action = CreateButton(panel, "Ação", "Pro Gol!", 26, Vector2.zero, new Vector2(240f, 56f), out view.ActionLabel);
             SetTop((RectTransform)view.Action.transform, -275f);
             view.Action.onClick.AddListener(() => OnAction(match.ActingSide));
             view.Pause = CreateButton(panel, "Pausa", "Pausa (Esc)", 26, Vector2.zero, new Vector2(240f, 56f), out _);
@@ -378,8 +378,8 @@ namespace FutebolDeBotao
             var tips = CreateTopText(panel, "Dicas", 17, -520f, 190f);
             tips.alignment = TextAnchor.UpperLeft;
             tips.text = "Mouse: arraste do botão para trás e solte\n" +
-                        "Teclado: A/D escolhe o botão, E seleciona, A/D gira, W/S força, Espaço chuta, Q volta, C vai chutar\n" +
-                        "Controle: analógico/D-pad escolhe, A seleciona, analógico mira, analógico dir. força, X chuta, B volta, LB/RB vai chutar";
+                        "Teclado: A/D escolhe o botão, E seleciona, A/D gira, W/S força, Espaço chuta, Q volta, C Pro Gol!\n" +
+                        "Controle: analógico/D-pad escolhe, A seleciona, analógico mira, analógico dir. força, X chuta, B volta, LB/RB Pro Gol!";
             pcPanel = view;
         }
 
