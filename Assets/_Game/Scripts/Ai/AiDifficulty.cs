@@ -23,34 +23,16 @@ namespace FutebolDeBotao
         [Min(1)] public int simulations = 8;
         [Tooltip("Escolhe ao acaso entre as N melhores jogadas simuladas. 1 = sempre a melhor.")]
         [Min(1)] public int pickAmongBest = 2;
-        [Tooltip("Quanto a IA evita jogadas com risco de falta. 1 = evita bastante; menor = arrisca mais.")]
-        [Range(0f, 1f)] public float foulCaution = 1f;
+        [Tooltip("Chance de falta (testando o erro de mira e de força) que a IA aceita numa jogada. Falta certa (sem erro) " +
+                 "nunca é aceita. Fácil 0,5; Médio 0,35; Difícil 0,2.")]
+        [Range(0f, 1f)] public float maxFoulChance = 0.35f;
 
         [Header("Pensar o toque seguinte")]
-        [Tooltip("Quantas das melhores jogadas (que ficam com a bola) a IA testa também o toque seguinte, para não deixar a " +
-                 "bola num lugar sem saída. 0 = não pensa. Fácil 0; Médio 2; Difícil 4.")]
+        [Tooltip("No Preparar o chute com 3 toques: quantas das melhores jogadas a IA testa também o toque seguinte (o chute " +
+                 "fica pronto depois? a bola fica sem saída?). 0 = não pensa. Fácil 0; Médio 2; Difícil 4.")]
         [Min(0)] public int planAhead = 2;
         [Tooltip("Quantas jogadas do toque seguinte vão para a mesa simulada, para cada jogada testada.")]
         [Min(1)] public int followUpSimulations = 4;
-        [Tooltip("Desconto na nota quando a bola fica grudada numa parede (dobra no canto) e a vez continua. Serve para " +
-                 "quem não pensa o toque seguinte. Fácil 8; Médio e Difícil 0.")]
-        [Min(0f)] public float wallStuckPenalty = 0f;
-
-        [Header("Posicionamento")]
-        [Tooltip("Quando a melhor jogada é ruim (falta provável ou sem boa chance na bola), chance de só reposicionar um " +
-                 "botão sem tocar na bola, em vez de arriscar. A vez passa. Fácil ~0,2; Médio ~0,5; Difícil ~0,8.")]
-        [Range(0f, 1f)] public float repositionChance = 0.5f;
-        [Tooltip("Nota abaixo da qual a melhor jogada conta como ruim.")]
-        public float poorShotScore = 0f;
-        [Tooltip("Chance de falta (testando o erro de mira e de força) acima da qual a jogada conta como ruim. " +
-                 "Falta certa (sem erro) nunca é aceita. Fácil 0,5; Médio 0,35; Difícil 0,2.")]
-        [Range(0f, 1f)] public float maxFoulChance = 0.35f;
-        [Tooltip("Quando toda jogada na bola tem risco de gol contra (testando o erro de mira e de força), chance de só " +
-                 "pôr um botão bloqueando entre a bola e o gol. Fácil 0,4; Médio 0,85; Difícil 1.")]
-        [Range(0f, 1f)] public float ownGoalDefendChance = 0.85f;
-        [Tooltip("Chance, a cada toque, de a IA olhar o perigo de passar a vez (o adversário ter chute fácil) e, no último " +
-                 "toque, fechar o gol com um botão. Fácil 0,4; Médio 0,75; Difícil 1.")]
-        [Range(0f, 1f)] public float dangerAwareness = 0.75f;
 
         [Header("Erro na execução")]
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
@@ -62,9 +44,8 @@ namespace FutebolDeBotao
         [Tooltip("Anuncia o \"Vai chutar\" quando a bola está a esta distância do gol (ou menos) e o caminho está livre.")]
         [Min(0f)] public float shotCallDistance = 4.5f;
         [Tooltip("Chance mínima de o melhor chute entrar (contra o goleiro onde o adversário deve pô-lo, com o erro do nível) " +
-                 "para pensar no Vai chutar. Acima disso, anuncia se o chute vale mais que a melhor outra jogada " +
-                 "(chance x 150 + resto x -15). Fácil 0,1; Médio 0,12; Difícil 0,15.")]
-        [Range(0f, 1f)] public float callShotChance = 0.12f;
+                 "para chutar. No último toque basta a metade. Fácil 0,15; Médio 0,2; Difícil 0,25.")]
+        [Range(0f, 1f)] public float callShotChance = 0.2f;
         [Tooltip("Erro máximo do goleiro da IA, em unidades para cada lado.")]
         [Min(0f)] public float keeperError = 0.35f;
         [Tooltip("Quantos chutes do adversário o goleiro da IA considera para escolher onde ficar. Mais = cobre melhor o gol.")]
@@ -112,18 +93,13 @@ namespace FutebolDeBotao
                     difficulty.discsToTest = 2;
                     difficulty.simulations = 4;
                     difficulty.pickAmongBest = 3;
-                    difficulty.foulCaution = 0.5f;
                     difficulty.planAhead = 0;
                     difficulty.followUpSimulations = 3;
-                    difficulty.wallStuckPenalty = 8f;
-                    difficulty.repositionChance = 0.2f;
-                    difficulty.ownGoalDefendChance = 0.4f;
-                    difficulty.dangerAwareness = 0.4f;
                     difficulty.maxFoulChance = 0.5f;
                     difficulty.angleErrorDegrees = 8f;
                     difficulty.powerError = 0.15f;
                     difficulty.shotCallDistance = 3f;
-                    difficulty.callShotChance = 0.1f;
+                    difficulty.callShotChance = 0.15f;
                     difficulty.keeperError = 0.5f;
                     difficulty.keeperShotsToConsider = 3;
                     difficulty.thinkSeconds = 0.6f;
@@ -133,17 +109,13 @@ namespace FutebolDeBotao
                     difficulty.discsToTest = 3;
                     difficulty.simulations = 12;
                     difficulty.pickAmongBest = 1;
-                    difficulty.foulCaution = 1f;
                     difficulty.planAhead = 4;
                     difficulty.followUpSimulations = 6;
-                    difficulty.repositionChance = 0.8f;
-                    difficulty.ownGoalDefendChance = 1f;
-                    difficulty.dangerAwareness = 1f;
                     difficulty.maxFoulChance = 0.2f;
                     difficulty.angleErrorDegrees = 1.5f;
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;
-                    difficulty.callShotChance = 0.15f;
+                    difficulty.callShotChance = 0.25f;
                     difficulty.keeperError = 0.2f;
                     difficulty.keeperShotsToConsider = 10;
                     difficulty.thinkSeconds = 0.3f;

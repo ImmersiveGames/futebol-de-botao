@@ -164,10 +164,10 @@ namespace FutebolDeBotao
                     yield break;
                 }
 
-                var situation = AiSituation.Read(match, Side, planner, OpponentPlanner(), difficulty, usable, allUsable);
+                var situation = AiSituation.Read(match, Side, planner, difficulty, usable, allUsable);
                 situation.Profile = profileLine;
                 AiDecision decision = null;
-                yield return brain.Decide(situation, match, aim.Tuning, difficulty, profile, () => StillValid(version),
+                yield return brain.Decide(situation, match, aim.Tuning, difficulty, OpponentPlanner(), () => StillValid(version),
                     d => decision = d);
                 if (decision == null || !StillValid(version)) yield break;
                 log.Decided(decision, situation, match);
@@ -202,7 +202,7 @@ namespace FutebolDeBotao
             var result = simulator.Simulate(disc != null ? disc.Body : null, direction * (power01 * maxImpulse), Side);
             foul = result.Foul;
             ownGoal = result.GoalOf == Side;
-            return planner.Score(result, ballKick, goalsCount, match.Options.goalAfterWallIsValid, touchesAfter, difficulty.foulCaution);
+            return planner.Score(result, ballKick, goalsCount, match.Options.goalAfterWallIsValid, touchesAfter);
         }
 
         /// <summary>Mostra a mira e a barra de força enchendo, como um jogador arrastando, e solta.</summary>
@@ -253,6 +253,8 @@ namespace FutebolDeBotao
             attackerPlanner ??= new ShotPlanner(Opponent(Side), aim.Tuning, match.Ball);
             attackerPlanner.FoulsEnabled = match.Options.fouls;
             attackerPlanner.GoalWidth = match.GoalWidth;
+            attackerPlanner.AllDiscs = match.AllDiscs;
+            attackerPlanner.Keepers = match.Keepers;
             return attackerPlanner;
         }
 

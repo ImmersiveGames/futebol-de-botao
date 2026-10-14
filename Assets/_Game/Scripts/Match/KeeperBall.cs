@@ -48,6 +48,22 @@ namespace FutebolDeBotao
             return ballPosition.x >= minX && ballPosition.x <= maxX && ballPosition.y >= minY && ballPosition.y <= maxY;
         }
 
+        /// <summary>
+        /// O goleiro consegue deixar a bola parada em <paramref name="ballPosition"/> na área em volta dele, andando para
+        /// algum lugar onde pode ficar (no Vai chutar o defensor faria isso e a bola viraria dele).
+        /// </summary>
+        public static bool CanReach(Vector2 ballPosition, float ballRadius, Goalkeeper keeper)
+        {
+            if (keeper == null) return false;
+            var box = keeper.GetComponent<Collider2D>();
+            if (box == null) return false;
+            var bounds = box.bounds;
+            float half = bounds.extents.x + SideMargin + ballRadius;
+            if (ballPosition.x < keeper.MinX - half || ballPosition.x > keeper.MaxX + half) return false;
+            // A altura da área não muda quando ele anda: confere só a altura, com a bola no x onde ele está.
+            return InZone(new Vector2(bounds.center.x, ballPosition.y), ballRadius, keeper);
+        }
+
         public static Goalkeeper Find(IReadOnlyList<Goalkeeper> keepers, TeamSide side)
         {
             if (keepers == null) return null;

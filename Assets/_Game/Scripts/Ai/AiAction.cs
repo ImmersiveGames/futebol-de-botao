@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Uma coisa que a IA sabe fazer num toque, no formato do GOAP: quando pode (pré-condição), o que espera conseguir
-    /// (efeito) e as jogadas concretas que a fazem. Quem escolhe entre elas é o objetivo (AiGoal) e o decisor (AiBrain).
+    /// Uma coisa que a IA sabe fazer num toque: quando pode (pré-condição), o que espera conseguir (efeito) e as
+    /// jogadas concretas que a fazem. Quem escolhe entre elas é o objetivo (AiGoal) e o decisor (AiBrain).
     /// </summary>
     public abstract class AiAction
     {
@@ -31,7 +31,8 @@ namespace FutebolDeBotao
         {
             public override string Name => "Tocar a bola";
             public override string Effect => "bola mais à frente, com o último toque";
-            public override bool CanRun(AiSituation s) => (s.State is MatchState.Aim or MatchState.GoalKick) && !s.GoalsCount;
+            // Sem goleiro, no ataque, qualquer toque pode virar gol: também serve quando o chute direto não vale a pena.
+            public override bool CanRun(AiSituation s) => s.State is MatchState.Aim or MatchState.GoalKick;
             public override List<ShotCandidate> Candidates(AiSituation s, ShotPlanner planner, MatchController match) =>
                 s.IsBallKick ? planner.BallKickCandidates() : planner.DiscCandidates(s.Usable, false);
         }
@@ -53,7 +54,7 @@ namespace FutebolDeBotao
             public override string Effect => "próximo toque vale gol";
             public override bool IsInstant => true;
             public override bool CanRun(AiSituation s) =>
-                s.CanCallShot && s.HasClearShot && s.BallToOpponentGoal <= s.ShotCallDistance;
+                s.CanCallShot && s.HasClearShot && !s.KeeperCanTakeBall && s.BallToOpponentGoal <= s.ShotCallDistance;
             public override List<ShotCandidate> Candidates(AiSituation s, ShotPlanner planner, MatchController match) => new();
         }
 

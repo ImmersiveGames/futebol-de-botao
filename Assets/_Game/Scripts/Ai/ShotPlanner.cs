@@ -63,9 +63,7 @@ namespace FutebolDeBotao
         /// <summary>Todos os botões e goleiros da mesa (para conferir caminhos num momento simulado).</summary>
         public IReadOnlyList<Disc> AllDiscs { get; set; }
         public IReadOnlyList<Goalkeeper> Keepers { get; set; }
-
-        /// <summary>Bônus na nota quando a jogada deixa um chute livre para o toque seguinte (Preparar o chute).</summary>
-        public const float ShotSetupBonus = 25f;
+        public float BallRadius => ball.Radius;
 
         /// <summary>Bola a menos que isto da parede: grudada nela (no canto, nas duas).</summary>
         private const float WallNear = 0.45f;
@@ -172,15 +170,6 @@ namespace FutebolDeBotao
                 .CompareTo((state.PositionOf(b.Body) - ballPosition).sqrMagnitude));
             if (list.Count > count) list.RemoveRange(count, list.Count - count);
             return list;
-        }
-
-        /// <summary>Quantas paredes a bola está encostando (0, 1 ou 2 no canto).</summary>
-        public static int WallsTouching(Vector2 ballPosition)
-        {
-            int walls = 0;
-            if (FieldLayout.HalfWidth - Mathf.Abs(ballPosition.x) < WallNear) walls++;
-            if (FieldLayout.HalfHeight - Mathf.Abs(ballPosition.y) < WallNear) walls++;
-            return walls;
         }
 
         /// <summary>
@@ -514,24 +503,6 @@ namespace FutebolDeBotao
             }
         }
 
-        /// <summary>Zona de chute: bola na frente do gol adversário, a uma distância boa de chute.</summary>
-        private const float ShootingZoneBonus = 6f;
-        /// <summary>Bola colada na linha de fundo adversária, fora das traves: sem ângulo para chutar.</summary>
-        private const float DeadZonePenalty = 12f;
-
-        /// <summary>Quanto vale ter a bola parada neste lugar do ataque (zona de chute ou linha de fundo).</summary>
-        private float ZoneValue(Vector2 position)
-        {
-            if (Progress(position) <= 0f) return 0f;
-            float fromLine = FieldLayout.HalfHeight - Mathf.Abs(position.y);
-            float outside = Mathf.Abs(position.x) - (GoalWidth * 0.5f + 0.2f);
-            if (fromLine < 1f && outside > 0f)
-                return -DeadZonePenalty * (1f - fromLine) * Mathf.Clamp01(outside / 0.6f);
-            float toGoal = Vector2.Distance(position, new Vector2(0f, FieldLayout.GoalLineY(Opponent)));
-            if (toGoal >= 1.5f && toGoal <= 4.5f && Mathf.Abs(position.x) < 1.8f) return ShootingZoneBonus;
-            return 0f;
-        }
-
         /// <summary>Quanto um deslocamento avança na direção do gol adversário.</summary>
         private float Progress(Vector2 delta) => Vector2.Dot(delta, Attack);
 
@@ -715,7 +686,7 @@ namespace FutebolDeBotao
         /// <paramref name="touchesLeftAfter"/>: toques que sobram se a vez continuar.
         /// </summary>
         public float Score(in SimResult result, bool isBallKick, bool goalsCount, bool goalAfterWallIsValid,
-            int touchesLeftAfter, float foulCaution, Vector2? from = null)
+            int touchesLeftAfter, Vector2? from = null)
         {
             Vector2 start = from ?? ball.Body.position;
 
@@ -725,8 +696,7 @@ namespace FutebolDeBotao
                 // Falta longe do lance dá cartão: pior ainda, e muito pior com amarelo (vermelho tira um botão).
                 bool far = Vector2.Distance(result.FoulPosition, start) > FarFoulDistance;
                 float card = far ? (HasYellow ? 150f : 40f) : 0f;
-                // A falta tira nota mas não é proibida: no Fácil a IA liga menos para ela.
-                return -((penalty ? 120f : 45f) + card) * Mathf.Lerp(0.3f, 1f, foulCaution);
+                return -((penalty ? 120f : 45f) + card);
             }
 
             if (result.GoalOf == side) return -120f;
@@ -751,9 +721,6 @@ namespace FutebolDeBotao
 
             Vector2 end = result.BallEnd;
             score += Progress(end - start) * 3f;
-            // No ataque, o lugar conta mais que só avançar: na frente do gol é bom, na linha de fundo fora das traves
-            // não tem ângulo.
-            if (lastTouch == side) score += ZoneValue(end) - ZoneValue(start);
 
             // Bola perto do próprio gol: tirar de lá vale mais que atacar, inclusive afastando para os lados.
             Vector2 ownGoalCenter = new(0f, FieldLayout.GoalLineY(side));

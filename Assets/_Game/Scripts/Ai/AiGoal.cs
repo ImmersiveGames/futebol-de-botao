@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace FutebolDeBotao
 {
@@ -6,16 +7,15 @@ namespace FutebolDeBotao
     public readonly struct AiScoreContext
     {
         public readonly ShotPlanner Planner;
+        /// <summary>O planejador do lado do adversário: ele teria chute livre de onde a bola parou?</summary>
+        public readonly ShotPlanner OpponentPlanner;
         public readonly bool GoalAfterWallIsValid;
-        public readonly float FoulCaution;
-        public readonly float WallStuckPenalty;
 
-        public AiScoreContext(ShotPlanner planner, bool goalAfterWallIsValid, float foulCaution, float wallStuckPenalty)
+        public AiScoreContext(ShotPlanner planner, ShotPlanner opponentPlanner, bool goalAfterWallIsValid)
         {
             Planner = planner;
+            OpponentPlanner = opponentPlanner;
             GoalAfterWallIsValid = goalAfterWallIsValid;
-            FoulCaution = foulCaution;
-            WallStuckPenalty = wallStuckPenalty;
         }
     }
 
@@ -45,42 +45,47 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Um objetivo da IA (marcar, tirar do perigo, fechar o gol...). Pelos fatos do toque (AiSituation) diz quanto vale
-    /// agora (prioridade), quais ações servem e dá nota às jogadas simuladas com a conta dele. O decisor (AiBrain) tenta
-    /// os objetivos do mais alto para o mais baixo e fica no primeiro que achar uma jogada boa.
+    /// Um objetivo da IA, com uma conta só para saber se a jogada deu certo. A ordem dos objetivos vem da situação
+    /// (AiBrain.Plan): Marcar; com toque sobrando, Preparar o chute; no último toque (ou se preparar não deu), Afastar
+    /// (bola perto do próprio gol) ou Proteger; por fim, Fechar o gol com um botão.
     /// </summary>
     public abstract class AiGoal
     {
         public abstract string Name { get; }
 
-        /// <summary>Quanto o objetivo vale neste toque. Zero ou menos: não vale agora.</summary>
-        public abstract float Priority(AiSituation situation);
-
         /// <summary>Ações que servem a este objetivo, em ordem de preferência.</summary>
         public abstract IReadOnlyList<AiAction> Actions { get; }
 
-        /// <summary>Nota de uma jogada simulada para este objetivo. Nulo: a jogada não serve.</summary>
+        /// <summary>
+        /// Nota de uma jogada simulada para este objetivo. Nulo: a jogada não serve. <paramref name="from"/>: onde a bola
+        /// estava antes (no toque seguinte imaginado, onde a jogada anterior parou); nulo = a bola de agora.
+        /// </summary>
         public abstract float? Score(in SimResult result, in ShotCandidate candidate, AiAction action, AiSituation situation,
-            in AiScoreContext context);
+            in AiScoreContext context, Vector2? from = null);
 
-        /// <summary>O decisor também testa o toque seguinte das melhores jogadas (jogadas na bola que não são o chute a gol).</summary>
-        public virtual bool PlansAhead => true;
+        /// <summary>O decisor também imagina o toque seguinte das melhores jogadas.</summary>
+        public virtual bool PlansAhead => false;
 
         /// <summary>A melhor jogada atinge o objetivo? Não: o decisor tenta o próximo objetivo.</summary>
         public virtual bool Accepts(in AiVerdict verdict, AiSituation situation, AiDifficulty difficulty) => verdict.SafeFor(difficulty);
 
-        /// <summary>Toques que sobram se a vez continuar depois desta jogada.</summary>
-        protected static int TouchesAfter(AiSituation situation) => situation.TouchesLeft - 1;
+        /// <summary>
+        /// Chance mínima de gol para chutar: a do nível (com a personalidade); no último toque basta a metade, porque
+        /// a vez vai passar de qualquer jeito.
+        /// </summary>
+        public static float NeededChance(AiSituation situation, AiDifficulty difficulty) =>
+            situation.IsLastTouch ? difficulty.callShotChance * 0.5f : difficulty.callShotChance;
 
-        /// <summary>Nota padrão da jogada na bola (gol, falta, gol contra, posse, avanço; ShotPlanner.Score).</summary>
-        protected static float BaseScore(in SimResult result, AiSituation situation, in AiScoreContext context)
+        /// <summary>
+        /// Nota quando a jogada acaba em gol: gol contra é o pior; gol que vale é o melhor; gol que não vale (anulado)
+        /// entrega um tiro de meta. Nulo: não teve gol.
+        /// </summary>
+        protected static float? GoalOutcome(in SimResult result, AiSituation situation, in AiScoreContext context)
         {
-            float score = context.Planner.Score(result, situation.IsBallKick, situation.GoalsCount, context.GoalAfterWallIsValid,
-                TouchesAfter(situation), context.FoulCaution);
-            // Quem não pensa o toque seguinte (Fácil) pelo menos evita deixar a bola grudada na parede com a vez continuando.
-            if (context.WallStuckPenalty > 0f && TouchesAfter(situation) > 0 && KeepsBall(result, situation))
-                score -= context.WallStuckPenalty * ShotPlanner.WallsTouching(result.BallEnd);
-            return score;
+            if (result.GoalOf == null) return null;
+            if (result.GoalOf == situation.Side) return -100f;
+            bool valid = situation.GoalsCount && (context.GoalAfterWallIsValid || !result.BallTouchedWall);
+            return valid ? 100f : -20f;
         }
 
         /// <summary>A jogada termina sem falta nem gol e com o último toque da IA (no tiro de meta, ninguém tocar conta).</summary>
@@ -91,14 +96,12 @@ namespace FutebolDeBotao
             return last == situation.Side;
         }
 
-        public static readonly AiGoal[] All =
-        {
-            new ScoreGoal(),
-            new ClearDangerGoal(),
-            new PrepareShotGoal(),
-            new CloseGoalGoal(),
-            new AdvanceGoal(),
-            new SafeTouchGoal()
-        };
+        protected static Vector2 OwnGoal(AiSituation situation) => new(0f, FieldLayout.GoalLineY(situation.Side));
+
+        public static readonly AiGoal Scoring = new ScoreGoal();
+        public static readonly AiGoal Preparing = new PrepareShotGoal();
+        public static readonly AiGoal Clearing = new ClearDangerGoal();
+        public static readonly AiGoal Protecting = new ProtectGoal();
+        public static readonly AiGoal Closing = new CloseGoalGoal();
     }
 }
