@@ -37,6 +37,11 @@ namespace FutebolDeBotao.Editor
         private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
         private const string BallSheetPath = "Assets/_Game/Art/Ball/Ball_SpriteSheet.png";
+        /// <summary>Logo da Immersive só com o desenho (sem o texto), no canto da Abertura.</summary>
+        private const string StudioLogoPath = "Assets/_Game/Art/logov3IconWhite.png";
+        /// <summary>Altura do logo na tela de referência (720 x 1280) e distância das bordas.</summary>
+        private const float StudioLogoHeight = 84f;
+        private const float StudioLogoMargin = 24f;
         private const string BrightFeltSprite = "Field_Braight";
         private const string DarkFeltSprite = "Field_Dark";
 
@@ -210,6 +215,8 @@ namespace FutebolDeBotao.Editor
 
             CreateText(canvas, "Título", "Futebol de Botão", 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
             var prompt = CreateText(canvas, "Aperte", TitleScreen.PromptText, 36, new Vector2(0f, -200f), new Vector2(680f, 120f));
+
+            CreateStudioLogo(canvas);
 
             var trigger = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "abertura.menu");
             canvas.gameObject.AddComponent<TitleScreen>().Configure(trigger, prompt);
@@ -503,6 +510,40 @@ namespace FutebolDeBotao.Editor
                 image.pixelsPerUnitMultiplier = 100f / tile;
                 image.raycastTarget = false;
             }
+        }
+
+        /// <summary>
+        /// Logo da Immersive no canto inferior direito, pequeno e um pouco transparente. A imagem é grande e vai ser
+        /// mostrada bem menor: filtro bilinear com mipmaps para não serrilhar.
+        /// </summary>
+        private static void CreateStudioLogo(Transform canvas)
+        {
+            if (AssetImporter.GetAtPath(StudioLogoPath) is TextureImporter importer &&
+                (importer.filterMode != FilterMode.Bilinear || !importer.mipmapEnabled))
+            {
+                importer.filterMode = FilterMode.Bilinear;
+                importer.mipmapEnabled = true;
+                importer.SaveAndReimport();
+            }
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(StudioLogoPath);
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[Futebol de Botão] Sem o logo em {StudioLogoPath}: Abertura sem logo.");
+                return;
+            }
+
+            var go = new GameObject("Logo Immersive", typeof(RectTransform));
+            go.transform.SetParent(canvas, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 0f);
+            rect.anchoredPosition = new Vector2(-StudioLogoMargin, StudioLogoMargin);
+            float aspect = sprite.rect.width / sprite.rect.height;
+            rect.sizeDelta = new Vector2(StudioLogoHeight * aspect, StudioLogoHeight);
+            var image = go.AddComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.color = new Color(1f, 1f, 1f, 0.85f);
+            image.raycastTarget = false;
         }
 
         /// <summary>Recortes da mesa, das marcações e da bola para o campo desenhado da seleção de times.</summary>
