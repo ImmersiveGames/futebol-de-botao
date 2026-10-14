@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3b3ef32f8304df2ba3cc48bd646b291, type: 3}
+  m_Name: Defensivo
+  m_EditorClassIdentifier: FutebolDeBotao::FutebolDeBotao.AiProfile
+  clearDangerWeight: 1.15
+  prepareShotWeight: 0.85
+  closeGoalWeight: 1.25
+  advanceWeight: 0.9
+  shotValueBonus: -12
+  shotCallDistanceOffset: -0.5
+  callShotChanceOffset: 0.05
+  maxFoulChanceOffset: -0.05
+  foulCautionScale: 1.2
+  dangerAwarenessOffset: 0.15

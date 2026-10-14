@@ -19,7 +19,13 @@ namespace FutebolDeBotao
         private const int KickSimulationsPerAngle = 3;
 
         private MatchController match;
+        /// <summary>O nível como veio do Menu (asset) e a cópia ajustada pela personalidade a cada jogada.</summary>
+        private AiDifficulty levelDifficulty;
         private AiDifficulty difficulty;
+        /// <summary>Perfil do esquema da IA e a mistura com o ajuste pelo placar que vale nesta jogada.</summary>
+        private AiProfile baseProfile;
+        private AiProfile profile;
+        private string profileLine = string.Empty;
         private AimController aim;
         private MotionMonitor monitor;
         private ShotPlanner planner;
@@ -38,7 +44,19 @@ namespace FutebolDeBotao
             log?.Dispose();
             match = matchController;
             Side = side;
-            difficulty = aiDifficulty;
+            levelDifficulty = aiDifficulty;
+            if (difficulty == null)
+            {
+                difficulty = ScriptableObject.CreateInstance<AiDifficulty>();
+                difficulty.hideFlags = HideFlags.DontSave;
+            }
+            if (profile == null)
+            {
+                profile = ScriptableObject.CreateInstance<AiProfile>();
+                profile.hideFlags = HideFlags.DontSave;
+            }
+            baseProfile = AiProfile.Load(AiProfile.StyleOf(MatchSession.Scheme(side, match.Options.discsPerTeam)));
+            UpdateProfile();
             log = new AiLog(side, aiDifficulty);
             match.Noticed += log.Noticed;
         }
@@ -68,6 +86,8 @@ namespace FutebolDeBotao
             log = null;
             simulator?.Dispose();
             simulator = null;
+            if (difficulty != null) Destroy(difficulty);
+            if (profile != null) Destroy(profile);
         }
 
         // Jogadas do jogador também vão para o log (a IA solta pelo mesmo AimController, mas na vez dela).
@@ -102,13 +122,18 @@ namespace FutebolDeBotao
                 case MatchState.ShotAim:
                 case MatchState.GoalKick:
                     if (match.Turn != Side) break;
+                    UpdateProfile();
                     StartCoroutine(match.IsPlacingGoalKick ? PlaceGoalKickBall() : PlayTouch());
                     break;
                 case MatchState.ShotCall:
-                    if (match.ActingSide == Side) StartCoroutine(PlaceKeeper());
+                    if (match.ActingSide != Side) break;
+                    UpdateProfile();
+                    StartCoroutine(PlaceKeeper());
                     break;
                 case MatchState.PenaltySetup:
-                    if (match.Turn == Side) StartCoroutine(SetUpKicker());
+                    if (match.Turn != Side) break;
+                    UpdateProfile();
+                    StartCoroutine(SetUpKicker());
                     break;
             }
         }
@@ -140,8 +165,10 @@ namespace FutebolDeBotao
                 }
 
                 var situation = AiSituation.Read(match, Side, planner, OpponentPlanner(), difficulty, usable, allUsable);
+                situation.Profile = profileLine;
                 AiDecision decision = null;
-                yield return brain.Decide(situation, match, aim.Tuning, difficulty, () => StillValid(version), d => decision = d);
+                yield return brain.Decide(situation, match, aim.Tuning, difficulty, profile, () => StillValid(version),
+                    d => decision = d);
                 if (decision == null || !StillValid(version)) yield break;
                 log.Decided(decision, situation, match);
 
@@ -354,6 +381,32 @@ namespace FutebolDeBotao
             keeperConceded = conceded;
             keeperMs = computeMs;
             done(bestX);
+        }
+
+        /// <summary>Fração final do tempo em que o placar puxa a personalidade.</summary>
+        private const float LateFraction = 0.25f;
+        /// <summary>Diferença de gols que, no fim do jogo, puxa a personalidade por inteiro.</summary>
+        private const int FullPullGoals = 2;
+
+        /// <summary>
+        /// Personalidade desta jogada: a do esquema, puxada nos 25% finais para o Ofensivo (perdendo) ou o Defensivo
+        /// (ganhando). Quanto menos tempo falta e maior a diferença, mais forte. Os números do nível recebem o resultado.
+        /// </summary>
+        private void UpdateProfile()
+        {
+            if (match == null || levelDifficulty == null || baseProfile == null || profile == null) return;
+            int diff = match.Score(Side) - match.Score(Opponent(Side));
+            float window = match.Options.DurationSeconds * LateFraction;
+            float late = window > 0f ? Mathf.Clamp01(1f - match.ClockSeconds / window) : 0f;
+            float pull = diff == 0 ? 0f : late * Mathf.Clamp01(Mathf.Abs(diff) / (float)FullPullGoals);
+            var toward = diff < 0 ? AiStyle.Offensive : AiStyle.Defensive;
+            AiProfile.Blend(baseProfile, pull > 0f ? AiProfile.Load(toward) : baseProfile, pull, profile);
+            profile.Apply(levelDifficulty, difficulty);
+            profileLine = $"perfil={AiProfile.FileName(AiProfile.StyleOf(MatchSession.Scheme(Side, match.Options.discsPerTeam)))}" +
+                          (pull > 0f
+                              ? string.Format(System.Globalization.CultureInfo.InvariantCulture, " ajuste={0}:{1:0.00}",
+                                  AiProfile.FileName(toward), pull)
+                              : string.Empty);
         }
 
         private static TeamSide Opponent(TeamSide side) => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;

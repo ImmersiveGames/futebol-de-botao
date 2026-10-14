@@ -96,7 +96,7 @@ namespace FutebolDeBotao
         /// (<paramref name="valid"/> falso).
         /// </summary>
         public IEnumerator Decide(AiSituation situation, MatchController match, PhysicsTuning tuning, AiDifficulty difficulty,
-            Func<bool> valid, Action<AiDecision> done)
+            AiProfile profile, Func<bool> valid, Action<AiDecision> done)
         {
             trials.Clear();
             currentTuning = tuning;
@@ -109,11 +109,11 @@ namespace FutebolDeBotao
             var context = new AiScoreContext(planner, match.Options.goalAfterWallIsValid, difficulty.foulCaution,
                 difficulty.wallStuckPenalty);
 
-            // Objetivos que valem agora, do mais alto para o mais baixo (empate: a ordem da lista).
+            // Objetivos que valem agora, do mais alto para o mais baixo (empate: a ordem da lista). A personalidade pesa.
             var goals = new List<(AiGoal Goal, float Priority)>();
             foreach (var goal in AiGoal.All)
             {
-                float priority = goal.Priority(situation);
+                float priority = goal.Priority(situation) * (profile != null ? profile.Weight(goal) : 1f);
                 if (priority > 0f) goals.Add((goal, priority));
             }
             goals = goals.OrderByDescending(g => g.Priority).ToList();
@@ -149,7 +149,7 @@ namespace FutebolDeBotao
                     string callLine = string.Empty;
                     yield return ShotCallChance(situation, match, difficulty, (c, l) => { chance = c; callLine = l; });
                     if (aborted) yield break;
-                    callValue = chance * GoalValue + (1f - chance) * MissValue;
+                    callValue = chance * GoalValue + (1f - chance) * MissValue + (profile != null ? profile.shotValueBonus : 0f);
                     callLine += $", vale {callValue:0}";
                     if (chance >= difficulty.callShotChance)
                         pendingCall = new AiDecision { Goal = goal, Action = action, FollowLine = callLine };

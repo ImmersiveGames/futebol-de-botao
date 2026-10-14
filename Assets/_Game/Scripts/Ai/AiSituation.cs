@@ -44,6 +44,8 @@ namespace FutebolDeBotao
         /// <summary>Todos os botões da IA em campo (no toque seguinte qualquer um joga, mesmo depois de um tiro livre).</summary>
         public List<Disc> TeamDiscs;
         public bool HasGoalkeeper;
+        /// <summary>Personalidade da jogada para o log ("perfil=Ofensivo ajuste=Defensivo:0.50").</summary>
+        public string Profile = string.Empty;
 
         public static AiSituation Read(MatchController match, TeamSide side, ShotPlanner planner, ShotPlanner opponentPlanner,
             AiDifficulty difficulty, List<Disc> usable, List<Disc> allUsable)
@@ -115,7 +117,8 @@ namespace FutebolDeBotao
                 $"chute_livre={(HasClearShot ? 1 : 0)}",
                 ReadDanger ? string.Format(c, "perigo={0:0.00}", Danger) : "perigo=nao_olhou",
                 $"placar={ScoreDifference:+0;-0;0}",
-                string.Format(c, "tempo={0:0}s", SecondsLeft));
+                string.Format(c, "tempo={0:0}s", SecondsLeft),
+                Profile);
         }
     }
 }
