@@ -29,24 +29,33 @@ namespace FutebolDeBotao
             if (GoalOutcome(result, situation, context) is float goal) return goal;
             if (!KeepsBall(result, situation) || result.End == null) return null;
 
-            var opponent = situation.Side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
-            var keeper = KeeperBall.Find(context.Planner.Keepers, opponent);
-            float ballRadius = context.Planner.BallRadius;
-            Vector2 end = result.BallEnd;
+            int shooters = Shooters(result, situation, context);
             // Bola parada na área do goleiro dele vira tiro de meta: perde a bola.
-            if (keeper != null && KeeperBall.InZone(end, ballRadius, keeper)) return null;
+            if (shooters < 0) return null;
 
-            Vector2 goalCenter = new(0f, FieldLayout.GoalLineY(opponent));
-            float toGoal = Vector2.Distance(end, goalCenter);
-            // Chute pronto: algum botão tem chute livre e o goleiro não consegue chegar na bola.
-            int shooters = KeeperBall.CanReach(end, ballRadius, keeper)
-                ? 0
-                : context.Planner.ShotSetupCount(result.End, situation.TeamDiscs, situation.ShotCallDistance, MaxShooters);
+            Vector2 end = result.BallEnd;
+            var opponent = situation.Side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            float toGoal = Vector2.Distance(end, new Vector2(0f, FieldLayout.GoalLineY(opponent)));
             if (shooters > 0)
                 return SetupScore + (shooters - 1) * ExtraShooterScore + (situation.ShotCallDistance - toGoal) * 3f;
 
             Vector2 start = from ?? situation.Ball;
             return Vector2.Dot(end - start, FieldLayout.AttackDirection(situation.Side)) * 3f;
+        }
+
+        /// <summary>
+        /// Quantos botões ficam com chute livre (até <see cref="MaxShooters"/>) onde a jogada parou, com o goleiro sem
+        /// alcançar a bola. -1: a bola parou na área do goleiro dele (vira tiro de meta).
+        /// </summary>
+        public static int Shooters(in SimResult result, AiSituation situation, in AiScoreContext context)
+        {
+            if (result.End == null) return 0;
+            var opponent = situation.Side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var keeper = KeeperBall.Find(context.Planner.Keepers, opponent);
+            float ballRadius = context.Planner.BallRadius;
+            if (keeper != null && KeeperBall.InZone(result.BallEnd, ballRadius, keeper)) return -1;
+            if (KeeperBall.CanReach(result.BallEnd, ballRadius, keeper)) return 0;
+            return context.Planner.ShotSetupCount(result.End, situation.TeamDiscs, situation.ShotCallDistance, MaxShooters);
         }
 
         // Precisa ficar com a bola: se perde, é melhor afastar ou proteger.

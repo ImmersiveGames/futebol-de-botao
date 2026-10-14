@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace FutebolDeBotao
 {
-    /// <summary>Afastar (último toque, bola perto do próprio gol): a conta é o quanto a bola fica mais longe do gol.</summary>
+    /// <summary>Afastar (bola perto do próprio gol, antes de preparar): a conta é o quanto a bola fica mais longe do gol.</summary>
     public sealed class ClearDangerGoal : AiGoal
     {
         private static readonly AiAction[] ActionList = { AiAction.KickBallForward };

@@ -46,8 +46,8 @@ namespace FutebolDeBotao
 
     /// <summary>
     /// Um objetivo da IA, com uma conta só para saber se a jogada deu certo. A ordem dos objetivos vem da situação
-    /// (AiBrain.Plan): Marcar; com toque sobrando, Preparar o chute; no último toque (ou se preparar não deu), Afastar
-    /// (bola perto do próprio gol) ou Proteger; por fim, Fechar o gol com um botão.
+    /// (AiBrain.Plan): Marcar; bola perto do próprio gol, Afastar; com toque sobrando, Preparar o chute; senão
+    /// Proteger; por fim, Fechar o gol com um botão.
     /// </summary>
     public abstract class AiGoal
     {

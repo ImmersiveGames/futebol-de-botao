@@ -112,6 +112,7 @@ namespace FutebolDeBotao
             var rejected = new StringBuilder();
             AiDecision fallback = null;
             AiDecision chosen = null;
+            AiDecision deferredCall = null;
             simulator.Sync();
             frame.Restart();
 
@@ -126,6 +127,13 @@ namespace FutebolDeBotao
                     }
                 if (action == null) continue;
 
+                // Vai chutar adiado (só um botão com ângulo): se preparar não deixou dois, anuncia agora.
+                if (deferredCall != null && goal != AiGoal.Preparing)
+                {
+                    chosen = deferredCall;
+                    break;
+                }
+
                 if (action.IsInstant)
                 {
                     // Vai chutar: a ação só roda com chute livre, então anuncia. Quem chuta e onde, a IA decide depois,
@@ -133,7 +141,17 @@ namespace FutebolDeBotao
                     var names = new StringBuilder();
                     foreach (var disc in situation.ClearShooters)
                         names.Append(names.Length > 0 ? ", " : string.Empty).Append(disc.name);
-                    chosen = new AiDecision { Goal = goal, Action = action, FollowLine = $"chute livre: {names}" };
+                    var call = new AiDecision { Goal = goal, Action = action, FollowLine = $"chute livre: {names}" };
+                    // Com toque sobrando e só um botão com ângulo, o adversário sabe de onde vem o chute: tenta antes
+                    // deixar a bola onde dois botões tenham ângulo.
+                    if (!situation.IsLastTouch && situation.ClearShooters.Count < 2 && goals.Contains(AiGoal.Preparing))
+                    {
+                        deferredCall = call;
+                        rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name)
+                            .Append(" adiado (só 1 botão com ângulo)");
+                        continue;
+                    }
+                    chosen = call;
                     break;
                 }
 
@@ -169,6 +187,14 @@ namespace FutebolDeBotao
                 };
                 if (goal.Accepts(pick.Value.Verdict, situation, difficulty))
                 {
+                    // Vai chutar adiado: só vale preparar se a bola fica com dois botões com ângulo.
+                    if (deferredCall != null && goal == AiGoal.Preparing &&
+                        PrepareShotGoal.Shooters(pick.Value.Trial.Main, situation, context) < 2)
+                    {
+                        chosen = deferredCall;
+                        rejected.Append(", Preparar o chute não deixou 2 botões com ângulo");
+                        break;
+                    }
                     chosen = decision;
                     break;
                 }
@@ -181,6 +207,7 @@ namespace FutebolDeBotao
                     fallback = decision;
             }
 
+            chosen ??= deferredCall;
             if (chosen == null && fallback != null)
             {
                 chosen = fallback;
@@ -200,14 +227,16 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// A ordem dos objetivos neste toque: dá pra chutar? Tem toque sobrando: prepara o chute. Último toque (ou não
-        /// deu para preparar): afasta se a bola está perto do próprio gol, senão protege. Nada serviu: fecha o gol.
+        /// A ordem dos objetivos neste toque: dá pra chutar? Bola perto do próprio gol: afasta primeiro. Tem toque
+        /// sobrando: prepara o chute. Senão protege. Nada serviu: fecha o gol.
         /// </summary>
         private static List<AiGoal> Plan(AiSituation situation)
         {
             var goals = new List<AiGoal> { AiGoal.Scoring };
+            bool danger = situation.BallToOwnGoal < AiSituation.DangerDistance;
+            if (danger) goals.Add(AiGoal.Clearing);
             if (!situation.IsLastTouch) goals.Add(AiGoal.Preparing);
-            goals.Add(situation.BallToOwnGoal < AiSituation.DangerDistance ? AiGoal.Clearing : AiGoal.Protecting);
+            if (!danger) goals.Add(AiGoal.Protecting);
             goals.Add(AiGoal.Closing);
             return goals;
         }
