@@ -8,7 +8,7 @@ namespace FutebolDeBotao
     [RequireComponent(typeof(AimController))]
     public sealed class AimVisuals : MonoBehaviour
     {
-        [SerializeField] private AimAssistMode mode = AimAssistMode.Short;
+        [SerializeField] private AimAssistMode mode = AimAssistMode.Full;
         [Tooltip("Comprimento da seta do botão com força máxima.")]
         [SerializeField] private float maxArrowLength = 2f;
         [SerializeField] private float shortBallLine = 1f;
