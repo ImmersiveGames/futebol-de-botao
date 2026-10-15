@@ -10,8 +10,8 @@ namespace FutebolDeBotao
     /// Tela em pé (celular): uma faixa por jogador logo depois do gol dele (a de cima girada 180° para o jogador de cima),
     /// dentro da moldura que a câmera sempre encaixa (ScreenFit). Na faixa, da esquerda para a direita: relógio e pausa;
     /// placar (abreviações, gols e cartões); vez, toques, timer e o botão de ação.
-    /// As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador. Contra a IA ficam só a faixa
-    /// e a mensagem do jogador.
+    /// As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador. Contra a IA, as duas faixas
+    /// são do jogador, em pé: em cima relógio, placar, vez e timer; embaixo só Pausa e o botão de ação. Mensagem só a dele.
     /// Tela deitada (PC): painel único à esquerda e uma mensagem só, sem girar (provisório até refinar o PC).
     /// Também destaca os botões do time da vez.
     /// </summary>
@@ -64,6 +64,9 @@ namespace FutebolDeBotao
         private readonly Dictionary<TeamSide, MessageView> messages = new();
         private readonly List<Canvas> worldCanvases = new();
         private PlayerView pcPanel;
+        // Contra a IA (celular): faixa de cima só com as informações, de baixo só com os botões, as duas para o jogador.
+        private PlayerView soloInfo;
+        private PlayerView soloButtons;
         private GameObject stripsRoot;
         private GameObject pcRoot;
         private TurnHighlight highlight;
@@ -113,12 +116,21 @@ namespace FutebolDeBotao
 
             if (portrait)
             {
-                // Contra a IA só aparece a faixa do jogador: do lado da IA não tem ninguém para ler.
-                foreach (var pair in strips)
+                // Contra a IA: informações em cima e botões embaixo (perto do polegar), as duas para o jogador.
+                bool vsAi = match.IsAi(TeamSide.Bottom) || match.IsAi(TeamSide.Top);
+                foreach (var view in strips.Values) view.Root.SetActive(!vsAi);
+                soloInfo.Root.SetActive(vsAi);
+                soloButtons.Root.SetActive(vsAi);
+                if (vsAi)
                 {
-                    bool human = !match.IsAi(pair.Key);
-                    pair.Value.Root.SetActive(human);
-                    if (human) Refresh(pair.Value, pair.Key);
+                    var human = match.IsAi(TeamSide.Bottom) ? TeamSide.Top : TeamSide.Bottom;
+                    Refresh(soloInfo, human);
+                    Refresh(soloButtons, human);
+                }
+                else
+                {
+                    Refresh(strips[TeamSide.Bottom], TeamSide.Bottom);
+                    Refresh(strips[TeamSide.Top], TeamSide.Top);
                 }
             }
             else
@@ -133,20 +145,30 @@ namespace FutebolDeBotao
         private void Refresh(PlayerView view, TeamSide side)
         {
             // Na faixa, o time do jogador vem primeiro; no painel do PC, sempre o de baixo primeiro.
+            // Contra a IA a faixa de cima não tem botões e a de baixo só tem botões: o que não existe fica de fora.
             var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
             if (view == pcPanel) view.Score.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
-            else
+            else if (view.Score != null)
             {
                 view.Score.text = $"{Abbreviation(side)} {match.Score(side)} x {match.Score(other)} {Abbreviation(other)}";
                 view.FirstCards.text = Cards(side, false).Trim();
                 view.SecondCards.text = Cards(other, false).Trim();
             }
-            view.Clock.text = ClockText(match.ClockSeconds);
+            if (view.Clock != null) view.Clock.text = ClockText(match.ClockSeconds);
 
             var state = match.State;
             var acting = match.ActingSide;
             bool active = state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick or MatchState.ShotCall or MatchState.PenaltySetup;
             bool mine = active && acting == side;
+
+            if (view.Action != null)
+            {
+                string action = ActionFor(side);
+                view.Action.gameObject.SetActive(action != null);
+                if (action != null) view.ActionLabel.text = action;
+                Glow(view.Action, action == ShotCallLabel);
+            }
+            if (view.Turn == null) return;
 
             view.Turn.text = !active ? StateText(state)
                 : match.IsAi(acting) ? ThinkingText()
@@ -160,11 +182,6 @@ namespace FutebolDeBotao
             float seconds = match.StateSecondsLeft;
             view.Timer.text = mine ? $"{Mathf.CeilToInt(seconds)} s" : string.Empty;
             view.Timer.color = seconds <= warningSeconds ? WarningColor : Color.white;
-
-            string action = ActionFor(side);
-            view.Action.gameObject.SetActive(action != null);
-            if (action != null) view.ActionLabel.text = action;
-            Glow(view.Action, action == ShotCallLabel);
         }
 
         /// <summary>Pulsa a cor, a borda e o tamanho do botão (ou volta ao normal).</summary>
@@ -313,6 +330,46 @@ namespace FutebolDeBotao
                 view.Root = canvas.gameObject;
                 strips[side] = view;
             }
+
+            BuildSoloStrips(width, centerY, leftX, rightX);
+        }
+
+        /// <summary>
+        /// Contra a IA: em cima, em pé para o jogador, relógio, placar, vez, toques e timer; embaixo só Pausa e o botão de
+        /// ação, maiores, com o meio livre (lugar de um controle virtual no futuro).
+        /// </summary>
+        private void BuildSoloStrips(float width, float centerY, float leftX, float rightX)
+        {
+            const float height = ScreenFit.StripHeight;
+            float canvasWidth = width * PixelsPerUnit;
+
+            var info = new PlayerView();
+            var top = CreateWorldCanvas("Faixa contra a IA (informações)", stripsRoot.transform,
+                new Vector2(0f, centerY), new Vector2(width, height), 0f);
+            CreateFramedPanel(top.transform, 1f);
+            info.Clock = CreateText(top.transform, "Relógio", 44, FontStyle.Bold, new Vector2(leftX, 0f), new Vector2(190f, 70f));
+            info.Score = CreateText(top.transform, "Placar", 40, FontStyle.Bold, new Vector2(0f, 22f), new Vector2(290f, 60f));
+            FitOneLine(info.Score);
+            info.FirstCards = CreateText(top.transform, "Cartões (primeiro)", 28, FontStyle.Normal, new Vector2(-95f, -38f), new Vector2(100f, 40f));
+            info.SecondCards = CreateText(top.transform, "Cartões (segundo)", 28, FontStyle.Normal, new Vector2(95f, -38f), new Vector2(100f, 40f));
+            info.Turn = CreateText(top.transform, "Vez", 26, FontStyle.Bold, new Vector2(rightX, 26f), new Vector2(290f, 40f));
+            FitOneLine(info.Turn);
+            info.Timer = CreateText(top.transform, "Timer", 30, FontStyle.Bold, new Vector2(rightX, -26f), new Vector2(290f, 40f));
+            info.Root = top.gameObject;
+            soloInfo = info;
+
+            var buttons = new PlayerView();
+            var bottom = CreateWorldCanvas("Faixa contra a IA (botões)", stripsRoot.transform,
+                new Vector2(0f, -centerY), new Vector2(width, height), 0f);
+            CreateFramedPanel(bottom.transform, 1f);
+            buttons.Pause = CreateButton(bottom.transform, "Pausa", "Pausa", 30, new Vector2(-canvasWidth * 0.5f + 125f, 0f),
+                new Vector2(210f, 100f), out _, ButtonStyle.Green);
+            buttons.Pause.onClick.AddListener(match.RequestPause);
+            buttons.Action = CreateButton(bottom.transform, "Ação", ShotCallLabel, 34, new Vector2(canvasWidth * 0.5f - 170f, 0f),
+                new Vector2(300f, 106f), out buttons.ActionLabel, ButtonStyle.Yellow);
+            buttons.Action.onClick.AddListener(() => OnAction(match.IsAi(TeamSide.Bottom) ? TeamSide.Top : TeamSide.Bottom));
+            buttons.Root = bottom.gameObject;
+            soloButtons = buttons;
         }
 
         private void BuildMessages()
