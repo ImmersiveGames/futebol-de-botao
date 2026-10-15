@@ -276,7 +276,8 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// Nota de cada jogada para o objetivo; as melhores também são testadas com o erro de mira para cada lado e
-        /// com o erro de força para mais e para menos, e ficam com a média. Devolve a escolhida entre as melhores.
+        /// com o erro de força para mais e para menos, só para ver o risco (falta, gol contra, perder a bola): a nota é
+        /// a da jogada perfeita. Devolve a escolhida entre as melhores.
         /// </summary>
         private IEnumerator Rate(AiGoal goal, AiAction action, List<Trial> list, AiSituation situation, AiScoreContext context,
             AiDifficulty difficulty, float maxImpulse, Action<Rated?> done)
@@ -354,8 +355,8 @@ namespace FutebolDeBotao
                             if (Budget()) yield return Pause();
                             if (aborted) yield break;
                         }
-                        float sum = entry.Immediate;
-                        int count = 1;
+                        // A nota é a da jogada perfeita; as versões com erro só medem o risco (falta, gol contra,
+                        // perder a bola) e recusam a jogada perigosa.
                         int fouls = 0, ownGoals = entry.Verdict.OwnGoalRisk ? 1 : 0, loses = entry.Verdict.LoseChance > 0f ? 1 : 0;
                         foreach (var variant in entry.Trial.Variants)
                         {
@@ -370,12 +371,8 @@ namespace FutebolDeBotao
                                 ownGoals++;
                             }
                             if (Loses(variant, situation)) loses++;
-                            float? score = goal.Score(variant, entry.Trial.Candidate, action, situation, context);
-                            if (score == null) continue;
-                            sum += score.Value;
-                            count++;
                         }
-                        entry.Verdict.Score = sum / count + entry.Verdict.Follow;
+                        entry.Verdict.Score = entry.Immediate + entry.Verdict.Follow;
                         float samples = entry.Trial.Variants.Length + 1;
                         entry.Verdict.FoulChance = fouls / samples;
                         entry.Verdict.OwnGoalChance = ownGoals / samples;

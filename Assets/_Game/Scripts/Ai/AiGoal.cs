@@ -19,7 +19,7 @@ namespace FutebolDeBotao
         }
     }
 
-    /// <summary>Como foi a melhor jogada de um objetivo: nota (média com o erro do nível) e os riscos.</summary>
+    /// <summary>Como foi a melhor jogada de um objetivo: nota (da jogada perfeita) e os riscos (testados com o erro do nível).</summary>
     public struct AiVerdict
     {
         public float Score;

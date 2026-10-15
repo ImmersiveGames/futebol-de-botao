@@ -178,13 +178,16 @@ namespace FutebolDeBotao
                     yield break;
                 }
 
-                // Erro de execução conforme o nível: é ele que faz a IA errar e, às vezes, cometer falta. No
-                // posicionamento só metade do erro de mira.
+                // Erro de execução conforme o nível, só numa parte das jogadas (chance do nível): é ele que faz a IA
+                // errar e, às vezes, cometer falta. Sem erro, o peteleco sai exato. No posicionamento só metade do erro de mira.
                 var pick = decision.Candidate;
                 bool placing = decision.Action != null && !decision.Action.TouchesBall;
-                float angleError = Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees) * (placing ? 0.5f : 1f);
+                bool misses = Random.value < difficulty.errorChance;
+                float angleError = misses
+                    ? Random.Range(-difficulty.angleErrorDegrees, difficulty.angleErrorDegrees) * (placing ? 0.5f : 1f)
+                    : 0f;
                 Vector2 direction = Quaternion.Euler(0f, 0f, angleError) * pick.Direction;
-                float power = placing
+                float power = placing || !misses
                     ? pick.Power01
                     : Mathf.Clamp(pick.Power01 * (1f + Random.Range(-difficulty.powerError, difficulty.powerError)), 0.1f, 1f);
 

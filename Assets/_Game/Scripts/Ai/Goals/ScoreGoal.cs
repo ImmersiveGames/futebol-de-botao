@@ -19,7 +19,7 @@ namespace FutebolDeBotao
         private const float MissMax = 10f;
 
         /// <summary>
-        /// 100 quando é gol que vale (a média com o erro do nível vira a chance x 100). Sem gol, até
+        /// 100 quando é gol que vale (nota da jogada perfeita; o erro do nível só conta no risco). Sem gol, até
         /// <see cref="MissMax"/> pelo quanto a bola chega perto da boca do gol: se o goleiro fecha tudo, ao menos obriga
         /// ele a defender.
         /// </summary>
