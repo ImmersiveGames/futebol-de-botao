@@ -38,6 +38,7 @@ namespace FutebolDeBotao
             public bool AskedShared;
             public int HeldDirection;
             public RectTransform Card;
+            public Button Button;
             public Image Image;
             public Text Label;
         }
@@ -269,7 +270,9 @@ namespace FutebolDeBotao
             {
                 var entry = entries[i];
                 entry.Card.anchoredPosition = new Vector2(entry.Position * ColumnX, FirstCardY - i * CardSpacing);
-                entry.Image.color = entry.Confirmed ? ConfirmedColor : CardColor;
+                // Confirmado: amarelo; ainda escolhendo o lado: verde.
+                if (!ButtonSkin.Apply(entry.Button, entry.Confirmed ? ButtonStyle.Yellow : ButtonStyle.Green))
+                    entry.Image.color = entry.Confirmed ? ConfirmedColor : CardColor;
             }
         }
 
@@ -293,13 +296,14 @@ namespace FutebolDeBotao
             CreateButton(root, "Voltar", "Voltar", new Vector2(0f, -450f), new Vector2(240f, 70f), () =>
             {
                 if (menu != null) menu.ShowMode();
-            });
+            }, ButtonStyle.Red);
         }
 
         private void BuildCard(Entry entry, string label)
         {
             entry.Card = CreateRect(cards, label, Vector2.zero, CardSize);
             var card = CreateButton(entry.Card, "Cartão", label, Vector2.zero, CardSize, () => Confirm(entry));
+            entry.Button = card;
             entry.Image = (Image)card.targetGraphic;
             entry.Label = card.GetComponentInChildren<Text>();
             entry.Label.fontSize = 24;
@@ -335,7 +339,8 @@ namespace FutebolDeBotao
             return text;
         }
 
-        private Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action)
+        private Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action,
+            ButtonStyle style = ButtonStyle.Green)
         {
             var rect = CreateRect(parent, objectName, position, size);
             var image = rect.gameObject.AddComponent<Image>();
@@ -348,6 +353,7 @@ namespace FutebolDeBotao
             text.rectTransform.anchorMin = Vector2.zero;
             text.rectTransform.anchorMax = Vector2.one;
             text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
+            ButtonSkin.Apply(button, style);
             return button;
         }
     }

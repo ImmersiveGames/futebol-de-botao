@@ -28,6 +28,7 @@ namespace FutebolDeBotao
         private static readonly Color ButtonTextColor = new(0.1f, 0.1f, 0.1f);
         // "Vai chutar" pulsando para ninguém esquecer de avisar antes do chute a gol.
         private static readonly Color GlowColor = new(1f, 0.85f, 0.25f);
+        private static readonly Color SkinGlowTint = new(1f, 0.8f, 0.55f);
         private const float GlowSpeed = 5f;
         private const float GlowScale = 0.08f;
         private const string ShotCallLabel = "Pro Gol!";
@@ -155,7 +156,10 @@ namespace FutebolDeBotao
         private static void Glow(Button button, bool on)
         {
             float pulse = on ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * GlowSpeed) : 0f;
-            if (button.targetGraphic != null) button.targetGraphic.color = Color.Lerp(ButtonColor, GlowColor, pulse);
+            // Com a moldura desenhada o botão já é amarelo: o pulso só puxa a cor para o laranja.
+            bool skinned = ButtonSkin.IsSkinned(button);
+            if (button.targetGraphic != null)
+                button.targetGraphic.color = skinned ? Color.Lerp(Color.white, SkinGlowTint, pulse) : Color.Lerp(ButtonColor, GlowColor, pulse);
             if (button.TryGetComponent<Outline>(out var outline))
                 outline.effectColor = new Color(GlowColor.r, GlowColor.g, GlowColor.b, pulse);
             button.transform.localScale = Vector3.one * (1f + GlowScale * pulse);
@@ -273,7 +277,7 @@ namespace FutebolDeBotao
 
                 // Esquerda: relógio e pausa.
                 view.Clock = CreateText(canvas.transform, "Relógio", 40, FontStyle.Bold, new Vector2(leftX, 36f), new Vector2(190f, 60f));
-                view.Pause = CreateButton(canvas.transform, "Pausa", "Pausa", 24, new Vector2(leftX, -38f), new Vector2(150f, 52f), out _);
+                view.Pause = CreateButton(canvas.transform, "Pausa", "Pausa", 24, new Vector2(leftX, -38f), new Vector2(150f, 52f), out _, ButtonStyle.Green);
                 view.Pause.onClick.AddListener(match.RequestPause);
 
                 // Meio: placar um pouco acima do centro e, embaixo de cada nome, os cartões do time.
@@ -286,7 +290,7 @@ namespace FutebolDeBotao
                 view.Turn = CreateText(canvas.transform, "Vez", 24, FontStyle.Bold, new Vector2(rightX, 52f), new Vector2(290f, 34f));
                 FitOneLine(view.Turn);
                 view.Timer = CreateText(canvas.transform, "Timer", 26, FontStyle.Bold, new Vector2(rightX, 18f), new Vector2(290f, 32f));
-                view.Action = CreateButton(canvas.transform, "Ação", ShotCallLabel, 26, new Vector2(rightX, -40f), new Vector2(260f, 56f), out view.ActionLabel);
+                view.Action = CreateButton(canvas.transform, "Ação", ShotCallLabel, 26, new Vector2(rightX, -40f), new Vector2(260f, 56f), out view.ActionLabel, ButtonStyle.Yellow);
                 var actionSide = side;
                 view.Action.onClick.AddListener(() => OnAction(actionSide));
 
@@ -340,10 +344,10 @@ namespace FutebolDeBotao
             view.Clock = CreateTopText(panel, "Relógio", 30, -95f, 44f);
             view.Turn = CreateTopText(panel, "Vez", 26, -150f, 60f);
             view.Timer = CreateTopText(panel, "Timer", 26, -205f, 40f);
-            view.Action = CreateButton(panel, "Ação", "Pro Gol!", 26, Vector2.zero, new Vector2(240f, 56f), out view.ActionLabel);
+            view.Action = CreateButton(panel, "Ação", "Pro Gol!", 26, Vector2.zero, new Vector2(240f, 56f), out view.ActionLabel, ButtonStyle.Yellow);
             SetTop((RectTransform)view.Action.transform, -275f);
             view.Action.onClick.AddListener(() => OnAction(match.ActingSide));
-            view.Pause = CreateButton(panel, "Pausa", "Pausa (Esc)", 26, Vector2.zero, new Vector2(240f, 56f), out _);
+            view.Pause = CreateButton(panel, "Pausa", "Pausa (Esc)", 26, Vector2.zero, new Vector2(240f, 56f), out _, ButtonStyle.Green);
             SetTop((RectTransform)view.Pause.transform, -345f);
             view.Pause.onClick.AddListener(match.RequestPause);
             var tips = CreateTopText(panel, "Dicas", 17, -520f, 190f);
@@ -430,7 +434,8 @@ namespace FutebolDeBotao
             rect.anchoredPosition = new Vector2(0f, y);
         }
 
-        private Button CreateButton(Transform parent, string objectName, string label, int size, Vector2 position, Vector2 box, out Text labelText)
+        private Button CreateButton(Transform parent, string objectName, string label, int size, Vector2 position, Vector2 box, out Text labelText,
+            ButtonStyle style)
         {
             var go = new GameObject(objectName, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -455,6 +460,7 @@ namespace FutebolDeBotao
             labelText = CreateText(go.transform, "Texto", size, FontStyle.Bold, Vector2.zero, box);
             labelText.text = label;
             labelText.color = ButtonTextColor;
+            ButtonSkin.Apply(button, style);
             return button;
         }
 

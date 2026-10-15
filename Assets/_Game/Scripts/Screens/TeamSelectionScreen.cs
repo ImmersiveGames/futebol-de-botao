@@ -169,7 +169,9 @@ namespace FutebolDeBotao
             var view = halves[side];
             view.IsReady = ready;
             foreach (var arrow in view.Arrows) arrow.interactable = !ready;
-            ((Image)view.Ready.targetGraphic).color = ready ? ReadyColor : ButtonColor;
+            // Pronto marcado: o botão fica verde (já confirmou); desmarcado volta ao amarelo de ação.
+            if (!ButtonSkin.Apply(view.Ready, ready ? ButtonStyle.Green : ButtonStyle.Yellow))
+                ((Image)view.Ready.targetGraphic).color = ready ? ReadyColor : ButtonColor;
             view.Ready.GetComponentInChildren<Text>().text = ready ? "Pronto!" : "Pronto";
         }
 
@@ -284,7 +286,7 @@ namespace FutebolDeBotao
             // Faixa do meio-campo: o Voltar é do Jogador 1 (fica na metade de baixo); cada Pronto à direita do seu dono.
             var top = halves[TeamSide.Top];
             var bottom = halves[TeamSide.Bottom];
-            var back = CreateButton(bottom.Root, "Voltar", "Voltar", new Vector2(-MiddleButtonX, MiddleButtonY), MiddleButtonSize, Back);
+            var back = CreateButton(bottom.Root, "Voltar", "Voltar", new Vector2(-MiddleButtonX, MiddleButtonY), MiddleButtonSize, Back, ButtonStyle.Red);
             var backItem = back.gameObject.AddComponent<MenuEntry>();
             backItem.Configure(back);
 
@@ -462,7 +464,7 @@ namespace FutebolDeBotao
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
 
             view.Arrows = new[] { previousTeam, nextTeam, previousScheme, nextScheme };
-            view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, MiddleButtonY), MiddleButtonSize, () => ToggleReady(side));
+            view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, MiddleButtonY), MiddleButtonSize, () => ToggleReady(side), ButtonStyle.Yellow);
             view.ReadyItem = view.Ready.gameObject.AddComponent<MenuEntry>();
             view.ReadyItem.Configure(view.Ready);
             return view;
@@ -507,7 +509,8 @@ namespace FutebolDeBotao
             return text;
         }
 
-        private Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action)
+        private Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action,
+            ButtonStyle style = ButtonStyle.Green)
         {
             var image = CreateImage(parent, objectName, ButtonColor, null, position, size);
             image.raycastTarget = true;
@@ -517,6 +520,7 @@ namespace FutebolDeBotao
             var text = CreateText(image.rectTransform, "Texto", 26, FontStyle.Bold, ButtonTextColor, Vector2.zero, size);
             text.text = label;
             Stretch(text.rectTransform);
+            ButtonSkin.Apply(button, style);
             return button;
         }
 
