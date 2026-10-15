@@ -20,8 +20,8 @@ namespace FutebolDeBotao.Editor
         private const string FixedPath = Folder + "/Mesa Fixa.asset";
         private const string PrefabPath = Folder + "/CameraOutputMesa.prefab";
 
-        // Mesmo enquadramento da câmera da cena de teste (PrototypeSceneBuilder).
-        internal const float OrthoSize = 6.9f;
+        // Enquadramento padrão; em tela comprida o ScreenFit abre o zoom para a mesa caber na largura.
+        internal const float OrthoSize = ScreenFit.BaseOrthoSize;
         private static readonly Vector3 CameraPosition = new Vector3(0f, 0f, -10f);
         private static readonly Color Background = new Color(0.08f, 0.08f, 0.1f);
 

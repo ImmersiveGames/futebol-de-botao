@@ -438,7 +438,8 @@ namespace FutebolDeBotao.Editor
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = ReferenceResolution;
-            scaler.matchWidthOrHeight = 1f;
+            // Expand: a tela de referência (720x1280) cabe inteira em qualquer celular; em tela comprida sobra em cima e embaixo.
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             go.AddComponent<GraphicRaycaster>();
             return go.transform;
         }
