@@ -148,6 +148,8 @@ namespace FutebolDeBotao
             // Contra a IA a faixa de cima não tem botões e a de baixo só tem botões: o que não existe fica de fora.
             var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
             if (view == pcPanel) view.Score.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
+            // Contra a IA o placar tem os cartões do lado de fora de cada time, na mesma linha.
+            else if (view == soloInfo) view.Score.text = ScoreText(side, other);
             else if (view.Score != null)
             {
                 view.Score.text = $"{Abbreviation(side)} {match.Score(side)} x {match.Score(other)} {Abbreviation(other)}";
@@ -347,14 +349,19 @@ namespace FutebolDeBotao
             var top = CreateWorldCanvas("Faixa contra a IA (informações)", stripsRoot.transform,
                 new Vector2(0f, centerY), new Vector2(width, height), 0f);
             CreateFramedPanel(top.transform, 1f);
-            info.Clock = CreateText(top.transform, "Relógio", 44, FontStyle.Bold, new Vector2(leftX, 0f), new Vector2(190f, 70f));
-            info.Score = CreateText(top.transform, "Placar", 40, FontStyle.Bold, new Vector2(0f, 22f), new Vector2(290f, 60f));
-            FitOneLine(info.Score);
-            info.FirstCards = CreateText(top.transform, "Cartões (primeiro)", 28, FontStyle.Normal, new Vector2(-95f, -38f), new Vector2(100f, 40f));
-            info.SecondCards = CreateText(top.transform, "Cartões (segundo)", 28, FontStyle.Normal, new Vector2(95f, -38f), new Vector2(100f, 40f));
-            info.Turn = CreateText(top.transform, "Vez", 26, FontStyle.Bold, new Vector2(rightX, 26f), new Vector2(290f, 40f));
-            FitOneLine(info.Turn);
-            info.Timer = CreateText(top.transform, "Timer", 30, FontStyle.Bold, new Vector2(rightX, -26f), new Vector2(290f, 40f));
+            // Duas linhas dentro da moldura (150 px de altura): em cima o placar com os cartões; embaixo relógio, vez
+            // e timer. A fonte diminui para caber no espaço da linha em vez de invadir a outra.
+            const float lineHeight = 52f;
+            const float upperY = 28f;
+            const float lowerY = -30f;
+            info.Score = CreateText(top.transform, "Placar", 40, FontStyle.Bold, new Vector2(0f, upperY), new Vector2(canvasWidth - 60f, lineHeight));
+            FitInBox(info.Score);
+            info.Clock = CreateText(top.transform, "Relógio", 34, FontStyle.Bold, new Vector2(-canvasWidth * 0.5f + 95f, lowerY), new Vector2(150f, lineHeight));
+            FitInBox(info.Clock);
+            info.Turn = CreateText(top.transform, "Vez", 28, FontStyle.Bold, new Vector2(0f, lowerY), new Vector2(canvasWidth - 360f, lineHeight));
+            FitInBox(info.Turn);
+            info.Timer = CreateText(top.transform, "Timer", 34, FontStyle.Bold, new Vector2(canvasWidth * 0.5f - 85f, lowerY), new Vector2(130f, lineHeight));
+            FitInBox(info.Timer);
             info.Root = top.gameObject;
             soloInfo = info;
 
@@ -502,6 +509,14 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Placar sempre numa linha: com cartões ao lado das abreviações, a fonte diminui em vez de quebrar.</summary>
+        /// <summary>Texto preso à caixa: a fonte diminui até caber, sem quebrar nem passar da altura.</summary>
+        private static void FitInBox(Text text)
+        {
+            FitOneLine(text);
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
         private static void FitOneLine(Text text)
         {
             text.resizeTextForBestFit = true;
