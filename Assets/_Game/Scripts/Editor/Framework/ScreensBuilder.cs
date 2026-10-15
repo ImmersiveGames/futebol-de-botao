@@ -492,7 +492,9 @@ namespace FutebolDeBotao.Editor
 
             // Altura da tela de referência = 2 x OrthoSize tiles na partida.
             float tile = ReferenceResolution.y / (FrameworkCameraBuilder.OrthoSize * 2f);
-            int rows = Mathf.CeilToInt(ReferenceResolution.y / tile / 2f) * 2 + 1;
+            // Cobre também o celular comprido: com o Expand a tela passa de 1280 de altura (20:9 = 1600).
+            const float coverHeight = 2000f;
+            int rows = Mathf.CeilToInt(coverHeight / tile / 2f) * 2 + 1;
             for (int row = 0; row < rows; row++)
             {
                 int fromMiddle = row - rows / 2;
