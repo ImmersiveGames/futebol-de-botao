@@ -932,14 +932,14 @@ namespace FutebolDeBotao
             enteredBall.StopInGoal();
             pendingGoal = goal;
 
-            // Gol contra vale sempre: a jogada era de quem defende este gol (mesmo que a bola tenha batido num adversário)
-            // ou o último toque foi de um botão de quem defende.
-            // Os outros só valem num "Vai chutar" (sem goleiro: chute do campo de ataque) e, por padrão, sem a bola tocar a parede lateral.
-            var lastDisc = enteredBall.LastDiscTouch;
-            bool ownGoal = Turn == goal.DefendingSide || lastDisc != null && lastDisc.Side == goal.DefendingSide;
+            // Gol contra: a jogada era de quem defende este gol (o chute saiu de um botão dele), mesmo que a bola tenha
+            // batido num adversário. Chute do atacante que desvia num defensor é gol normal do atacante.
+            // Gol normal só vale num "Pro Gol!" (sem goleiro: chute do campo de ataque). Com "Gol após parede: Anulado",
+            // a bola tocar a parede lateral anula qualquer gol, contra ou não.
+            bool ownGoal = Turn == goal.DefendingSide;
             bool wallOk = options.goalAfterWallIsValid || !enteredBall.TouchedWallSinceShot;
             bool called = options.hasGoalkeeper ? shotWasCalled : shotFromAttackHalf;
-            pendingGoalValid = ownGoal || (called && wallOk);
+            pendingGoalValid = wallOk && (ownGoal || called);
 
             var scorer = Opponent(goal.DefendingSide);
             if (pendingGoalValid)
@@ -949,7 +949,7 @@ namespace FutebolDeBotao
             }
             else
             {
-                message = called ? "Gol anulado: a bola tocou a parede lateral."
+                message = !wallOk ? "Gol anulado: a bola tocou a parede lateral."
                     : options.hasGoalkeeper ? "Gol anulado: não avisou o \"Pro Gol!\"."
                     : "Gol anulado: chute do campo de defesa.";
             }
