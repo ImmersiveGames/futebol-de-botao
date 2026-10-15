@@ -21,6 +21,8 @@ namespace FutebolDeBotao
         [SerializeField] private MatchController match;
         [Tooltip("Nos últimos segundos o timer fica vermelho.")]
         [SerializeField, Min(0f)] private float warningSeconds = 5f;
+        [Tooltip("Painel 9-slice das faixas (HUD_Panel da Field_Sprites). Sem ele, fundo preto meio transparente.")]
+        [SerializeField] private Sprite panelSprite;
 
         private static readonly Color WarningColor = new(1f, 0.25f, 0.2f);
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.45f);
@@ -32,6 +34,7 @@ namespace FutebolDeBotao
         private const float GlowSpeed = 5f;
         private const float GlowScale = 0.08f;
         private const string ShotCallLabel = "Pro Gol!";
+        private const float PcPanelPixelScale = 2f;
 
         /// <summary>Elementos de um jogador (a faixa dele no celular, ou o painel do PC).</summary>
         private sealed class PlayerView
@@ -67,7 +70,11 @@ namespace FutebolDeBotao
         private float messageUntil;
         private bool messageHeld;
 
-        public void Configure(MatchController matchController) => match = matchController;
+        public void Configure(MatchController matchController, Sprite panel = null)
+        {
+            match = matchController;
+            panelSprite = panel;
+        }
 
         private void Awake()
         {
@@ -273,7 +280,7 @@ namespace FutebolDeBotao
 
                 var canvas = CreateWorldCanvas($"Faixa {Name(side)}", stripsRoot.transform,
                     new Vector2(0f, -centerY * sign), new Vector2(width, height), rotation);
-                CreatePanel(canvas.transform, PanelColor);
+                CreateFramedPanel(canvas.transform, 1f);
 
                 // Esquerda: relógio e pausa.
                 view.Clock = CreateText(canvas.transform, "Relógio", 40, FontStyle.Bold, new Vector2(leftX, 36f), new Vector2(190f, 60f));
@@ -331,7 +338,9 @@ namespace FutebolDeBotao
             scaler.matchWidthOrHeight = 1f;
             pcRoot.AddComponent<GraphicRaycaster>();
 
-            var panel = CreatePanel(pcRoot.transform, PanelColor).rectTransform;
+            // No PC a tela tem 720 de altura e a mesa ~14 unidades: a moldura sai com metade da espessura para o
+            // pixel do painel ficar do tamanho do pixel da mesa.
+            var panel = CreateFramedPanel(pcRoot.transform, PcPanelPixelScale).rectTransform;
             panel.anchorMin = new Vector2(0f, 0f);
             panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
@@ -377,6 +386,18 @@ namespace FutebolDeBotao
             rect.rotation = Quaternion.Euler(0f, 0f, rotation);
             worldCanvases.Add(canvas);
             return canvas;
+        }
+
+        /// <summary>Fundo de faixa/painel com a arte (9-slice) quando há sprite; senão o retângulo escuro de antes.</summary>
+        private Image CreateFramedPanel(Transform parent, float pixelsPerUnitMultiplier)
+        {
+            var image = CreatePanel(parent, PanelColor);
+            if (panelSprite == null) return image;
+            image.sprite = panelSprite;
+            image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = pixelsPerUnitMultiplier;
+            image.color = Color.white;
+            return image;
         }
 
         private static Image CreatePanel(Transform parent, Color color)

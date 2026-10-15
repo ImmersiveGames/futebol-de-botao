@@ -49,6 +49,7 @@ namespace FutebolDeBotao.Editor
         private const string MatchFrameworkName = "Framework (telas)";
         private const string PauseCanvasName = "Tela de pausa";
         private const string MatchHudName = "HUD da partida";
+        private const string HudPanelSprite = "HUD_Panel";
 
         /// <summary>Nome do jogo na Abertura e no Menu.</summary>
         private const string GameTitle = "Pro Gol!";
@@ -377,7 +378,7 @@ namespace FutebolDeBotao.Editor
 
             // HUD: cantos ao lado dos gols no celular (em pé), painel à esquerda no PC. Monta a UI sozinho no Awake.
             var hud = new GameObject(MatchHudName).AddComponent<MatchHud>();
-            hud.Configure(match);
+            hud.Configure(match, LoadFieldSprite(HudPanelSprite));
 
             // Música da partida e sons (peteleco, batidas, apito, gol, cartão). Sem os cues ("Criar áudio"), fica sem som.
             AudioBuilder.AddMatchAudio(framework, match);
@@ -550,6 +551,15 @@ namespace FutebolDeBotao.Editor
             image.preserveAspect = true;
             image.color = new Color(1f, 1f, 1f, 0.85f);
             image.raycastTarget = false;
+        }
+
+        /// <summary>Um recorte da Field_Sprites pelo nome, ou nulo (com aviso) se não existir.</summary>
+        private static Sprite LoadFieldSprite(string spriteName)
+        {
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(FieldSheetPath))
+                if (asset is Sprite sprite && sprite.name == spriteName) return sprite;
+            Debug.LogWarning($"[Futebol de Botão] Sem {spriteName} em {FieldSheetPath}: HUD com fundo liso.");
+            return null;
         }
 
         /// <summary>Recortes da mesa, das marcações e da bola para o campo desenhado da seleção de times.</summary>
