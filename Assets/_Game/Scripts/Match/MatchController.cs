@@ -128,6 +128,10 @@ namespace FutebolDeBotao
 
         private void Start() => EnsureInitialized();
 
+        private void OnEnable() => MobileSettings.KeepScreenOn(true);
+
+        private void OnDisable() => MobileSettings.KeepScreenOn(false);
+
         // ---- Activity do framework ----
 
         public void OnActivityContentEntered(ActivityContentLifecycleContext context)
@@ -379,10 +383,12 @@ namespace FutebolDeBotao
             }
         }
 
-        /// <summary>Esc ou Start apertado agora num dispositivo de jogador; <paramref name="player"/> = dono (0 = qualquer um).</summary>
+        /// <summary>Esc, Start ou o Voltar do Android apertado agora num dispositivo de jogador; <paramref name="player"/> = dono (0 = qualquer um).</summary>
         private static bool TryGetPausePress(out int player)
         {
             player = 0;
+            // Voltar do Android pausa; com a pausa aberta quem usa é o menu de pausa (Continuar).
+            if (!Paused && AndroidBack.TryUse()) return true;
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && TryOwner(keyboard, out player)) return true;
             foreach (var gamepad in Gamepad.all)

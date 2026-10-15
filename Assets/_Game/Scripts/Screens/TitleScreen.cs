@@ -43,7 +43,8 @@ namespace FutebolDeBotao
         private static bool AnyPressed()
         {
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.anyKey.wasPressedThisFrame) return Pressed(pad: true);
+            // No Android o Voltar chega como tecla do teclado: não começa o jogo.
+            if (!AndroidBack.IsAndroid && keyboard != null && keyboard.anyKey.wasPressedThisFrame) return Pressed(pad: true);
 
             var mouse = Mouse.current;
             if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame ||

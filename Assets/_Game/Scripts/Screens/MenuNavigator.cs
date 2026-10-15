@@ -7,8 +7,8 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Navegação de um painel de menu pelo teclado/controle (qualquer dispositivo): cima/baixo anda entre os itens na
-    /// ordem da lista; esquerda/direita muda o valor numa linha de opção, ou anda entre botões; E/A confirma; Q/B aperta
-    /// o "Voltar" do painel. O item escolhido ganha uma moldura pulsando, só enquanto se usa teclado/controle.
+    /// ordem da lista; esquerda/direita muda o valor numa linha de opção, ou anda entre botões; E/A confirma; Q/B (e o
+    /// Voltar do Android) aperta o "Voltar" do painel. O item escolhido ganha uma moldura pulsando, só enquanto se usa teclado/controle.
     /// Com um dono (Jogador 1 ou 2), só o dispositivo dele navega, e o mouse/toque de outro jogador não clica no painel.
     /// </summary>
     public sealed class MenuNavigator : MonoBehaviour
@@ -128,8 +128,22 @@ namespace FutebolDeBotao
             UpdateFrame();
         }
 
+        private void PressBack()
+        {
+            if (BackAction != null) BackAction();
+            else if (back != null && back.isActiveAndEnabled && back.interactable) back.onClick.Invoke();
+        }
+
         private void ReadInput()
         {
+            // Voltar do Android: aperta o Voltar do painel na hora (sem o passo de mostrar o destaque).
+            // O painel do Jogador 2 não usa (o celular é do Jogador 1), nem painel sem Voltar.
+            if (player != 2 && (BackAction != null || back != null) && AndroidBack.TryUse())
+            {
+                PressBack();
+                return;
+            }
+
             Vector2 axis = navigate.ReadValue<Vector2>();
             var direction = new Vector2Int(
                 axis.x >= Threshold ? 1 : axis.x <= -Threshold ? -1 : 0,
@@ -163,8 +177,7 @@ namespace FutebolDeBotao
 
             if (backed)
             {
-                if (BackAction != null) BackAction();
-                else if (back != null && back.isActiveAndEnabled && back.interactable) back.onClick.Invoke();
+                PressBack();
                 return;
             }
 

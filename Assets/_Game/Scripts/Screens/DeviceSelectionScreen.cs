@@ -98,6 +98,12 @@ namespace FutebolDeBotao
             if (!SameDevices()) Rebuild();
 
             if (Time.frameCount == openFrame) return;
+            // Voltar do Android: volta para a escolha do modo.
+            if (AndroidBack.TryUse())
+            {
+                if (menu != null) menu.ShowMode();
+                return;
+            }
             foreach (var entry in entries.ToArray()) ReadDevice(entry);
         }
 
