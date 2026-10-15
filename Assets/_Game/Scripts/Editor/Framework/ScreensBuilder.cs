@@ -50,6 +50,8 @@ namespace FutebolDeBotao.Editor
         private const string PauseCanvasName = "Tela de pausa";
         private const string MatchHudName = "HUD da partida";
 
+        /// <summary>Nome do jogo na Abertura e no Menu.</summary>
+        private const string GameTitle = "Pro Gol!";
         private static readonly Vector2 ReferenceResolution = new(720f, 1280f);
         private static readonly Color Background = new(0.08f, 0.2f, 0.11f);
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.75f);
@@ -213,7 +215,7 @@ namespace FutebolDeBotao.Editor
             var canvas = CreateCanvas("Abertura", 0);
             CreateFieldBackground(canvas);
 
-            CreateText(canvas, "Título", "Futebol de Botão", 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
+            CreateText(canvas, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
             var prompt = CreateText(canvas, "Aperte", TitleScreen.PromptText, 36, new Vector2(0f, -200f), new Vector2(680f, 120f));
 
             CreateStudioLogo(canvas);
@@ -235,7 +237,7 @@ namespace FutebolDeBotao.Editor
 
             // Primeira tela do Menu: o título da Abertura no mesmo lugar e, embaixo, Um jogador (contra a IA) ou Dois jogadores.
             var modePanel = CreateGroup(canvas, "Como jogar");
-            CreateText(modePanel, "Título", "Futebol de Botão", 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
+            CreateText(modePanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
             var onePlayer = CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -180f), new Vector2(420f, 90f), menu.PlayOnePlayer);
             var twoPlayers = CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -300f), new Vector2(420f, 90f), menu.PlayTwoPlayers);
             AddNavigator(modePanel, null, Item(onePlayer), Item(twoPlayers));
