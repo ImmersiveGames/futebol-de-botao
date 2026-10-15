@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// A câmera sempre encaixa a moldura da partida inteira: a mesa e, com a tela em pé, uma faixa de HUD por jogador
-    /// além de cada gol (256 x 502 px na arte, perto de 18:9). Em tela mais comprida sobra fundo em cima e embaixo; em
+    /// além de cada gol (256 x 512 px na arte, 2:1). Em tela mais comprida sobra fundo em cima e embaixo; em
     /// tela mais larga, dos lados. Tela deitada (PC) encaixa só a mesa. Roda sozinha em todas as cenas e acompanha a
     /// troca de tamanho da tela.
     /// </summary>
@@ -17,11 +17,14 @@ namespace FutebolDeBotao
         /// <summary>Altura da faixa de HUD de cada jogador (48 px na arte).</summary>
         public const float StripHeight = 1.5f;
 
-        /// <summary>Onde a faixa começa: logo depois da rede do gol.</summary>
-        public const float StripStart = FieldLayout.HalfHeight + FieldLayout.GoalDepth + 0.05f;
+        /// <summary>Folga de 5 px (na arte) entre a rede e a faixa, e entre a faixa e a borda da moldura.</summary>
+        public const float StripGap = 5f / 32f;
 
-        /// <summary>Meia altura da moldura com a tela em pé: mesa até a rede + faixa.</summary>
-        public const float FrameHalfHeight = StripStart + StripHeight;
+        /// <summary>Onde a faixa começa: 5 px depois da rede do gol.</summary>
+        public const float StripStart = FieldLayout.HalfHeight + FieldLayout.GoalDepth + StripGap;
+
+        /// <summary>Meia altura da moldura com a tela em pé: mesa até a rede + folga + faixa + folga.</summary>
+        public const float FrameHalfHeight = StripStart + StripHeight + StripGap;
 
         /// <summary>Meia largura que precisa aparecer: campo + parede (0,5) + uma folga.</summary>
         public const float VisibleHalfWidth = FieldLayout.HalfWidth + 0.5f + 0.05f;
