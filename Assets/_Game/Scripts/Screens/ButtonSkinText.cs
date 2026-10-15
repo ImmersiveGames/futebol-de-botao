@@ -4,7 +4,10 @@ using UnityEngine.UI;
 
 namespace FutebolDeBotao
 {
-    /// <summary>Cor do texto de um botão vestido: escurece enquanto o dedo aperta; no botão desligado fica branca.</summary>
+    /// <summary>
+    /// Texto de um botão vestido: fica no meio da face desenhada (um pouco acima do centro no botão solto, no centro
+    /// quando apertado), escurece enquanto o dedo aperta e fica branco no botão desligado.
+    /// </summary>
     [DisallowMultipleComponent]
     public sealed class ButtonSkinText : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
     {
@@ -13,14 +16,25 @@ namespace FutebolDeBotao
         [SerializeField] private Button button;
         [SerializeField] private Text label;
         [SerializeField] private Color color = Color.white;
+        [Tooltip("Quanto o texto sobe (unidades da UI) com o botão solto.")]
+        [SerializeField] private float raise;
+        [SerializeField, HideInInspector] private bool hasBase;
+        [SerializeField, HideInInspector] private Vector2 basePosition;
 
         private bool pressed;
 
-        public void Configure(Button target, Text text, Color textColor)
+        public void Configure(Button target, Text text, Color textColor, float raiseUnits)
         {
             button = target;
+            if (label != text) hasBase = false;
             label = text;
             color = textColor;
+            raise = raiseUnits;
+            if (label != null && !hasBase)
+            {
+                basePosition = label.rectTransform.anchoredPosition;
+                hasBase = true;
+            }
             Refresh();
         }
 
@@ -36,8 +50,10 @@ namespace FutebolDeBotao
         {
             if (label == null) return;
             bool enabledButton = button == null || button.IsInteractable();
+            bool down = pressed && enabledButton;
+            if (hasBase) label.rectTransform.anchoredPosition = basePosition + new Vector2(0f, down ? 0f : raise);
             label.color = !enabledButton ? Color.white
-                : pressed ? new Color(color.r * PressedDarken, color.g * PressedDarken, color.b * PressedDarken, color.a)
+                : down ? new Color(color.r * PressedDarken, color.g * PressedDarken, color.b * PressedDarken, color.a)
                 : color;
         }
     }

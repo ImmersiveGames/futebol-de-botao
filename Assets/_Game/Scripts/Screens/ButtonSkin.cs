@@ -31,6 +31,11 @@ namespace FutebolDeBotao
         public const string PressedSuffix = "_Apertado";
         public const int TileSize = 32;
         public const int BorderPixels = 10;
+        /// <summary>
+        /// No botão normal a face tem 2 px de borda em cima e 6 px (a faixa escura) embaixo: o texto sobe 2 px para ficar
+        /// no meio da face. No apertado as bordas são iguais (3 e 3) e o texto volta ao centro, como se afundasse junto.
+        /// </summary>
+        public const float FaceRaisePixels = 2f;
 
         // Canvas.referencePixelsPerUnit padrão: a borda de 10 px a 32 PPU vira 31,25 unidades da UI.
         private const float ReferencePixelsPerUnit = 100f;
@@ -69,7 +74,9 @@ namespace FutebolDeBotao
 
             var label = button.GetComponentInChildren<Text>(true);
             if (!button.TryGetComponent<ButtonSkinText>(out var text)) text = button.gameObject.AddComponent<ButtonSkinText>();
-            text.Configure(button, label, TextColor(style));
+            // Um pixel da arte em unidades da UI, já com a borda encolhida dos botões baixos.
+            float artPixel = ReferencePixelsPerUnit / normal.pixelsPerUnit / image.pixelsPerUnitMultiplier;
+            text.Configure(button, label, TextColor(style), FaceRaisePixels * artPixel);
             return true;
         }
 
