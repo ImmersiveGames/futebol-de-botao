@@ -10,7 +10,8 @@ namespace FutebolDeBotao
     /// Tela em pé (celular): uma faixa por jogador logo depois do gol dele (a de cima girada 180° para o jogador de cima),
     /// dentro da moldura que a câmera sempre encaixa (ScreenFit). Na faixa, da esquerda para a direita: relógio e pausa;
     /// placar (abreviações, gols e cartões); vez, toques, timer e o botão de ação.
-    /// As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador.
+    /// As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador. Contra a IA ficam só a faixa
+    /// e a mensagem do jogador.
     /// Tela deitada (PC): painel único à esquerda e uma mensagem só, sem girar (provisório até refinar o PC).
     /// Também destaca os botões do time da vez.
     /// </summary>
@@ -49,6 +50,8 @@ namespace FutebolDeBotao
             public Button Action;
             public Text ActionLabel;
             public Button Pause;
+            /// <summary>A faixa inteira (só no celular).</summary>
+            public GameObject Root;
         }
 
         private sealed class MessageView
@@ -110,8 +113,13 @@ namespace FutebolDeBotao
 
             if (portrait)
             {
-                Refresh(strips[TeamSide.Bottom], TeamSide.Bottom);
-                Refresh(strips[TeamSide.Top], TeamSide.Top);
+                // Contra a IA só aparece a faixa do jogador: do lado da IA não tem ninguém para ler.
+                foreach (var pair in strips)
+                {
+                    bool human = !match.IsAi(pair.Key);
+                    pair.Value.Root.SetActive(human);
+                    if (human) Refresh(pair.Value, pair.Key);
+                }
             }
             else
             {
@@ -204,8 +212,9 @@ namespace FutebolDeBotao
 
             var bottom = messages[TeamSide.Bottom];
             var top = messages[TeamSide.Top];
-            bottom.Root.SetActive(show);
-            top.Root.SetActive(show && portrait);
+            // No celular, uma mensagem para cada jogador de verdade (contra a IA, só a do jogador); no PC, uma só.
+            bottom.Root.SetActive(show && (!portrait || !match.IsAi(TeamSide.Bottom)));
+            top.Root.SetActive(show && portrait && !match.IsAi(TeamSide.Top));
             if (!show) return;
 
             bottom.Label.text = message;
@@ -301,6 +310,7 @@ namespace FutebolDeBotao
                 var actionSide = side;
                 view.Action.onClick.AddListener(() => OnAction(actionSide));
 
+                view.Root = canvas.gameObject;
                 strips[side] = view;
             }
         }
