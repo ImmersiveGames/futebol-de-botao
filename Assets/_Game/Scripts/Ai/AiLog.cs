@@ -18,7 +18,7 @@ namespace FutebolDeBotao
         private static readonly CultureInfo Number = CultureInfo.InvariantCulture;
         private const string Header =
             "nivel;tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
-            "bola_esperada;ultimo_toque_esperado;gol_esperado;plano;simulacoes;ms;bola_real;ultimo_toque_real;avisos;batidas";
+            "bola_esperada;ultimo_toque_esperado;gol_esperado;plano;simulacoes;ms;bola_real;ultimo_toque_real;avisos;batidas;erro";
 
         private readonly TeamSide side;
         private readonly string level;
@@ -27,6 +27,8 @@ namespace FutebolDeBotao
         private readonly StringBuilder notices = new();
         // Batidas guardadas no aviso (gol, falta): depois disso a bola é reposta e as batidas somem.
         private string noticedTouches = string.Empty;
+        // Erro de execução sorteado na jogada da IA (vazio nas linhas do jogador).
+        private string execution = string.Empty;
 
         private readonly MatchController match;
 
@@ -67,6 +69,7 @@ namespace FutebolDeBotao
                 Field(decision.Milliseconds.ToString("0.0", Number)));
             notices.Clear();
             noticedTouches = string.Empty;
+            execution = string.Empty;
             // Anúncio do Vai chutar não mexe nada: a linha sai na hora.
             if (decision.Action != null && decision.Action.IsInstant) Finish(match);
 #endif
@@ -109,6 +112,7 @@ namespace FutebolDeBotao
                 Field(string.Empty), Field(string.Empty), Field(string.Empty));
             notices.Clear();
             noticedTouches = string.Empty;
+            execution = string.Empty;
 #endif
         }
 
@@ -151,8 +155,20 @@ namespace FutebolDeBotao
                 Field(string.Format(c, "melhor x={0:0.00}", bestX)),
                 Field((threats.Count * xs.Length).ToString(c)),
                 Field(milliseconds.ToString("0.0", c)),
-                Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty)));
+                Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty)));
 #endif
+        }
+
+        /// <summary>
+        /// O peteleco da IA saiu: se o erro do nível foi sorteado e quanto ("sem erro" ou "mira +2,3° força 0,82 > 0,88").
+        /// </summary>
+        public void Executed(bool missed, float angleError, float plannedPower, float power)
+        {
+            if (pending == null) return;
+            execution = !missed
+                ? "sem erro"
+                : string.Format(Number, "mira {0:+0.0;-0.0;0.0}°", angleError) +
+                  (Mathf.Approximately(plannedPower, power) ? string.Empty : string.Format(Number, " força {0:0.00} > {1:0.00}", plannedPower, power));
         }
 
         /// <summary>Um aviso da partida (gol, falta, cartão...) durante a jogada da IA.</summary>
@@ -172,7 +188,8 @@ namespace FutebolDeBotao
                 Field(Point(ball.Body.position)),
                 Field(SideName(ball.LastTouchSide)),
                 Field(notices.ToString()),
-                Field(TouchesText(ball))));
+                Field(TouchesText(ball)),
+                Field(execution)));
             pending = null;
         }
 
@@ -180,7 +197,7 @@ namespace FutebolDeBotao
         private void Flush()
         {
             if (pending == null) return;
-            Write(pending + ";;;" + Field(notices.ToString()) + ";" + Field(noticedTouches));
+            Write(pending + ";;;" + Field(notices.ToString()) + ";" + Field(noticedTouches) + ";" + Field(execution));
             pending = null;
         }
 

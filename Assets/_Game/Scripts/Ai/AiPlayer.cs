@@ -190,6 +190,7 @@ namespace FutebolDeBotao
                 float power = placing || !misses
                     ? pick.Power01
                     : Mathf.Clamp(pick.Power01 * (1f + Random.Range(-difficulty.powerError, difficulty.powerError)), 0.1f, 1f);
+                log.Executed(misses, angleError, pick.Power01, power);
 
                 yield return ShowAimAndRelease(version, situation.IsBallKick ? null : pick.Disc, direction, power);
             }
