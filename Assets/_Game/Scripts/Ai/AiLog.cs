@@ -10,23 +10,29 @@ namespace FutebolDeBotao
     /// <summary>
     /// Registro das decisões da IA: uma linha no console por toque e, no editor, um CSV por partida em
     /// Logs/IA/partida-AAAAMMDD-HHMM-Nivel.csv (na pasta do projeto) com os fatos, os objetivos, a jogada, a nota esperada
-    /// e o que aconteceu de verdade (onde a bola parou, último toque, avisos como gol ou falta).
+    /// e o que aconteceu de verdade (onde a bola parou, último toque, avisos como gol ou falta, e as batidas da bola em
+    /// ordem: botões, goleiro, paredes).
     /// </summary>
     public sealed class AiLog : IDisposable
     {
         private static readonly CultureInfo Number = CultureInfo.InvariantCulture;
         private const string Header =
             "nivel;tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
-            "bola_esperada;ultimo_toque_esperado;gol_esperado;plano;simulacoes;ms;bola_real;ultimo_toque_real;avisos";
+            "bola_esperada;ultimo_toque_esperado;gol_esperado;plano;simulacoes;ms;bola_real;ultimo_toque_real;avisos;batidas";
 
         private readonly TeamSide side;
         private readonly string level;
         private StreamWriter writer;
         private string pending;
         private readonly StringBuilder notices = new();
+        // Batidas guardadas no aviso (gol, falta): depois disso a bola é reposta e as batidas somem.
+        private string noticedTouches = string.Empty;
 
-        public AiLog(TeamSide aiSide, AiDifficulty difficulty)
+        private readonly MatchController match;
+
+        public AiLog(TeamSide aiSide, AiDifficulty difficulty, MatchController matchController = null)
         {
+            match = matchController;
             side = aiSide;
             level = difficulty != null ? difficulty.name.Replace(" (padrão)", string.Empty) : "?";
         }
@@ -60,6 +66,7 @@ namespace FutebolDeBotao
                 Field(decision.Simulations.ToString(Number)),
                 Field(decision.Milliseconds.ToString("0.0", Number)));
             notices.Clear();
+            noticedTouches = string.Empty;
             // Anúncio do Vai chutar não mexe nada: a linha sai na hora.
             if (decision.Action != null && decision.Action.IsInstant) Finish(match);
 #endif
@@ -101,6 +108,7 @@ namespace FutebolDeBotao
                 Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty),
                 Field(string.Empty), Field(string.Empty), Field(string.Empty));
             notices.Clear();
+            noticedTouches = string.Empty;
 #endif
         }
 
@@ -143,7 +151,7 @@ namespace FutebolDeBotao
                 Field(string.Format(c, "melhor x={0:0.00}", bestX)),
                 Field((threats.Count * xs.Length).ToString(c)),
                 Field(milliseconds.ToString("0.0", c)),
-                Field(string.Empty), Field(string.Empty), Field(string.Empty)));
+                Field(string.Empty), Field(string.Empty), Field(string.Empty), Field(string.Empty)));
 #endif
         }
 
@@ -152,6 +160,7 @@ namespace FutebolDeBotao
         {
             if (pending == null) return;
             notices.Append(notices.Length > 0 ? "," : string.Empty).Append(notice);
+            if (match != null && match.Ball != null) noticedTouches = TouchesText(match.Ball);
         }
 
         /// <summary>A jogada da IA terminou: completa a linha com o que aconteceu de verdade.</summary>
@@ -162,7 +171,8 @@ namespace FutebolDeBotao
             Write(pending + ";" + string.Join(";",
                 Field(Point(ball.Body.position)),
                 Field(SideName(ball.LastTouchSide)),
-                Field(notices.ToString())));
+                Field(notices.ToString()),
+                Field(TouchesText(ball))));
             pending = null;
         }
 
@@ -170,7 +180,7 @@ namespace FutebolDeBotao
         private void Flush()
         {
             if (pending == null) return;
-            Write(pending + ";;;" + Field(notices.ToString()));
+            Write(pending + ";;;" + Field(notices.ToString()) + ";" + Field(noticedTouches));
             pending = null;
         }
 
@@ -240,6 +250,18 @@ namespace FutebolDeBotao
         private static string Percent(float chance) => Mathf.RoundToInt(chance * 100f).ToString(Number) + "%";
 
         private string SideName(TeamSide? touch) => touch == null ? "ninguem" : touch == side ? "IA" : "jogador";
+
+        /// <summary>"Botão 3 (jogador) > parede esquerda > Botão 2 (IA)": as batidas da bola desde o peteleco.</summary>
+        private string TouchesText(Ball ball)
+        {
+            var text = new StringBuilder();
+            foreach (var touch in ball.Touches)
+            {
+                text.Append(text.Length > 0 ? " > " : string.Empty).Append(touch.What);
+                if (touch.Side != null) text.Append(" (").Append(SideName(touch.Side)).Append(')');
+            }
+            return text.ToString();
+        }
 
         private static string Point(Vector2 point) => string.Format(Number, "{0:0.00};{1:0.00}", point.x, point.y);
 

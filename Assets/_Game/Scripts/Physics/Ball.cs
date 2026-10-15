@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FutebolDeBotao
@@ -19,6 +20,23 @@ namespace FutebolDeBotao
         public Disc LastDiscTouch { get; private set; }
         /// <summary>Time do último botão ou goleiro que tocou a bola desde o último peteleco. Nulo: ninguém tocou.</summary>
         public TeamSide? LastTouchSide { get; private set; }
+
+        /// <summary>Uma batida da bola desde o último peteleco: no que bateu e, se for botão ou goleiro, de que time.</summary>
+        public readonly struct Touch
+        {
+            public readonly string What;
+            public readonly TeamSide? Side;
+            public Touch(string what, TeamSide? side)
+            {
+                What = what;
+                Side = side;
+            }
+        }
+
+        private const int MaxTouches = 16;
+        private readonly List<Touch> touches = new();
+        /// <summary>As batidas desde o último peteleco, em ordem (para o log da partida). Até 16.</summary>
+        public IReadOnlyList<Touch> Touches => touches;
 
         private Vector2 velocityBeforeStep;
         public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
@@ -55,6 +73,15 @@ namespace FutebolDeBotao
             TouchedWallSinceShot = false;
             LastDiscTouch = null;
             LastTouchSide = null;
+            touches.Clear();
+        }
+
+        private void AddTouch(string what, TeamSide? touchSide)
+        {
+            if (inGoal || touches.Count >= MaxTouches) return;
+            // Encostado empurrando ("Stay") gera a mesma batida vários quadros seguidos: conta uma vez.
+            if (touches.Count > 0 && touches[^1].What == what && touches[^1].Side == touchSide) return;
+            touches.Add(new Touch(what, touchSide));
         }
 
         // Roda antes do passo de física; as batidas são avisadas depois dele.
@@ -97,6 +124,7 @@ namespace FutebolDeBotao
                 TableImpacts.Raise(TableImpactKind.BallDisc, collision.relativeVelocity.magnitude);
                 LastDiscTouch = disc;
                 LastTouchSide = disc.Side;
+                AddTouch(disc.name, disc.Side);
                 return;
             }
 
@@ -105,6 +133,7 @@ namespace FutebolDeBotao
             {
                 LastDiscTouch = null;
                 LastTouchSide = keeper.Side;
+                AddTouch("goleiro", keeper.Side);
             }
         }
 
@@ -114,6 +143,8 @@ namespace FutebolDeBotao
             if (wall != null)
             {
                 TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
+                AddTouch(wall.IsSideWall ? (wall.transform.position.x < 0f ? "parede esquerda" : "parede direita")
+                    : wall.gameObject.name.ToLowerInvariant(), null);
                 // Só a parede lateral anula o gol: trave, fundo e rede não contam.
                 if (wall.IsSideWall) TouchedWallSinceShot = true;
                 if (inGoal)
@@ -133,6 +164,7 @@ namespace FutebolDeBotao
                 TableImpacts.Raise(TableImpactKind.BallDisc, collision.relativeVelocity.magnitude);
                 LastDiscTouch = disc;
                 LastTouchSide = disc.Side;
+                AddTouch(disc.name, disc.Side);
                 // Botão parado que não é o do peteleco: a bola rebate nele e ele fica no lugar.
                 if (!disc.IsShotDisc && tuning != null)
                     BallRebound.Apply(body, velocityBeforeStep, disc.Body, disc.VelocityBeforeStep, tuning.bounciness);
@@ -145,6 +177,7 @@ namespace FutebolDeBotao
                 TableImpacts.Raise(TableImpactKind.BallKeeper, collision.relativeVelocity.magnitude);
                 LastDiscTouch = null;
                 LastTouchSide = keeper.Side;
+                AddTouch("goleiro", keeper.Side);
             }
         }
     }

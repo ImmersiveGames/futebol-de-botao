@@ -57,7 +57,7 @@ namespace FutebolDeBotao
             }
             baseProfile = AiProfile.Load(AiProfile.StyleOf(MatchSession.Scheme(side, match.Options.discsPerTeam)));
             UpdateProfile();
-            log = new AiLog(side, aiDifficulty);
+            log = new AiLog(side, aiDifficulty, match);
             match.Noticed += log.Noticed;
         }
 
