@@ -3,7 +3,7 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Desenha a ajuda de mira: barra de força, seta do botão e linha curta da bola (sem rebotes).
+    /// Desenha a ajuda de mira: barra de força, seta do botão e, na Completa, a linha da bola (sem rebotes).
     /// </summary>
     [RequireComponent(typeof(AimController))]
     public sealed class AimVisuals : MonoBehaviour
@@ -11,8 +11,8 @@ namespace FutebolDeBotao
         [SerializeField] private AimAssistMode mode = AimAssistMode.Full;
         [Tooltip("Comprimento da seta do botão com força máxima.")]
         [SerializeField] private float maxArrowLength = 2f;
-        [SerializeField] private float shortBallLine = 1f;
-        [SerializeField] private float fullBallLine = 2.5f;
+        [Tooltip("Comprimento da linha da bola (só na ajuda Completa).")]
+        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("fullBallLine")] private float ballLineLength = 2.5f;
         [SerializeField] private float powerBarLength = 1.2f;
         [SerializeField] private float lineWidth = 0.06f;
 
@@ -72,8 +72,8 @@ namespace FutebolDeBotao
             arrow.SetPosition(0, origin + dir * radius);
             arrow.SetPosition(1, origin + dir * (radius + maxArrowLength * aim.Power01));
 
-            // No chute direto na bola a seta já é a direção da bola.
-            if (!aim.IsBallKick) DrawBallPrediction(aim.SelectedDisc, origin, dir);
+            // No chute direto na bola a seta já é a direção da bola. Na Curta fica só a seta, sem a linha da bola.
+            if (mode == AimAssistMode.Full && !aim.IsBallKick) DrawBallPrediction(aim.SelectedDisc, origin, dir);
         }
 
         private void DrawBallPrediction(Disc disc, Vector2 origin, Vector2 dir)
@@ -95,11 +95,9 @@ namespace FutebolDeBotao
             Vector2 discAtContact = origin + dir * first.Value.distance;
             Vector2 ballPos = ball.Body.position;
             Vector2 ballDir = (ballPos - discAtContact).normalized;
-            float length = mode == AimAssistMode.Full ? fullBallLine : shortBallLine;
-
             ballLine.enabled = true;
             ballLine.SetPosition(0, ballPos + ballDir * ball.Radius);
-            ballLine.SetPosition(1, ballPos + ballDir * (ball.Radius + length));
+            ballLine.SetPosition(1, ballPos + ballDir * (ball.Radius + ballLineLength));
         }
 
         private LineRenderer CreateLine(string lineName, Material material, Color color)
