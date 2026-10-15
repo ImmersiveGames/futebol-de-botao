@@ -243,10 +243,10 @@ namespace FutebolDeBotao
             stripsRoot = new GameObject("Faixas (celular)");
             stripsRoot.transform.SetParent(transform, false);
 
-            // Faixa logo depois da mesa (que vai até ScreenFit.BaseOrthoSize), na largura da mesa.
+            // Faixa logo depois da rede do gol, na largura da mesa.
             float width = ScreenFit.VisibleHalfWidth * 2f - 0.1f;
             const float height = ScreenFit.StripHeight;
-            float centerY = ScreenFit.BaseOrthoSize + height * 0.5f;
+            float centerY = ScreenFit.StripStart + height * 0.5f;
             // Em pixels do canvas (100 por unidade): esquerda 2 unidades, meio e direita 3 cada.
             float canvasWidth = width * PixelsPerUnit;
             float leftX = -canvasWidth * 0.5f + 100f;
