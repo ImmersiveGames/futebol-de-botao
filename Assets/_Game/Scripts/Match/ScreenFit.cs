@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// A câmera sempre encaixa a moldura da partida inteira: a mesa e, com a tela em pé, uma faixa de HUD por jogador
-    /// além de cada gol (256 x 512 px na arte, 2:1). Em tela mais comprida sobra fundo em cima e embaixo; em
+    /// além de cada gol (256 x 519 px na arte). Em tela mais comprida sobra fundo em cima e embaixo; em
     /// tela mais larga, dos lados. Tela deitada (PC) encaixa só a mesa. Roda sozinha em todas as cenas e acompanha a
     /// troca de tamanho da tela.
     /// </summary>
