@@ -4,21 +4,33 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// A câmera da mesa sempre mostra a mesa inteira na largura (paredes incluídas). Em tela comprida (ex.: 20:9) ela
-    /// abre o zoom e sobra espaço em cima e embaixo; nas telas de 9:16 para baixo fica o enquadramento padrão
-    /// (<see cref="BaseOrthoSize"/>). Roda sozinha em todas as cenas e acompanha a troca de tamanho da tela.
+    /// A câmera sempre encaixa a moldura da partida inteira: a mesa e, com a tela em pé, uma faixa de HUD por jogador
+    /// além de cada gol (256 x 538 px na arte, quase 19:9). Em tela mais comprida sobra fundo em cima e embaixo; em
+    /// tela mais larga, dos lados. Tela deitada (PC) encaixa só a mesa. Roda sozinha em todas as cenas e acompanha a
+    /// troca de tamanho da tela.
     /// </summary>
     public sealed class ScreenFit : MonoBehaviour
     {
         /// <summary>Enquadramento padrão (meia altura): campo + gols + margem.</summary>
         public const float BaseOrthoSize = 6.9f;
 
+        /// <summary>Altura da faixa de HUD de cada jogador (48 px na arte).</summary>
+        public const float StripHeight = 1.5f;
+
+        /// <summary>Meia altura da moldura com a tela em pé: mesa + faixa.</summary>
+        public const float FrameHalfHeight = BaseOrthoSize + StripHeight;
+
         /// <summary>Meia largura que precisa aparecer: campo + parede (0,5) + uma folga.</summary>
         public const float VisibleHalfWidth = FieldLayout.HalfWidth + 0.5f + 0.05f;
 
         /// <summary>Meia altura da câmera para a tela atual.</summary>
-        public static float OrthoSizeFor(float aspect) =>
-            aspect <= 0f ? BaseOrthoSize : Mathf.Max(BaseOrthoSize, VisibleHalfWidth / aspect);
+        public static float OrthoSizeFor(float aspect)
+        {
+            if (aspect <= 0f) return BaseOrthoSize;
+            // Deitada (PC): o HUD é um painel na tela, a moldura é só a mesa.
+            float halfHeight = aspect > 1f ? BaseOrthoSize : FrameHalfHeight;
+            return Mathf.Max(halfHeight, VisibleHalfWidth / aspect);
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Create()

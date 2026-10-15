@@ -7,10 +7,9 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// HUD da partida (visual provisório, montado em código).
-    /// Tela em pé (celular): 4 cantos ao lado dos gols, 2 por jogador; os de cima giram 180° para o jogador de cima.
-    /// Canto esquerdo de cada jogador: relógio e pausa. Canto direito: vez, toques, timer e o botão de ação.
-    /// O placar (abreviações, gols e cartões) fica nas duas paredes laterais, no meio-campo, deitado para ler com o
-    /// celular na horizontal: na esquerda de baixo para cima, na direita de cima para baixo; o time de baixo sempre na ponta de baixo.
+    /// Tela em pé (celular): uma faixa por jogador logo depois do gol dele (a de cima girada 180° para o jogador de cima),
+    /// dentro da moldura que a câmera sempre encaixa (ScreenFit). Na faixa, da esquerda para a direita: relógio e pausa;
+    /// placar (abreviações, gols e cartões); vez, toques, timer e o botão de ação.
     /// As mensagens (falta, gol...) aparecem no meio do campo, uma virada para cada jogador.
     /// Tela deitada (PC): painel único à esquerda e uma mensagem só, sem girar (provisório até refinar o PC).
     /// Também destaca os botões do time da vez.
@@ -33,7 +32,7 @@ namespace FutebolDeBotao
         private const float GlowScale = 0.08f;
         private const string ShotCallLabel = "Pro Gol!";
 
-        /// <summary>Elementos de um jogador (seus dois cantos no celular, ou o painel do PC).</summary>
+        /// <summary>Elementos de um jogador (a faixa dele no celular, ou o painel do PC).</summary>
         private sealed class PlayerView
         {
             public Text Score;
@@ -51,13 +50,11 @@ namespace FutebolDeBotao
             public Text Label;
         }
 
-        private readonly Dictionary<TeamSide, PlayerView> corners = new();
+        private readonly Dictionary<TeamSide, PlayerView> strips = new();
         private readonly Dictionary<TeamSide, MessageView> messages = new();
         private readonly List<Canvas> worldCanvases = new();
-        private (Text First, Text Second) leftBoard;
-        private (Text First, Text Second) rightBoard;
         private PlayerView pcPanel;
-        private GameObject cornersRoot;
+        private GameObject stripsRoot;
         private GameObject pcRoot;
         private TurnHighlight highlight;
         private Font font;
@@ -80,7 +77,7 @@ namespace FutebolDeBotao
 
             match.ExternalHud = true;
             font = GameFont.Get();
-            BuildCorners();
+            BuildStrips();
             BuildMessages();
             BuildPcPanel();
             highlight = gameObject.AddComponent<TurnHighlight>();
@@ -95,17 +92,15 @@ namespace FutebolDeBotao
             worldCamera = WorldCamera.Resolve(worldCamera);
             foreach (var canvas in worldCanvases) canvas.worldCamera = worldCamera;
 
-            cornersRoot.SetActive(visible && portrait);
+            stripsRoot.SetActive(visible && portrait);
             pcRoot.SetActive(visible && !portrait);
             UpdateMessages(visible, portrait);
             if (!visible) return;
 
             if (portrait)
             {
-                RefreshBoard(leftBoard, TeamSide.Bottom, TeamSide.Top);
-                RefreshBoard(rightBoard, TeamSide.Top, TeamSide.Bottom);
-                Refresh(corners[TeamSide.Bottom], TeamSide.Bottom);
-                Refresh(corners[TeamSide.Top], TeamSide.Top);
+                Refresh(strips[TeamSide.Bottom], TeamSide.Bottom);
+                Refresh(strips[TeamSide.Top], TeamSide.Top);
             }
             else
             {
@@ -118,7 +113,9 @@ namespace FutebolDeBotao
 
         private void Refresh(PlayerView view, TeamSide side)
         {
-            if (view.Score != null) view.Score.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
+            // Na faixa, o time do jogador vem primeiro; no painel do PC, sempre o de baixo primeiro.
+            var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            if (view.Score != null) view.Score.text = view == pcPanel ? ScoreText(TeamSide.Bottom, TeamSide.Top) : ScoreText(side, other);
             view.Clock.text = ClockText(match.ClockSeconds);
 
             var state = match.State;
@@ -197,13 +194,6 @@ namespace FutebolDeBotao
             bottom.Root.transform.position = new Vector3(0f, portrait ? -1.3f : 0f, 0f);
         }
 
-        /// <summary>Placar lateral: cada metade encosta no "x" do meio, então os cartões crescem para as pontas.</summary>
-        private void RefreshBoard((Text First, Text Second) board, TeamSide first, TeamSide second)
-        {
-            board.First.text = $"{Cards(first, true)}{Abbreviation(first)} {match.Score(first)}";
-            board.Second.text = $"{match.Score(second)} {Abbreviation(second)}{Cards(second, false)}";
-        }
-
         /// <summary>Placar lido da esquerda para a direita: <paramref name="first"/> primeiro.</summary>
         private string ScoreText(TeamSide first, TeamSide second) =>
             $"{Cards(first, true)}{Abbreviation(first)} {match.Score(first)} x " +
@@ -246,81 +236,51 @@ namespace FutebolDeBotao
         /// <summary>Cor do time um pouco mais clara, para ler sobre o fundo escuro do HUD.</summary>
         private static Color TeamColor(TeamSide side) => Color.Lerp(MatchSession.Team(side).TextColor, Color.white, 0.3f);
 
-        // ---- Montagem: cantos (celular) ----
+        // ---- Montagem: faixas (celular) ----
 
-        private void BuildCorners()
+        private void BuildStrips()
         {
-            cornersRoot = new GameObject("Cantos (celular)");
-            cornersRoot.transform.SetParent(transform, false);
+            stripsRoot = new GameObject("Faixas (celular)");
+            stripsRoot.transform.SetParent(transform, false);
 
-            // Faixa entre a rede do gol e a lateral, atrás da linha de fundo.
-            const float innerX = FieldLayout.GoalWidth * 0.5f + 0.2f;
-            const float outerX = FieldLayout.HalfWidth + 0.5f;
-            const float nearY = FieldLayout.HalfHeight + 0.05f;
-            const float farY = 6.85f;
-            var size = new Vector2(outerX - innerX, farY - nearY);
-            float centerX = (innerX + outerX) * 0.5f;
-            float centerY = (nearY + farY) * 0.5f;
+            // Faixa logo depois da mesa (que vai até ScreenFit.BaseOrthoSize), na largura da mesa.
+            float width = ScreenFit.VisibleHalfWidth * 2f - 0.1f;
+            const float height = ScreenFit.StripHeight;
+            float centerY = ScreenFit.BaseOrthoSize + height * 0.5f;
+            // Em pixels do canvas (100 por unidade): esquerda 2 unidades, meio e direita 3 cada.
+            float canvasWidth = width * PixelsPerUnit;
+            float leftX = -canvasWidth * 0.5f + 100f;
+            float rightX = canvasWidth * 0.5f - 150f;
 
             foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
             {
-                // O jogador de cima vê tudo girado: a esquerda dele é a direita da tela.
                 float sign = side == TeamSide.Bottom ? 1f : -1f;
                 float rotation = side == TeamSide.Bottom ? 0f : 180f;
                 var view = new PlayerView();
 
-                var left = CreateWorldCanvas($"Canto esquerdo {Name(side)}", cornersRoot.transform,
-                    new Vector2(-centerX * sign, -centerY * sign), size, rotation);
-                CreatePanel(left.transform, PanelColor);
-                view.Clock = CreateText(left.transform, "Relógio", 32, FontStyle.Bold, new Vector2(0f, 24f), new Vector2(250f, 44f));
-                view.Pause = CreateButton(left.transform, "Pausa", "Pausa", 22, new Vector2(0f, -28f), new Vector2(130f, 44f), out _);
+                var canvas = CreateWorldCanvas($"Faixa {Name(side)}", stripsRoot.transform,
+                    new Vector2(0f, -centerY * sign), new Vector2(width, height), rotation);
+                CreatePanel(canvas.transform, PanelColor);
+
+                // Esquerda: relógio e pausa.
+                view.Clock = CreateText(canvas.transform, "Relógio", 40, FontStyle.Bold, new Vector2(leftX, 36f), new Vector2(190f, 60f));
+                view.Pause = CreateButton(canvas.transform, "Pausa", "Pausa", 24, new Vector2(leftX, -38f), new Vector2(150f, 52f), out _);
                 view.Pause.onClick.AddListener(match.RequestPause);
 
-                var right = CreateWorldCanvas($"Canto direito {Name(side)}", cornersRoot.transform,
-                    new Vector2(centerX * sign, -centerY * sign), size, rotation);
-                CreatePanel(right.transform, PanelColor);
-                view.Turn = CreateText(right.transform, "Vez", 24, FontStyle.Bold, new Vector2(0f, 42f), new Vector2(250f, 36f));
-                view.Timer = CreateText(right.transform, "Timer", 26, FontStyle.Bold, new Vector2(0f, 6f), new Vector2(250f, 34f));
-                view.Action = CreateButton(right.transform, "Ação", "Pro Gol!", 24, new Vector2(0f, -38f), new Vector2(220f, 44f), out view.ActionLabel);
+                // Meio: placar.
+                view.Score = CreateText(canvas.transform, "Placar", 40, FontStyle.Bold, Vector2.zero, new Vector2(290f, 80f));
+                FitOneLine(view.Score);
+
+                // Direita: vez/toques, timer e o botão de ação.
+                view.Turn = CreateText(canvas.transform, "Vez", 24, FontStyle.Bold, new Vector2(rightX, 52f), new Vector2(290f, 34f));
+                FitOneLine(view.Turn);
+                view.Timer = CreateText(canvas.transform, "Timer", 26, FontStyle.Bold, new Vector2(rightX, 18f), new Vector2(290f, 32f));
+                view.Action = CreateButton(canvas.transform, "Ação", ShotCallLabel, 26, new Vector2(rightX, -40f), new Vector2(260f, 56f), out view.ActionLabel);
                 var actionSide = side;
                 view.Action.onClick.AddListener(() => OnAction(actionSide));
 
-                corners[side] = view;
+                strips[side] = view;
             }
-
-            // Placar nas paredes laterais, no meio-campo, deitado (lê com o celular na horizontal, lateral para cima).
-            leftBoard = CreateSideBoard("Placar lateral esquerdo", -1f, 90f);
-            rightBoard = CreateSideBoard("Placar lateral direito", 1f, -90f);
-        }
-
-        private (Text First, Text Second) CreateSideBoard(string objectName, float sideSign, float rotation)
-        {
-            // Nas telas compridas a câmera corta um pedaço de fora da madeira: o placar fica no meio da parte que aparece.
-            const float boardX = FieldLayout.HalfWidth + 0.19f;
-            const float height = 0.36f;
-            // A fonte desenha as letras um pouco acima do meio da caixa; o ajuste centraliza o texto.
-            const float centering = -2f;
-            var canvas = CreateWorldCanvas(objectName, cornersRoot.transform,
-                new Vector2(sideSign * boardX, 0f), new Vector2(5f, height), rotation);
-            // O placar não bloqueia toques.
-            Destroy(canvas.GetComponent<GraphicRaycaster>());
-
-            // "x" fixo no meio-campo; cada time encosta nele e os cartões crescem para as pontas.
-            BoardText(canvas.transform, "x", TextAnchor.MiddleCenter, new Vector2(0f, centering), 40f).text = "x";
-            var first = BoardText(canvas.transform, "Primeiro time", TextAnchor.MiddleRight, new Vector2(-125f, centering), 210f);
-            var second = BoardText(canvas.transform, "Segundo time", TextAnchor.MiddleLeft, new Vector2(125f, centering), 210f);
-            return (first, second);
-        }
-
-        private Text BoardText(Transform parent, string objectName, TextAnchor alignment, Vector2 position, float width)
-        {
-            var text = CreateText(parent, objectName, 26, FontStyle.Bold, position, new Vector2(width, 36f));
-            text.alignment = alignment;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            var shadow = text.gameObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.8f);
-            shadow.effectDistance = new Vector2(2f, -2f);
-            return text;
         }
 
         private void BuildMessages()
