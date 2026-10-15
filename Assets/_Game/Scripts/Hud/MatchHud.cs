@@ -36,6 +36,9 @@ namespace FutebolDeBotao
         private sealed class PlayerView
         {
             public Text Score;
+            /// <summary>Cartões embaixo de cada nome (só na faixa do celular; no PC ficam no placar).</summary>
+            public Text FirstCards;
+            public Text SecondCards;
             public Text Clock;
             public Text Turn;
             public Text Timer;
@@ -115,7 +118,13 @@ namespace FutebolDeBotao
         {
             // Na faixa, o time do jogador vem primeiro; no painel do PC, sempre o de baixo primeiro.
             var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
-            if (view.Score != null) view.Score.text = view == pcPanel ? ScoreText(TeamSide.Bottom, TeamSide.Top) : ScoreText(side, other);
+            if (view == pcPanel) view.Score.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
+            else
+            {
+                view.Score.text = $"{Abbreviation(side)} {match.Score(side)} x {match.Score(other)} {Abbreviation(other)}";
+                view.FirstCards.text = Cards(side, false).Trim();
+                view.SecondCards.text = Cards(other, false).Trim();
+            }
             view.Clock.text = ClockText(match.ClockSeconds);
 
             var state = match.State;
@@ -267,9 +276,11 @@ namespace FutebolDeBotao
                 view.Pause = CreateButton(canvas.transform, "Pausa", "Pausa", 24, new Vector2(leftX, -38f), new Vector2(150f, 52f), out _);
                 view.Pause.onClick.AddListener(match.RequestPause);
 
-                // Meio: placar.
-                view.Score = CreateText(canvas.transform, "Placar", 40, FontStyle.Bold, Vector2.zero, new Vector2(290f, 80f));
+                // Meio: placar um pouco acima do centro e, embaixo de cada nome, os cartões do time.
+                view.Score = CreateText(canvas.transform, "Placar", 40, FontStyle.Bold, new Vector2(0f, 22f), new Vector2(290f, 60f));
                 FitOneLine(view.Score);
+                view.FirstCards = CreateText(canvas.transform, "Cartões (primeiro)", 28, FontStyle.Normal, new Vector2(-95f, -38f), new Vector2(100f, 40f));
+                view.SecondCards = CreateText(canvas.transform, "Cartões (segundo)", 28, FontStyle.Normal, new Vector2(95f, -38f), new Vector2(100f, 40f));
 
                 // Direita: vez/toques, timer e o botão de ação.
                 view.Turn = CreateText(canvas.transform, "Vez", 24, FontStyle.Bold, new Vector2(rightX, 52f), new Vector2(290f, 34f));
