@@ -37,7 +37,7 @@ namespace FutebolDeBotao
         [Header("Erro na execução")]
         [Tooltip("Chance de a IA errar o peteleco (0,35 = 35% das jogadas). Quando erra, sorteia o erro dentro das faixas " +
                  "abaixo; quando não erra, o peteleco sai exato. Fácil 0,6; Médio 0,35; Difícil 0,15.")]
-        [Range(0f, 1f)] public float errorChance = 0.35f;
+        [Range(0f, 1f)] public float errorChance = 0.45f;
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
         [Min(0f)] public float angleErrorDegrees = 4f;
         [Tooltip("Erro máximo na força, em fração (0,08 = 8% a mais ou a menos).")]
@@ -112,7 +112,7 @@ namespace FutebolDeBotao
                     difficulty.planAhead = 4;
                     difficulty.followUpSimulations = 6;
                     difficulty.maxFoulChance = 0.2f;
-                    difficulty.errorChance = 0.15f;
+                    difficulty.errorChance = 0.25f;
                     difficulty.angleErrorDegrees = 1.5f;
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;
