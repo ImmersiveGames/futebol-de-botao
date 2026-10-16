@@ -37,11 +37,10 @@ namespace FutebolDeBotao.Editor
             foreach (var kind in PlayerSettings.GetSupportedIconKinds(NamedBuildTarget.Android))
             {
                 var icons = PlayerSettings.GetPlatformIcons(NamedBuildTarget.Android, kind);
-                // Adaptive tem 2 camadas: a 0 é o fundo e a 1 é a frente.
-                bool adaptive = kind.ToString() == "Adaptive";
                 foreach (var platformIcon in icons)
                 {
-                    if (adaptive) platformIcon.SetTextures(background, foreground);
+                    // Adaptive é o único com 2 camadas: a 0 é o fundo e a 1 é a frente.
+                    if (platformIcon.maxLayerCount >= 2) platformIcon.SetTextures(background, foreground);
                     else platformIcon.SetTexture(icon);
                 }
                 PlayerSettings.SetPlatformIcons(NamedBuildTarget.Android, kind, icons);
