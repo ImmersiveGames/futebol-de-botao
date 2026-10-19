@@ -4,7 +4,9 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEditor.U2D;
+using UnityEditor.U2D.Sprites;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Tilemaps;
 
 namespace FutebolDeBotao.Editor
@@ -12,7 +14,7 @@ namespace FutebolDeBotao.Editor
     /// <summary>
     /// Liga as artes em pixel art (Assets/_Game/Art) à cena da partida: acerta a importação (32 px por unidade,
     /// filtro Point, sem compressão) sem mexer nos recortes feitos no Sprite Editor e troca os placeholders da bola
-    /// e da mesa (madeira, moldura, feltro, marcações e gols em tilemap e sprites).
+    /// e da mesa (madeira, moldura, feltro, marcações e gols em tilemap e sprites) e dos botões e goleiros (camisas em camadas).
     /// Menu: Futebol de Botão > Aplicar artes.
     /// </summary>
     public static class ArtBuilder
@@ -31,6 +33,17 @@ namespace FutebolDeBotao.Editor
         private const string TilesFolder = "Assets/_Game/Art/Campo/Tiles";
         private const string FieldAtlasPath = "Assets/_Game/Art/Campo/Campo.spriteatlasv2";
         private const string TableArtName = "Desenho da mesa";
+
+        // Camisas: células de 32x32, uma coluna por camada e uma linha por padrão (as colunas do goleiro têm outra ordem).
+        private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Base_Botao_32-Sheet.png";
+        private const string KeeperSheetPath = "Assets/_Game/Art/Botoes/Goal_Keeper_sheet.png";
+        private const string ShirtArtPath = "Assets/_Game/Resources/Camisas.asset";
+        private const string PieceVisualName = "Desenho";
+        private const int ShirtCell = 32;
+        private static readonly ShirtLayer[] DiscColumns =
+            { ShirtLayer.Shadow, ShirtLayer.Body, ShirtLayer.Outline, ShirtLayer.Pattern, ShirtLayer.InnerShade, ShirtLayer.Shine };
+        private static readonly ShirtLayer[] KeeperColumns =
+            { ShirtLayer.Shadow, ShirtLayer.Body, ShirtLayer.Pattern, ShirtLayer.Outline, ShirtLayer.Shine, ShirtLayer.InnerShade };
 
         // A mesa: o feltro de 7x11 no centro, a moldura de 9x13 em volta e madeira sobrando bem para fora da tela.
         // O Grid fica deslocado meio tile para as células baterem com o feltro (de -3,5 a 3,5).
@@ -57,7 +70,8 @@ namespace FutebolDeBotao.Editor
         {
             bool hasBall = File.Exists(BallSheetPath);
             bool hasTable = File.Exists(FieldSheetPath);
-            if (!hasBall && !hasTable)
+            bool hasShirts = File.Exists(DiscSheetPath) && File.Exists(KeeperSheetPath);
+            if (!hasBall && !hasTable && !hasShirts)
             {
                 Debug.LogWarning($"[Futebol de Botão] Nenhuma arte encontrada (esperava {BallSheetPath} ou {FieldSheetPath}). Nada foi alterado.");
                 return;
@@ -74,6 +88,7 @@ namespace FutebolDeBotao.Editor
 
             if (hasBall) BuildBall(ball);
             if (hasTable) BuildTable(ball.transform.parent);
+            if (hasShirts) BuildShirts();
             AlignWallsToArt();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -146,6 +161,140 @@ namespace FutebolDeBotao.Editor
             renderer.sortingOrder = order;
             renderer.color = color;
             return go.transform;
+        }
+
+        // ---- Camisas (botões e goleiros) ----
+
+        private static void BuildShirts()
+        {
+            var art = AssetDatabase.LoadAssetAtPath<ShirtArt>(ShirtArtPath);
+            if (art == null)
+            {
+                art = ScriptableObject.CreateInstance<ShirtArt>();
+                AssetDatabase.CreateAsset(art, ShirtArtPath);
+            }
+            art.disc = SliceShirtSheet(DiscSheetPath, "Botao", DiscColumns);
+            art.keeper = SliceShirtSheet(KeeperSheetPath, "Goleiro", KeeperColumns);
+            EditorUtility.SetDirty(art);
+            AssetDatabase.SaveAssets();
+
+            // Mesma ordem dos círculos do protótipo: goleiro embaixo da bola, botões por cima dela.
+            foreach (var disc in Object.FindObjectsByType<Disc>())
+            {
+                SetupPiece(disc.transform, art.disc, false, 10);
+                foreach (var placeholder in new[] { "Anel", "Centro" })
+                {
+                    var child = disc.transform.Find(placeholder);
+                    if (child != null && child.TryGetComponent(out SpriteRenderer renderer)) renderer.enabled = false;
+                }
+            }
+            foreach (var keeper in Object.FindObjectsByType<Goalkeeper>())
+                SetupPiece(keeper.transform, art.keeper, true, 5);
+
+            Debug.Log($"[Futebol de Botão] Camisas montadas: {art.disc.PatternCount} padrões de botão e {art.keeper.PatternCount} de goleiro.");
+        }
+
+        /// <summary>
+        /// Recorta a folha em células de 32x32 com nome por camada e padrão (ex.: Botao_Padrao_3) e devolve as camadas.
+        /// Pode rodar quantas vezes quiser: os recortes com o mesmo nome mantêm o ID.
+        /// </summary>
+        private static ShirtArt.Sheet SliceShirtSheet(string path, string prefix, ShirtLayer[] columns)
+        {
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.spritePixelsPerUnit = PixelsPerUnit;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.mipmapEnabled = false;
+            importer.SaveAndReimport();
+            importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+            int rows = height / ShirtCell;
+
+            var factory = new SpriteDataProviderFactories();
+            factory.Init();
+            var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
+            provider.InitSpriteEditorDataProvider();
+            var existing = provider.GetSpriteRects().GroupBy(r => r.name).ToDictionary(g => g.Key, g => g.First());
+
+            var rects = new System.Collections.Generic.List<SpriteRect>();
+            for (int row = 0; row < rows; row++)
+                for (int column = 0; column < columns.Length && (column + 1) * ShirtCell <= width; column++)
+                {
+                    string name = SpriteName(prefix, columns[column], row);
+                    if (!existing.TryGetValue(name, out var rect)) rect = new SpriteRect { name = name, spriteID = GUID.Generate() };
+                    // A linha 1 é a de cima da imagem (a Unity conta de baixo para cima).
+                    rect.rect = new Rect(column * ShirtCell, height - (row + 1) * ShirtCell, ShirtCell, ShirtCell);
+                    rect.alignment = SpriteAlignment.Center;
+                    rect.pivot = new Vector2(0.5f, 0.5f);
+                    rect.border = Vector4.zero;
+                    rects.Add(rect);
+                }
+            provider.SetSpriteRects(rects.ToArray());
+            var names = provider.GetDataProvider<ISpriteNameFileIdDataProvider>();
+            names?.SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
+            provider.Apply();
+            importer.SaveAndReimport();
+
+            var sprites = LoadSprites(path);
+            Sprite[] Layer(ShirtLayer layer) => Enumerable.Range(0, rows)
+                .Select(row => sprites.TryGetValue(SpriteName(prefix, layer, row), out var sprite) ? sprite : null)
+                .Where(sprite => sprite != null).ToArray();
+            return new ShirtArt.Sheet
+            {
+                shadow = Layer(ShirtLayer.Shadow), body = Layer(ShirtLayer.Body), pattern = Layer(ShirtLayer.Pattern),
+                outline = Layer(ShirtLayer.Outline), innerShade = Layer(ShirtLayer.InnerShade), shine = Layer(ShirtLayer.Shine),
+            };
+        }
+
+        private static string SpriteName(string prefix, ShirtLayer layer, int row) => $"{prefix}_{LayerName(layer)}_{row + 1}";
+
+        private static string LayerName(ShirtLayer layer) => layer switch
+        {
+            ShirtLayer.Shadow => "Sombra",
+            ShirtLayer.Body => "Corpo",
+            ShirtLayer.Pattern => "Padrao",
+            ShirtLayer.Outline => "Contorno",
+            ShirtLayer.InnerShade => "SombraInterna",
+            _ => "Brilho",
+        };
+
+        /// <summary>
+        /// Troca o desenho do protótipo pelas camadas, dentro de um Sorting Group na ordem antiga da peça. O círculo/retângulo
+        /// do protótipo fica desligado (o destaque da vez copia o formato dele).
+        /// </summary>
+        private static void SetupPiece(Transform piece, ShirtArt.Sheet sheet, bool keeper, int order)
+        {
+            var old = piece.Find(PieceVisualName);
+            if (old != null) Object.DestroyImmediate(old.gameObject);
+            if (piece.TryGetComponent(out SpriteRenderer placeholder))
+            {
+                placeholder.sortingOrder = order;
+                placeholder.enabled = false;
+            }
+
+            // A peça é escalada pela colisão; o desenho volta para 1:1 (32 px = 1 unidade).
+            var root = new GameObject(PieceVisualName).transform;
+            root.SetParent(piece, false);
+            var scale = piece.localScale;
+            root.localScale = new Vector3(1f / Mathf.Max(scale.x, 0.0001f), 1f / Mathf.Max(scale.y, 0.0001f), 1f);
+            root.gameObject.AddComponent<SortingGroup>().sortingOrder = order;
+
+            var spinning = new GameObject("Gira").transform;
+            spinning.SetParent(root, false);
+            var still = new GameObject("Parado").transform;
+            still.SetParent(root, false);
+
+            var renderers = new SpriteRenderer[ShirtArt.LayerCount];
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                var layer = (ShirtLayer)i;
+                var go = CreateLayer(ShirtArt.Spins(layer) ? spinning : still, LayerName(layer), sheet.Get(layer, 0), i,
+                    ShirtArt.Tint(layer, Color.white, Color.white));
+                if (keeper && layer == ShirtLayer.Shadow) go.localPosition = ShirtArt.KeeperShadowOffset;
+                renderers[i] = go.GetComponent<SpriteRenderer>();
+            }
+            root.gameObject.AddComponent<PieceArt>().Configure(keeper, renderers, keeper ? null : spinning, still);
         }
 
         // ---- Mesa ----

@@ -21,7 +21,7 @@ namespace FutebolDeBotao
 
     /// <summary>
     /// Dados que passam de uma tela para outra enquanto o jogo está aberto: as opções escolhidas no Menu,
-    /// os times e esquemas da Seleção de times, o placar da última partida, o modo (contra a IA ou 2 jogadores) e o nível da IA. As opções são uma cópia em memória do asset padrão, que não é alterado.
+    /// os times, esquemas e camisas da Seleção de times, o placar da última partida, o modo (contra a IA ou 2 jogadores) e o nível da IA. As opções são uma cópia em memória do asset padrão, que não é alterado.
     /// Salvar entre sessões fica para a fase 4 (Progression Save).
     /// </summary>
     public static class MatchSession
@@ -49,12 +49,24 @@ namespace FutebolDeBotao
         private static readonly int[] teamIndex = { 0, 1 };
         private static readonly int[] scheme5 = { 0, 0 };
         private static readonly int[] scheme3 = { 0, 0 };
+        private static readonly int[] discPattern = { 0, 0 };
+        private static readonly int[] keeperPattern = { 0, 0 };
 
         public static TeamData Team(TeamSide side) => TeamCatalog.Load().Team(teamIndex[(int)side]);
 
         public static int TeamIndex(TeamSide side) => teamIndex[(int)side];
 
         public static void SetTeamIndex(TeamSide side, int index) => teamIndex[(int)side] = index;
+
+        /// <summary>Padrão da camisa dos botões do lado (linha da folha Base_Botao_32-Sheet).</summary>
+        public static int DiscPattern(TeamSide side) => discPattern[(int)side];
+
+        public static void SetDiscPattern(TeamSide side, int index) => discPattern[(int)side] = index;
+
+        /// <summary>Padrão da camisa do goleiro do lado (linha da folha Goal_Keeper_sheet).</summary>
+        public static int KeeperPattern(TeamSide side) => keeperPattern[(int)side];
+
+        public static void SetKeeperPattern(TeamSide side, int index) => keeperPattern[(int)side] = index;
 
         /// <summary>Índice do esquema do lado <paramref name="side"/> para 3 ou 5 botões.</summary>
         public static int SchemeIndex(TeamSide side, int discs) => (discs == 3 ? scheme3 : scheme5)[(int)side];
@@ -86,6 +98,8 @@ namespace FutebolDeBotao
             teamIndex[1] = 1;
             scheme5[0] = scheme5[1] = 0;
             scheme3[0] = scheme3[1] = 0;
+            discPattern[0] = discPattern[1] = 0;
+            keeperPattern[0] = keeperPattern[1] = 0;
         }
     }
 }

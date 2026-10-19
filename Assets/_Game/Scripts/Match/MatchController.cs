@@ -1157,7 +1157,10 @@ namespace FutebolDeBotao
             return options.FormationPosition(index, side);
         }
 
-        /// <summary>Pinta botões e goleiros com as cores dos times escolhidos (botão na cor principal, anel na secundária).</summary>
+        /// <summary>
+        /// Pinta botões e goleiros com as cores e camisas escolhidas na Seleção de times. Sem as camadas do "Aplicar artes",
+        /// pinta os círculos do protótipo (botão na cor principal, anel na secundária).
+        /// </summary>
         private void PaintTeams()
         {
             foreach (var pair in discs)
@@ -1165,6 +1168,12 @@ namespace FutebolDeBotao
                 var team = MatchSession.Team(pair.Key);
                 foreach (var disc in pair.Value)
                 {
+                    var art = disc.GetComponentInChildren<PieceArt>(true);
+                    if (art != null)
+                    {
+                        art.Paint(team.PrimaryColor, team.SecondaryColor, MatchSession.DiscPattern(pair.Key));
+                        continue;
+                    }
                     if (disc.TryGetComponent(out SpriteRenderer body)) body.color = team.PrimaryColor;
                     var ring = disc.transform.Find("Anel");
                     if (ring != null && ring.TryGetComponent(out SpriteRenderer ringRenderer)) ringRenderer.color = team.SecondaryColor;
@@ -1174,8 +1183,13 @@ namespace FutebolDeBotao
             }
 
             foreach (var keeper in keepers)
-                if (keeper.TryGetComponent(out SpriteRenderer renderer))
-                    renderer.color = Color.Lerp(MatchSession.Team(keeper.Side).PrimaryColor, Color.black, 0.25f);
+            {
+                var team = MatchSession.Team(keeper.Side);
+                var art = keeper.GetComponentInChildren<PieceArt>(true);
+                if (art != null) art.Paint(team.PrimaryColor, team.SecondaryColor, MatchSession.KeeperPattern(keeper.Side));
+                else if (keeper.TryGetComponent(out SpriteRenderer renderer))
+                    renderer.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
+            }
         }
 
         // ---- HUD provisório ----

@@ -7,7 +7,8 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Seleção de times, no Menu, depois das Opções da partida: o campo desenhado com os dois times nos esquemas escolhidos.
-    /// Em cada metade, à esquerda, escudo, nome e abreviação com as setas do time; à direita, as setas do esquema.
+    /// Em cada metade, à esquerda, escudo, nome e abreviação com as setas do time e, embaixo, as setas da camisa dos botões;
+    /// à direita, as setas do esquema; as setas da camisa do goleiro ficam uma de cada lado dele.
     /// A metade de cima fica girada 180° para o Jogador 2 (base da versão de celular, 2 jogadores na mesma tela).
     /// Contra a IA, ela sorteia time e esquema ao abrir a tela. A UI é montada no Awake.
     /// Cada metade tem o seu Pronto e a partida começa com os dois prontos (contra a IA, só o de baixo). Com dispositivos
@@ -36,6 +37,9 @@ namespace FutebolDeBotao
         private static readonly Vector2 MiddleButtonSize = new(1.5f, 0.5f);
         private const float MiddleButtonX = 2.45f;
         private const float MiddleButtonY = -0.32f;
+        private const float ShirtY = BlockY - 1.4f;
+        private const float ShirtArrowX = 0.72f;
+        private const float KeeperArrowX = 0.85f;
 
         [SerializeField] private MenuScreen menu;
         [SerializeField] private MatchOptions defaults;
@@ -45,10 +49,21 @@ namespace FutebolDeBotao
                  "Sem eles, o campo é desenhado com formas lisas.")]
         [SerializeField] private Sprite[] tableSprites;
 
+        /// <summary>Botão ou goleiro: as camadas da camisa (com a arte) ou as formas lisas do protótipo.</summary>
+        private sealed class PieceView
+        {
+            public RectTransform Root;
+            public Image[] Layers;
+            public Image Body;
+            public Image Ring;
+            public Image Center;
+        }
+
         private sealed class HalfView
         {
-            public readonly List<(Image Body, Image Ring, Image Center)> Discs = new();
-            public Image Keeper;
+            public readonly List<PieceView> Discs = new();
+            public PieceView Keeper;
+            public RectTransform KeeperArrows;
             public Image Crest;
             public Image CrestRing;
             public Image CrestCenter;
@@ -58,6 +73,8 @@ namespace FutebolDeBotao
             public Text Style;
             public MenuEntry TeamItem;
             public MenuEntry SchemeItem;
+            public MenuEntry ShirtItem;
+            public MenuEntry KeeperItem;
             public RectTransform Root;
             public Button Ready;
             public MenuEntry ReadyItem;
@@ -76,6 +93,7 @@ namespace FutebolDeBotao
         private bool built;
         private bool starting;
         private MenuNavigator sharedNavigator;
+        private ShirtArt shirts;
 
         public void Configure(MenuScreen menuScreen, MatchOptions defaultOptions, Sprite circleSprite, Sprite[] tableArt)
         {
@@ -102,6 +120,11 @@ namespace FutebolDeBotao
                 if (pick >= Wrap(mine, catalog.TeamCount)) pick++;
                 MatchSession.SetTeamIndex(TeamSide.Top, pick);
                 MatchSession.SetSchemeIndex(TeamSide.Top, discs, Random.Range(0, catalog.SchemeCount(discs)));
+                if (shirts != null)
+                {
+                    MatchSession.SetDiscPattern(TeamSide.Top, Random.Range(0, Mathf.Max(1, shirts.disc.PatternCount)));
+                    MatchSession.SetKeeperPattern(TeamSide.Top, Random.Range(0, Mathf.Max(1, shirts.keeper.PatternCount)));
+                }
             }
             EnsureDifferentTeams();
 
@@ -134,6 +157,15 @@ namespace FutebolDeBotao
             int discs = MatchSession.Options(defaults).discsPerTeam;
             int count = catalog.SchemeCount(discs);
             MatchSession.SetSchemeIndex(side, discs, Wrap(MatchSession.SchemeIndex(side, discs) + step, count));
+            Refresh();
+        }
+
+        /// <summary>Próxima camisa dos botões (ou do goleiro) do time.</summary>
+        public void ChangeShirt(TeamSide side, bool keeper, int step)
+        {
+            int count = shirts == null ? 1 : Mathf.Max(1, (keeper ? shirts.keeper : shirts.disc).PatternCount);
+            if (keeper) MatchSession.SetKeeperPattern(side, Wrap(MatchSession.KeeperPattern(side) + step, count));
+            else MatchSession.SetDiscPattern(side, Wrap(MatchSession.DiscPattern(side) + step, count));
             Refresh();
         }
 
@@ -218,25 +250,26 @@ namespace FutebolDeBotao
 
                 for (int i = 0; i < view.Discs.Count; i++)
                 {
-                    var (body, ring, center) = view.Discs[i];
+                    var disc = view.Discs[i];
                     bool shown = i < discs;
-                    body.gameObject.SetActive(shown);
+                    disc.Root.gameObject.SetActive(shown);
                     if (!shown) continue;
                     Vector2 position = scheme != null && i < scheme.Count
                         ? scheme.PositionFor(i, TeamSide.Bottom)
                         : Formation.Mirror((discs == 3 ? Formation.Default3 : Formation.Default5)[Mathf.Min(i, discs - 1)], TeamSide.Bottom);
-                    body.rectTransform.anchoredPosition = position * Unit;
-                    body.color = team.PrimaryColor;
-                    ring.color = team.SecondaryColor;
-                    center.color = team.PrimaryColor;
+                    disc.Root.anchoredPosition = position * Unit;
+                    PaintPiece(disc, shirts != null ? shirts.disc : null, team, MatchSession.DiscPattern(side));
+                    if (disc.Layers == null) disc.Center.color = team.PrimaryColor;
                 }
 
-                view.Keeper.gameObject.SetActive(options.hasGoalkeeper);
+                view.Keeper.Root.gameObject.SetActive(options.hasGoalkeeper);
+                SetActive(view.KeeperArrows.gameObject, options.hasGoalkeeper && shirts != null);
                 SetActive(bigGoals, options.hasGoalkeeper);
                 SetActive(bigPoles, options.hasGoalkeeper);
                 SetActive(smallGoals, !options.hasGoalkeeper);
                 SetActive(smallPoles, !options.hasGoalkeeper);
-                view.Keeper.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
+                PaintPiece(view.Keeper, shirts != null ? shirts.keeper : null, team, MatchSession.KeeperPattern(side));
+                if (view.Keeper.Layers == null) view.Keeper.Body.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
 
                 // Sem escudo, um círculo nas cores do time.
                 bool hasCrest = team.Crest != null;
@@ -253,6 +286,24 @@ namespace FutebolDeBotao
             }
         }
 
+        private static void PaintPiece(PieceView piece, ShirtArt.Sheet sheet, TeamData team, int pattern)
+        {
+            if (piece.Layers == null)
+            {
+                piece.Body.color = team.PrimaryColor;
+                if (piece.Ring != null) piece.Ring.color = team.SecondaryColor;
+                return;
+            }
+            for (int i = 0; i < piece.Layers.Length; i++)
+            {
+                var layer = (ShirtLayer)i;
+                var image = piece.Layers[i];
+                image.sprite = sheet.Get(layer, pattern);
+                image.color = ShirtArt.Tint(layer, team.PrimaryColor, team.SecondaryColor);
+                image.enabled = image.sprite != null;
+            }
+        }
+
         // ---- Montagem ----
 
         private void Build()
@@ -260,6 +311,7 @@ namespace FutebolDeBotao
             if (built) return;
             built = true;
             font = GameFont.Get();
+            shirts = ShirtArt.Load();
 
             var root = (RectTransform)transform;
             Stretch(CreateImage(root, "Fundo", Background, null).rectTransform);
@@ -294,15 +346,16 @@ namespace FutebolDeBotao
             sharedNavigator = gameObject.AddComponent<MenuNavigator>();
             sharedNavigator.Configure(new[]
             {
-                top.TeamItem, top.SchemeItem, top.ReadyItem, backItem, bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem
-            }, back, 5, 1);
+                top.KeeperItem, top.ShirtItem, top.TeamItem, top.SchemeItem, top.ReadyItem, backItem,
+                bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem, bottom.ShirtItem, bottom.KeeperItem,
+            }, back, 7, 1);
 
             // Um cursor por jogador, cada um na sua metade (começa no time).
             bottom.Navigator = bottom.Root.gameObject.AddComponent<MenuNavigator>();
-            bottom.Navigator.Configure(new[] { backItem, bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem }, back, 2, 1);
+            bottom.Navigator.Configure(new[] { backItem, bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem, bottom.ShirtItem, bottom.KeeperItem }, back, 2, 1);
             bottom.Navigator.BackAction = () => SideBack(TeamSide.Bottom);
             top.Navigator = top.Root.gameObject.AddComponent<MenuNavigator>();
-            top.Navigator.Configure(new[] { top.ReadyItem, top.TeamItem, top.SchemeItem }, null, 1, 2);
+            top.Navigator.Configure(new[] { top.ReadyItem, top.TeamItem, top.SchemeItem, top.ShirtItem, top.KeeperItem }, null, 1, 2);
             top.Navigator.SetFrameColor(SecondPlayerFrame);
             top.Navigator.BackAction = () => SideBack(TeamSide.Top);
             top.Navigator.enabled = bottom.Navigator.enabled = false;
@@ -428,14 +481,9 @@ namespace FutebolDeBotao
             if (side == TeamSide.Top) half.localRotation = Quaternion.Euler(0f, 0f, 180f);
             view.Root = half;
 
-            view.Keeper = CreateImage(half, "Goleiro", Color.white, null, new Vector2(0f, -(FieldLayout.HalfHeight - 0.35f)), new Vector2(1f, 0.25f));
-            for (int i = 0; i < 5; i++)
-            {
-                var body = CreateImage(half, $"Botão {i + 1}", Color.white, circle, Vector2.zero, Vector2.one * DiscSize);
-                var ring = CreateImage(body.rectTransform, "Anel", Color.white, circle, Vector2.zero, Vector2.one * 0.55f);
-                var center = CreateImage(body.rectTransform, "Centro", Color.white, circle, Vector2.zero, Vector2.one * 0.42f);
-                view.Discs.Add((body, ring, center));
-            }
+            var keeperPosition = new Vector2(0f, -(FieldLayout.HalfHeight - 0.35f));
+            view.Keeper = CreatePiece(half, "Goleiro", keeperPosition, side, true);
+            for (int i = 0; i < 5; i++) view.Discs.Add(CreatePiece(half, $"Botão {i + 1}", Vector2.zero, side, false));
 
             // Esquerda (de quem joga deste lado): escudo, nome, abreviação e as setas do time.
             float x = -StripX;
@@ -463,11 +511,67 @@ namespace FutebolDeBotao
             view.SchemeItem.Configure(null, previousScheme, nextScheme, schemeTitle.rectTransform, view.Scheme.rectTransform,
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
 
-            view.Arrows = new[] { previousTeam, nextTeam, previousScheme, nextScheme };
+            // Camisa dos botões: embaixo do time, "Camisa" entre as setas.
+            x = -StripX;
+            var shirtTitle = CreateText(half, "Camisa", 18, FontStyle.Normal, SoftText, new Vector2(x, ShirtY), new Vector2(0.9f, 0.3f));
+            shirtTitle.text = "Camisa";
+            var previousShirt = CreateButton(half, "Camisa anterior", "<", new Vector2(x - ShirtArrowX, ShirtY), Vector2.one * 0.5f, () => ChangeShirt(side, false, -1));
+            var nextShirt = CreateButton(half, "Próxima camisa", ">", new Vector2(x + ShirtArrowX, ShirtY), Vector2.one * 0.5f, () => ChangeShirt(side, false, 1));
+            view.ShirtItem = CreateRect(half, "Item da camisa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            view.ShirtItem.Configure(null, previousShirt, nextShirt, shirtTitle.rectTransform,
+                (RectTransform)previousShirt.transform, (RectTransform)nextShirt.transform);
+            view.ShirtItem.gameObject.SetActive(shirts != null);
+            SetActive(shirtTitle.gameObject, shirts != null);
+            SetActive(previousShirt.gameObject, shirts != null);
+            SetActive(nextShirt.gameObject, shirts != null);
+
+            // Camisa do goleiro: uma seta de cada lado dele (somem sem goleiro).
+            view.KeeperArrows = CreateRect(half, "Setas do goleiro", keeperPosition * Unit, Vector2.zero);
+            var previousKeeper = CreateButton(view.KeeperArrows, "Goleiro anterior", "<", new Vector2(-KeeperArrowX, 0f), Vector2.one * 0.45f, () => ChangeShirt(side, true, -1));
+            var nextKeeper = CreateButton(view.KeeperArrows, "Próximo goleiro", ">", new Vector2(KeeperArrowX, 0f), Vector2.one * 0.45f, () => ChangeShirt(side, true, 1));
+            view.KeeperItem = view.KeeperArrows.gameObject.AddComponent<MenuEntry>();
+            view.KeeperItem.Configure(null, previousKeeper, nextKeeper, view.Keeper.Root,
+                (RectTransform)previousKeeper.transform, (RectTransform)nextKeeper.transform);
+
+            view.Arrows = new[] { previousTeam, nextTeam, previousScheme, nextScheme, previousShirt, nextShirt, previousKeeper, nextKeeper };
             view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, MiddleButtonY), MiddleButtonSize, () => ToggleReady(side), ButtonStyle.Yellow);
             view.ReadyItem = view.Ready.gameObject.AddComponent<MenuEntry>();
             view.ReadyItem.Configure(view.Ready);
             return view;
+        }
+
+        /// <summary>
+        /// Botão ou goleiro com as camadas da camisa (célula de 32x32 = 1 unidade). No time de cima a peça desgira os 180°
+        /// da metade, como na Partida: a luz e a frente do goleiro ficam iguais nos dois times.
+        /// </summary>
+        private PieceView CreatePiece(RectTransform half, string objectName, Vector2 position, TeamSide side, bool keeper)
+        {
+            var piece = new PieceView();
+            if (shirts == null)
+            {
+                // Sem a arte: círculos (botão) ou retângulo (goleiro) lisos.
+                piece.Body = keeper
+                    ? CreateImage(half, objectName, Color.white, null, position, new Vector2(1f, 0.25f))
+                    : CreateImage(half, objectName, Color.white, circle, position, Vector2.one * DiscSize);
+                piece.Root = piece.Body.rectTransform;
+                if (!keeper)
+                {
+                    piece.Ring = CreateImage(piece.Root, "Anel", Color.white, circle, Vector2.zero, Vector2.one * 0.55f);
+                    piece.Center = CreateImage(piece.Root, "Centro", Color.white, circle, Vector2.zero, Vector2.one * 0.42f);
+                }
+                return piece;
+            }
+
+            piece.Root = CreateRect(half, objectName, position * Unit, Vector2.one * Unit);
+            if (side == TeamSide.Top) piece.Root.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            piece.Layers = new Image[ShirtArt.LayerCount];
+            for (int i = 0; i < piece.Layers.Length; i++)
+            {
+                var layer = (ShirtLayer)i;
+                var offset = keeper && layer == ShirtLayer.Shadow ? ShirtArt.KeeperShadowOffset : Vector2.zero;
+                piece.Layers[i] = CreateImage(piece.Root, layer.ToString(), Color.white, null, offset, Vector2.one);
+            }
+            return piece;
         }
 
         // ---- UI ----
