@@ -21,8 +21,8 @@ namespace FutebolDeBotao
         [Min(0f)] public float farFoulDistance = 3.5f;
 
         [Header("Times")]
-        [Tooltip("5 ou 3 botões por time.")]
-        public int discsPerTeam = 5;
+        [Tooltip("3 (padrão) ou 5 botões por time.")]
+        public int discsPerTeam = 3;
         public bool hasGoalkeeper = true;
         [Tooltip("Largura da boca do gol sem goleiro (com goleiro é 2,4).")]
         [Range(0.6f, FieldLayout.GoalWidth)] public float goalWidthWithoutKeeper = 1.4f;
