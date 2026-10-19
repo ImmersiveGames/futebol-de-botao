@@ -85,7 +85,7 @@ namespace FutebolDeBotao
             _ => primary,
         };
 
-        /// <summary>Corpo, padrão e contorno giram com o botão; sombra, sombra interna e brilho ficam parados (a luz não gira).</summary>
+        /// <summary>Corpo, padrão e contorno (grupo "Gira" na cena); hoje nenhuma camada gira na tela.</summary>
         public static bool Spins(ShirtLayer layer) => layer is ShirtLayer.Body or ShirtLayer.Pattern or ShirtLayer.Outline;
     }
 }

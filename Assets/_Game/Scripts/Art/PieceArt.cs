@@ -3,8 +3,8 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Desenho de um botão ou goleiro com as camadas de <see cref="ShirtArt"/>. O corpo, o padrão e o contorno giram com
-    /// o botão em passos fixos (como a bola); a sombra, a sombra interna e o brilho ficam sempre parados.
+    /// Desenho de um botão ou goleiro com as camadas de <see cref="ShirtArt"/>. O desenho nunca gira, mesmo com o botão
+    /// girando na física: o padrão fica sempre igual na tela, nos dois times.
     /// Montado por "Futebol de Botão/Aplicar artes"; a Partida pinta com <see cref="Paint"/>.
     /// </summary>
     public sealed class PieceArt : MonoBehaviour
@@ -14,8 +14,6 @@ namespace FutebolDeBotao
         [SerializeField] private SpriteRenderer[] layers = new SpriteRenderer[0];
         [SerializeField] private Transform spinning;
         [SerializeField] private Transform still;
-        [Tooltip("Direções do giro do desenho (8 = de 45 em 45°, 4 = de 90 em 90°).")]
-        [SerializeField] private int directions = 8;
 
         public void Configure(bool isKeeper, SpriteRenderer[] layerRenderers, Transform spinningLayers, Transform stillLayers)
         {
@@ -43,10 +41,7 @@ namespace FutebolDeBotao
         private void LateUpdate()
         {
             if (still != null) still.rotation = Quaternion.identity;
-            if (spinning == null) return;
-            float step = 360f / Mathf.Max(1, directions);
-            float angle = transform.parent != null ? transform.parent.eulerAngles.z : 0f;
-            spinning.rotation = Quaternion.Euler(0f, 0f, Mathf.Round(angle / step) * step);
+            if (spinning != null) spinning.rotation = Quaternion.identity;
         }
     }
 }
