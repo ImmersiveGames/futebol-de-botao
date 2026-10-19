@@ -29,8 +29,11 @@ namespace FutebolDeBotao
 
         public static readonly Color ShadowColor = new(0f, 0f, 0f, 0.4f);
 
-        /// <summary>A sombra do goleiro vem centrada na folha; no jogo ela desce e vai para a direita como a dos botões.</summary>
-        public static readonly Vector2 KeeperShadowOffset = new(1f / 32f, -2f / 32f);
+        /// <summary>
+        /// A sombra do goleiro vem centrada no topo (8 px); no jogo ela desce os 4 px da frente (vai para o pé da caixa)
+        /// e mais 2 px para baixo e 1 px para a direita, como a dos botões. Sem descer a frente, ela fica escondida embaixo dele.
+        /// </summary>
+        public static readonly Vector2 KeeperShadowOffset = new(1f / 32f, -6f / 32f);
 
         [System.Serializable]
         public sealed class Sheet
