@@ -16,7 +16,7 @@ namespace FutebolDeBotao
     /// <summary>
     /// Camisas em pixel art desenhadas em cinza e tingidas no jogo: botões (Base_Botao_32-Sheet) e goleiros
     /// (Goal_Keeper_sheet), uma linha por padrão e uma coluna por camada. Corpo, contorno e sombra interna levam a cor
-    /// principal; o padrão leva a segunda cor; o brilho fica claro e a sombra preta semitransparente.
+    /// principal (os tons de cinza da arte fazem o claro e o escuro); o padrão leva a segunda cor; a sombra é preta semitransparente.
     /// Montado por "Futebol de Botão/Aplicar artes" em Resources/Camisas.
     /// </summary>
     public sealed class ShirtArt : ScriptableObject
@@ -24,8 +24,8 @@ namespace FutebolDeBotao
         public const string ResourcePath = "Camisas";
         public const int LayerCount = 6;
 
-        /// <summary>Brilho: 1 = branco puro; menos que 1 = tom claro da cor principal.</summary>
-        public const float ShineLightness = 1f;
+        /// <summary>Brilho: 0 = cor principal (o cinza claro da arte faz o tom claro); 1 = branco puro.</summary>
+        public const float ShineLightness = 0f;
 
         public static readonly Color ShadowColor = new(0f, 0f, 0f, 0.4f);
 

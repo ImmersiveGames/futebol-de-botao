@@ -41,9 +41,10 @@ namespace FutebolDeBotao.Editor
         private const string PieceVisualName = "Desenho";
         private const int ShirtCell = 32;
         private static readonly ShirtLayer[] DiscColumns =
-            { ShirtLayer.Shadow, ShirtLayer.Body, ShirtLayer.Outline, ShirtLayer.Pattern, ShirtLayer.InnerShade, ShirtLayer.Shine };
+            { ShirtLayer.Shadow, ShirtLayer.Body, ShirtLayer.Pattern, ShirtLayer.Outline, ShirtLayer.InnerShade, ShirtLayer.Shine };
+        // O goleiro não tem contorno.
         private static readonly ShirtLayer[] KeeperColumns =
-            { ShirtLayer.Shadow, ShirtLayer.Body, ShirtLayer.Pattern, ShirtLayer.Outline, ShirtLayer.Shine, ShirtLayer.InnerShade };
+            { ShirtLayer.Shadow, ShirtLayer.Body, ShirtLayer.Pattern, ShirtLayer.Shine, ShirtLayer.InnerShade };
 
         // A mesa: o feltro de 7x11 no centro, a moldura de 9x13 em volta e madeira sobrando bem para fora da tela.
         // O Grid fica deslocado meio tile para as células baterem com o feltro (de -3,5 a 3,5).
