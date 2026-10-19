@@ -31,7 +31,7 @@ namespace FutebolDeBotao.Editor
         public const string MenuMusic = "musica_menu";
         public const string MatchMusic = "musica_partida";
 
-        // Sons da partida: nome do arquivo em Sons/, volume.
+        // Sons da partida e o clique dos botões: nome do arquivo em Sons/, volume.
         private static readonly (string clip, float volume)[] SfxCues =
         {
             ("peteleco", 0.8f),
@@ -41,7 +41,8 @@ namespace FutebolDeBotao.Editor
             ("apito", 0.7f),
             ("apito_final", 0.8f),
             ("gol", 1f),
-            ("cartao", 0.8f)
+            ("cartao", 0.8f),
+            ("clique", 0.6f)
         };
 
         [MenuItem("Futebol de Botão/Criar áudio")]
@@ -212,6 +213,17 @@ namespace FutebolDeBotao.Editor
                 so.FindProperty("routeBgm").objectReferenceValue = cue;
                 so.FindProperty("policy").intValue = (int)FrameworkBgmRoutePolicy.PlayOwn;
             });
+            AddUiSounds(parent);
+        }
+
+        /// <summary>Clique dos botões da cena (vai junto com a música, que toda cena tem).</summary>
+        private static void AddUiSounds(Transform parent)
+        {
+            var click = LoadCue<AudioSfxCueAsset>("clique");
+            if (click == null) return;
+            var go = new GameObject("Sons dos botões");
+            if (parent != null) go.transform.SetParent(parent, false);
+            go.AddComponent<UiSounds>().Configure(click);
         }
 
         /// <summary>Música e sons da partida.</summary>

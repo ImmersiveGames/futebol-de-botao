@@ -20,6 +20,7 @@ namespace FutebolDeBotao
     /// <summary>
     /// Veste um <see cref="Button"/> com a moldura 9-slice de Resources/Botoes/Buttons_Sprites (32x32, borda de 10 px):
     /// troca para a versão apertada no toque, usa a marrom quando o botão está desligado e acerta a cor do texto.
+    /// Também põe o som de clique (<see cref="ButtonClickSound"/>).
     /// Sem a folha (ou sem os recortes), não mexe em nada e devolve falso: quem chamou mantém a cor lisa de antes.
     /// Os recortes são feitos pelo menu "Criar telas".
     /// </summary>
@@ -77,6 +78,7 @@ namespace FutebolDeBotao
             // Um pixel da arte em unidades da UI, já com a borda encolhida dos botões baixos.
             float artPixel = ReferencePixelsPerUnit / normal.pixelsPerUnit / image.pixelsPerUnitMultiplier;
             text.Configure(button, label, TextColor(style), FaceRaisePixels * artPixel);
+            if (!button.TryGetComponent<ButtonClickSound>(out _)) button.gameObject.AddComponent<ButtonClickSound>();
             return true;
         }
 

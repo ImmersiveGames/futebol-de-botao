@@ -37,6 +37,7 @@ namespace FutebolDeBotao.Editor
             Write("apito_final", () => Concat(Whistle(0.35f), Silence(0.12f), Whistle(0.35f), Silence(0.12f), Whistle(0.9f)));
             Write("cartao", Card, 0.6f);
             Write("gol", Goal);
+            Write("clique", Click, 0.5f);
             Write("musica_menu", () => Music(112f, MenuMelody, MenuBass), 0.6f);
             Write("musica_partida", () => Music(132f, MatchMelody, MatchBass), 0.55f);
             return created;
@@ -54,6 +55,19 @@ namespace FutebolDeBotao.Editor
                 float t = i / (float)Rate;
                 float f = Mathf.Max(900f - 6000f * t, 200f);
                 s.Add(Env(i, total, 0.001f, 4f) * (0.6f * Mathf.Sin(2f * Mathf.PI * f * t) + 0.5f * Noise()));
+            }
+            return s;
+        }
+
+        // Clique dos botões: bipe quadrado bem curto que sobe.
+        private static List<float> Click()
+        {
+            int total = N(0.045f);
+            var s = new List<float>(total);
+            for (int i = 0; i < total; i++)
+            {
+                float t = i / (float)Rate;
+                s.Add(Env(i, total, 0.001f, 2f) * Square((880f * t + 3000f * t * t), 0.5f));
             }
             return s;
         }
