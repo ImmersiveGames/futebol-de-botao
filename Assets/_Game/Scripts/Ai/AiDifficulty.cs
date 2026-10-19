@@ -39,7 +39,7 @@ namespace FutebolDeBotao
                  "abaixo; quando não erra, o peteleco sai exato. Fácil 0,6; Médio 0,35; Difícil 0,15.")]
         [Range(0f, 1f)] public float errorChance = 0.45f;
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
-        [Min(0f)] public float angleErrorDegrees = 4f;
+        [Min(0f)] public float angleErrorDegrees = 6f;
         [Tooltip("Erro máximo na força, em fração (0,08 = 8% a mais ou a menos).")]
         [Range(0f, 0.5f)] public float powerError = 0.08f;
 
@@ -97,7 +97,7 @@ namespace FutebolDeBotao
                     difficulty.followUpSimulations = 3;
                     difficulty.maxFoulChance = 0.5f;
                     difficulty.errorChance = 0.6f;
-                    difficulty.angleErrorDegrees = 8f;
+                    difficulty.angleErrorDegrees = 11f;
                     difficulty.powerError = 0.15f;
                     difficulty.shotCallDistance = 3f;
                     difficulty.keeperError = 0.5f;
@@ -113,7 +113,7 @@ namespace FutebolDeBotao
                     difficulty.followUpSimulations = 6;
                     difficulty.maxFoulChance = 0.2f;
                     difficulty.errorChance = 0.25f;
-                    difficulty.angleErrorDegrees = 1.5f;
+                    difficulty.angleErrorDegrees = 2.5f;
                     difficulty.powerError = 0.03f;
                     difficulty.shotCallDistance = 6f;
                     difficulty.keeperError = 0.2f;
