@@ -14,7 +14,8 @@ namespace FutebolDeBotao
         Touches,
         GoalAfterWall,
         AimAssist,
-        Fouls
+        Fouls,
+        Music
     }
 
     /// <summary>
@@ -197,6 +198,9 @@ namespace FutebolDeBotao
                 case MatchOptionKind.Fouls:
                     options.fouls = !options.fouls;
                     break;
+                case MatchOptionKind.Music:
+                    MusicSetting.Enabled = !MusicSetting.Enabled;
+                    break;
             }
             Refresh();
         }
@@ -218,6 +222,7 @@ namespace FutebolDeBotao
             MatchOptionKind.GoalAfterWall => "Gol após parede",
             MatchOptionKind.AimAssist => "Ajuda de mira",
             MatchOptionKind.Fouls => "Faltas",
+            MatchOptionKind.Music => "Música",
             _ => kind.ToString()
         };
 
@@ -236,10 +241,11 @@ namespace FutebolDeBotao
                 _ => "Desligada"
             },
             MatchOptionKind.Fouls => OnOff(options.fouls),
+            MatchOptionKind.Music => OnOff(MusicSetting.Enabled),
             _ => string.Empty
         };
 
-        private static string OnOff(bool value) => value ? "Ligado" : "Desligado";
+        public static string OnOff(bool value) => value ? "Ligado" : "Desligado";
 
         private static int Wrap(int value, int count) => ((value % count) + count) % count;
     }

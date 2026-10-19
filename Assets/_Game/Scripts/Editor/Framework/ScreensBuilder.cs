@@ -39,6 +39,8 @@ namespace FutebolDeBotao.Editor
         private const string BallSheetPath = "Assets/_Game/Art/Ball/Ball_SpriteSheet.png";
         /// <summary>Logo da Immersive só com o desenho (sem o texto), no canto da Abertura.</summary>
         private const string StudioLogoPath = "Assets/_Game/Art/logov3IconWhite.png";
+        // Ícone do jogo em cima do título da Abertura (posto pelo usuário na cena em 2026-10-19).
+        private const string GameLogoPath = "Assets/_Game/Art/Logo.png";
         /// <summary>Altura do logo na tela de referência (720 x 1280) e distância das bordas.</summary>
         private const float StudioLogoHeight = 84f;
         private const float StudioLogoMargin = 24f;
@@ -221,6 +223,7 @@ namespace FutebolDeBotao.Editor
             var prompt = CreateText(canvas, "Aperte", TitleScreen.PromptText, 36, new Vector2(0f, -200f), new Vector2(680f, 120f));
 
             CreateStudioLogo(canvas);
+            CreateGameLogo(canvas);
 
             var trigger = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "abertura.menu");
             canvas.gameObject.AddComponent<TitleScreen>().Configure(trigger, prompt);
@@ -392,19 +395,20 @@ namespace FutebolDeBotao.Editor
         {
             var canvas = CreateCanvas(PauseCanvasName, 100);
             var pauseMenu = canvas.gameObject.AddComponent<PauseMenu>();
-            pauseMenu.Configure(pause, restart, toMenu);
 
             // O adaptador do framework mostra e esconde o painel; o PauseMenu fica no Canvas, que nunca é desligado.
             var panel = CreatePanel(canvas, "Painel", PanelColor, Vector2.zero, Vector2.one);
             // O framework exige o CanvasGroup no mesmo objeto do Surface Root.
             var group = panel.gameObject.AddComponent<CanvasGroup>();
             CreateText(panel.transform, "Título", "Pausa", 64, new Vector2(0f, 260f), new Vector2(600f, 110f), FontStyle.Bold);
-            var resume = CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 80f), new Vector2(420f, 90f), pauseMenu.Resume, ButtonStyle.Yellow);
-            var restartButton = CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -40f), new Vector2(420f, 90f), pauseMenu.Restart, ButtonStyle.Red);
-            var menuButton = CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -160f), new Vector2(420f, 90f), pauseMenu.BackToMenu, ButtonStyle.Red);
+            var resume = CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 120f), new Vector2(420f, 90f), pauseMenu.Resume, ButtonStyle.Yellow);
+            var music = CreateButton(panel.transform, "Música", "Música: Ligado", new Vector2(0f, 0f), new Vector2(420f, 90f), pauseMenu.ToggleMusic);
+            var restartButton = CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -120f), new Vector2(420f, 90f), pauseMenu.Restart, ButtonStyle.Red);
+            var menuButton = CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -240f), new Vector2(420f, 90f), pauseMenu.BackToMenu, ButtonStyle.Red);
+            pauseMenu.Configure(pause, restart, toMenu, music.GetComponentInChildren<Text>());
             // Quem pausou mexe no menu (Esc/Start do próprio dispositivo, ou o mouse/toque dele).
             var pauseNavigator = panel.gameObject.AddComponent<MenuNavigator>();
-            pauseNavigator.Configure(new[] { Item(resume), Item(restartButton), Item(menuButton) }, resume);
+            pauseNavigator.Configure(new[] { Item(resume), Item(music), Item(restartButton), Item(menuButton) }, resume);
             pauseNavigator.FollowPauser();
             panel.gameObject.SetActive(false);
 
@@ -523,6 +527,18 @@ namespace FutebolDeBotao.Editor
         /// Logo da Immersive no canto inferior direito, pequeno e um pouco transparente. A imagem é grande e vai ser
         /// mostrada bem menor: filtro bilinear com mipmaps para não serrilhar.
         /// </summary>
+        private static void CreateGameLogo(Transform canvas)
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(GameLogoPath);
+            if (sprite == null) return;
+            var go = new GameObject("Logo do jogo", typeof(RectTransform));
+            go.transform.SetParent(canvas, false);
+            Place((RectTransform)go.transform, new Vector2(0f, 380f), new Vector2(400f, 400f));
+            var image = go.AddComponent<Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;
+        }
+
         private static void CreateStudioLogo(Transform canvas)
         {
             if (AssetImporter.GetAtPath(StudioLogoPath) is TextureImporter importer &&
