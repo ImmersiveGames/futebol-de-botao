@@ -17,11 +17,12 @@ namespace FutebolDeBotao
     /// </summary>
     public sealed class DeviceSelectionScreen : MonoBehaviour
     {
-        private const float ColumnX = 240f;
+        // Cartão com as setas nas colunas dos lados: 225 + 85 + 4 + 36 = 350, dentro dos 360 da metade da largura (720).
+        private const float ColumnX = 225f;
         private const float FirstCardY = 230f;
         private const float CardSpacing = 110f;
-        private static readonly Vector2 CardSize = new(180f, 80f);
-        private static readonly Vector2 ArrowSize = new(40f, 80f);
+        private static readonly Vector2 CardSize = new(170f, 80f);
+        private static readonly Vector2 ArrowSize = new(36f, 80f);
         private static readonly Color CardColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ConfirmedColor = new(0.55f, 0.9f, 0.55f);
         private static readonly Color TextColor = new(0.1f, 0.1f, 0.1f);
