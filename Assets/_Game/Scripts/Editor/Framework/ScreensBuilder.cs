@@ -240,12 +240,14 @@ namespace FutebolDeBotao.Editor
             CreateFieldBackground(canvas);
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
 
-            // Primeira tela do Menu: o título da Abertura no mesmo lugar e, embaixo, Um jogador (contra a IA) ou Dois jogadores.
+            // Primeira tela do Menu: o título, o ícone e o logo da Immersive como na Abertura e, embaixo, Um jogador (contra a IA) ou Dois jogadores.
             var modePanel = CreateGroup(canvas, "Como jogar");
             CreateText(modePanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
             var onePlayer = CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -180f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
             var twoPlayers = CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -300f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
             AddNavigator(modePanel, null, Item(onePlayer), Item(twoPlayers));
+            CreateStudioLogo(modePanel);
+            CreateGameLogo(modePanel);
 
             // Opções da partida (GDD), depois do modo; "Avançar" abre a Seleção de times
             var optionsPanel = CreateGroup(canvas, "Opções da partida");
@@ -523,10 +525,7 @@ namespace FutebolDeBotao.Editor
             }
         }
 
-        /// <summary>
-        /// Logo da Immersive no canto inferior direito, pequeno e um pouco transparente. A imagem é grande e vai ser
-        /// mostrada bem menor: filtro bilinear com mipmaps para não serrilhar.
-        /// </summary>
+        /// <summary>Ícone do jogo acima do título (Abertura e primeira tela do Menu).</summary>
         private static void CreateGameLogo(Transform canvas)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(GameLogoPath);
@@ -539,6 +538,10 @@ namespace FutebolDeBotao.Editor
             image.raycastTarget = false;
         }
 
+        /// <summary>
+        /// Logo da Immersive no canto inferior direito, pequeno e um pouco transparente. A imagem é grande e vai ser
+        /// mostrada bem menor: filtro bilinear com mipmaps para não serrilhar.
+        /// </summary>
         private static void CreateStudioLogo(Transform canvas)
         {
             if (AssetImporter.GetAtPath(StudioLogoPath) is TextureImporter importer &&
