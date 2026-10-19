@@ -7,7 +7,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Seleção de times, no Menu, depois das Opções da partida: o campo desenhado com os dois times nos esquemas escolhidos.
-    /// Em cada metade, à esquerda, escudo, nome e abreviação com as setas do time e, embaixo, as setas da camisa dos botões;
+    /// Em cada metade, à esquerda, as setas do time lado a lado com o nome e a abreviação à direita e, embaixo, as da camisa;
     /// à direita, as setas do esquema; as setas da camisa do goleiro ficam uma de cada lado dele.
     /// A metade de cima fica girada 180° para o Jogador 2 (base da versão de celular, 2 jogadores na mesma tela).
     /// Contra a IA, ela sorteia time e esquema ao abrir a tela. A UI é montada no Awake.
@@ -37,13 +37,18 @@ namespace FutebolDeBotao
         private static readonly Vector2 MiddleButtonSize = new(1.5f, 0.5f);
         private const float MiddleButtonX = 2.45f;
         private const float MiddleButtonY = -0.32f;
-        private const float ShirtY = BlockY - 1.4f;
-        private const float ShirtArrowX = 0.72f;
+        // Time e camisa: as duas setas lado a lado e o texto à direita delas.
+        private const float TeamRowY = BlockY + 0.35f;
+        private const float ShirtY = BlockY - 0.45f;
+        private const float RowArrowSize = 0.5f;
+        private static readonly float[] RowArrowX = { -StripX - 0.65f, -StripX - 0.1f };
+        private const float RowLabelLeft = -StripX + 0.25f;
+        private const float RowLabelWidth = 1.3f;
         private const float KeeperArrowX = 0.85f;
 
         [SerializeField] private MenuScreen menu;
         [SerializeField] private MatchOptions defaults;
-        [Tooltip("Círculo branco usado nos botões, na bola e no escudo provisório.")]
+        [Tooltip("Círculo branco usado nos botões e na bola sem a arte.")]
         [SerializeField] private Sprite circle;
         [Tooltip("Recortes da mesa e da bola (Field_Sprites, Field_Marks e Ball_SpriteSheet), achados pelo nome. " +
                  "Sem eles, o campo é desenhado com formas lisas.")]
@@ -64,9 +69,6 @@ namespace FutebolDeBotao
             public readonly List<PieceView> Discs = new();
             public PieceView Keeper;
             public RectTransform KeeperArrows;
-            public Image Crest;
-            public Image CrestRing;
-            public Image CrestCenter;
             public Text Name;
             public Text Abbreviation;
             public Text Scheme;
@@ -270,14 +272,6 @@ namespace FutebolDeBotao
                 SetActive(smallPoles, !options.hasGoalkeeper);
                 PaintPiece(view.Keeper, shirts != null ? shirts.keeper : null, team, MatchSession.KeeperPattern(side));
                 if (view.Keeper.Layers == null) view.Keeper.Body.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
-
-                // Sem escudo, um círculo nas cores do time.
-                bool hasCrest = team.Crest != null;
-                view.Crest.gameObject.SetActive(hasCrest);
-                view.CrestRing.gameObject.SetActive(!hasCrest);
-                if (hasCrest) view.Crest.sprite = team.Crest;
-                view.CrestRing.color = team.SecondaryColor;
-                view.CrestCenter.color = team.PrimaryColor;
 
                 view.Name.text = team.TeamName;
                 view.Abbreviation.text = team.Abbreviation;
@@ -485,22 +479,17 @@ namespace FutebolDeBotao
             view.Keeper = CreatePiece(half, "Goleiro", keeperPosition, side, true);
             for (int i = 0; i < 5; i++) view.Discs.Add(CreatePiece(half, $"Botão {i + 1}", Vector2.zero, side, false));
 
-            // Esquerda (de quem joga deste lado): escudo, nome, abreviação e as setas do time.
-            float x = -StripX;
-            view.CrestRing = CreateImage(half, "Escudo provisório", Color.white, circle, new Vector2(x, BlockY + 0.8f), Vector2.one * 0.8f);
-            view.CrestCenter = CreateImage(view.CrestRing.rectTransform, "Centro", Color.white, circle, Vector2.zero, Vector2.one * 0.62f);
-            view.Crest = CreateImage(half, "Escudo", Color.white, null, new Vector2(x, BlockY + 0.8f), Vector2.one * 0.8f);
-            view.Crest.preserveAspect = true;
-            view.Name = CreateText(half, "Nome", 22, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.32f));
-            view.Abbreviation = CreateText(half, "Abreviação", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY - 0.17f), new Vector2(1.4f, 0.26f));
-            var previousTeam = CreateButton(half, "Time anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, -1));
-            var nextTeam = CreateButton(half, "Próximo time", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeTeam(side, 1));
+            // Esquerda (de quem joga deste lado): as setas do time com o nome e a abreviação à direita.
+            var previousTeam = CreateButton(half, "Time anterior", "<", new Vector2(RowArrowX[0], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, -1));
+            var nextTeam = CreateButton(half, "Próximo time", ">", new Vector2(RowArrowX[1], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, 1));
+            view.Name = CreateRowLabel(half, "Nome", 22, FontStyle.Bold, Color.white, TeamRowY + 0.13f, 0.32f);
+            view.Abbreviation = CreateRowLabel(half, "Abreviação", 18, FontStyle.Normal, SoftText, TeamRowY - 0.15f, 0.26f);
             view.TeamItem = CreateRect(half, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
-            view.TeamItem.Configure(null, previousTeam, nextTeam, view.CrestRing.rectTransform, view.Name.rectTransform,
+            view.TeamItem.Configure(null, previousTeam, nextTeam, view.Name.rectTransform,
                 view.Abbreviation.rectTransform, (RectTransform)previousTeam.transform, (RectTransform)nextTeam.transform);
 
             // Direita: o esquema tático.
-            x = StripX;
+            float x = StripX;
             var schemeTitle = CreateText(half, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f));
             schemeTitle.text = "Esquema";
             view.Scheme = CreateText(half, "Nome do esquema", 32, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.5f), new Vector2(1.4f, 0.44f));
@@ -511,12 +500,11 @@ namespace FutebolDeBotao
             view.SchemeItem.Configure(null, previousScheme, nextScheme, schemeTitle.rectTransform, view.Scheme.rectTransform,
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
 
-            // Camisa dos botões: embaixo do time, "Camisa" entre as setas.
-            x = -StripX;
-            var shirtTitle = CreateText(half, "Camisa", 18, FontStyle.Normal, SoftText, new Vector2(x, ShirtY), new Vector2(0.9f, 0.3f));
+            // Camisa dos botões: embaixo do time, no mesmo formato.
+            var previousShirt = CreateButton(half, "Camisa anterior", "<", new Vector2(RowArrowX[0], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, -1));
+            var nextShirt = CreateButton(half, "Próxima camisa", ">", new Vector2(RowArrowX[1], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, 1));
+            var shirtTitle = CreateRowLabel(half, "Camisa", 20, FontStyle.Bold, Color.white, ShirtY, 0.32f);
             shirtTitle.text = "Camisa";
-            var previousShirt = CreateButton(half, "Camisa anterior", "<", new Vector2(x - ShirtArrowX, ShirtY), Vector2.one * 0.5f, () => ChangeShirt(side, false, -1));
-            var nextShirt = CreateButton(half, "Próxima camisa", ">", new Vector2(x + ShirtArrowX, ShirtY), Vector2.one * 0.5f, () => ChangeShirt(side, false, 1));
             view.ShirtItem = CreateRect(half, "Item da camisa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.ShirtItem.Configure(null, previousShirt, nextShirt, shirtTitle.rectTransform,
                 (RectTransform)previousShirt.transform, (RectTransform)nextShirt.transform);
@@ -595,6 +583,14 @@ namespace FutebolDeBotao
             image.color = color;
             image.raycastTarget = false;
             return image;
+        }
+
+        /// <summary>Texto à direita das setas lado a lado (time e camisa), alinhado à esquerda.</summary>
+        private Text CreateRowLabel(Transform parent, string objectName, int fontSize, FontStyle style, Color color, float y, float height)
+        {
+            var text = CreateText(parent, objectName, fontSize, style, color, new Vector2(RowLabelLeft + RowLabelWidth * 0.5f, y), new Vector2(RowLabelWidth, height));
+            text.alignment = TextAnchor.MiddleLeft;
+            return text;
         }
 
         private Text CreateText(Transform parent, string objectName, int fontSize, FontStyle style, Color color, Vector2 position, Vector2 size)
