@@ -30,6 +30,8 @@ namespace FutebolDeBotao
         private const float RotateRampSeconds = 0.8f;
         private const float PowerSpeed = 0.8f;
         private const float StartPower = 0.5f;
+        // Toque: o dedo mexe um pouco ao sair da tela; a direção do peteleco é a de um instante antes de soltar.
+        private const float TouchReleaseSteadySeconds = 0.08f;
 
         private Ball ball;
         private Vector2 pointerWorld;
@@ -38,6 +40,8 @@ namespace FutebolDeBotao
         /// <summary>Botão onde o toque começou: se soltar sem puxar, vira escolher/tirar a escolha.</summary>
         private Disc pressedDisc;
         private bool scripted;
+        /// <summary>Onde o dedo esteve nos últimos instantes do arrasto (tempo, posição), do mais antigo ao mais novo.</summary>
+        private readonly Queue<(float time, Vector2 position)> recentPointer = new();
 
         private readonly List<Disc> candidates = new();
         private bool ready;
@@ -164,6 +168,7 @@ namespace FutebolDeBotao
                 if (input.PointerReleasedThisFrame)
                 {
                     if (TouchMode && pressedDisc != null && !HasValidAim) ToggleTouchSelection(pressedDisc);
+                    if (TouchMode) UseSteadyDirection();
                     Release();
                 }
                 return;
@@ -386,8 +391,32 @@ namespace FutebolDeBotao
 
         private void UpdateAim()
         {
+            float now = Time.unscaledTime;
+            recentPointer.Enqueue((now, pointerWorld));
+            while (recentPointer.Count > 1 && now - recentPointer.Peek().time > 2f * TouchReleaseSteadySeconds) recentPointer.Dequeue();
+            AimFrom(pointerWorld);
+        }
+
+        /// <summary>Na hora de soltar o dedo: a direção volta para a de um instante antes (a força fica a de agora).</summary>
+        private void UseSteadyDirection()
+        {
+            if (!HasValidAim) return;
+            float cutoff = Time.unscaledTime - TouchReleaseSteadySeconds;
+            Vector2? steady = null;
+            foreach (var (time, position) in recentPointer)
+                if (time <= cutoff) steady = position;
+            if (steady == null) return;
+
+            float power = Power01;
+            AimFrom(steady.Value);
+            if (HasValidAim) Power01 = power;
+            else AimFrom(pointerWorld);
+        }
+
+        private void AimFrom(Vector2 pointer)
+        {
             // Puxar para trás: o botão sai no sentido oposto ao arrasto.
-            Vector2 pull = (dragAnchor ?? AimOrigin) - pointerWorld;
+            Vector2 pull = (dragAnchor ?? AimOrigin) - pointer;
             float distance = Mathf.Min(pull.magnitude, tuning.maxDragDistance);
 
             if (distance < tuning.minDragDistance)
@@ -467,6 +496,7 @@ namespace FutebolDeBotao
             padAiming = false;
             scripted = false;
             dragAnchor = null;
+            recentPointer.Clear();
             pressedDisc = null;
             IsAiming = false;
             IsBallKick = false;

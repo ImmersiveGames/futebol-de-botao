@@ -60,10 +60,12 @@ namespace FutebolDeBotao
             body.mass = tuning.ballMass;
             body.linearDamping = tuning.ballLinearDamping;
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            // Sem atrito: a bola sai na linha entre os centros (a mesma da previsão da mira), sem ser arrastada
+            // para o lado em que o botão andava.
             GetComponent<CircleCollider2D>().sharedMaterial = new PhysicsMaterial2D("Bola")
             {
                 bounciness = tuning.bounciness,
-                friction = tuning.friction
+                friction = 0f
             };
         }
 

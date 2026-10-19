@@ -19,6 +19,7 @@ namespace FutebolDeBotao
 
         [Header("Material")]
         [Range(0f, 1f)] public float bounciness = 0.75f;
+        [Tooltip("Atrito dos botões e goleiros. A bola não tem atrito, para sair na linha entre os centros.")]
         [Min(0f)] public float friction = 0.1f;
 
         [Header("Peteleco")]
