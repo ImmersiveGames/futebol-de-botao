@@ -5,6 +5,7 @@ namespace FutebolDeBotao
     /// <summary>
     /// Desenho da bola em pixel art. Os quadros de rolagem avançam pela distância que a bola andou e o desenho
     /// gira para a direção do movimento, em passos fixos (8 direções); a luz e a sombra ficam sempre paradas.
+    /// Com a bola rápida aparece o rastro atrás dela: o quadro cresce com a velocidade e encolhe quando ela freia.
     /// Montado por "Futebol de Botão/Aplicar artes".
     /// </summary>
     public sealed class BallVisual : MonoBehaviour
@@ -20,6 +21,15 @@ namespace FutebolDeBotao
         [Tooltip("Abaixo desta velocidade o desenho mantém a última direção.")]
         [SerializeField] private float minSpeed = 0.05f;
 
+        [Header("Rastro")]
+        [SerializeField] private SpriteRenderer trail;
+        [Tooltip("Quadros do rastro; o primeiro é vazio (bola devagar).")]
+        [SerializeField] private Sprite[] trailFrames = new Sprite[0];
+        [Tooltip("Velocidade (unidades/s) em que aparece o menor rastro.")]
+        [SerializeField, Min(0f)] private float trailMinSpeed = 5f;
+        [Tooltip("Velocidade (unidades/s) do maior rastro.")]
+        [SerializeField, Min(0f)] private float trailMaxSpeed = 9f;
+
         // Um salto maior que isso num quadro é a bola sendo reposicionada, não rolando.
         private const float TeleportDistance = 0.5f;
 
@@ -34,6 +44,12 @@ namespace FutebolDeBotao
             shine = shineTransform;
             shadow = shadowTransform;
             frames = rollingFrames;
+        }
+
+        public void ConfigureTrail(SpriteRenderer trailRenderer, Sprite[] frames)
+        {
+            trail = trailRenderer;
+            trailFrames = frames;
         }
 
         private void Awake() => body = GetComponentInParent<Rigidbody2D>();
@@ -67,8 +83,23 @@ namespace FutebolDeBotao
                 rolling.transform.rotation = Quaternion.Euler(0f, 0f, angle);
             }
 
+            UpdateTrail(velocity.magnitude);
+
             if (shine != null) shine.rotation = Quaternion.identity;
             if (shadow != null) shadow.rotation = Quaternion.identity;
+        }
+
+        /// <summary>O desenho do rastro sai para baixo (bola subindo): gira meia volta a partir do giro da bola.</summary>
+        private void UpdateTrail(float speed)
+        {
+            if (trail == null || trailFrames.Length < 2) return;
+            bool shown = speed >= trailMinSpeed;
+            trail.enabled = shown;
+            if (!shown) return;
+            float t = Mathf.InverseLerp(trailMinSpeed, Mathf.Max(trailMaxSpeed, trailMinSpeed + 0.01f), speed);
+            int last = trailFrames.Length - 1;
+            trail.sprite = trailFrames[Mathf.Clamp(1 + (int)(t * last), 1, last)];
+            trail.transform.rotation = Quaternion.Euler(0f, 0f, angle + 180f);
         }
     }
 }

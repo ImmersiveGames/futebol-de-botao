@@ -27,6 +27,12 @@ namespace FutebolDeBotao.Editor
         private const string BallShadowName = "Ball_Shadow";
         private static readonly Regex BallFrameName = new(@"^Ball_Frame_(\d+)$");
         private const string BallVisualName = "Desenho da bola";
+        // Rastro: quadros de 32x64 lado a lado (o 1º vazio); a bola fica no meio da metade de cima e o rastro sai para baixo.
+        private const string BallTrailPath = "Assets/_Game/Art/Ball/ball_Effect.png";
+        private const string BallTrailPrefix = "Bola_Rastro";
+        private static readonly Vector2Int BallTrailCell = new(32, 64);
+        private static readonly Vector2 BallTrailPivot = new(0.5f, 0.75f);
+        private static readonly Color BallTrailColor = new(1f, 1f, 1f, 0.7f);
 
         private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
@@ -53,7 +59,7 @@ namespace FutebolDeBotao.Editor
         private static readonly Vector2Int WoodOrigin = new(-23, -10);
         private static readonly Vector2Int WoodSize = new(45, 19);
 
-        // Ordem de desenho: madeira, moldura, feltro, marcações, fundo do gol, bola, botões (10 a 12), traves e rede.
+        // Ordem de desenho: madeira, moldura, feltro, marcações, fundo do gol, bola (sombra, rastro, bola, luz), botões (10 a 12), traves e rede.
         // A bola e os botões passam por baixo da trave e da rede; a mira (50) continua por cima de tudo.
         private const int WoodOrder = -30;
         private const int FrameOrder = -25;
@@ -120,12 +126,60 @@ namespace FutebolDeBotao.Editor
                 return;
             }
 
-            SetupBall(ball, frames, shine, shadow);
+            var trail = File.Exists(BallTrailPath) ? SliceBallTrail() : new Sprite[0];
+            SetupBall(ball, frames, shine, shadow, trail);
             Debug.Log($"[Futebol de Botão] Bola com {frames.Length} quadros de rolagem" +
-                      $"{(shine != null ? ", luz" : "")}{(shadow != null ? ", sombra" : "")}.");
+                      $"{(shine != null ? ", luz" : "")}{(shadow != null ? ", sombra" : "")}" +
+                      $"{(trail.Length > 0 ? $", rastro de {trail.Length} quadros" : "")}.");
         }
 
-        private static void SetupBall(Ball ball, Sprite[] frames, Sprite shine, Sprite shadow)
+        /// <summary>
+        /// Recorta a folha do rastro em Bola_Rastro_0, _1... (da esquerda para a direita), com o pivô no centro da bola.
+        /// Pode rodar quantas vezes quiser: os recortes com o mesmo nome mantêm o ID.
+        /// </summary>
+        private static Sprite[] SliceBallTrail()
+        {
+            var importer = (TextureImporter)AssetImporter.GetAtPath(BallTrailPath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.spritePixelsPerUnit = PixelsPerUnit;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.mipmapEnabled = false;
+            importer.SaveAndReimport();
+            importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+            int count = width / BallTrailCell.x;
+
+            var factory = new SpriteDataProviderFactories();
+            factory.Init();
+            var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
+            provider.InitSpriteEditorDataProvider();
+            var existing = provider.GetSpriteRects().GroupBy(r => r.name).ToDictionary(g => g.Key, g => g.First());
+
+            var rects = new System.Collections.Generic.List<SpriteRect>();
+            for (int i = 0; i < count; i++)
+            {
+                string name = $"{BallTrailPrefix}_{i}";
+                if (!existing.TryGetValue(name, out var rect)) rect = new SpriteRect { name = name, spriteID = GUID.Generate() };
+                rect.rect = new Rect(i * BallTrailCell.x, height - BallTrailCell.y, BallTrailCell.x, BallTrailCell.y);
+                rect.alignment = SpriteAlignment.Custom;
+                rect.pivot = BallTrailPivot;
+                rect.border = Vector4.zero;
+                rects.Add(rect);
+            }
+            provider.SetSpriteRects(rects.ToArray());
+            var names = provider.GetDataProvider<ISpriteNameFileIdDataProvider>();
+            names?.SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
+            provider.Apply();
+            importer.SaveAndReimport();
+
+            var sprites = LoadSprites(BallTrailPath);
+            return Enumerable.Range(0, count)
+                .Select(i => sprites.TryGetValue($"{BallTrailPrefix}_{i}", out var sprite) ? sprite : null)
+                .Where(sprite => sprite != null).ToArray();
+        }
+
+        private static void SetupBall(Ball ball, Sprite[] frames, Sprite shine, Sprite shadow, Sprite[] trail)
         {
             var old = ball.transform.Find(BallVisualName);
             if (old != null) Object.DestroyImmediate(old.gameObject);
@@ -146,11 +200,17 @@ namespace FutebolDeBotao.Editor
             float scale = Mathf.Max(ball.transform.localScale.x, 0.0001f);
             root.localScale = Vector3.one / scale;
 
-            var shadowTransform = shadow != null ? CreateLayer(root, "Sombra", shadow, order - 1, ShadowColor) : null;
+            // O rastro fica entre a sombra e a bola.
+            var shadowTransform = shadow != null ? CreateLayer(root, "Sombra", shadow, order - 2, ShadowColor) : null;
+            var trailRenderer = trail.Length > 0
+                ? CreateLayer(root, "Rastro", trail[0], order - 1, BallTrailColor).GetComponent<SpriteRenderer>()
+                : null;
             var rolling = CreateLayer(root, "Rolagem", frames[0], order, Color.white).GetComponent<SpriteRenderer>();
             var shineTransform = shine != null ? CreateLayer(root, "Luz", shine, order + 1, Color.white) : null;
 
-            root.gameObject.AddComponent<BallVisual>().Configure(rolling, shineTransform, shadowTransform, frames);
+            var visual = root.gameObject.AddComponent<BallVisual>();
+            visual.Configure(rolling, shineTransform, shadowTransform, frames);
+            visual.ConfigureTrail(trailRenderer, trail);
         }
 
         private static Transform CreateLayer(Transform parent, string layerName, Sprite sprite, int order, Color color)
