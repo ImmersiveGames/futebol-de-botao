@@ -9,8 +9,8 @@ namespace FutebolDeBotao
     /// Mira por arrasto: toca no botão, arrasta para trás e solta. A distância do arrasto define a força.
     /// No modo chute na bola (tiro de meta) o arrasto é feito na própria bola.
     /// Só no toque: um botão fica escolhido (começa no mais perto da bola; tocar e soltar num botão escolhe ou tira a
-    /// escolha) e arrastar começando fora dos botões mira o escolhido, medindo do ponto onde o dedo encostou. Assim o
-    /// botão encostado na lateral também tem espaço para puxar.
+    /// escolha) e arrastar, começando em qualquer lugar, mira o escolhido, medindo do ponto onde o dedo encostou. Assim
+    /// tocar no botão nunca chuta sem querer e o botão encostado na lateral também tem espaço para puxar.
     /// Teclado e controle: um cursor anda entre os botões (começa no mais perto da bola), Escolher abre a mira apontando
     /// para a bola com força média, girar/apontar e a força ajustam, Chutar solta e Voltar volta um passo.
     /// </summary>
@@ -35,8 +35,8 @@ namespace FutebolDeBotao
         private Vector2 pointerWorld;
         /// <summary>Toque fora dos botões: a mira mede o arrasto a partir daqui, e não do botão.</summary>
         private Vector2? dragAnchor;
-        /// <summary>O toque começou num botão: se soltar sem puxar, vira escolher/tirar a escolha.</summary>
-        private bool pressedOnDisc;
+        /// <summary>Botão onde o toque começou: se soltar sem puxar, vira escolher/tirar a escolha.</summary>
+        private Disc pressedDisc;
         private bool scripted;
 
         private readonly List<Disc> candidates = new();
@@ -163,7 +163,7 @@ namespace FutebolDeBotao
 
                 if (input.PointerReleasedThisFrame)
                 {
-                    if (TouchMode && pressedOnDisc && !HasValidAim) ToggleTouchSelection(SelectedDisc);
+                    if (TouchMode && pressedDisc != null && !HasValidAim) ToggleTouchSelection(pressedDisc);
                     Release();
                 }
                 return;
@@ -362,22 +362,24 @@ namespace FutebolDeBotao
             var disc = hit != null ? hit.GetComponent<Disc>() : null;
             if (disc != null && CanSelect != null && !CanSelect(disc)) disc = null;
 
-            if (disc == null)
+            if (TouchMode)
             {
-                // Toque fora dos botões: mira o botão escolhido, medindo o arrasto a partir de onde o dedo encostou.
-                if (!TouchMode) return;
+                // Toque: tocar num botão só escolhe (ao soltar sem puxar) e arrastar, de onde for, mira o escolhido,
+                // medindo a partir de onde o dedo encostou. Sem escolha, arrastar começando num botão mira ele.
                 // O escolhido deixou de poder jogar (mudou a fase): volta para o mais perto da bola.
                 if (TouchSelectedDisc != null && !IsSelectable(TouchSelectedDisc)) ResetCursor();
-                if (TouchSelectedDisc == null) return;
-                SelectedDisc = TouchSelectedDisc;
+                var target = TouchSelectedDisc != null ? TouchSelectedDisc : disc;
+                if (target == null) return;
+                pressedDisc = disc;
+                SelectedDisc = target;
                 dragAnchor = pointerWorld;
                 IsAiming = true;
                 UpdateAim();
                 return;
             }
 
+            if (disc == null) return;
             SelectedDisc = disc;
-            pressedOnDisc = true;
             IsAiming = true;
             UpdateAim();
         }
@@ -465,7 +467,7 @@ namespace FutebolDeBotao
             padAiming = false;
             scripted = false;
             dragAnchor = null;
-            pressedOnDisc = false;
+            pressedDisc = null;
             IsAiming = false;
             IsBallKick = false;
             SelectedDisc = null;
