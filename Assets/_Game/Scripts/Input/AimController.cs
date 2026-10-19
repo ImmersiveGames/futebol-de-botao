@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Mira por arrasto, igual para mouse e toque: toca no botão, arrasta para trás e solta.
-    /// A distância do arrasto define a força. No modo chute na bola (tiro de meta) o arrasto é feito na própria bola.
+    /// Mira por arrasto: toca no botão, arrasta para trás e solta. A distância do arrasto define a força.
+    /// No modo chute na bola (tiro de meta) o arrasto é feito na própria bola.
+    /// Só no toque: um botão fica escolhido (começa no mais perto da bola; tocar e soltar num botão escolhe ou tira a
+    /// escolha) e arrastar começando fora dos botões mira o escolhido, medindo do ponto onde o dedo encostou. Assim o
+    /// botão encostado na lateral também tem espaço para puxar.
     /// Teclado e controle: um cursor anda entre os botões (começa no mais perto da bola), Escolher abre a mira apontando
     /// para a bola com força média, girar/apontar e a força ajustam, Chutar solta e Voltar volta um passo.
     /// </summary>
@@ -29,6 +33,10 @@ namespace FutebolDeBotao
 
         private Ball ball;
         private Vector2 pointerWorld;
+        /// <summary>Toque fora dos botões: a mira mede o arrasto a partir daqui, e não do botão.</summary>
+        private Vector2? dragAnchor;
+        /// <summary>O toque começou num botão: se soltar sem puxar, vira escolher/tirar a escolha.</summary>
+        private bool pressedOnDisc;
         private bool scripted;
 
         private readonly List<Disc> candidates = new();
@@ -70,6 +78,15 @@ namespace FutebolDeBotao
         }
         /// <summary>Botão onde está o cursor do teclado/controle (nulo fora da vez).</summary>
         public Disc CursorDisc { get; private set; }
+        /// <summary>Botão escolhido pelo toque, que o arrasto fora dos botões mira (nulo sem escolha ou com mouse).</summary>
+        public Disc TouchSelectedDisc { get; private set; }
+        /// <summary>O último toque/clique na partida veio da tela de toque.</summary>
+        public static bool TouchMode
+        {
+            get => touchMode ?? Application.isMobilePlatform;
+            private set => touchMode = value;
+        }
+        private static bool? touchMode;
 
         /// <summary>Peteleco disparado: (botão, impulso).</summary>
         public event Action<Disc, Vector2> Flicked;
@@ -128,6 +145,7 @@ namespace FutebolDeBotao
                 if (input.PointerPressedThisFrame && !UiPointer.IsOverUi())
                 {
                     PadMode = false;
+                    TouchMode = Pointer.current is Touchscreen;
                     if (padAiming) Cancel();
                     TryBegin();
                 }
@@ -143,7 +161,11 @@ namespace FutebolDeBotao
 
                 UpdateAim();
 
-                if (input.PointerReleasedThisFrame) Release();
+                if (input.PointerReleasedThisFrame)
+                {
+                    if (TouchMode && pressedOnDisc && !HasValidAim) ToggleTouchSelection(SelectedDisc);
+                    Release();
+                }
                 return;
             }
 
@@ -284,6 +306,7 @@ namespace FutebolDeBotao
         private void ResetCursor()
         {
             CursorDisc = null;
+            TouchSelectedDisc = null;
             if (BallKickMode) return;
             CollectCandidates();
             float best = float.MaxValue;
@@ -297,6 +320,13 @@ namespace FutebolDeBotao
                     CursorDisc = disc;
                 }
             }
+            TouchSelectedDisc = CursorDisc;
+        }
+
+        /// <summary>Tocar e soltar num botão: escolhe ele, ou tira a escolha se ele já era o escolhido.</summary>
+        private void ToggleTouchSelection(Disc disc)
+        {
+            TouchSelectedDisc = disc == TouchSelectedDisc ? null : disc;
         }
 
         private void CollectCandidates()
@@ -330,10 +360,24 @@ namespace FutebolDeBotao
 
             var hit = Physics2D.OverlapPoint(pointerWorld);
             var disc = hit != null ? hit.GetComponent<Disc>() : null;
-            if (disc == null) return;
-            if (CanSelect != null && !CanSelect(disc)) return;
+            if (disc != null && CanSelect != null && !CanSelect(disc)) disc = null;
+
+            if (disc == null)
+            {
+                // Toque fora dos botões: mira o botão escolhido, medindo o arrasto a partir de onde o dedo encostou.
+                if (!TouchMode) return;
+                // O escolhido deixou de poder jogar (mudou a fase): volta para o mais perto da bola.
+                if (TouchSelectedDisc != null && !IsSelectable(TouchSelectedDisc)) ResetCursor();
+                if (TouchSelectedDisc == null) return;
+                SelectedDisc = TouchSelectedDisc;
+                dragAnchor = pointerWorld;
+                IsAiming = true;
+                UpdateAim();
+                return;
+            }
 
             SelectedDisc = disc;
+            pressedOnDisc = true;
             IsAiming = true;
             UpdateAim();
         }
@@ -341,7 +385,7 @@ namespace FutebolDeBotao
         private void UpdateAim()
         {
             // Puxar para trás: o botão sai no sentido oposto ao arrasto.
-            Vector2 pull = AimOrigin - pointerWorld;
+            Vector2 pull = (dragAnchor ?? AimOrigin) - pointerWorld;
             float distance = Mathf.Min(pull.magnitude, tuning.maxDragDistance);
 
             if (distance < tuning.minDragDistance)
@@ -420,6 +464,8 @@ namespace FutebolDeBotao
             if (padAiming && SelectedDisc != null) CursorDisc = SelectedDisc;
             padAiming = false;
             scripted = false;
+            dragAnchor = null;
+            pressedOnDisc = false;
             IsAiming = false;
             IsBallKick = false;
             SelectedDisc = null;

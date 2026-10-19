@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Brilho de quem é a vez: um halo pulsando atrás dos botões que podem ser usados agora
-    /// (mais forte, e ainda pulsando, no botão sendo mirado; no teclado/controle só no botão do cursor), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
+    /// (mais forte, e ainda pulsando, no botão sendo mirado ou escolhido pelo toque; no teclado/controle só no botão do cursor), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
     /// </summary>
     public sealed class TurnHighlight : MonoBehaviour
     {
@@ -41,7 +41,11 @@ namespace FutebolDeBotao
             // O escolhido continua piscando, mais forte que os outros.
             float selectedPulse = Mathf.Lerp(SelectedMinAlpha, SelectedMaxAlpha, wave);
             bool discsActive = !paused && state is MatchState.Aim or MatchState.ShotAim or MatchState.PenaltySetup;
-            var selected = aim != null && aim.IsAiming && !aim.IsBallKick ? aim.SelectedDisc : null;
+            var selected = aim == null ? null
+                : aim.IsAiming ? (aim.IsBallKick ? null : aim.SelectedDisc)
+                // No toque, o botão escolhido (que o arrasto fora dos botões mira) já brilha mais forte.
+                : AimController.TouchMode && !AimController.PadMode && aim.InputEnabled ? aim.TouchSelectedDisc
+                : null;
             // Teclado/controle: só o botão do cursor brilha (com mouse/toque brilham todos os que podem jogar).
             var cursor = aim != null && AimController.PadMode && aim.InputEnabled && state is MatchState.Aim or MatchState.ShotAim
                 ? aim.CursorDisc
