@@ -97,10 +97,10 @@ namespace FutebolDeBotao.Editor
             string resultRoutePath = CreateRoute("Resultado", ResultScenePath);
             AssetDatabase.SaveAssets();
 
-            BuildTitleScene(menuRoutePath);
-            BuildMenuScene(matchRoutePath);
-            BuildResultScene(matchRoutePath, menuRoutePath);
-            if (!SetupMatchScene(activityPath, resultRoutePath, menuRoutePath)) return;
+            BuildTitleScene(menuRoutePath, titleRoutePath);
+            BuildMenuScene(matchRoutePath, menuRoutePath);
+            BuildResultScene(matchRoutePath, menuRoutePath, resultRoutePath);
+            if (!SetupMatchScene(activityPath, resultRoutePath, menuRoutePath, matchRoutePath)) return;
 
             SetStartupRoute(Load<GameApplicationAsset>(appPath), Load<RouteAsset>(titleRoutePath));
             UpdateBuildScenes();
@@ -211,7 +211,7 @@ namespace FutebolDeBotao.Editor
 
         // ---- Cenas ----
 
-        private static void BuildTitleScene(string menuRoute)
+        private static void BuildTitleScene(string menuRoute, string ownRoute)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var canvas = CreateCanvas("Abertura", 0);
@@ -225,11 +225,11 @@ namespace FutebolDeBotao.Editor
             var trigger = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "abertura.menu");
             canvas.gameObject.AddComponent<TitleScreen>().Configure(trigger, prompt);
 
-            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic);
+            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic, Load<RouteAsset>(ownRoute));
             EditorSceneManager.SaveScene(scene, TitleScenePath);
         }
 
-        private static void BuildMenuScene(string matchRoute)
+        private static void BuildMenuScene(string matchRoute, string ownRoute)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var options = AssetDatabase.LoadAssetAtPath<MatchOptions>(OptionsPath);
@@ -299,11 +299,11 @@ namespace FutebolDeBotao.Editor
             menuPlayers.Configure(menuObserver);
             menu.SetPlayers(menuPlayers);
 
-            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic);
+            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic, Load<RouteAsset>(ownRoute));
             EditorSceneManager.SaveScene(scene, MenuScenePath);
         }
 
-        private static void BuildResultScene(string matchRoute, string menuRoute)
+        private static void BuildResultScene(string matchRoute, string menuRoute, string ownRoute)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var canvas = CreateCanvas("Resultado", 0);
@@ -321,11 +321,11 @@ namespace FutebolDeBotao.Editor
             var toMenuRoute = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "resultado.menu");
             result.Configure(score, verdict, againRoute, toMenuRoute);
 
-            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic);
+            AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic, Load<RouteAsset>(ownRoute));
             EditorSceneManager.SaveScene(scene, ResultScenePath);
         }
 
-        private static bool SetupMatchScene(string activityPath, string resultRoute, string menuRoute)
+        private static bool SetupMatchScene(string activityPath, string resultRoute, string menuRoute, string ownRoute)
         {
             var scene = EditorSceneManager.OpenScene(MatchScenePath, OpenSceneMode.Single);
             var activity = Load<ActivityAsset>(activityPath);
@@ -381,7 +381,7 @@ namespace FutebolDeBotao.Editor
             hud.Configure(match, LoadFieldSprite(HudPanelSprite));
 
             // Música da partida e sons (peteleco, batidas, apito, gol, cartão). Sem os cues ("Criar áudio"), fica sem som.
-            AudioBuilder.AddMatchAudio(framework, match);
+            AudioBuilder.AddMatchAudio(framework, match, Load<RouteAsset>(ownRoute));
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

@@ -3,6 +3,8 @@ using Immersive.Audio.Authoring;
 using Immersive.Audio.Contracts;
 using Immersive.Audio.Unity.Hosts;
 using Immersive.Framework.Audio;
+using Immersive.Framework.Authoring;
+using Immersive.Framework.RouteLifecycle;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -183,14 +185,27 @@ namespace FutebolDeBotao.Editor
             return true;
         }
 
-        /// <summary>Música da Route desta cena (o Director do Persistent Content é injetado pelo framework).</summary>
-        public static void AddRouteMusic(Transform parent, string music)
+        /// <summary>
+        /// Música da Route desta cena (o Director do Persistent Content é injetado pelo framework). O binding precisa estar
+        /// num Route Content Contribution da Route da cena: sem ele o framework não avisa a entrada na Route e a música não toca.
+        /// </summary>
+        public static void AddRouteMusic(Transform parent, string music, RouteAsset route)
         {
             var cue = LoadCue<AudioBgmCueAsset>(music);
             if (cue == null) return; // "Criar áudio" ainda não rodou.
 
             var go = new GameObject("Música");
             if (parent != null) go.transform.SetParent(parent, false);
+            if (go.GetComponentInParent<RouteContentContribution>(true) == null)
+            {
+                if (route == null) Debug.LogWarning($"[Futebol de Botão] Música '{music}' sem Route: ela não vai tocar.");
+                var content = go.AddComponent<RouteContentContribution>();
+                Set(content, so =>
+                {
+                    so.FindProperty("route").objectReferenceValue = route;
+                    so.FindProperty("localContentId").stringValue = $"musica.{music}";
+                });
+            }
             var binding = go.AddComponent<RouteBgmAuthoring>();
             Set(binding, so =>
             {
@@ -200,9 +215,9 @@ namespace FutebolDeBotao.Editor
         }
 
         /// <summary>Música e sons da partida.</summary>
-        public static void AddMatchAudio(Transform parent, MatchController match)
+        public static void AddMatchAudio(Transform parent, MatchController match, RouteAsset route)
         {
-            AddRouteMusic(parent, MatchMusic);
+            AddRouteMusic(parent, MatchMusic, route);
 
             var flick = LoadCue<AudioSfxCueAsset>("peteleco");
             if (flick == null) return;
