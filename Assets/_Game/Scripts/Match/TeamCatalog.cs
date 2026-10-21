@@ -23,6 +23,24 @@ namespace FutebolDeBotao
         public TeamData Team(int index) => teams[Wrap(index, teams.Length)];
         public int IndexOf(TeamData team) => System.Array.IndexOf(teams, team);
 
+        /// <summary>
+        /// Cores que o time pode usar como segunda cor: a dele primeiro (padrão) e depois as cores principais dos times do
+        /// catálogo, menos a igual à principal do próprio time (o padrão sumiria) e as repetidas.
+        /// </summary>
+        public Color[] SecondaryOptions(TeamData team)
+        {
+            var list = new System.Collections.Generic.List<Color> { team.SecondaryColor };
+            foreach (var other in teams)
+            {
+                var color = other.PrimaryColor;
+                if (SameColor(color, team.PrimaryColor) || list.Exists(c => SameColor(c, color))) continue;
+                list.Add(color);
+            }
+            return list.ToArray();
+        }
+
+        private static bool SameColor(Color a, Color b) => Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b) < 0.2f;
+
         public int SchemeCount(int discs) => Schemes(discs).Length;
         public Formation Scheme(int discs, int index)
         {

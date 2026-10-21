@@ -1159,24 +1159,25 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// Pinta botões e goleiros com as cores e camisas escolhidas na Seleção de times. Sem as camadas do "Aplicar artes",
-        /// pinta os círculos do protótipo (botão na cor principal, anel na secundária).
+        /// pinta os círculos do protótipo (botão na cor principal, anel na segunda cor).
         /// </summary>
         private void PaintTeams()
         {
             foreach (var pair in discs)
             {
                 var team = MatchSession.Team(pair.Key);
+                var secondary = MatchSession.SecondaryColor(pair.Key);
                 foreach (var disc in pair.Value)
                 {
                     var art = disc.GetComponentInChildren<PieceArt>(true);
                     if (art != null)
                     {
-                        art.Paint(team.PrimaryColor, team.SecondaryColor, MatchSession.DiscPattern(pair.Key));
+                        art.Paint(team.PrimaryColor, secondary, MatchSession.DiscPattern(pair.Key));
                         continue;
                     }
                     if (disc.TryGetComponent(out SpriteRenderer body)) body.color = team.PrimaryColor;
                     var ring = disc.transform.Find("Anel");
-                    if (ring != null && ring.TryGetComponent(out SpriteRenderer ringRenderer)) ringRenderer.color = team.SecondaryColor;
+                    if (ring != null && ring.TryGetComponent(out SpriteRenderer ringRenderer)) ringRenderer.color = secondary;
                     var center = disc.transform.Find("Centro");
                     if (center != null && center.TryGetComponent(out SpriteRenderer centerRenderer)) centerRenderer.color = team.PrimaryColor;
                 }
@@ -1186,7 +1187,7 @@ namespace FutebolDeBotao
             {
                 var team = MatchSession.Team(keeper.Side);
                 var art = keeper.GetComponentInChildren<PieceArt>(true);
-                if (art != null) art.Paint(team.PrimaryColor, team.SecondaryColor, MatchSession.KeeperPattern(keeper.Side));
+                if (art != null) art.Paint(team.PrimaryColor, MatchSession.SecondaryColor(keeper.Side), MatchSession.KeeperPattern(keeper.Side));
                 else if (keeper.TryGetComponent(out SpriteRenderer renderer))
                     renderer.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
             }

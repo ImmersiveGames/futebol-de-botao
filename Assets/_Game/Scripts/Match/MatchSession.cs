@@ -51,12 +51,26 @@ namespace FutebolDeBotao
         private static readonly int[] scheme3 = { 0, 0 };
         private static readonly int[] discPattern = { 0, 0 };
         private static readonly int[] keeperPattern = { 0, 0 };
+        private static readonly int[] secondaryIndex = { 0, 0 };
 
         public static TeamData Team(TeamSide side) => TeamCatalog.Load().Team(teamIndex[(int)side]);
 
         public static int TeamIndex(TeamSide side) => teamIndex[(int)side];
 
         public static void SetTeamIndex(TeamSide side, int index) => teamIndex[(int)side] = index;
+
+        /// <summary>Segunda cor escolhida (0 = a do próprio time), entre as <see cref="TeamCatalog.SecondaryOptions"/>.</summary>
+        public static int SecondaryIndex(TeamSide side) => secondaryIndex[(int)side];
+
+        public static void SetSecondaryIndex(TeamSide side, int index) => secondaryIndex[(int)side] = index;
+
+        /// <summary>Segunda cor do lado (padrão da camisa e anel), já com a escolha da Seleção de times.</summary>
+        public static Color SecondaryColor(TeamSide side)
+        {
+            var options = TeamCatalog.Load().SecondaryOptions(Team(side));
+            int count = options.Length;
+            return options[((secondaryIndex[(int)side] % count) + count) % count];
+        }
 
         /// <summary>Padrão da camisa dos botões do lado (linha da folha Base_Botao_32-Sheet).</summary>
         public static int DiscPattern(TeamSide side) => discPattern[(int)side];
@@ -100,6 +114,7 @@ namespace FutebolDeBotao
             scheme3[0] = scheme3[1] = 0;
             discPattern[0] = discPattern[1] = 0;
             keeperPattern[0] = keeperPattern[1] = 0;
+            secondaryIndex[0] = secondaryIndex[1] = 0;
         }
     }
 }
