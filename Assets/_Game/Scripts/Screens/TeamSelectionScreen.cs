@@ -10,7 +10,8 @@ namespace FutebolDeBotao
     /// Em cada metade, à esquerda, as setas do time lado a lado com o nome e a abreviação à direita e, embaixo, as da segunda
     /// cor e as da camisa;
     /// à direita, as setas do esquema; as setas da camisa do goleiro ficam uma de cada lado dele.
-    /// A metade de cima fica girada 180° para o Jogador 2 (base da versão de celular, 2 jogadores na mesma tela).
+    /// A metade de cima fica girada 180° para o Jogador 2 (base da versão de celular, 2 jogadores na mesma tela); contra a IA,
+    /// as opções dela ficam em pé, como as do jogador.
     /// Contra a IA, ela sorteia time e esquema ao abrir a tela. A UI é montada no Awake.
     /// Cada metade tem o seu Pronto e a partida começa com os dois prontos (contra a IA, só o de baixo). Com dispositivos
     /// separados (tela Controles), cada jogador tem o próprio cursor e só mexe na sua metade; revezando ou contra a IA,
@@ -81,6 +82,9 @@ namespace FutebolDeBotao
             public MenuEntry ShirtItem;
             public MenuEntry KeeperItem;
             public RectTransform Root;
+            /// <summary>Setas e textos da metade, com a posição de cada um no time de baixo.</summary>
+            public RectTransform Controls;
+            public readonly List<(RectTransform rect, Vector2 position)> ControlPositions = new();
             public Button Ready;
             public MenuEntry ReadyItem;
             public Button[] Arrows;
@@ -137,6 +141,7 @@ namespace FutebolDeBotao
             starting = false;
             foreach (var pair in halves) SetReady(pair.Key, false);
             halves[TeamSide.Top].Ready.gameObject.SetActive(MatchSession.VsAi != true);
+            SetUpright(halves[TeamSide.Top], MatchSession.VsAi == true);
 
             // Um cursor por jogador só com um dispositivo para cada um.
             bool separate = MatchSession.VsAi != true && !MatchSession.SharedDevice && MatchSession.Player2Device != null;
@@ -498,42 +503,46 @@ namespace FutebolDeBotao
             view.Keeper = CreatePiece(half, "Goleiro", keeperPosition, side, true);
             for (int i = 0; i < 5; i++) view.Discs.Add(CreatePiece(half, $"Botão {i + 1}", Vector2.zero, side, false));
 
+            // Setas e textos num grupo próprio: contra a IA, o grupo da metade de cima fica em pé (ver SetUpright).
+            var controls = CreateRect(half, "Opções", Vector2.zero, Vector2.zero);
+            view.Controls = controls;
+
             // Esquerda (de quem joga deste lado): as setas do time com o nome e a abreviação à direita.
-            var previousTeam = CreateButton(half, "Time anterior", "<", new Vector2(RowArrowX[0], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, -1));
-            var nextTeam = CreateButton(half, "Próximo time", ">", new Vector2(RowArrowX[1], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, 1));
-            view.Name = CreateRowLabel(half, "Nome", 22, FontStyle.Bold, Color.white, TeamRowY + 0.13f, 0.32f);
-            view.Abbreviation = CreateRowLabel(half, "Abreviação", 18, FontStyle.Normal, SoftText, TeamRowY - 0.15f, 0.26f);
-            view.TeamItem = CreateRect(half, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            var previousTeam = CreateButton(controls, "Time anterior", "<", new Vector2(RowArrowX[0], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, -1));
+            var nextTeam = CreateButton(controls, "Próximo time", ">", new Vector2(RowArrowX[1], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, 1));
+            view.Name = CreateRowLabel(controls, "Nome", 22, FontStyle.Bold, Color.white, TeamRowY + 0.13f, 0.32f);
+            view.Abbreviation = CreateRowLabel(controls, "Abreviação", 18, FontStyle.Normal, SoftText, TeamRowY - 0.15f, 0.26f);
+            view.TeamItem = CreateRect(controls, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.TeamItem.Configure(null, previousTeam, nextTeam, view.Name.rectTransform,
                 view.Abbreviation.rectTransform, (RectTransform)previousTeam.transform, (RectTransform)nextTeam.transform);
 
             // Direita: o esquema tático.
             float x = StripX;
-            var schemeTitle = CreateText(half, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f));
+            var schemeTitle = CreateText(controls, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f));
             schemeTitle.text = "Esquema";
-            view.Scheme = CreateText(half, "Nome do esquema", 32, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.5f), new Vector2(1.4f, 0.44f));
-            view.Style = CreateText(half, "Estilo", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.26f));
-            var previousScheme = CreateButton(half, "Esquema anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, -1));
-            var nextScheme = CreateButton(half, "Próximo esquema", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, 1));
-            view.SchemeItem = CreateRect(half, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            view.Scheme = CreateText(controls, "Nome do esquema", 32, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.5f), new Vector2(1.4f, 0.44f));
+            view.Style = CreateText(controls, "Estilo", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.26f));
+            var previousScheme = CreateButton(controls, "Esquema anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, -1));
+            var nextScheme = CreateButton(controls, "Próximo esquema", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, 1));
+            view.SchemeItem = CreateRect(controls, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SchemeItem.Configure(null, previousScheme, nextScheme, schemeTitle.rectTransform, view.Scheme.rectTransform,
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
 
             // Segunda cor: embaixo do time, no mesmo formato.
-            var previousSecondary = CreateButton(half, "Cor 2 anterior", "<", new Vector2(RowArrowX[0], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, -1));
-            var nextSecondary = CreateButton(half, "Próxima cor 2", ">", new Vector2(RowArrowX[1], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, 1));
-            var secondaryTitle = CreateRowLabel(half, "Cor 2", 20, FontStyle.Bold, Color.white, SecondaryY, 0.32f);
+            var previousSecondary = CreateButton(controls, "Cor 2 anterior", "<", new Vector2(RowArrowX[0], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, -1));
+            var nextSecondary = CreateButton(controls, "Próxima cor 2", ">", new Vector2(RowArrowX[1], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, 1));
+            var secondaryTitle = CreateRowLabel(controls, "Cor 2", 20, FontStyle.Bold, Color.white, SecondaryY, 0.32f);
             secondaryTitle.text = "Cor 2";
-            view.SecondaryItem = CreateRect(half, "Item da cor 2", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            view.SecondaryItem = CreateRect(controls, "Item da cor 2", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SecondaryItem.Configure(null, previousSecondary, nextSecondary, secondaryTitle.rectTransform,
                 (RectTransform)previousSecondary.transform, (RectTransform)nextSecondary.transform);
 
             // Camisa dos botões: embaixo da segunda cor, no mesmo formato.
-            var previousShirt = CreateButton(half, "Camisa anterior", "<", new Vector2(RowArrowX[0], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, -1));
-            var nextShirt = CreateButton(half, "Próxima camisa", ">", new Vector2(RowArrowX[1], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, 1));
-            var shirtTitle = CreateRowLabel(half, "Camisa", 20, FontStyle.Bold, Color.white, ShirtY, 0.32f);
+            var previousShirt = CreateButton(controls, "Camisa anterior", "<", new Vector2(RowArrowX[0], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, -1));
+            var nextShirt = CreateButton(controls, "Próxima camisa", ">", new Vector2(RowArrowX[1], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, 1));
+            var shirtTitle = CreateRowLabel(controls, "Camisa", 20, FontStyle.Bold, Color.white, ShirtY, 0.32f);
             shirtTitle.text = "Camisa";
-            view.ShirtItem = CreateRect(half, "Item da camisa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            view.ShirtItem = CreateRect(controls, "Item da camisa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.ShirtItem.Configure(null, previousShirt, nextShirt, shirtTitle.rectTransform,
                 (RectTransform)previousShirt.transform, (RectTransform)nextShirt.transform);
             view.ShirtItem.gameObject.SetActive(shirts != null);
@@ -542,7 +551,7 @@ namespace FutebolDeBotao
             SetActive(nextShirt.gameObject, shirts != null);
 
             // Camisa do goleiro: uma seta de cada lado dele (somem sem goleiro).
-            view.KeeperArrows = CreateRect(half, "Setas do goleiro", keeperPosition * Unit, Vector2.zero);
+            view.KeeperArrows = CreateRect(controls, "Setas do goleiro", keeperPosition * Unit, Vector2.zero);
             var previousKeeper = CreateButton(view.KeeperArrows, "Goleiro anterior", "<", new Vector2(-KeeperArrowX, 0f), Vector2.one * 0.45f, () => ChangeShirt(side, true, -1));
             var nextKeeper = CreateButton(view.KeeperArrows, "Próximo goleiro", ">", new Vector2(KeeperArrowX, 0f), Vector2.one * 0.45f, () => ChangeShirt(side, true, 1));
             view.KeeperItem = view.KeeperArrows.gameObject.AddComponent<MenuEntry>();
@@ -553,7 +562,19 @@ namespace FutebolDeBotao
             view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, MiddleButtonY), MiddleButtonSize, () => ToggleReady(side), ButtonStyle.Yellow);
             view.ReadyItem = view.Ready.gameObject.AddComponent<MenuEntry>();
             view.ReadyItem.Configure(view.Ready);
+            foreach (RectTransform child in controls) view.ControlPositions.Add((child, child.anchoredPosition));
             return view;
+        }
+
+        /// <summary>
+        /// Em pé: as opções da metade ficam como as do time de baixo, lidas por quem está embaixo (time à esquerda, esquema à
+        /// direita), só espelhadas para cima. Usado na metade de cima contra a IA.
+        /// </summary>
+        private static void SetUpright(HalfView view, bool upright)
+        {
+            view.Controls.localRotation = upright ? Quaternion.Euler(0f, 0f, 180f) : Quaternion.identity;
+            foreach (var (rect, position) in view.ControlPositions)
+                rect.anchoredPosition = upright ? new Vector2(position.x, -position.y) : position;
         }
 
         /// <summary>
