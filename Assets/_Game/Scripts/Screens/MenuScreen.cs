@@ -73,6 +73,16 @@ namespace FutebolDeBotao
             OpenDevices();
         }
 
+        /// <summary>Fecha o aplicativo (no editor, para o Play). No navegador o botão nem aparece.</summary>
+        public void QuitApp()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
         /// <summary>2 jogadores: cada um no seu dispositivo ou revezando o mesmo. Abre os Controles ou as Opções.</summary>
         public void PlayTwoPlayers()
         {
