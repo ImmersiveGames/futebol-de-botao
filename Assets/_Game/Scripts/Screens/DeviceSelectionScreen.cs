@@ -11,7 +11,7 @@ namespace FutebolDeBotao
     /// Tela "Controles", entre o Um/Dois jogadores e as Opções da partida: Jogador 1 na esquerda, os dispositivos
     /// detectados no meio e Jogador 2 na direita. Cada dispositivo leva o próprio cartão para um lado (A/D, setas,
     /// analógico, D-pad; no mouse/toque, as setinhas do cartão), E/A confirma (clicar/tocar no cartão também) e Q/B
-    /// desfaz; no meio, Q/B volta para o Menu.
+    /// desfaz; no meio o cartão fica desligado (não confirma) e Q/B volta para o Menu.
     /// Um jogador: só a coluna do Jogador 1. Dois jogadores com um lado vazio: confirmar de novo = os dois no mesmo
     /// dispositivo, revezando. Com um dispositivo só a tela é pulada. Monta a UI sozinha (como a Seleção de times).
     /// </summary>
@@ -26,6 +26,7 @@ namespace FutebolDeBotao
         private static readonly Color CardColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ConfirmedColor = new(0.55f, 0.9f, 0.55f);
         private static readonly Color TextColor = new(0.1f, 0.1f, 0.1f);
+        private static readonly Color IdleTint = new(0.6f, 0.62f, 0.6f);
 
         [SerializeField] private MenuScreen menu;
 
@@ -146,13 +147,8 @@ namespace FutebolDeBotao
 
         private void Confirm(Entry entry)
         {
-            if (entry.Position == 0)
-            {
-                // Confirmar no meio: vai para o primeiro lado livre.
-                if (Occupant(-1) == null) entry.Position = -1;
-                else if (TwoPlayers && Occupant(1) == null) entry.Position = 1;
-                else return;
-            }
+            // No meio o cartão fica desligado: primeiro leva para um lado.
+            if (entry.Position == 0) return;
 
             if (entry.Confirmed)
             {
@@ -271,9 +267,12 @@ namespace FutebolDeBotao
             {
                 var entry = entries[i];
                 entry.Card.anchoredPosition = new Vector2(entry.Position * ColumnX, FirstCardY - i * CardSpacing);
-                // Confirmado: amarelo; ainda escolhendo o lado: verde.
+                // Confirmado: amarelo; num lado, ainda escolhendo: verde; no meio: desligado (verde acinzentado).
+                bool idle = entry.Position == 0 && !entry.Confirmed;
                 if (!ButtonSkin.Apply(entry.Button, entry.Confirmed ? ButtonStyle.Yellow : ButtonStyle.Green))
                     entry.Image.color = entry.Confirmed ? ConfirmedColor : CardColor;
+                // Provisório até a arte do botão cinza de desligado.
+                if (idle) entry.Image.color = IdleTint;
             }
         }
 
