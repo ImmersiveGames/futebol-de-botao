@@ -297,11 +297,13 @@ namespace FutebolDeBotao.Editor
             var trigger = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "menu.iniciar");
             menu.Configure(options, trigger, modePanel.gameObject, optionsPanel.gameObject, modeLabel, values, rows);
 
-            // Jogadores: contra a IA o Menu faz o Join do Jogador 1 (escopo Route).
+            // Jogadores: o Menu tira todo mundo e faz o Join de quem vai jogar (escopo Route).
             var players = new GameObject("Jogadores");
             var menuObserver = AddObserver(players, LocalPlayerProvisioningConsumerScope.Route);
+            var menuJoin = AddJoin(players, LocalPlayerProvisioningConsumerScope.Route);
+            var menuLeaves = AddPerSlot<PlayerSessionLeaveCommandTrigger>(players.transform, "Leave", LocalPlayerProvisioningConsumerScope.Route, "menu.trocar_modo");
             var menuPlayers = players.AddComponent<MenuPlayers>();
-            menuPlayers.Configure(menuObserver);
+            menuPlayers.Configure(menuObserver, menuJoin, menuLeaves);
             menu.SetPlayers(menuPlayers);
 
             AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic, Load<RouteAsset>(ownRoute));
@@ -379,7 +381,9 @@ namespace FutebolDeBotao.Editor
             var players = new GameObject("Jogadores");
             players.transform.SetParent(framework, false);
             var matchObserver = AddObserver(players, LocalPlayerProvisioningConsumerScope.Activity);
-            players.AddComponent<MatchPlayers>().Configure(matchObserver, match);
+            var testJoin = AddJoin(players, LocalPlayerProvisioningConsumerScope.Activity);
+            var blocks = AddPerSlot<PlayerGameplayAvailabilityBlockTrigger>(players.transform, "Bloqueio", LocalPlayerProvisioningConsumerScope.Activity, "fora da vez");
+            players.AddComponent<MatchPlayers>().Configure(matchObserver, match, blocks, testJoin);
 
             // HUD: cantos ao lado dos gols no celular (em pé), painel à esquerda no PC. Monta a UI sozinho no Awake.
             var hud = new GameObject(MatchHudName).AddComponent<MatchHud>();
@@ -428,6 +432,36 @@ namespace FutebolDeBotao.Editor
             so.FindProperty("scope").intValue = (int)scope;
             so.ApplyModifiedPropertiesWithoutUndo();
             return observer;
+        }
+
+        private static PlayerSessionJoinTrigger AddJoin(GameObject target, LocalPlayerProvisioningConsumerScope scope)
+        {
+            var join = target.AddComponent<PlayerSessionJoinTrigger>();
+            var so = new SerializedObject(join);
+            so.FindProperty("scope").intValue = (int)scope;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return join;
+        }
+
+        /// <summary>Um componente por vaga (Jogador 1 e 2), cada um num filho, porque o framework só aceita um por objeto.</summary>
+        private static T[] AddPerSlot<T>(Transform parent, string label, LocalPlayerProvisioningConsumerScope scope, string reason) where T : Component
+        {
+            var paths = new[] { PlayersBuilder.Slot1Path, PlayersBuilder.Slot2Path };
+            var result = new T[paths.Length];
+            for (int i = 0; i < paths.Length; i++)
+            {
+                var child = new GameObject($"{label} Jogador {i + 1}");
+                child.transform.SetParent(parent, false);
+                result[i] = child.AddComponent<T>();
+                var so = new SerializedObject(result[i]);
+                so.FindProperty("scope").intValue = (int)scope;
+                so.FindProperty("playerSlot").objectReferenceValue = AssetDatabase.LoadAssetAtPath<PlayerSlotProfile>(paths[i]);
+                so.FindProperty("reason").stringValue = reason;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                if (so.FindProperty("playerSlot").objectReferenceValue == null)
+                    Debug.LogWarning($"[Futebol de Botão] Não achei {paths[i]}. Rode \"Criar jogadores\" antes.");
+            }
+            return result;
         }
 
         private static GameObject FindRoot(Scene scene, string objectName)

@@ -8,47 +8,41 @@ namespace FutebolDeBotao
     /// <summary>
     /// Na Partida, deixa jogar só o jogador da vez: os outros ficam bloqueados pelo framework
     /// (bloqueio de disponibilidade, IF-ADR-044) e o leitor de input deles não devolve nada.
-    /// Na vez da IA o Jogador 1 fica bloqueado. No editor, se a partida abriu direto (sem o Menu), faz o Join do Jogador 1 para teste.
+    /// Na vez da IA o Jogador 1 fica bloqueado. Cada vaga tem o seu Gameplay Availability Block Trigger (escopo Activity),
+    /// que o framework solta sozinho quando a Partida acaba ou reinicia.
+    /// No editor, se a partida abriu direto (sem o Menu), faz o Join do Jogador 1 para teste.
     /// </summary>
     public sealed class MatchPlayers : MonoBehaviour
     {
-        private const string Source = "futebol.partida";
         private const float RetrySeconds = 0.5f;
 
         [Tooltip("Player Session Observer da Partida (escopo Activity).")]
         [SerializeField] private PlayerSessionObserver session;
         [SerializeField] private MatchController match;
+        [Tooltip("Um bloqueio por vaga (escopo Activity).")]
+        [SerializeField] private PlayerGameplayAvailabilityBlockTrigger[] blocks;
+        [Tooltip("Join de teste no editor (escopo Activity).")]
+        [SerializeField] private PlayerSessionJoinTrigger testJoin;
 
-        // Estático de propósito: o bloqueio do framework fica preso ao jogador, não à cena. Ao sair da Partida (Menu,
-        // Resultado) o acesso da sessão já pode ter acabado antes do OnDisable; o token fica guardado e a próxima
-        // Partida solta ele, senão o jogador continua bloqueado para sempre.
-        private static readonly Dictionary<PlayerSlotId, PlayerGameplayAvailabilityBlockToken> blocks = new();
         private readonly Dictionary<PlayerSlotId, float> retryAt = new();
-        private int occurrence = -1;
 #if UNITY_EDITOR
+        private const string Source = "futebol.partida";
         private bool testJoinTried;
 #endif
 
-        public void Configure(PlayerSessionObserver observer, MatchController matchController)
+        public void Configure(PlayerSessionObserver observer, MatchController matchController,
+            PlayerGameplayAvailabilityBlockTrigger[] blockTriggers, PlayerSessionJoinTrigger testJoinTrigger)
         {
             session = observer;
             match = matchController;
+            blocks = blockTriggers;
+            testJoin = testJoinTrigger;
         }
 
         private void Update()
         {
             if (session == null || match == null) return;
-            if (!session.TryGetAccess(out var access, out _)) return;
-            if (!access.TryGetObservation(out var observation) || observation == null || !observation.IsAvailable) return;
-
-            // Reiniciar cria outra ocorrência da Activity, mas o bloqueio do framework fica preso ao jogador (não à
-            // Activity): se só esquecermos o token, o jogador fica bloqueado para sempre. Solta antes de recomeçar.
-            if (observation.ActivityOccurrence != occurrence)
-            {
-                occurrence = observation.ActivityOccurrence;
-                if (blocks.Count > 0) Debug.Log($"[Jogadores] Nova partida: soltando {blocks.Count} bloqueio(s) que sobraram da anterior.");
-                ReleaseAll(access, "partida nova");
-            }
+            if (!session.TryGetObservation(out var observation)) return;
 
 #if UNITY_EDITOR
             TryTestJoin(observation);
@@ -58,17 +52,26 @@ namespace FutebolDeBotao
             {
                 if (!slot.IsJoined) continue;
                 var id = slot.Slot.PlayerSlotId;
-                bool blocked = blocks.TryGetValue(id, out var token) && token.IsValid;
+                var block = BlockFor(id);
+                if (block == null) continue;
                 bool allow = CanPlay(id);
-                if (allow == !blocked) continue;
+                if (allow == !block.OwnsActiveBlock) continue;
                 if (retryAt.TryGetValue(id, out float at) && Time.unscaledTime < at) continue;
 
-                if (allow) Release(access, id, token);
-                else Block(access, id);
+                if (allow) block.RequestRelease();
+                else block.RequestBlock();
+
+                if (allow == !block.OwnsActiveBlock)
+                {
+                    retryAt.Remove(id);
+                    continue;
+                }
+                retryAt[id] = Time.unscaledTime + RetrySeconds;
+                Debug.LogWarning($"[Jogadores] Não consegui {(allow ? "liberar" : "bloquear")} {id}: {block.LastDiagnostic}");
             }
         }
 
-        /// <summary>Só o humano da vez joga (o atacante na mira, o defensor no goleiro do "Vai chutar").</summary>
+        /// <summary>Só o humano da vez joga (o atacante na mira, o defensor no goleiro do "Pro Gol!").</summary>
         private bool CanPlay(PlayerSlotId slot)
         {
             if (match.State is MatchState.Waiting or MatchState.End) return false;
@@ -76,57 +79,16 @@ namespace FutebolDeBotao
             return side == match.ActingSide && !match.IsAi(side);
         }
 
-        private void Block(IPlayerSessionScopedAccess access, PlayerSlotId slot)
+        private PlayerGameplayAvailabilityBlockTrigger BlockFor(PlayerSlotId id)
         {
-            var result = access.RequestBlockRuntimeGameplay(slot, Source, "fora da vez");
-            if (result.Succeeded)
-            {
-                blocks[slot] = result.BlockToken;
-                retryAt.Remove(slot);
-                return;
-            }
-            retryAt[slot] = Time.unscaledTime + RetrySeconds;
-            Debug.LogWarning($"[Jogadores] Não consegui bloquear {slot}: {result.Status} {result.Message}");
+            if (blocks == null) return null;
+            foreach (var block in blocks)
+                if (block != null && block.PlayerSlot != null && block.PlayerSlot.TryGetPlayerSlotId(out var slot, out _) && slot == id)
+                    return block;
+            return null;
         }
 
-        private void Release(IPlayerSessionScopedAccess access, PlayerSlotId slot, PlayerGameplayAvailabilityBlockToken token)
-        {
-            var result = access.RequestReleaseRuntimeGameplay(token, Source, "vez do jogador");
-            if (result.Succeeded || result.Status == PlayerGameplayAvailabilityBlockStatus.RejectedForeignOrStaleToken)
-            {
-                // Token velho: o bloqueio já não existe.
-                blocks.Remove(slot);
-                retryAt.Remove(slot);
-                return;
-            }
-            retryAt[slot] = Time.unscaledTime + RetrySeconds;
-            Debug.LogWarning($"[Jogadores] Não consegui liberar {slot}: {result.Status} {result.Message}");
-        }
-
-        private void OnDisable()
-        {
-            // Se o acesso já acabou, os tokens ficam em blocks e a próxima Partida solta.
-            if (session != null && session.TryGetAccess(out var access, out _)) ReleaseAll(access, "partida saiu");
-            retryAt.Clear();
-            occurrence = -1;
-        }
-
-        private void ReleaseAll(IPlayerSessionScopedAccess access, string reason)
-        {
-            var kept = new List<KeyValuePair<PlayerSlotId, PlayerGameplayAvailabilityBlockToken>>();
-            foreach (var pair in blocks)
-            {
-                if (!pair.Value.IsValid) continue;
-                var result = access.RequestReleaseRuntimeGameplay(pair.Value, Source, reason);
-                if (result.Succeeded || result.Status == PlayerGameplayAvailabilityBlockStatus.RejectedForeignOrStaleToken) continue;
-                // Runtime indisponível agora (cena saindo): guarda para tentar de novo na próxima Partida.
-                kept.Add(pair);
-                Debug.LogWarning($"[Jogadores] Não consegui liberar {pair.Key} ({reason}): {result.Status} {result.Message}");
-            }
-            blocks.Clear();
-            foreach (var pair in kept) blocks[pair.Key] = pair.Value;
-            retryAt.Clear();
-        }
+        private void OnDisable() => retryAt.Clear();
 
 #if UNITY_EDITOR
         /// <summary>Teste no editor: a Partida abriu direto, sem o Menu. Entra o Jogador 1 (o time de baixo).</summary>
@@ -138,15 +100,15 @@ namespace FutebolDeBotao
             foreach (var slot in observation.Slots)
                 if (slot.IsJoined) return;
 
-            if (!session.TryGetJoinAccess(out var join, out string issue))
+            if (testJoin == null)
             {
-                Debug.LogWarning($"[Jogadores] Join de teste indisponível: {issue}");
+                Debug.LogWarning("[Jogadores] Falta o Join de teste na Partida (rode \"Criar telas\").");
                 return;
             }
-            var result = join.RequestJoin(new LocalPlayerJoinRequest(Source, "teste no editor: partida aberta sem o Menu"));
-            Debug.Log(result.Succeeded
-                ? $"[Jogadores] Join de teste: {result.Slot.PlayerSlotId} entrou."
-                : $"[Jogadores] Join de teste falhou: {result.Status} {result.Message}");
+            var outcome = testJoin.RequestJoin(new LocalPlayerJoinRequest(Source, "teste no editor: partida aberta sem o Menu"));
+            Debug.Log(outcome != null && outcome.Code == LocalPlayerJoinOutcomeCode.Joined
+                ? "[Jogadores] Join de teste: entrou o Jogador 1."
+                : $"[Jogadores] Join de teste falhou: {(outcome != null ? outcome.Code.ToString() : "sem resposta")}");
         }
 #endif
     }

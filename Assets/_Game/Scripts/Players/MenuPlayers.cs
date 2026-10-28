@@ -10,9 +10,9 @@ namespace FutebolDeBotao
     /// <summary>
     /// No Menu, acerta quem está na sessão antes da partida, com os dispositivos escolhidos na tela Controles.
     /// Contra a IA: só o Jogador 1. Dois jogadores com dispositivos diferentes: Jogador 1 e Jogador 2, cada um com o seu
-    /// (os dois viram Actors). Dois jogadores no mesmo dispositivo: ninguém entra e a partida lê os dispositivos direto,
-    /// até o framework aceitar dois jogadores no mesmo dispositivo.
+    /// (os dois viram Actors). Dois jogadores no mesmo dispositivo: ninguém entra e a partida lê os dispositivos direto.
     /// Sempre tira todo mundo antes e entra de novo alguns quadros depois, para o dispositivo já estar livre.
+    /// Join pelo Player Session Join Trigger e Leave pelos Leave Command Triggers (um por vaga), todos no escopo Route.
     /// </summary>
     public sealed class MenuPlayers : MonoBehaviour
     {
@@ -20,10 +20,19 @@ namespace FutebolDeBotao
 
         [Tooltip("Player Session Observer do Menu (escopo Route).")]
         [SerializeField] private PlayerSessionObserver session;
+        [Tooltip("Join do framework (escopo Route).")]
+        [SerializeField] private PlayerSessionJoinTrigger join;
+        [Tooltip("Um Leave por vaga (escopo Route).")]
+        [SerializeField] private PlayerSessionLeaveCommandTrigger[] leaves;
 
         private bool busy;
 
-        public void Configure(PlayerSessionObserver observer) => session = observer;
+        public void Configure(PlayerSessionObserver observer, PlayerSessionJoinTrigger joinTrigger, PlayerSessionLeaveCommandTrigger[] leaveTriggers)
+        {
+            session = observer;
+            join = joinTrigger;
+            leaves = leaveTriggers;
+        }
 
         /// <summary>Acerta os jogadores do modo escolhido e chama <paramref name="done"/> (mesmo se algo falhar).</summary>
         public void Prepare(Action done)
@@ -35,13 +44,13 @@ namespace FutebolDeBotao
         private IEnumerator PrepareRoutine(Action done)
         {
             busy = true;
-            if (TryGetObservation(out var access, out var observation))
+            if (TryGetObservation(out var observation))
             {
                 bool anyLeft = false;
                 foreach (var slot in observation.Slots)
                 {
                     if (!slot.IsJoined) continue;
-                    Leave(access, slot);
+                    Leave(slot.Slot.PlayerSlotId);
                     anyLeft = true;
                 }
                 // O PlayerInput de quem saiu some no fim do quadro; o dispositivo só fica livre depois.
@@ -66,35 +75,48 @@ namespace FutebolDeBotao
         /// <summary>Join com o dispositivo (e o esquema dele). Sem dispositivo, a Unity dá o primeiro esquema que os livres atendem.</summary>
         private void Join(InputDevice device, string reason)
         {
-            if (!session.TryGetJoinAccess(out var join, out string issue))
+            if (join == null)
             {
-                Debug.LogWarning($"[Jogadores] Join indisponível no Menu: {issue}");
+                Debug.LogWarning("[Jogadores] Falta o Player Session Join Trigger no Menu (rode \"Criar telas\").");
                 return;
             }
             var request = device != null && device.added
                 ? new LocalPlayerJoinRequest(Source, reason, device, DeviceChoice.SchemeFor(device))
                 : new LocalPlayerJoinRequest(Source, reason);
-            var result = join.RequestJoin(request);
-            if (result.Succeeded) Debug.Log($"[Jogadores] {result.Slot.PlayerSlotId} entrou ({(device != null ? device.displayName : "sem dispositivo")}).");
-            else Debug.LogWarning($"[Jogadores] Join falhou ({reason}): {result.Status} {result.Message}");
+            var outcome = join.RequestJoin(request);
+            string with = device != null ? device.displayName : "sem dispositivo";
+            if (outcome != null && outcome.Code == LocalPlayerJoinOutcomeCode.Joined) Debug.Log($"[Jogadores] Entrou um jogador ({reason}, {with}).");
+            else Debug.LogWarning($"[Jogadores] Join falhou ({reason}, {with}): {(outcome != null ? outcome.Code.ToString() : "sem resposta")}");
         }
 
-        private bool TryGetObservation(out IPlayerSessionScopedAccess access, out PlayerSessionScopedObservationSnapshot observation)
+        private bool TryGetObservation(out PlayerSessionScopedObservationSnapshot observation)
         {
             observation = null;
-            access = null;
-            if (session == null || !session.TryGetAccess(out access, out string issue))
-            {
-                Debug.LogWarning($"[Jogadores] Sessão de jogadores indisponível no Menu. {(session == null ? "Falta o Player Session Observer." : "")}");
-                return false;
-            }
-            return access.TryGetObservation(out observation) && observation != null && observation.IsAvailable;
+            if (session != null && session.TryGetObservation(out observation)) return true;
+            Debug.LogWarning($"[Jogadores] Sessão de jogadores indisponível no Menu. {(session == null ? "Falta o Player Session Observer." : session.Diagnostic)}");
+            return false;
         }
 
-        private static void Leave(IPlayerSessionScopedAccess access, PlayerSessionScopedSlotObservation slot)
+        private void Leave(PlayerSlotId id)
         {
-            var result = access.RequestLeave(new SessionPlayerLeaveRequest(slot.Slot.PlayerSlotId, slot.Slot.Revision, Source, "modo do Menu"));
-            if (!result.Succeeded) Debug.LogWarning($"[Jogadores] Leave de {slot.Slot.PlayerSlotId} falhou: {result.Status} {result.Message}");
+            var trigger = LeaveFor(id);
+            if (trigger == null)
+            {
+                Debug.LogWarning($"[Jogadores] Sem Leave para {id} no Menu (rode \"Criar telas\").");
+                return;
+            }
+            trigger.Invoke();
+            var result = trigger.LastLeaveResult;
+            if (result == null || !result.Succeeded) Debug.LogWarning($"[Jogadores] Leave de {id} falhou: {trigger.LastOutcome} {trigger.LastDiagnostic}");
+        }
+
+        private PlayerSessionLeaveCommandTrigger LeaveFor(PlayerSlotId id)
+        {
+            if (leaves == null) return null;
+            foreach (var trigger in leaves)
+                if (trigger != null && trigger.PlayerSlot != null && trigger.PlayerSlot.TryGetPlayerSlotId(out var slot, out _) && slot == id)
+                    return trigger;
+            return null;
         }
     }
 }

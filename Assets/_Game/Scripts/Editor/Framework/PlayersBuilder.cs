@@ -24,8 +24,8 @@ namespace FutebolDeBotao.Editor
         private const string Folder = "Assets/_Game/App/Jogadores";
         private const string ControlsPath = Folder + "/Controles.inputactions";
         private const string ActorProfilePath = Folder + "/Tecnico.asset";
-        private const string Slot1Path = Folder + "/Jogador1.asset";
-        private const string Slot2Path = Folder + "/Jogador2.asset";
+        internal const string Slot1Path = Folder + "/Jogador1.asset";
+        internal const string Slot2Path = Folder + "/Jogador2.asset";
         private const string SessionPath = Folder + "/SessaoDeJogadores.asset";
         private const string ActorPrefabPath = Folder + "/Tecnico.prefab";
         private const string HostPrefabPath = Folder + "/Jogador.prefab";
