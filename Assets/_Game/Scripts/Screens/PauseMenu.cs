@@ -53,12 +53,20 @@ namespace FutebolDeBotao
 
         public void Restart()
         {
-            if (restartTrigger != null) RunAfterResume(restartTrigger.RequestActivityRestart);
+            if (restartTrigger != null) RunAfterResume(() =>
+            {
+                MatchPlayers.ReleaseBeforeLeaving("reiniciar");
+                restartTrigger.RequestActivityRestart();
+            });
         }
 
         public void BackToMenu()
         {
-            if (menuRoute != null) RunAfterResume(menuRoute.RequestRoute);
+            if (menuRoute != null) RunAfterResume(() =>
+            {
+                MatchPlayers.ReleaseBeforeLeaving("sair para o menu");
+                menuRoute.RequestRoute();
+            });
         }
 
         private void RunAfterResume(Action action)

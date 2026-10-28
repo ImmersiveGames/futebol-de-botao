@@ -9,7 +9,9 @@ namespace FutebolDeBotao
     /// Na Partida, deixa jogar só o jogador da vez: os outros ficam bloqueados pelo framework
     /// (bloqueio de disponibilidade, IF-ADR-044) e o leitor de input deles não devolve nada.
     /// Na vez da IA o Jogador 1 fica bloqueado. Cada vaga tem o seu Gameplay Availability Block Trigger (escopo Activity),
-    /// que o framework solta sozinho quando a Partida acaba ou reinicia.
+    /// Antes de sair da Partida (Resultado, Menu ou Reiniciar), <see cref="ReleaseBeforeLeaving"/> solta todos os bloqueios
+    /// enquanto a Activity ainda está viva: se o bloqueio fica até a Activity acabar, o Leave no Menu falha e o jogador
+    /// fica preso na sessão (o dispositivo continua dele).
     /// No editor, se a partida abriu direto (sem o Menu), faz o Join do Jogador 1 para teste.
     /// </summary>
     public sealed class MatchPlayers : MonoBehaviour
@@ -24,7 +26,10 @@ namespace FutebolDeBotao
         [Tooltip("Join de teste no editor (escopo Activity).")]
         [SerializeField] private PlayerSessionJoinTrigger testJoin;
 
+        private static MatchPlayers current;
         private readonly Dictionary<PlayerSlotId, float> retryAt = new();
+        // Ocorrência da Activity que está saindo: nela ninguém é bloqueado de novo.
+        private int leavingOccurrence = -1;
 #if UNITY_EDITOR
         private const string Source = "futebol.partida";
         private bool testJoinTried;
@@ -43,6 +48,7 @@ namespace FutebolDeBotao
         {
             if (session == null || match == null) return;
             if (!session.TryGetObservation(out var observation)) return;
+            if (observation.ActivityOccurrence == leavingOccurrence) return;
 
 #if UNITY_EDITOR
             TryTestJoin(observation);
@@ -88,7 +94,35 @@ namespace FutebolDeBotao
             return null;
         }
 
-        private void OnDisable() => retryAt.Clear();
+        /// <summary>Solta os bloqueios de todos antes de pedir a saída da Partida (ou o reinício).</summary>
+        public static void ReleaseBeforeLeaving(string reason)
+        {
+            if (current == null) return;
+            if (current.session != null && current.session.TryGetObservation(out var observation))
+                current.leavingOccurrence = observation.ActivityOccurrence;
+            current.ReleaseAll(reason);
+        }
+
+        private void ReleaseAll(string reason)
+        {
+            retryAt.Clear();
+            if (blocks == null) return;
+            foreach (var block in blocks)
+            {
+                if (block == null || !block.OwnsActiveBlock) continue;
+                block.RequestRelease();
+                if (block.OwnsActiveBlock) Debug.LogWarning($"[Jogadores] Não consegui liberar o bloqueio ({reason}): {block.LastDiagnostic}");
+            }
+        }
+
+        private void OnEnable() => current = this;
+
+        private void OnDisable()
+        {
+            if (current == this) current = null;
+            retryAt.Clear();
+            leavingOccurrence = -1;
+        }
 
 #if UNITY_EDITOR
         /// <summary>Teste no editor: a Partida abriu direto, sem o Menu. Entra o Jogador 1 (o time de baixo).</summary>

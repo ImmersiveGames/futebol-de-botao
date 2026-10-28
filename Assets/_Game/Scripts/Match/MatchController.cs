@@ -1132,6 +1132,7 @@ namespace FutebolDeBotao
         private void RequestResult()
         {
             resultRequested = true;
+            MatchPlayers.ReleaseBeforeLeaving("fim de jogo");
             if (resultRoute != null) resultRoute.RequestRoute();
             else Debug.LogWarning("[Futebol de Botão] MatchController sem Route Request Trigger do Resultado. Rode \"Futebol de Botão/Criar telas\".");
         }
