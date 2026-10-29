@@ -73,11 +73,27 @@ namespace FutebolDeBotao
             OpenDevices();
         }
 
-        /// <summary>Fecha o aplicativo (no editor, para o Play). No navegador o botão nem aparece.</summary>
+        /// <summary>
+        /// Fecha o aplicativo (no editor, para o Play). No Android também tira o jogo da lista de apps recentes
+        /// (finishAndRemoveTask); sem isso o cartão ficava lá e, tocando nele, o jogo abria do zero.
+        /// No navegador o botão nem aparece.
+        /// </summary>
         public void QuitApp()
         {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
+#elif UNITY_ANDROID
+            try
+            {
+                using var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                using var activity = player.GetStatic<AndroidJavaObject>("currentActivity");
+                activity.Call("finishAndRemoveTask");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Futebol de Botão] finishAndRemoveTask falhou: {e.Message}");
+            }
+            Application.Quit();
 #else
             Application.Quit();
 #endif
