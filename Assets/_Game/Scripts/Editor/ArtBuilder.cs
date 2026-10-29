@@ -32,7 +32,7 @@ namespace FutebolDeBotao.Editor
         private const string BallTrailPrefix = "Bola_Rastro";
         private static readonly Vector2Int BallTrailCell = new(32, 64);
         private static readonly Vector2 BallTrailPivot = new(0.5f, 0.75f);
-        private static readonly Color BallTrailColor = new(1f, 1f, 1f, 0.7f);
+        private static readonly Color BallTrailColor = new(1f, 1f, 1f, 0.5f);
 
         private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";

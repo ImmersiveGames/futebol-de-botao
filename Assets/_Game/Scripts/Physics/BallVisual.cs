@@ -29,6 +29,8 @@ namespace FutebolDeBotao
         [SerializeField, Min(0f)] private float trailMinSpeed = 5f;
         [Tooltip("Velocidade (unidades/s) do maior rastro.")]
         [SerializeField, Min(0f)] private float trailMaxSpeed = 9f;
+        [Tooltip("Transparência do rastro (0 = invisível, 1 = opaco).")]
+        [SerializeField, Range(0f, 1f)] private float trailAlpha = 0.5f;
 
         // Um salto maior que isso num quadro é a bola sendo reposicionada, não rolando.
         private const float TeleportDistance = 0.5f;
@@ -95,6 +97,8 @@ namespace FutebolDeBotao
             if (trail == null || trailFrames.Length < 2) return;
             bool shown = speed >= trailMinSpeed;
             trail.enabled = shown;
+            var color = trail.color;
+            if (!Mathf.Approximately(color.a, trailAlpha)) trail.color = new Color(color.r, color.g, color.b, trailAlpha);
             if (!shown) return;
             float t = Mathf.InverseLerp(trailMinSpeed, Mathf.Max(trailMaxSpeed, trailMinSpeed + 0.01f), speed);
             int last = trailFrames.Length - 1;
