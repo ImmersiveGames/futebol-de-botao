@@ -100,7 +100,7 @@ namespace FutebolDeBotao
             if (match.AllDiscs.Count == 0) return;
             built = true;
             aim = FindAnyObjectByType<AimController>();
-            selectionArt = ButtonArt.Find(SelectionArtName);
+            selectionArt = InsetSprite(ButtonArt.Find(SelectionArtName));
             foreach (var disc in match.AllDiscs)
             {
                 var halo = CreateHalo(disc.transform);
@@ -144,6 +144,21 @@ namespace FutebolDeBotao
             if (!on) return;
             halo.color = new Color(HaloColor.r, HaloColor.g, HaloColor.b, alpha);
             halo.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        /// <summary>
+        /// Cópia do recorte meio pixel para dentro de cada lado. A arte do anel encosta nas bordas da célula e os vizinhos
+        /// da folha são cheios: girando, a borda do quadrado pegava a coluna do vizinho e aparecia uma reta.
+        /// </summary>
+        private static Sprite InsetSprite(Sprite art)
+        {
+            if (art == null || art.packed) return art;
+            var rect = art.textureRect;
+            var inset = new Rect(rect.x + 0.5f, rect.y + 0.5f, rect.width - 1f, rect.height - 1f);
+            var pivot = new Vector2((art.pivot.x - 0.5f) / inset.width, (art.pivot.y - 0.5f) / inset.height);
+            var sprite = Sprite.Create(art.texture, inset, pivot, art.pixelsPerUnit, 0, SpriteMeshType.FullRect);
+            sprite.name = art.name;
+            return sprite;
         }
 
         /// <summary>Anel de seleção na cor da arte, girando, no tamanho dos pixels do jogo qualquer que seja a escala do botão.</summary>
