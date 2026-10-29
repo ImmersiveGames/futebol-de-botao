@@ -369,8 +369,9 @@ namespace FutebolDeBotao
             var bottom = CreateWorldCanvas("Faixa contra a IA (botões)", stripsRoot.transform,
                 new Vector2(0f, -centerY), new Vector2(width, height), 0f);
             CreateFramedPanel(bottom.transform, 1f);
-            buttons.Pause = CreateButton(bottom.transform, "Pausa", "Pausa", 30, new Vector2(-canvasWidth * 0.5f + 125f, 0f),
-                new Vector2(210f, 100f), out _, ButtonStyle.Green, ButtonSkin.PauseIcon);
+            // Só o ícone: quase quadrado, com a mesma margem de 20 na esquerda.
+            buttons.Pause = CreateButton(bottom.transform, "Pausa", "Pausa", 30, new Vector2(-canvasWidth * 0.5f + 80f, 0f),
+                new Vector2(120f, 100f), out _, ButtonStyle.Green, ButtonSkin.PauseIcon);
             buttons.Pause.onClick.AddListener(match.RequestPause);
             buttons.Action = CreateButton(bottom.transform, "Ação", ShotCallLabel, 34, new Vector2(canvasWidth * 0.5f - 170f, 0f),
                 new Vector2(300f, 106f), out buttons.ActionLabel, ButtonStyle.Yellow);
