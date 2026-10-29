@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.U2D.Sprites;
@@ -7,21 +6,24 @@ using UnityEngine;
 namespace FutebolDeBotao.Editor
 {
     /// <summary>
-    /// Importa a folha de botões (Resources/Botoes/Buttons_Sprites.png, 2 colunas x 4 linhas de 32x32): 32 px por
-    /// unidade, filtro Point, sem compressão e cortada em 8 sprites com borda 9-slice de 10 px. Coluna da esquerda é o
-    /// normal, a da direita o apertado; os nomes vêm de <see cref="ButtonSkin.RowNames"/> (Verde, Verde_Apertado...).
+    /// Importa a folha de UI (Art/UI/Botões_UI-Sheet.png, recortada pelo usuário no Sprite Editor: Green_Button,
+    /// Green_Button_Pressed... Gray_Button e Hud_BG_Tile): 32 px por unidade, filtro Point, sem compressão, borda 9-slice
+    /// de 10 px nos botões e de 4 px no fundo da HUD. Os recortes continuam os do usuário (só a borda muda).
+    /// Guarda os sprites em Resources/BotoesUI (<see cref="ButtonArt"/>) para o <see cref="ButtonSkin"/> achar no jogo.
     /// Chamado pelo "Criar telas".
     /// </summary>
     public static class ButtonSpritesImport
     {
-        public const string SheetPath = "Assets/_Game/Resources/Botoes/Buttons_Sprites.png";
+        public const string SheetPath = "Assets/_Game/Art/UI/Botões_UI-Sheet.png";
+        private const string ArtPath = "Assets/_Game/Resources/" + ButtonArt.ResourcePath + ".asset";
         private const int PixelsPerUnit = 32;
+        private const float HudPanelBorder = 4f;
 
         public static void Configure()
         {
             if (AssetImporter.GetAtPath(SheetPath) is not TextureImporter importer)
             {
-                Debug.LogWarning($"[Futebol de Botão] Sem a folha de botões em {SheetPath}: botões com cor lisa.");
+                Debug.LogWarning($"[Futebol de Botão] Sem a folha de UI em {SheetPath}: botões com cor lisa.");
                 return;
             }
 
@@ -37,41 +39,40 @@ namespace FutebolDeBotao.Editor
             factory.Init();
             var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
             provider.InitSpriteEditorDataProvider();
-            provider.GetDataProvider<ITextureDataProvider>().GetTextureActualWidthAndHeight(out int width, out int height);
-
-            // Mantém o ID de cada recorte que já existe, para não quebrar referências nas cenas.
-            var previous = provider.GetSpriteRects().GroupBy(r => r.name).ToDictionary(g => g.Key, g => g.First().spriteID);
-            int size = ButtonSkin.TileSize;
-            float border = ButtonSkin.BorderPixels;
-            var rects = new List<SpriteRect>();
-            for (int row = 0; row < ButtonSkin.RowNames.Length; row++)
+            var rects = provider.GetSpriteRects();
+            float button = ButtonSkin.BorderPixels;
+            foreach (var rect in rects)
             {
-                for (int column = 0; column < 2; column++)
-                {
-                    string name = ButtonSkin.RowNames[row] + (column == 1 ? ButtonSkin.PressedSuffix : string.Empty);
-                    var rect = new Rect(column * size, height - (row + 1) * size, size, size);
-                    if (rect.xMax > width || rect.y < 0f)
-                    {
-                        Debug.LogWarning($"[Futebol de Botão] A folha {SheetPath} tem {width}x{height}; esperava 64x128.");
-                        continue;
-                    }
-                    rects.Add(new SpriteRect
-                    {
-                        name = name,
-                        rect = rect,
-                        border = new Vector4(border, border, border, border),
-                        alignment = SpriteAlignment.Center,
-                        pivot = new Vector2(0.5f, 0.5f),
-                        spriteID = previous.TryGetValue(name, out var id) ? id : GUID.Generate(),
-                    });
-                }
+                float border = rect.name == ButtonSkin.HudPanelName ? HudPanelBorder : button;
+                rect.border = new Vector4(border, border, border, border);
             }
-
-            provider.SetSpriteRects(rects.ToArray());
-            provider.GetDataProvider<ISpriteNameFileIdDataProvider>()
-                .SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)).ToList());
+            provider.SetSpriteRects(rects);
             provider.Apply();
             importer.SaveAndReimport();
+
+            var sprites = AssetDatabase.LoadAllAssetsAtPath(SheetPath).OfType<Sprite>().ToArray();
+            foreach (var name in ButtonSkin.StyleNames)
+                if (sprites.All(s => s.name != name))
+                    Debug.LogWarning($"[Futebol de Botão] A folha {SheetPath} não tem o recorte {name}.");
+
+            var art = AssetDatabase.LoadAssetAtPath<ButtonArt>(ArtPath);
+            if (art == null)
+            {
+                art = ScriptableObject.CreateInstance<ButtonArt>();
+                AssetDatabase.CreateAsset(art, ArtPath);
+            }
+            art.sprites = sprites;
+            EditorUtility.SetDirty(art);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>O fundo 9-slice das faixas da HUD, ou nulo se a folha não tiver.</summary>
+        public static Sprite HudPanel()
+        {
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(SheetPath))
+                if (asset is Sprite sprite && sprite.name == ButtonSkin.HudPanelName) return sprite;
+            Debug.LogWarning($"[Futebol de Botão] Sem {ButtonSkin.HudPanelName} em {SheetPath}: HUD com fundo liso.");
+            return null;
         }
     }
 }

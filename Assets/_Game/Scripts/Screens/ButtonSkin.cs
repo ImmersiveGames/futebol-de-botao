@@ -11,25 +11,29 @@ namespace FutebolDeBotao
         Green,
         /// <summary>Voltar, Sair, Reiniciar.</summary>
         Red,
-        /// <summary>Desligado (não dá para tocar).</summary>
+        /// <summary>Marrom (sobrou da folha antiga, hoje sem uso fixo).</summary>
         Brown,
         /// <summary>Ação principal: Jogar, Avançar, Pronto, Pro Gol!.</summary>
         Yellow,
+        /// <summary>Desligado (não dá para tocar).</summary>
+        Gray,
     }
 
     /// <summary>
-    /// Veste um <see cref="Button"/> com a moldura 9-slice de Resources/Botoes/Buttons_Sprites (32x32, borda de 10 px):
-    /// troca para a versão apertada no toque, usa a marrom quando o botão está desligado e acerta a cor do texto.
+    /// Veste um <see cref="Button"/> com a moldura 9-slice da folha Art/UI/Botões_UI-Sheet (32x32, borda de 10 px, achada pelo
+    /// <see cref="ButtonArt"/> em Resources): troca para a versão apertada no toque, usa a cinza quando o botão está
+    /// desligado e acerta a cor do texto.
     /// Também põe o som de clique (<see cref="ButtonClickSound"/>).
     /// Sem a folha (ou sem os recortes), não mexe em nada e devolve falso: quem chamou mantém a cor lisa de antes.
     /// Os recortes são feitos pelo menu "Criar telas".
     /// </summary>
     public static class ButtonSkin
     {
-        public const string SheetResource = "Botoes/Buttons_Sprites";
-        /// <summary>Nome do recorte de cada linha da folha, de cima para baixo (mesma ordem de <see cref="ButtonStyle"/>).</summary>
-        public static readonly string[] RowNames = { "Verde", "Vermelho", "Marrom", "Amarelo" };
-        public const string PressedSuffix = "_Apertado";
+        /// <summary>Nome do recorte de cada estilo na folha (mesma ordem de <see cref="ButtonStyle"/>).</summary>
+        public static readonly string[] StyleNames = { "Green_Button", "Red_Button", "Brown_Button", "Yellow_Button", "Gray_Button" };
+        public const string PressedSuffix = "_Pressed";
+        /// <summary>Fundo 9-slice das faixas da HUD, na mesma folha.</summary>
+        public const string HudPanelName = "Hud_BG_Tile";
         public const int TileSize = 32;
         public const int BorderPixels = 10;
         /// <summary>
@@ -58,7 +62,7 @@ namespace FutebolDeBotao
             if (button == null || button.targetGraphic is not Image image) return false;
             var normal = Find(style, false);
             var pressed = Find(style, true);
-            var disabled = Find(ButtonStyle.Brown, false);
+            var disabled = Find(ButtonStyle.Gray, false);
             if (normal == null || pressed == null || disabled == null) return false;
 
             image.sprite = normal;
@@ -84,12 +88,15 @@ namespace FutebolDeBotao
 
         private static Sprite Find(ButtonStyle style, bool pressed)
         {
-            string name = RowNames[(int)style] + (pressed ? PressedSuffix : string.Empty);
+            string name = StyleNames[(int)style] + (pressed ? PressedSuffix : string.Empty);
             if (sprites != null && sprites.TryGetValue(name, out var cached) && cached != null) return cached;
 
             // Primeira vez, ou o editor descarregou os sprites ao trocar de cena: carrega de novo.
             sprites = new Dictionary<string, Sprite>();
-            foreach (var sprite in Resources.LoadAll<Sprite>(SheetResource)) sprites[sprite.name] = sprite;
+            var art = Resources.Load<ButtonArt>(ButtonArt.ResourcePath);
+            if (art != null)
+                foreach (var sprite in art.sprites)
+                    if (sprite != null) sprites[sprite.name] = sprite;
             return sprites.TryGetValue(name, out var found) ? found : null;
         }
     }

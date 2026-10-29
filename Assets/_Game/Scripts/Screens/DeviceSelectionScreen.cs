@@ -26,7 +26,6 @@ namespace FutebolDeBotao
         private static readonly Color CardColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ConfirmedColor = new(0.55f, 0.9f, 0.55f);
         private static readonly Color TextColor = new(0.1f, 0.1f, 0.1f);
-        private static readonly Color IdleTint = new(0.6f, 0.62f, 0.6f);
 
         [SerializeField] private MenuScreen menu;
 
@@ -267,12 +266,11 @@ namespace FutebolDeBotao
             {
                 var entry = entries[i];
                 entry.Card.anchoredPosition = new Vector2(entry.Position * ColumnX, FirstCardY - i * CardSpacing);
-                // Confirmado: amarelo; num lado, ainda escolhendo: verde; no meio: desligado (verde acinzentado).
+                // Confirmado: amarelo; num lado, ainda escolhendo: verde; no meio: desligado (cinza).
                 bool idle = entry.Position == 0 && !entry.Confirmed;
-                if (!ButtonSkin.Apply(entry.Button, entry.Confirmed ? ButtonStyle.Yellow : ButtonStyle.Green))
+                var style = entry.Confirmed ? ButtonStyle.Yellow : idle ? ButtonStyle.Gray : ButtonStyle.Green;
+                if (!ButtonSkin.Apply(entry.Button, style))
                     entry.Image.color = entry.Confirmed ? ConfirmedColor : CardColor;
-                // Provisório até a arte do botão cinza de desligado.
-                if (idle) entry.Image.color = IdleTint;
             }
         }
 

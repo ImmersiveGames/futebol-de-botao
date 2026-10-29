@@ -22,7 +22,7 @@ namespace FutebolDeBotao
         [SerializeField] private MatchController match;
         [Tooltip("Nos últimos segundos o timer fica vermelho.")]
         [SerializeField, Min(0f)] private float warningSeconds = 5f;
-        [Tooltip("Painel 9-slice das faixas (HUD_Panel da Field_Sprites). Sem ele, fundo preto meio transparente.")]
+        [Tooltip("Painel 9-slice das faixas (Hud_BG_Tile da Botões_UI-Sheet). Sem ele, fundo preto meio transparente.")]
         [SerializeField] private Sprite panelSprite;
 
         private static readonly Color WarningColor = new(1f, 0.25f, 0.2f);
