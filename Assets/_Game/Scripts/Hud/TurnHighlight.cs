@@ -40,7 +40,9 @@ namespace FutebolDeBotao
             float pulse = Mathf.Lerp(MinAlpha, MaxAlpha, wave);
             // O escolhido continua piscando, mais forte que os outros.
             float selectedPulse = Mathf.Lerp(SelectedMinAlpha, SelectedMaxAlpha, wave);
-            bool discsActive = !paused && state is MatchState.Aim or MatchState.ShotAim or MatchState.PenaltySetup;
+            // Mirando (dando força), o brilho some para não brigar com a faixa de força; volta se o chute for cancelado.
+            bool aiming = aim != null && aim.IsAiming;
+            bool discsActive = !paused && !aiming && state is MatchState.Aim or MatchState.ShotAim or MatchState.PenaltySetup;
             var selected = aim == null ? null
                 : aim.IsAiming ? (aim.IsBallKick ? null : aim.SelectedDisc)
                 // No toque, o botão escolhido (que o arrasto fora dos botões mira) já brilha mais forte.
@@ -61,7 +63,7 @@ namespace FutebolDeBotao
                 Show(pair.Value, on, isSelected ? selectedPulse : pulse, isSelected ? SelectedScale : HaloScale);
             }
 
-            bool ballOn = !paused && state == MatchState.GoalKick;
+            bool ballOn = !paused && !aiming && state == MatchState.GoalKick;
             bool ballSelected = ballOn && aim != null && aim.IsAiming && aim.IsBallKick;
             Show(ballHalo, ballOn, ballSelected ? selectedPulse : pulse, ballSelected ? SelectedScale : HaloScale);
 
