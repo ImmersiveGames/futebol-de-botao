@@ -22,7 +22,7 @@ namespace FutebolDeBotao
     /// <summary>
     /// Dados que passam de uma tela para outra enquanto o jogo está aberto: as opções escolhidas no Menu,
     /// os times, esquemas e camisas da Seleção de times, o placar da última partida, o modo (contra a IA ou 2 jogadores) e o nível da IA. As opções são uma cópia em memória do asset padrão, que não é alterado.
-    /// Salvar entre sessões fica para a fase 4 (Progression Save).
+    /// O <see cref="GameSave"/> carrega as últimas escolhas aqui quando o jogo abre e grava de volta.
     /// </summary>
     public static class MatchSession
     {
@@ -97,8 +97,12 @@ namespace FutebolDeBotao
             options = defaults != null ? Object.Instantiate(defaults) : MatchOptions.CreateDefault();
             options.name = "Opções da sessão";
             options.hideFlags = HideFlags.DontSave;
+            GameSave.ApplyOptions(options);
             return options;
         }
+
+        /// <summary>Opções da sessão já criadas, ou nulo se ainda ninguém pediu.</summary>
+        public static MatchOptions Current => options;
 
         // Com o "Enter Play Mode" sem recarregar o domínio, os estáticos sobrevivem entre execuções no editor.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

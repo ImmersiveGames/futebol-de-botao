@@ -209,9 +209,12 @@ namespace FutebolDeBotao
                     options.fouls = !options.fouls;
                     break;
                 case MatchOptionKind.Music:
+                    // A música grava sozinha.
                     MusicSetting.Enabled = !MusicSetting.Enabled;
-                    break;
+                    Refresh();
+                    return;
             }
+            GameSave.Save("opcoes");
             Refresh();
         }
 

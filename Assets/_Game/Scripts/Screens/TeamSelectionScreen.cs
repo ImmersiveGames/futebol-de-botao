@@ -196,6 +196,7 @@ namespace FutebolDeBotao
 
         public void Play()
         {
+            GameSave.Save("selecao de times");
             if (menu != null) menu.Play();
         }
 

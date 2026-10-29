@@ -5,7 +5,7 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Música Ligado/Desligado (Opções da partida e menu de pausa), guardada no aparelho. O pacote de áudio não muda o
+    /// Música Ligado/Desligado (Opções da partida e menu de pausa), guardada no save do jogo (<see cref="GameSave"/>). O pacote de áudio não muda o
     /// volume da música em tempo de jogo, então a música desligada deixa mudas as fontes do serviço de BGM; ela continua
     /// tocando por baixo e volta no mesmo ponto ao ligar. Os outros sons não mudam.
     /// </summary>
@@ -23,16 +23,20 @@ namespace FutebolDeBotao
             {
                 if (enabled == null)
                 {
-                    try { enabled = PlayerPrefs.GetInt(PrefsKey, 1) != 0; }
-                    catch { enabled = true; }
+                    // Sem save ainda: vale o que ficou guardado antes dele (PlayerPrefs).
+                    if (GameSave.Existed) enabled = GameSave.Data.settings.music;
+                    else
+                    {
+                        try { enabled = PlayerPrefs.GetInt(PrefsKey, 1) != 0; }
+                        catch { enabled = true; }
+                    }
                 }
                 return enabled.Value;
             }
             set
             {
                 enabled = value;
-                PlayerPrefs.SetInt(PrefsKey, value ? 1 : 0);
-                PlayerPrefs.Save();
+                GameSave.Save("musica");
             }
         }
 
