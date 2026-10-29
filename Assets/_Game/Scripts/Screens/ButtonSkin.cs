@@ -34,6 +34,12 @@ namespace FutebolDeBotao
         public const string PressedSuffix = "_Pressed";
         /// <summary>Fundo 9-slice das faixas da HUD, na mesma folha.</summary>
         public const string HudPanelName = "Hud_BG_Tile";
+        /// <summary>Ícones da folha Art/UI/Icons-Sheet (32x32, desenho branco no transparente).</summary>
+        public const string KeyboardIcon = "Icons_Keyboard";
+        public const string TouchIcon = "Icons_touch";
+        public const string GamepadIcon = "Icons_Joypad";
+        public const string PauseIcon = "Icons_Pause";
+        private const string IconObjectName = "Ícone";
         public const int TileSize = 32;
         public const int BorderPixels = 10;
         /// <summary>
@@ -77,13 +83,48 @@ namespace FutebolDeBotao
             button.transition = Selectable.Transition.SpriteSwap;
             button.spriteState = new SpriteState { pressedSprite = pressed, disabledSprite = disabled };
 
-            var label = button.GetComponentInChildren<Text>(true);
+            // Com ícone, ele faz o papel do texto (sobe com a face, escurece no toque, cor do texto do estilo).
+            Graphic label = FindIcon(button);
+            if (label == null) label = button.GetComponentInChildren<Text>(true);
             if (!button.TryGetComponent<ButtonSkinText>(out var text)) text = button.gameObject.AddComponent<ButtonSkinText>();
             // Um pixel da arte em unidades da UI, já com a borda encolhida dos botões baixos.
             float artPixel = ReferencePixelsPerUnit / normal.pixelsPerUnit / image.pixelsPerUnitMultiplier;
             text.Configure(button, label, TextColor(style), FaceRaisePixels * artPixel);
             if (!button.TryGetComponent<ButtonClickSound>(out _)) button.gameObject.AddComponent<ButtonClickSound>();
             return true;
+        }
+
+        /// <summary>
+        /// Troca o texto do botão por um ícone da folha de ícones, com <paramref name="size"/> unidades da UI de lado.
+        /// Sem a arte, não mexe em nada e devolve falso (fica o texto). Chamar antes do <see cref="Apply"/>.
+        /// </summary>
+        public static bool SetIcon(Button button, string iconName, float size)
+        {
+            var sprite = ButtonArt.Find(iconName);
+            if (button == null || sprite == null) return false;
+            var icon = FindIcon(button);
+            if (icon == null)
+            {
+                var go = new GameObject(IconObjectName, typeof(RectTransform));
+                go.transform.SetParent(button.transform, false);
+                icon = go.AddComponent<Image>();
+                icon.raycastTarget = false;
+                icon.preserveAspect = true;
+            }
+            icon.sprite = sprite;
+            var rect = icon.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = new Vector2(size, size);
+            foreach (var text in button.GetComponentsInChildren<Text>(true))
+                if (text.transform.parent == button.transform) text.enabled = false;
+            return true;
+        }
+
+        private static Image FindIcon(Button button)
+        {
+            var child = button.transform.Find(IconObjectName);
+            return child != null ? child.GetComponent<Image>() : null;
         }
 
         private static Sprite Find(ButtonStyle style, bool pressed)

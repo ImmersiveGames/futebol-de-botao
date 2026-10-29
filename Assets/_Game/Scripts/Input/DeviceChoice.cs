@@ -67,6 +67,28 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Nome na tela: "Teclado e mouse", "Toque" ou "Controle N" (N pela ordem em <paramref name="devices"/>).</summary>
+        /// <summary>Ícone do cartão na tela Controles (nome do recorte na folha de ícones).</summary>
+        public static string Icon(InputDevice device) => device switch
+        {
+            Gamepad => ButtonSkin.GamepadIcon,
+            Touchscreen => ButtonSkin.TouchIcon,
+            _ => ButtonSkin.KeyboardIcon,
+        };
+
+        /// <summary>Número do controle (1, 2...) quando há mais de um; 0 nos outros dispositivos ou com um controle só.</summary>
+        public static int GamepadNumber(InputDevice device, List<InputDevice> devices)
+        {
+            if (device is not Gamepad) return 0;
+            int number = 0, total = 0;
+            foreach (var other in devices)
+            {
+                if (other is not Gamepad) continue;
+                total++;
+                if (number == 0 && other == device) number = total;
+            }
+            return total > 1 ? number : 0;
+        }
+
         public static string Label(InputDevice device, List<InputDevice> devices)
         {
             switch (device)

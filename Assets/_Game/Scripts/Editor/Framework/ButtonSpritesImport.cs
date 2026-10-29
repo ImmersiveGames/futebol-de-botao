@@ -16,6 +16,8 @@ namespace FutebolDeBotao.Editor
     public static class ButtonSpritesImport
     {
         public const string SheetPath = "Assets/_Game/Art/UI/Botões_UI-Sheet.png";
+        /// <summary>Ícones (Icons_Keyboard, Icons_touch, Icons_Joypad, Icons_Pause), recortados pelo usuário.</summary>
+        public const string IconsPath = "Assets/_Game/Art/UI/Icons-Sheet.png";
         private const string ArtPath = "Assets/_Game/Resources/" + ButtonArt.ResourcePath + ".asset";
         private const int PixelsPerUnit = 32;
         private const float HudPanelBorder = 4f;
@@ -51,7 +53,9 @@ namespace FutebolDeBotao.Editor
             provider.Apply();
             importer.SaveAndReimport();
 
-            var sprites = AssetDatabase.LoadAllAssetsAtPath(SheetPath).OfType<Sprite>().ToArray();
+            ConfigureIcons();
+            var sprites = AssetDatabase.LoadAllAssetsAtPath(SheetPath).OfType<Sprite>()
+                .Concat(AssetDatabase.LoadAllAssetsAtPath(IconsPath).OfType<Sprite>()).ToArray();
             foreach (var name in ButtonSkin.StyleNames)
                 if (sprites.All(s => s.name != name))
                     Debug.LogWarning($"[Futebol de Botão] A folha {SheetPath} não tem o recorte {name}.");
@@ -65,6 +69,23 @@ namespace FutebolDeBotao.Editor
             art.sprites = sprites;
             EditorUtility.SetDirty(art);
             AssetDatabase.SaveAssets();
+        }
+
+        private static void ConfigureIcons()
+        {
+            if (AssetImporter.GetAtPath(IconsPath) is not TextureImporter importer)
+            {
+                Debug.LogWarning($"[Futebol de Botão] Sem a folha de ícones em {IconsPath}: botões com texto.");
+                return;
+            }
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.spritePixelsPerUnit = PixelsPerUnit;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.SaveAndReimport();
         }
 
         /// <summary>O fundo 9-slice das faixas da HUD, ou nulo se a folha não tiver.</summary>

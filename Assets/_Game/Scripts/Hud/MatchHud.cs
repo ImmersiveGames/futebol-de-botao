@@ -312,7 +312,7 @@ namespace FutebolDeBotao
 
                 // Esquerda: relógio e pausa.
                 view.Clock = CreateText(canvas.transform, "Relógio", 40, FontStyle.Bold, new Vector2(leftX, 36f), new Vector2(190f, 60f));
-                view.Pause = CreateButton(canvas.transform, "Pausa", "Pausa", 24, new Vector2(leftX, -38f), new Vector2(150f, 52f), out _, ButtonStyle.Green);
+                view.Pause = CreateButton(canvas.transform, "Pausa", "Pausa", 24, new Vector2(leftX, -38f), new Vector2(150f, 52f), out _, ButtonStyle.Green, ButtonSkin.PauseIcon);
                 view.Pause.onClick.AddListener(match.RequestPause);
 
                 // Meio: placar um pouco acima do centro e, embaixo de cada nome, os cartões do time.
@@ -370,7 +370,7 @@ namespace FutebolDeBotao
                 new Vector2(0f, -centerY), new Vector2(width, height), 0f);
             CreateFramedPanel(bottom.transform, 1f);
             buttons.Pause = CreateButton(bottom.transform, "Pausa", "Pausa", 30, new Vector2(-canvasWidth * 0.5f + 125f, 0f),
-                new Vector2(210f, 100f), out _, ButtonStyle.Green);
+                new Vector2(210f, 100f), out _, ButtonStyle.Green, ButtonSkin.PauseIcon);
             buttons.Pause.onClick.AddListener(match.RequestPause);
             buttons.Action = CreateButton(bottom.transform, "Ação", ShotCallLabel, 34, new Vector2(canvasWidth * 0.5f - 170f, 0f),
                 new Vector2(300f, 106f), out buttons.ActionLabel, ButtonStyle.Yellow);
@@ -537,8 +537,9 @@ namespace FutebolDeBotao
             rect.anchoredPosition = new Vector2(0f, y);
         }
 
+        /// <param name="icon">Ícone no lugar do texto (com a arte), do tamanho de 80% da altura do botão (no máximo 64).</param>
         private Button CreateButton(Transform parent, string objectName, string label, int size, Vector2 position, Vector2 box, out Text labelText,
-            ButtonStyle style)
+            ButtonStyle style, string icon = null)
         {
             var go = new GameObject(objectName, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -563,6 +564,7 @@ namespace FutebolDeBotao
             labelText = CreateText(go.transform, "Texto", size, FontStyle.Bold, Vector2.zero, box);
             labelText.text = label;
             labelText.color = ButtonTextColor;
+            if (icon != null) ButtonSkin.SetIcon(button, icon, Mathf.Min(64f, box.y * 0.8f));
             ButtonSkin.Apply(button, style);
             return button;
         }

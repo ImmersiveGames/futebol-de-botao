@@ -23,6 +23,8 @@ namespace FutebolDeBotao
         private const float CardSpacing = 110f;
         private static readonly Vector2 CardSize = new(170f, 80f);
         private static readonly Vector2 ArrowSize = new(36f, 80f);
+        /// <summary>Ícone do dispositivo no cartão: 2 unidades da UI por pixel da arte de 32 px.</summary>
+        private const float IconSize = 64f;
         private static readonly Color CardColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ConfirmedColor = new(0.55f, 0.9f, 0.55f);
         private static readonly Color TextColor = new(0.1f, 0.1f, 0.1f);
@@ -305,6 +307,17 @@ namespace FutebolDeBotao
             entry.Image = (Image)card.targetGraphic;
             entry.Label = card.GetComponentInChildren<Text>();
             entry.Label.fontSize = 24;
+            // Com a arte, o ícone troca o nome; com dois controles ou mais, um número pequeno no canto separa um do outro.
+            if (ButtonSkin.SetIcon(card, DeviceChoice.Icon(entry.Device), IconSize))
+            {
+                int number = DeviceChoice.GamepadNumber(entry.Device, devices);
+                if (number > 0)
+                {
+                    var tag = CreateText(card.transform, "Número", number.ToString(), 22, FontStyle.Bold, Color.white,
+                        new Vector2(CardSize.x * 0.5f - 22f, CardSize.y * 0.5f - 22f), new Vector2(30f, 30f));
+                    tag.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+                }
+            }
             float arrowX = CardSize.x * 0.5f + ArrowSize.x * 0.5f + 4f;
             CreateButton(entry.Card, "Esquerda", "<", new Vector2(-arrowX, 0f), ArrowSize, () => Move(entry, -1));
             CreateButton(entry.Card, "Direita", ">", new Vector2(arrowX, 0f), ArrowSize, () => Move(entry, 1));

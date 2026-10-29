@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Texto de um botão vestido: fica no meio da face desenhada (um pouco acima do centro no botão solto, no centro
+    /// Texto (ou ícone) de um botão vestido: fica no meio da face desenhada (um pouco acima do centro no botão solto, no centro
     /// quando apertado), escurece enquanto o dedo aperta e fica branco no botão desligado.
     /// </summary>
     [DisallowMultipleComponent]
@@ -14,7 +14,7 @@ namespace FutebolDeBotao
         private const float PressedDarken = 0.75f;
 
         [SerializeField] private Button button;
-        [SerializeField] private Text label;
+        [SerializeField] private Graphic label;
         [SerializeField] private Color color = Color.white;
         [Tooltip("Quanto o texto sobe (unidades da UI) com o botão solto.")]
         [SerializeField] private float raise;
@@ -23,7 +23,7 @@ namespace FutebolDeBotao
 
         private bool pressed;
 
-        public void Configure(Button target, Text text, Color textColor, float raiseUnits)
+        public void Configure(Button target, Graphic text, Color textColor, float raiseUnits)
         {
             button = target;
             if (label != text) hasBase = false;
