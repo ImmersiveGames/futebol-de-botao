@@ -27,8 +27,8 @@ namespace FutebolDeBotao
         [SerializeField] private Sprite tipArt;
         [Tooltip("Quadros dos anéis de força: o quadro N tem N anéis acesos (o 0 vazio).")]
         [SerializeField] private Sprite[] powerFrames = new Sprite[0];
-        [Tooltip("Raio de fora do último anel da arte, em pixels (o centro das bolinhas do pontilhado do máximo fica nele).")]
-        [SerializeField] private float powerFramesOuterPixels = 49f;
+        [Tooltip("Raio do centro das bolinhas do pontilhado do máximo, em pixels da arte (a borda do último anel fica em 48).")]
+        [SerializeField] private float maxRingPixels = 47f;
 
         [Header("Faixa de força")]
         [Tooltip("Largura da faixa em volta do botão com força máxima (só sem a arte dos anéis).")]
@@ -112,8 +112,8 @@ namespace FutebolDeBotao
                 float power = aim.Power01;
 
                 DrawPowerBand(origin, radius, power);
-                // Com a arte, o centro das bolinhas do pontilhado fica na borda de fora do último anel; sem ela, no fim da faixa.
-                float maxRadius = HasPowerFrames ? powerFramesOuterPixels / ArtPixelsPerUnit : radius + maxPowerBand;
+                // Com a arte, o pontilhado fica com o centro das bolinhas perto da borda do último anel; sem ela, no fim da faixa.
+                float maxRadius = HasPowerFrames ? maxRingPixels / ArtPixelsPerUnit : radius + maxPowerBand;
                 ringCount = DrawMaxRing(origin, maxRadius);
 
                 if (mode != AimAssistMode.Off)
