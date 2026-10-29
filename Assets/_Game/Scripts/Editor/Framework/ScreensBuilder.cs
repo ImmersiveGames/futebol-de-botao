@@ -244,7 +244,7 @@ namespace FutebolDeBotao.Editor
             CreateText(modePanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
             var onePlayer = CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -180f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
             var twoPlayers = CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -300f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
-            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -410f), new Vector2(240f, 70f), menu.QuitApp, ButtonStyle.Red);
+            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -420f), new Vector2(420f, 90f), menu.QuitApp, ButtonStyle.Red);
             quit.gameObject.AddComponent<HideOnWeb>();
             AddNavigator(modePanel, null, Item(onePlayer), Item(twoPlayers), Item(quit));
             CreateStudioLogo(modePanel);
