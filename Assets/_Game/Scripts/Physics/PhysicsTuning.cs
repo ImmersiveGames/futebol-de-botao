@@ -41,6 +41,8 @@ namespace FutebolDeBotao
         [Min(0f)] public float wallPushDistance = 0.15f;
         [Tooltip("Aceleração do empurrão quando o corpo está encostado na parede. 0 desliga.")]
         [Min(0f)] public float wallPushAcceleration = 4f;
+        [Tooltip("No canto (bola perto de duas paredes), multiplica a distância e a força do empurrão, para a bola não parar ali. 1 = igual ao resto da parede.")]
+        [Min(1f)] public float cornerPushMultiplier = 2f;
 
         [Header("Fim do movimento")]
         [Tooltip("Velocidade abaixo da qual um corpo é considerado parado.")]
