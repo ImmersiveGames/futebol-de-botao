@@ -6,6 +6,8 @@ namespace FutebolDeBotao
     /// <summary>
     /// Brilho de quem é a vez: um halo pulsando atrás dos botões que podem ser usados agora
     /// (mais forte, e ainda pulsando, no botão sendo mirado ou escolhido pelo toque; no teclado/controle só no botão do cursor e no toque só no escolhido), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
+    /// Nos botões, com a arte Selected_UI (folha de UI, guardada pelo "Criar telas"), o halo vira o anel de seleção girando
+    /// por cima do botão, no tamanho dos pixels do jogo; sem a arte, o brilho com o desenho do botão.
     /// </summary>
     public sealed class TurnHighlight : MonoBehaviour
     {
@@ -18,6 +20,14 @@ namespace FutebolDeBotao
         private const float MaxAlpha = 0.55f;
         private const float SelectedMinAlpha = 0.5f;
         private const float SelectedMaxAlpha = 0.95f;
+        private const string SelectionArtName = "Selected_UI";
+        private const float ArtPixelsPerUnit = 32f;
+        // Anel de seleção: por cima do botão dentro do Sorting Group dele.
+        private const int SelectionOrder = 100;
+        /// <summary>Graus por segundo do anel de seleção (o escolhido gira mais rápido).</summary>
+        private const float SpinSpeed = 90f;
+        private const float SelectedSpinSpeed = 180f;
+        private static readonly Color HaloColor = new(1f, 0.95f, 0.55f);
 
         [SerializeField] private MatchController match;
 
@@ -25,6 +35,9 @@ namespace FutebolDeBotao
         private readonly Dictionary<Goalkeeper, SpriteRenderer> keeperHalos = new();
         private SpriteRenderer ballHalo;
         private AimController aim;
+        private Sprite selectionArt;
+        private float spin;
+        private float selectedSpin;
         private bool built;
 
         public void Configure(MatchController matchController) => match = matchController;
@@ -40,6 +53,11 @@ namespace FutebolDeBotao
             float pulse = Mathf.Lerp(MinAlpha, MaxAlpha, wave);
             // O escolhido continua piscando, mais forte que os outros.
             float selectedPulse = Mathf.Lerp(SelectedMinAlpha, SelectedMaxAlpha, wave);
+            if (!paused)
+            {
+                spin = Mathf.Repeat(spin - SpinSpeed * Time.unscaledDeltaTime, 360f);
+                selectedSpin = Mathf.Repeat(selectedSpin - SelectedSpinSpeed * Time.unscaledDeltaTime, 360f);
+            }
             // Mirando (dando força), o brilho some para não brigar com a faixa de força; volta se o chute for cancelado.
             bool aiming = aim != null && aim.IsAiming;
             bool discsActive = !paused && !aiming && state is MatchState.Aim or MatchState.ShotAim or MatchState.PenaltySetup;
@@ -60,7 +78,8 @@ namespace FutebolDeBotao
             {
                 bool on = discsActive && pair.Key != null && match.CanUse(pair.Key) && (cursor == null || pair.Key == cursor);
                 bool isSelected = on && pair.Key == selected;
-                Show(pair.Value, on, isSelected ? selectedPulse : pulse, isSelected ? SelectedScale : HaloScale);
+                if (selectionArt != null) ShowSelection(pair.Value, on, isSelected ? selectedPulse : pulse, isSelected ? selectedSpin : spin);
+                else Show(pair.Value, on, isSelected ? selectedPulse : pulse, isSelected ? SelectedScale : HaloScale);
             }
 
             bool ballOn = !paused && !aiming && state == MatchState.GoalKick;
@@ -81,8 +100,17 @@ namespace FutebolDeBotao
             if (match.AllDiscs.Count == 0) return;
             built = true;
             aim = FindAnyObjectByType<AimController>();
+            selectionArt = ButtonArt.Find(SelectionArtName);
             foreach (var disc in match.AllDiscs)
-                discHalos[disc] = CreateHalo(disc.transform);
+            {
+                var halo = CreateHalo(disc.transform);
+                if (halo != null && selectionArt != null)
+                {
+                    halo.sprite = selectionArt;
+                    halo.sortingOrder = SelectionOrder;
+                }
+                discHalos[disc] = halo;
+            }
             foreach (var keeper in match.Keepers)
                 keeperHalos[keeper] = CreateHalo(keeper.transform);
             var ball = FindAnyObjectByType<Ball>();
@@ -114,8 +142,22 @@ namespace FutebolDeBotao
             if (halo == null) return;
             halo.enabled = on;
             if (!on) return;
-            halo.color = new Color(1f, 0.95f, 0.55f, alpha);
+            halo.color = new Color(HaloColor.r, HaloColor.g, HaloColor.b, alpha);
             halo.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        /// <summary>Anel de seleção na cor da arte, girando, no tamanho dos pixels do jogo qualquer que seja a escala do botão.</summary>
+        private void ShowSelection(SpriteRenderer halo, bool on, float alpha, float angle)
+        {
+            if (halo == null) return;
+            halo.enabled = on;
+            if (!on) return;
+            halo.color = new Color(1f, 1f, 1f, alpha);
+            var t = halo.transform;
+            t.rotation = Quaternion.Euler(0f, 0f, angle);
+            var parent = t.parent.lossyScale;
+            float size = selectionArt.pixelsPerUnit / ArtPixelsPerUnit;
+            t.localScale = new Vector3(size / Mathf.Max(0.0001f, parent.x), size / Mathf.Max(0.0001f, parent.y), 1f);
         }
     }
 }

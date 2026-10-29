@@ -11,5 +11,17 @@ namespace FutebolDeBotao
         public const string ResourcePath = "BotoesUI";
 
         public Sprite[] sprites = new Sprite[0];
+
+        private static ButtonArt cached;
+
+        /// <summary>O recorte com esse nome, ou nulo se o "Criar telas" ainda não guardou.</summary>
+        public static Sprite Find(string name)
+        {
+            if (cached == null) cached = Resources.Load<ButtonArt>(ResourcePath);
+            if (cached == null) return null;
+            foreach (var sprite in cached.sprites)
+                if (sprite != null && sprite.name == name) return sprite;
+            return null;
+        }
     }
 }

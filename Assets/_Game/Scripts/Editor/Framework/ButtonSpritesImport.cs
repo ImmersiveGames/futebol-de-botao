@@ -8,7 +8,8 @@ namespace FutebolDeBotao.Editor
     /// <summary>
     /// Importa a folha de UI (Art/UI/Botões_UI-Sheet.png, recortada pelo usuário no Sprite Editor: Green_Button,
     /// Green_Button_Pressed... Gray_Button e Hud_BG_Tile): 32 px por unidade, filtro Point, sem compressão, borda 9-slice
-    /// de 10 px nos botões e de 4 px no fundo da HUD. Os recortes continuam os do usuário (só a borda muda).
+    /// de 10 px nos botões e de 4 px no fundo da HUD (os outros, como o Selected_UI, sem borda). Os recortes continuam
+    /// os do usuário (só a borda muda).
     /// Guarda os sprites em Resources/BotoesUI (<see cref="ButtonArt"/>) para o <see cref="ButtonSkin"/> achar no jogo.
     /// Chamado pelo "Criar telas".
     /// </summary>
@@ -40,10 +41,10 @@ namespace FutebolDeBotao.Editor
             var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
             provider.InitSpriteEditorDataProvider();
             var rects = provider.GetSpriteRects();
-            float button = ButtonSkin.BorderPixels;
             foreach (var rect in rects)
             {
-                float border = rect.name == ButtonSkin.HudPanelName ? HudPanelBorder : button;
+                bool isButton = ButtonSkin.StyleNames.Any(n => rect.name == n || rect.name == n + ButtonSkin.PressedSuffix);
+                float border = rect.name == ButtonSkin.HudPanelName ? HudPanelBorder : isButton ? ButtonSkin.BorderPixels : 0f;
                 rect.border = new Vector4(border, border, border, border);
             }
             provider.SetSpriteRects(rects);
