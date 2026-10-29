@@ -86,6 +86,59 @@ namespace FutebolDeBotao.Editor
             importer.mipmapEnabled = false;
             importer.alphaIsTransparency = true;
             importer.SaveAndReimport();
+            TrimIconParts(importer);
+        }
+
+        /// <summary>
+        /// Teclado e mouse vão lado a lado no cartão: os recortes deles ficam justos no desenho (sem a sobra
+        /// transparente da célula), para o vão entre os dois ser só o do código.
+        /// </summary>
+        private static void TrimIconParts(TextureImporter importer)
+        {
+            var texture = new Texture2D(2, 2);
+            if (!texture.LoadImage(System.IO.File.ReadAllBytes(IconsPath))) return;
+            try
+            {
+                var factory = new SpriteDataProviderFactories();
+                factory.Init();
+                var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
+                provider.InitSpriteEditorDataProvider();
+                var rects = provider.GetSpriteRects();
+                bool changed = false;
+                foreach (var rect in rects)
+                {
+                    if (rect.name != ButtonSkin.KeyboardIcon && rect.name != ButtonSkin.MouseIcon) continue;
+                    var tight = OpaqueBounds(texture, rect.rect);
+                    if (tight.width <= 0f || tight == rect.rect) continue;
+                    rect.rect = tight;
+                    rect.alignment = SpriteAlignment.Center;
+                    rect.pivot = new Vector2(0.5f, 0.5f);
+                    changed = true;
+                }
+                if (!changed) return;
+                provider.SetSpriteRects(rects);
+                provider.Apply();
+                importer.SaveAndReimport();
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+            }
+        }
+
+        private static Rect OpaqueBounds(Texture2D texture, Rect area)
+        {
+            int xMin = int.MaxValue, yMin = int.MaxValue, xMax = -1, yMax = -1;
+            for (int y = (int)area.yMin; y < (int)area.yMax; y++)
+            for (int x = (int)area.xMin; x < (int)area.xMax; x++)
+            {
+                if (texture.GetPixel(x, y).a <= 0f) continue;
+                xMin = Mathf.Min(xMin, x);
+                yMin = Mathf.Min(yMin, y);
+                xMax = Mathf.Max(xMax, x);
+                yMax = Mathf.Max(yMax, y);
+            }
+            return xMax < 0 ? Rect.zero : new Rect(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1);
         }
 
         /// <summary>O fundo 9-slice das faixas da HUD, ou nulo se a folha não tiver.</summary>

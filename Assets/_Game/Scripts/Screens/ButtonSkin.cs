@@ -36,10 +36,14 @@ namespace FutebolDeBotao
         public const string HudPanelName = "Hud_BG_Tile";
         /// <summary>Ícones da folha Art/UI/Icons-Sheet (32x32, desenho branco no transparente).</summary>
         public const string KeyboardIcon = "Icons_Keyboard";
+        public const string MouseIcon = "Icons_Mouse";
         public const string TouchIcon = "Icons_touch";
         public const string GamepadIcon = "Icons_Joypad";
         public const string PauseIcon = "Icons_Pause";
         private const string IconObjectName = "Ícone";
+        /// <summary>Vão entre as imagens de um ícone de várias partes (teclado e mouse), em pixels da arte.</summary>
+        private const float IconGapPixels = 3f;
+        private const float IconArtPixels = 32f;
         public const int TileSize = 32;
         public const int BorderPixels = 10;
         /// <summary>
@@ -91,58 +95,82 @@ namespace FutebolDeBotao
             button.spriteState = new SpriteState { pressedSprite = pressed, disabledSprite = disabled };
 
             // Com ícone, ele faz o papel do texto (sobe com a face, escurece no toque, cor do texto do estilo).
-            Graphic label = FindIcon(button);
-            if (label == null) label = button.GetComponentInChildren<Text>(true);
+            RectTransform label = FindIcon(button);
+            if (label == null)
+            {
+                var caption = button.GetComponentInChildren<Text>(true);
+                if (caption != null) label = caption.rectTransform;
+            }
             if (!button.TryGetComponent<ButtonSkinText>(out var text)) text = button.gameObject.AddComponent<ButtonSkinText>();
             // Um pixel da arte em unidades da UI, já com a borda encolhida dos botões baixos.
             float artPixel = ReferencePixelsPerUnit / normal.pixelsPerUnit / image.pixelsPerUnitMultiplier;
-            if (label is Image icon) FitIcon(icon, size, artPixel);
+            if (label != null && label.name == IconObjectName) FitIcon(label, size, artPixel);
             text.Configure(button, label, TextColor(style), FaceRaisePixels * artPixel);
             if (!button.TryGetComponent<ButtonClickSound>(out _)) button.gameObject.AddComponent<ButtonClickSound>();
             return true;
         }
 
         /// <summary>
-        /// Troca o texto do botão por um ícone da folha de ícones, com <paramref name="size"/> unidades da UI de lado.
-        /// Sem a arte, não mexe em nada e devolve falso (fica o texto). Chamar antes do <see cref="Apply"/>.
+        /// Troca o texto do botão por um ícone da folha de ícones. <paramref name="cellSize"/> é o lado, em unidades da UI,
+        /// de uma célula de 32 px da arte. Com mais de um nome (teclado e mouse), as imagens ficam lado a lado na mesma
+        /// escala, com um vão de 3 px. Sem a arte, não mexe em nada e devolve falso (fica o texto). Chamar antes do
+        /// <see cref="Apply"/>, que encolhe o ícone se ele não couber na face.
         /// </summary>
-        public static bool SetIcon(Button button, string iconName, float size)
+        public static bool SetIcon(Button button, float cellSize, params string[] iconNames)
         {
-            var sprite = ButtonArt.Find(iconName);
-            if (button == null || sprite == null) return false;
-            var icon = FindIcon(button);
-            if (icon == null)
+            if (button == null || iconNames == null || iconNames.Length == 0) return false;
+            var sprites = new Sprite[iconNames.Length];
+            for (int i = 0; i < iconNames.Length; i++)
+                if ((sprites[i] = ButtonArt.Find(iconNames[i])) == null) return false;
+
+            var old = FindIcon(button);
+            if (old != null) Object.DestroyImmediate(old.gameObject);
+            var group = (RectTransform)new GameObject(IconObjectName, typeof(RectTransform)).transform;
+            group.SetParent(button.transform, false);
+            group.anchorMin = group.anchorMax = group.pivot = new Vector2(0.5f, 0.5f);
+            group.anchoredPosition = Vector2.zero;
+
+            float scale = cellSize / IconArtPixels;
+            float gap = IconGapPixels * scale;
+            float width = -gap, height = 0f;
+            foreach (var sprite in sprites)
             {
-                var go = new GameObject(IconObjectName, typeof(RectTransform));
-                go.transform.SetParent(button.transform, false);
-                icon = go.AddComponent<Image>();
-                icon.raycastTarget = false;
-                icon.preserveAspect = true;
+                width += sprite.rect.width * scale + gap;
+                height = Mathf.Max(height, sprite.rect.height * scale);
             }
-            icon.sprite = sprite;
-            var rect = icon.rectTransform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = new Vector2(size, size);
+            group.sizeDelta = new Vector2(width, height);
+
+            float x = -width * 0.5f;
+            foreach (var sprite in sprites)
+            {
+                var part = new GameObject(sprite.name, typeof(RectTransform)).AddComponent<Image>();
+                part.transform.SetParent(group, false);
+                part.sprite = sprite;
+                part.raycastTarget = false;
+                var rect = part.rectTransform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height) * scale;
+                rect.anchoredPosition = new Vector2(x + rect.sizeDelta.x * 0.5f, 0f);
+                x += rect.sizeDelta.x + gap;
+            }
+
             foreach (var text in button.GetComponentsInChildren<Text>(true))
                 if (text.transform.parent == button.transform) text.enabled = false;
             return true;
         }
 
-        /// <summary>Encolhe o ícone (quadrado) para caber no miolo da face do botão; nunca aumenta.</summary>
-        private static void FitIcon(Image icon, Vector2 buttonSize, float artPixel)
+        /// <summary>Encolhe o ícone (sem mudar a proporção) para caber no miolo da face do botão; nunca aumenta.</summary>
+        private static void FitIcon(RectTransform icon, Vector2 buttonSize, float artPixel)
         {
             float faceHeight = buttonSize.y - FaceVerticalInsetPixels * artPixel;
             float faceWidth = buttonSize.x - FaceHorizontalInsetPixels * artPixel;
-            float side = Mathf.Min(icon.rectTransform.sizeDelta.x, faceHeight, faceWidth);
-            if (side > 0f) icon.rectTransform.sizeDelta = new Vector2(side, side);
+            var natural = icon.sizeDelta;
+            if (natural.x <= 0f || natural.y <= 0f) return;
+            float fit = Mathf.Min(1f, faceWidth / natural.x, faceHeight / natural.y);
+            icon.localScale = new Vector3(fit, fit, 1f);
         }
 
-        private static Image FindIcon(Button button)
-        {
-            var child = button.transform.Find(IconObjectName);
-            return child != null ? child.GetComponent<Image>() : null;
-        }
+        private static RectTransform FindIcon(Button button) => button.transform.Find(IconObjectName) as RectTransform;
 
         private static Sprite Find(ButtonStyle style, bool pressed)
         {

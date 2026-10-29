@@ -23,8 +23,11 @@ namespace FutebolDeBotao
         private const float CardSpacing = 130f;
         private static readonly Vector2 CardSize = new(170f, 100f);
         private static readonly Vector2 ArrowSize = new(36f, 100f);
-        /// <summary>Ícone do dispositivo no cartão: 2 unidades da UI por pixel da arte de 32 px.</summary>
-        private const float IconSize = 64f;
+        /// <summary>
+        /// Ícone do dispositivo no cartão: lado de uma célula de 32 px da arte em unidades da UI (3 por pixel). O de 32
+        /// px inteiro encolhe para caber na face; teclado e mouse, lado a lado e justos, cabem nesse tamanho.
+        /// </summary>
+        private const float IconSize = 96f;
         private static readonly Color CardColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ConfirmedColor = new(0.55f, 0.9f, 0.55f);
         private static readonly Color TextColor = new(0.1f, 0.1f, 0.1f);
@@ -308,7 +311,7 @@ namespace FutebolDeBotao
             entry.Label = card.GetComponentInChildren<Text>();
             entry.Label.fontSize = 24;
             // Com a arte, o ícone troca o nome; com dois controles ou mais, um número pequeno no canto separa um do outro.
-            if (ButtonSkin.SetIcon(card, DeviceChoice.Icon(entry.Device), IconSize))
+            if (ButtonSkin.SetIcon(card, IconSize, DeviceChoice.Icons(entry.Device)))
             {
                 int number = DeviceChoice.GamepadNumber(entry.Device, devices);
                 if (number > 0)

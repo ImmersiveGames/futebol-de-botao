@@ -565,7 +565,7 @@ namespace FutebolDeBotao
             labelText = CreateText(go.transform, "Texto", size, FontStyle.Bold, Vector2.zero, box);
             labelText.text = label;
             labelText.color = ButtonTextColor;
-            if (icon != null) ButtonSkin.SetIcon(button, icon, Mathf.Min(64f, box.y * 0.8f));
+            if (icon != null) ButtonSkin.SetIcon(button, Mathf.Min(64f, box.y * 0.8f), icon);
             ButtonSkin.Apply(button, style);
             return button;
         }
