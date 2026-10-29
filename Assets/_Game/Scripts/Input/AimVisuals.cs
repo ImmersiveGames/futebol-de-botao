@@ -4,14 +4,16 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Desenha a ajuda de mira: a faixa de força em volta do botão (cresce da borda para fora, de verde a vermelho,
-    /// com um anel fraco no máximo), a mira de bolinhas andando na direção do chute e, na Completa, a linha da bola
-    /// em bolinhas menores (sem rebotes). Tudo desenhado por código até a arte final.
+    /// Desenha a ajuda de mira: a faixa de força em volta do botão (cresce da borda para fora, de 1 em 1 pixel da arte,
+    /// de verde a vermelho, com um anel pontilhado fraco no máximo), a mira de bolinhas andando na direção do chute e,
+    /// na Completa, a linha da bola em bolinhas mais fracas (sem rebotes).
+    /// As bolinhas usam a arte Aim_Visual (Dot e Mark, ligadas pelo "Aplicar artes") no tamanho dos pixels do jogo;
+    /// sem a arte, um círculo provisório. A faixa é desenhada por código numa textura na escala da arte (32 px por unidade).
     /// </summary>
     [RequireComponent(typeof(AimController))]
     public sealed class AimVisuals : MonoBehaviour
     {
-        private const int CircleSegments = 48;
+        private const float ArtPixelsPerUnit = 32f;
 
         [SerializeField] private AimAssistMode mode = AimAssistMode.Full;
         [Tooltip("Comprimento da mira de bolinhas com força máxima.")]
@@ -19,29 +21,40 @@ namespace FutebolDeBotao
         [Tooltip("Comprimento da linha da bola (só na ajuda Completa).")]
         [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("fullBallLine")] private float ballLineLength = 2.5f;
 
+        [Header("Arte das bolinhas (Aplicar artes)")]
+        [SerializeField] private Sprite dotArt;
+        [SerializeField] private Sprite tipArt;
+
         [Header("Faixa de força")]
         [Tooltip("Largura da faixa em volta do botão com força máxima.")]
         [SerializeField] private float maxPowerBand = 1.2f;
+        [SerializeField] private Color lowPowerColor = Color.green;
+        [SerializeField] private Color midPowerColor = Color.yellow;
+        [SerializeField] private Color highPowerColor = Color.red;
         [SerializeField, Range(0f, 1f)] private float powerBandAlpha = 0.35f;
+        [Tooltip("Anel pontilhado do máximo.")]
         [SerializeField, Range(0f, 1f)] private float maxRingAlpha = 0.25f;
-        [SerializeField] private float maxRingWidth = 0.03f;
+        [SerializeField] private float maxRingSpacing = 0.3f;
 
         [Header("Bolinhas")]
-        [SerializeField] private float dotSpacing = 0.2f;
-        [SerializeField] private float dotSize = 0.09f;
-        [SerializeField] private float tipDotSize = 0.16f;
+        [SerializeField] private float dotSpacing = 0.25f;
+        [Tooltip("Tamanho das bolinhas provisórias (sem a arte, a arte usa o próprio tamanho).")]
+        [SerializeField] private float dotSize = 0.125f;
+        [SerializeField] private float tipDotSize = 0.19f;
         [Tooltip("Velocidade das bolinhas andando para frente (unidades/s).")]
         [SerializeField] private float dotSpeed = 0.5f;
-        [SerializeField] private float ballDotSize = 0.06f;
         [SerializeField, Range(0f, 1f)] private float ballDotAlpha = 0.5f;
 
         private AimController aim;
         private Ball ball;
-        private LineRenderer powerBand;
-        private LineRenderer maxRing;
-        private Sprite dotSprite;
+        private SpriteRenderer powerBand;
+        private Texture2D bandTexture;
+        private int bandInner = -1;
+        private int bandWidth = -1;
+        private Sprite fallbackDot;
         private readonly List<SpriteRenderer> aimDots = new();
         private readonly List<SpriteRenderer> ballDots = new();
+        private readonly List<SpriteRenderer> ringDots = new();
         private readonly RaycastHit2D[] hits = new RaycastHit2D[8];
 
         public AimAssistMode Mode
@@ -50,14 +63,22 @@ namespace FutebolDeBotao
             set => mode = value;
         }
 
+        /// <summary>Liga a arte das bolinhas (usado pelo "Aplicar artes").</summary>
+        public void ConfigureArt(Sprite dot, Sprite tip)
+        {
+            dotArt = dot;
+            tipArt = tip;
+        }
+
         private void Awake()
         {
             aim = GetComponent<AimController>();
-            var material = new Material(Shader.Find("Sprites/Default"));
-            powerBand = CreateCircle("Faixa de força", material);
-            maxRing = CreateCircle("Força máxima", material);
-            maxRing.widthMultiplier = maxRingWidth;
-            dotSprite = CreateDotSprite();
+            var go = new GameObject("Faixa de força");
+            go.transform.SetParent(transform, false);
+            powerBand = go.AddComponent<SpriteRenderer>();
+            powerBand.sortingOrder = 50;
+            powerBand.enabled = false;
+            fallbackDot = CreateFallbackDot();
         }
 
         private void Start()
@@ -65,13 +86,16 @@ namespace FutebolDeBotao
             ball = FindAnyObjectByType<Ball>();
         }
 
+        private void OnDestroy()
+        {
+            if (bandTexture != null) Destroy(bandTexture);
+        }
+
         private void LateUpdate()
         {
             bool show = aim.HasValidAim;
             powerBand.enabled = show;
-            maxRing.enabled = show;
-            int aimCount = 0;
-            int ballCount = 0;
+            int aimCount = 0, ballCount = 0, ringCount = 0;
             if (show)
             {
                 Vector2 origin = aim.AimOrigin;
@@ -80,56 +104,120 @@ namespace FutebolDeBotao
                 float power = aim.Power01;
 
                 DrawPowerBand(origin, radius, power);
+                ringCount = DrawMaxRing(origin, radius + maxPowerBand);
 
                 if (mode != AimAssistMode.Off)
                 {
-                    aimCount = DrawDots(aimDots, origin + dir * radius, dir, maxArrowLength * power, dotSize, tipDotSize, Color.white);
+                    aimCount = DrawDots(aimDots, origin + dir * radius, dir, maxArrowLength * power, 1f);
                     // No chute direto na bola a mira já é a direção da bola. Na Curta fica só a mira, sem a linha da bola.
                     if (mode == AimAssistMode.Full && !aim.IsBallKick) ballCount = DrawBallPrediction(aim.SelectedDisc, origin, dir);
                 }
             }
             HideFrom(aimDots, aimCount);
             HideFrom(ballDots, ballCount);
+            HideFrom(ringDots, ringCount);
         }
 
-        /// <summary>Faixa colada na borda do botão, engordando para fora com a força; o anel fraco marca o máximo.</summary>
+        // ---- Faixa de força ----
+
+        /// <summary>Faixa colada na borda do botão, engordando para fora de 1 em 1 pixel da arte.</summary>
         private void DrawPowerBand(Vector2 origin, float radius, float power)
         {
-            float width = Mathf.Max(0.03f, maxPowerBand * power);
-            var color = power < 0.5f
-                ? Color.Lerp(Color.green, Color.yellow, power * 2f)
-                : Color.Lerp(Color.yellow, Color.red, (power - 0.5f) * 2f);
-            color.a = powerBandAlpha;
-            powerBand.widthMultiplier = width;
-            powerBand.startColor = powerBand.endColor = color;
-            SetCircle(powerBand, origin, radius + width * 0.5f);
+            int inner = Mathf.RoundToInt(radius * ArtPixelsPerUnit);
+            int width = Mathf.Max(1, Mathf.RoundToInt(maxPowerBand * power * ArtPixelsPerUnit));
+            if (inner != bandInner || width != bandWidth) RebuildBand(inner, width);
 
-            maxRing.startColor = maxRing.endColor = new Color(1f, 1f, 1f, maxRingAlpha);
-            SetCircle(maxRing, origin, radius + maxPowerBand + maxRingWidth * 0.5f);
+            var color = power < 0.5f
+                ? Color.Lerp(lowPowerColor, midPowerColor, power * 2f)
+                : Color.Lerp(midPowerColor, highPowerColor, (power - 0.5f) * 2f);
+            color.a = powerBandAlpha;
+            powerBand.color = color;
+            powerBand.transform.position = origin;
         }
 
+        /// <summary>Desenha o anel (raio de dentro e largura em pixels da arte) numa textura branca, sem suavizar.</summary>
+        private void RebuildBand(int inner, int width)
+        {
+            bandInner = inner;
+            bandWidth = width;
+            int outer = inner + width;
+            int size = outer * 2 + 2;
+            if (bandTexture == null || bandTexture.width != size)
+            {
+                if (bandTexture != null) Destroy(bandTexture);
+                bandTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                    { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+            }
+
+            var pixels = new Color32[size * size];
+            float center = size * 0.5f;
+            var white = new Color32(255, 255, 255, 255);
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x + 0.5f - center;
+                float dy = y + 0.5f - center;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy);
+                if (distance >= inner && distance < outer) pixels[y * size + x] = white;
+            }
+            bandTexture.SetPixels32(pixels);
+            bandTexture.Apply();
+
+            var old = powerBand.sprite;
+            powerBand.sprite = Sprite.Create(bandTexture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), ArtPixelsPerUnit);
+            if (old != null) Destroy(old);
+        }
+
+        /// <summary>Anel pontilhado fraco no tamanho máximo da faixa.</summary>
+        private int DrawMaxRing(Vector2 origin, float ringRadius)
+        {
+            float spacing = Mathf.Max(0.1f, maxRingSpacing);
+            int count = Mathf.Max(8, Mathf.RoundToInt(2f * Mathf.PI * ringRadius / spacing));
+            var color = new Color(1f, 1f, 1f, maxRingAlpha);
+            for (int i = 0; i < count; i++)
+            {
+                float angle = i * Mathf.PI * 2f / count;
+                PlaceDot(ringDots, i, origin + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * ringRadius, false, color);
+            }
+            return count;
+        }
+
+        // ---- Bolinhas ----
+
         /// <summary>Bolinhas de <paramref name="start"/> até <paramref name="length"/>, andando para frente; a da ponta é maior.</summary>
-        private int DrawDots(List<SpriteRenderer> pool, Vector2 start, Vector2 dir, float length, float size, float tipSize, Color color)
+        private int DrawDots(List<SpriteRenderer> pool, Vector2 start, Vector2 dir, float length, float alpha)
         {
             if (length <= 0.01f) return 0;
+            var color = new Color(1f, 1f, 1f, alpha);
             int count = 0;
             // Espaçamento mínimo: com 0 no Inspector o laço nunca terminaria.
             float spacing = Mathf.Max(0.05f, dotSpacing);
             float phase = Mathf.Repeat(Time.time * dotSpeed, spacing);
             for (float d = phase; d < length - spacing * 0.5f; d += spacing)
-                PlaceDot(pool, count++, start + dir * d, size, color);
-            PlaceDot(pool, count++, start + dir * length, tipSize, color);
+                PlaceDot(pool, count++, start + dir * d, false, color);
+            PlaceDot(pool, count++, start + dir * length, true, color);
             return count;
         }
 
-        private void PlaceDot(List<SpriteRenderer> pool, int index, Vector2 position, float size, Color color)
+        private void PlaceDot(List<SpriteRenderer> pool, int index, Vector2 position, bool tip, Color color)
         {
-            while (pool.Count <= index) pool.Add(CreateDot(pool == aimDots ? "Mira" : "Linha da bola"));
+            while (pool.Count <= index) pool.Add(CreateDot());
             var dot = pool[index];
+            var art = tip ? (tipArt != null ? tipArt : dotArt) : dotArt;
+            if (art != null)
+            {
+                // Arte no tamanho dos pixels do jogo (1 pixel = 1/32 de unidade), qualquer que seja o PPU da importação.
+                dot.sprite = art;
+                dot.transform.localScale = Vector3.one * (art.pixelsPerUnit / ArtPixelsPerUnit);
+            }
+            else
+            {
+                dot.sprite = fallbackDot;
+                dot.transform.localScale = Vector3.one * (tip ? tipDotSize : dotSize);
+            }
             dot.enabled = true;
             dot.color = color;
             dot.transform.position = position;
-            dot.transform.localScale = Vector3.one * size;
         }
 
         private static void HideFrom(List<SpriteRenderer> pool, int count)
@@ -157,46 +245,21 @@ namespace FutebolDeBotao
             Vector2 discAtContact = origin + dir * first.Value.distance;
             Vector2 ballPos = ball.Body.position;
             Vector2 ballDir = (ballPos - discAtContact).normalized;
-            return DrawDots(ballDots, ballPos + ballDir * ball.Radius, ballDir, ballLineLength, ballDotSize, ballDotSize,
-                new Color(1f, 1f, 1f, ballDotAlpha));
+            return DrawDots(ballDots, ballPos + ballDir * ball.Radius, ballDir, ballLineLength, ballDotAlpha);
         }
 
-        private LineRenderer CreateCircle(string lineName, Material material)
+        private SpriteRenderer CreateDot()
         {
-            var go = new GameObject(lineName);
-            go.transform.SetParent(transform, false);
-            var line = go.AddComponent<LineRenderer>();
-            line.sharedMaterial = material;
-            line.positionCount = CircleSegments;
-            line.loop = true;
-            line.useWorldSpace = true;
-            line.sortingOrder = 50;
-            line.enabled = false;
-            return line;
-        }
-
-        private static void SetCircle(LineRenderer line, Vector2 center, float radius)
-        {
-            for (int i = 0; i < CircleSegments; i++)
-            {
-                float angle = i * Mathf.PI * 2f / CircleSegments;
-                line.SetPosition(i, center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
-            }
-        }
-
-        private SpriteRenderer CreateDot(string groupName)
-        {
-            var go = new GameObject($"Bolinha ({groupName})");
+            var go = new GameObject("Bolinha da mira");
             go.transform.SetParent(transform, false);
             var dot = go.AddComponent<SpriteRenderer>();
-            dot.sprite = dotSprite;
             dot.sortingOrder = 51;
             dot.enabled = false;
             return dot;
         }
 
-        /// <summary>Círculo branco de 1 unidade (provisório até a arte da bolinha).</summary>
-        private static Sprite CreateDotSprite()
+        /// <summary>Círculo branco de 1 unidade, provisório para quando falta a arte.</summary>
+        private static Sprite CreateFallbackDot()
         {
             const int size = 16;
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };

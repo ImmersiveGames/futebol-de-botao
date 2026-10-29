@@ -34,6 +34,11 @@ namespace FutebolDeBotao.Editor
         private static readonly Vector2 BallTrailPivot = new(0.5f, 0.75f);
         private static readonly Color BallTrailColor = new(1f, 1f, 1f, 0.5f);
 
+        // Mira: folha com as bolinhas (recortes do Sprite Editor: Aim_Visual_Dot e Aim_Visual_Mark).
+        private const string AimSheetPath = "Assets/_Game/Art/Aim Visual/Aim_Visual.png";
+        private const string AimDotName = "Aim_Visual_Dot";
+        private const string AimTipName = "Aim_Visual_Mark";
+
         private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
         private const string TilesFolder = "Assets/_Game/Art/Campo/Tiles";
@@ -78,7 +83,8 @@ namespace FutebolDeBotao.Editor
             bool hasBall = File.Exists(BallSheetPath);
             bool hasTable = File.Exists(FieldSheetPath);
             bool hasShirts = File.Exists(DiscSheetPath) && File.Exists(KeeperSheetPath);
-            if (!hasBall && !hasTable && !hasShirts)
+            bool hasAim = File.Exists(AimSheetPath);
+            if (!hasBall && !hasTable && !hasShirts && !hasAim)
             {
                 Debug.LogWarning($"[Futebol de Botão] Nenhuma arte encontrada (esperava {BallSheetPath} ou {FieldSheetPath}). Nada foi alterado.");
                 return;
@@ -96,12 +102,37 @@ namespace FutebolDeBotao.Editor
             if (hasBall) BuildBall(ball);
             if (hasTable) BuildTable(ball.transform.parent);
             if (hasShirts) BuildShirts();
+            if (hasAim) BuildAim();
             AlignWallsToArt();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
             Debug.Log($"[Futebol de Botão] Artes aplicadas. Cena salva em {ScenePath}.");
+        }
+
+        // ---- Mira ----
+
+        private static void BuildAim()
+        {
+            ConfigureImport(AimSheetPath);
+            var sprites = LoadSprites(AimSheetPath);
+            sprites.TryGetValue(AimDotName, out var dot);
+            sprites.TryGetValue(AimTipName, out var tip);
+            if (dot == null) Debug.LogWarning($"[Futebol de Botão] {AimSheetPath} sem o recorte {AimDotName}: a mira fica com a bolinha provisória.");
+
+            var visuals = Object.FindAnyObjectByType<AimVisuals>();
+            if (visuals == null)
+            {
+                Debug.LogWarning($"[Futebol de Botão] A cena {ScenePath} não tem AimVisuals: mira sem arte.");
+                return;
+            }
+            visuals.ConfigureArt(dot, tip);
+            // Espaçamento combinando com a bolinha de 4 px (uma bolinha de vão).
+            var so = new SerializedObject(visuals);
+            so.FindProperty("dotSpacing").floatValue = 0.25f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(visuals);
         }
 
         // ---- Bola ----
