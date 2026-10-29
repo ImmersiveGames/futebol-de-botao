@@ -20,9 +20,9 @@ namespace FutebolDeBotao
         // Cartão com as setas nas colunas dos lados: 225 + 85 + 4 + 36 = 350, dentro dos 360 da metade da largura (720).
         private const float ColumnX = 225f;
         private const float FirstCardY = 230f;
-        private const float CardSpacing = 110f;
-        private static readonly Vector2 CardSize = new(170f, 80f);
-        private static readonly Vector2 ArrowSize = new(36f, 80f);
+        private const float CardSpacing = 130f;
+        private static readonly Vector2 CardSize = new(170f, 100f);
+        private static readonly Vector2 ArrowSize = new(36f, 100f);
         /// <summary>Ícone do dispositivo no cartão: 2 unidades da UI por pixel da arte de 32 px.</summary>
         private const float IconSize = 64f;
         private static readonly Color CardColor = new(0.95f, 0.95f, 0.9f);
