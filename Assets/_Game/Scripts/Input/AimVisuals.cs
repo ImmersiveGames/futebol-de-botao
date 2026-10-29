@@ -113,8 +113,10 @@ namespace FutebolDeBotao
         {
             if (length <= 0.01f) return 0;
             int count = 0;
-            float phase = Mathf.Repeat(Time.time * dotSpeed, dotSpacing);
-            for (float d = phase; d < length - dotSpacing * 0.5f; d += dotSpacing)
+            // Espaçamento mínimo: com 0 no Inspector o laço nunca terminaria.
+            float spacing = Mathf.Max(0.05f, dotSpacing);
+            float phase = Mathf.Repeat(Time.time * dotSpeed, spacing);
+            for (float d = phase; d < length - spacing * 0.5f; d += spacing)
                 PlaceDot(pool, count++, start + dir * d, size, color);
             PlaceDot(pool, count++, start + dir * length, tipSize, color);
             return count;
