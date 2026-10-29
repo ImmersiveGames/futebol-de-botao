@@ -4,11 +4,12 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Desenha a ajuda de mira: a faixa de força em volta do botão (cresce da borda para fora, de 1 em 1 pixel da arte,
-    /// de verde a vermelho, com um anel pontilhado fraco no máximo), a mira de bolinhas andando na direção do chute e,
+    /// Desenha a ajuda de mira: a força em anéis em volta do botão (acendem da borda para fora, de verde a vermelho,
+    /// com um anel pontilhado fraco no máximo), a mira de bolinhas andando na direção do chute e,
     /// na Completa, a linha da bola em bolinhas mais fracas (sem rebotes).
-    /// As bolinhas usam a arte Aim_Visual (Dot e Mark, ligadas pelo "Aplicar artes") no tamanho dos pixels do jogo;
-    /// sem a arte, um círculo provisório. A faixa é desenhada por código numa textura na escala da arte (32 px por unidade).
+    /// As bolinhas usam a arte Aim_Visual (Dot e Mark) e os anéis a Power_Rings (quadro N = N anéis), ligadas pelo
+    /// "Aplicar artes", no tamanho dos pixels do jogo. Sem a arte dos anéis, uma faixa desenhada por código
+    /// (32 px por unidade); sem a das bolinhas, um círculo provisório.
     /// </summary>
     [RequireComponent(typeof(AimController))]
     public sealed class AimVisuals : MonoBehaviour
@@ -24,9 +25,13 @@ namespace FutebolDeBotao
         [Header("Arte das bolinhas (Aplicar artes)")]
         [SerializeField] private Sprite dotArt;
         [SerializeField] private Sprite tipArt;
+        [Tooltip("Quadros dos anéis de força: o quadro N tem N anéis acesos (o 0 vazio).")]
+        [SerializeField] private Sprite[] powerFrames = new Sprite[0];
+        [Tooltip("Raio de fora do último anel da arte, em pixels (o anel pontilhado do máximo fica logo depois).")]
+        [SerializeField] private float powerFramesOuterPixels = 49f;
 
         [Header("Faixa de força")]
-        [Tooltip("Largura da faixa em volta do botão com força máxima.")]
+        [Tooltip("Largura da faixa em volta do botão com força máxima (só sem a arte dos anéis).")]
         [SerializeField] private float maxPowerBand = 1.2f;
         [SerializeField] private Color lowPowerColor = Color.green;
         [SerializeField] private Color midPowerColor = Color.yellow;
@@ -63,11 +68,14 @@ namespace FutebolDeBotao
             set => mode = value;
         }
 
-        /// <summary>Liga a arte das bolinhas (usado pelo "Aplicar artes").</summary>
-        public void ConfigureArt(Sprite dot, Sprite tip)
+        private bool HasPowerFrames => powerFrames != null && powerFrames.Length > 1;
+
+        /// <summary>Liga a arte das bolinhas e dos anéis de força (usado pelo "Aplicar artes").</summary>
+        public void ConfigureArt(Sprite dot, Sprite tip, Sprite[] rings)
         {
             dotArt = dot;
             tipArt = tip;
+            powerFrames = rings ?? new Sprite[0];
         }
 
         private void Awake()
@@ -104,7 +112,9 @@ namespace FutebolDeBotao
                 float power = aim.Power01;
 
                 DrawPowerBand(origin, radius, power);
-                ringCount = DrawMaxRing(origin, radius + maxPowerBand);
+                // Com a arte, o pontilhado fica 2 px depois do último anel; sem ela, no fim da faixa.
+                float maxRadius = HasPowerFrames ? (powerFramesOuterPixels + 2f) / ArtPixelsPerUnit : radius + maxPowerBand;
+                ringCount = DrawMaxRing(origin, maxRadius);
 
                 if (mode != AimAssistMode.Off)
                 {
@@ -120,12 +130,26 @@ namespace FutebolDeBotao
 
         // ---- Faixa de força ----
 
-        /// <summary>Faixa colada na borda do botão, engordando para fora de 1 em 1 pixel da arte.</summary>
+        /// <summary>
+        /// Com a arte, o quadro dos anéis pela força (qualquer força já acende o 1º); sem ela, a faixa colada
+        /// na borda do botão, engordando para fora de 1 em 1 pixel da arte.
+        /// </summary>
         private void DrawPowerBand(Vector2 origin, float radius, float power)
         {
-            int inner = Mathf.RoundToInt(radius * ArtPixelsPerUnit);
-            int width = Mathf.Max(1, Mathf.RoundToInt(maxPowerBand * power * ArtPixelsPerUnit));
-            if (inner != bandInner || width != bandWidth) RebuildBand(inner, width);
+            if (HasPowerFrames)
+            {
+                int last = powerFrames.Length - 1;
+                var frame = powerFrames[Mathf.Clamp(Mathf.CeilToInt(power * last), 1, last)];
+                powerBand.sprite = frame;
+                powerBand.transform.localScale = Vector3.one * (frame.pixelsPerUnit / ArtPixelsPerUnit);
+            }
+            else
+            {
+                int inner = Mathf.RoundToInt(radius * ArtPixelsPerUnit);
+                int width = Mathf.Max(1, Mathf.RoundToInt(maxPowerBand * power * ArtPixelsPerUnit));
+                if (inner != bandInner || width != bandWidth) RebuildBand(inner, width);
+                powerBand.transform.localScale = Vector3.one;
+            }
 
             var color = power < 0.5f
                 ? Color.Lerp(lowPowerColor, midPowerColor, power * 2f)

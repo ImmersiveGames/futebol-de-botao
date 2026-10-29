@@ -38,6 +38,10 @@ namespace FutebolDeBotao.Editor
         private const string AimSheetPath = "Assets/_Game/Art/Aim Visual/Aim_Visual.png";
         private const string AimDotName = "Aim_Visual_Dot";
         private const string AimTipName = "Aim_Visual_Mark";
+        // Força: quadros de 100x100 lado a lado; o quadro N tem N anéis acesos (o 0 vazio), centrados no botão.
+        private const string PowerRingsPath = "Assets/_Game/Art/Aim Visual/Power_Rings.png";
+        private const string PowerRingsPrefix = "Power_Rings";
+        private static readonly Vector2Int PowerRingsCell = new(100, 100);
 
         private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
@@ -127,7 +131,11 @@ namespace FutebolDeBotao.Editor
                 Debug.LogWarning($"[Futebol de Botão] A cena {ScenePath} não tem AimVisuals: mira sem arte.");
                 return;
             }
-            visuals.ConfigureArt(dot, tip);
+            var rings = File.Exists(PowerRingsPath)
+                ? SliceStrip(PowerRingsPath, PowerRingsPrefix, PowerRingsCell, new Vector2(0.5f, 0.5f))
+                : new Sprite[0];
+            visuals.ConfigureArt(dot, tip, rings);
+            if (rings.Length > 0) Debug.Log($"[Futebol de Botão] Força com {rings.Length} quadros de anéis.");
             // Espaçamento combinando com a bolinha de 4 px (uma bolinha de vão).
             var so = new SerializedObject(visuals);
             so.FindProperty("dotSpacing").floatValue = 0.25f;
@@ -157,7 +165,7 @@ namespace FutebolDeBotao.Editor
                 return;
             }
 
-            var trail = File.Exists(BallTrailPath) ? SliceBallTrail() : new Sprite[0];
+            var trail = File.Exists(BallTrailPath) ? SliceStrip(BallTrailPath, BallTrailPrefix, BallTrailCell, BallTrailPivot) : new Sprite[0];
             SetupBall(ball, frames, shine, shadow, trail);
             Debug.Log($"[Futebol de Botão] Bola com {frames.Length} quadros de rolagem" +
                       $"{(shine != null ? ", luz" : "")}{(shadow != null ? ", sombra" : "")}" +
@@ -165,12 +173,12 @@ namespace FutebolDeBotao.Editor
         }
 
         /// <summary>
-        /// Recorta a folha do rastro em Bola_Rastro_0, _1... (da esquerda para a direita), com o pivô no centro da bola.
-        /// Pode rodar quantas vezes quiser: os recortes com o mesmo nome mantêm o ID.
+        /// Recorta uma folha de quadros lado a lado em Prefixo_0, _1... (da esquerda para a direita), com o pivô dado
+        /// (no rastro, o centro da bola). Pode rodar quantas vezes quiser: os recortes com o mesmo nome mantêm o ID.
         /// </summary>
-        private static Sprite[] SliceBallTrail()
+        private static Sprite[] SliceStrip(string path, string prefix, Vector2Int cell, Vector2 pivot)
         {
-            var importer = (TextureImporter)AssetImporter.GetAtPath(BallTrailPath);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Multiple;
             importer.spritePixelsPerUnit = PixelsPerUnit;
@@ -179,7 +187,7 @@ namespace FutebolDeBotao.Editor
             importer.mipmapEnabled = false;
             importer.SaveAndReimport();
             importer.GetSourceTextureWidthAndHeight(out int width, out int height);
-            int count = width / BallTrailCell.x;
+            int count = width / cell.x;
 
             var factory = new SpriteDataProviderFactories();
             factory.Init();
@@ -190,11 +198,11 @@ namespace FutebolDeBotao.Editor
             var rects = new System.Collections.Generic.List<SpriteRect>();
             for (int i = 0; i < count; i++)
             {
-                string name = $"{BallTrailPrefix}_{i}";
+                string name = $"{prefix}_{i}";
                 if (!existing.TryGetValue(name, out var rect)) rect = new SpriteRect { name = name, spriteID = GUID.Generate() };
-                rect.rect = new Rect(i * BallTrailCell.x, height - BallTrailCell.y, BallTrailCell.x, BallTrailCell.y);
+                rect.rect = new Rect(i * cell.x, height - cell.y, cell.x, cell.y);
                 rect.alignment = SpriteAlignment.Custom;
-                rect.pivot = BallTrailPivot;
+                rect.pivot = pivot;
                 rect.border = Vector4.zero;
                 rects.Add(rect);
             }
@@ -204,9 +212,9 @@ namespace FutebolDeBotao.Editor
             provider.Apply();
             importer.SaveAndReimport();
 
-            var sprites = LoadSprites(BallTrailPath);
+            var sprites = LoadSprites(path);
             return Enumerable.Range(0, count)
-                .Select(i => sprites.TryGetValue($"{BallTrailPrefix}_{i}", out var sprite) ? sprite : null)
+                .Select(i => sprites.TryGetValue($"{prefix}_{i}", out var sprite) ? sprite : null)
                 .Where(sprite => sprite != null).ToArray();
         }
 
