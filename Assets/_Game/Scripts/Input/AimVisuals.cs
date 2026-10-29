@@ -27,8 +27,6 @@ namespace FutebolDeBotao
         [SerializeField] private Sprite tipArt;
         [Tooltip("Quadros dos anéis de força: o quadro N tem N anéis acesos (o 0 vazio).")]
         [SerializeField] private Sprite[] powerFrames = new Sprite[0];
-        [Tooltip("Raio do centro das bolinhas do pontilhado do máximo, em pixels da arte (a borda do último anel fica em 48).")]
-        [SerializeField] private float maxRingPixels = 48f;
 
         [Header("Faixa de força")]
         [Tooltip("Largura da faixa em volta do botão com força máxima (só sem a arte dos anéis).")]
@@ -39,6 +37,8 @@ namespace FutebolDeBotao
         [SerializeField, Range(0f, 1f)] private float powerBandAlpha = 0.35f;
         [Tooltip("Mostra o anel pontilhado do máximo.")]
         [SerializeField] private bool showMaxRing = true;
+        [Tooltip("Raio do centro das bolinhas do pontilhado do máximo, em pixels da arte (a borda do último anel fica em 48).")]
+        [SerializeField] private float maxRingPixels = 48f;
         [Tooltip("Anel pontilhado do máximo.")]
         [SerializeField, Range(0f, 1f)] private float maxRingAlpha = 0.25f;
         [SerializeField] private float maxRingSpacing = 0.3f;
