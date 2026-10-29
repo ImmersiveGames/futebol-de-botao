@@ -47,6 +47,13 @@ namespace FutebolDeBotao
         /// no meio da face. No apertado as bordas são iguais (3 e 3) e o texto volta ao centro, como se afundasse junto.
         /// </summary>
         public const float FaceRaisePixels = 2f;
+        /// <summary>
+        /// Pixels da arte fora do miolo da face, na altura: 2 de borda em cima, 6 da faixa escura embaixo e 1 do filete
+        /// claro de cada lado. O ícone não passa da altura que sobra, para não entrar na parte de perspectiva.
+        /// </summary>
+        private const float FaceVerticalInsetPixels = 10f;
+        /// <summary>Na largura: 3 pixels de cada lado (contorno, borda escura e filete claro).</summary>
+        private const float FaceHorizontalInsetPixels = 6f;
 
         // Canvas.referencePixelsPerUnit padrão: a borda de 10 px a 32 PPU vira 31,25 unidades da UI.
         private const float ReferencePixelsPerUnit = 100f;
@@ -89,6 +96,7 @@ namespace FutebolDeBotao
             if (!button.TryGetComponent<ButtonSkinText>(out var text)) text = button.gameObject.AddComponent<ButtonSkinText>();
             // Um pixel da arte em unidades da UI, já com a borda encolhida dos botões baixos.
             float artPixel = ReferencePixelsPerUnit / normal.pixelsPerUnit / image.pixelsPerUnitMultiplier;
+            if (label is Image icon) FitIcon(icon, size, artPixel);
             text.Configure(button, label, TextColor(style), FaceRaisePixels * artPixel);
             if (!button.TryGetComponent<ButtonClickSound>(out _)) button.gameObject.AddComponent<ButtonClickSound>();
             return true;
@@ -119,6 +127,15 @@ namespace FutebolDeBotao
             foreach (var text in button.GetComponentsInChildren<Text>(true))
                 if (text.transform.parent == button.transform) text.enabled = false;
             return true;
+        }
+
+        /// <summary>Encolhe o ícone (quadrado) para caber no miolo da face do botão; nunca aumenta.</summary>
+        private static void FitIcon(Image icon, Vector2 buttonSize, float artPixel)
+        {
+            float faceHeight = buttonSize.y - FaceVerticalInsetPixels * artPixel;
+            float faceWidth = buttonSize.x - FaceHorizontalInsetPixels * artPixel;
+            float side = Mathf.Min(icon.rectTransform.sizeDelta.x, faceHeight, faceWidth);
+            if (side > 0f) icon.rectTransform.sizeDelta = new Vector2(side, side);
         }
 
         private static Image FindIcon(Button button)
