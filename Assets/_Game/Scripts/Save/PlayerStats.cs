@@ -10,9 +10,16 @@ namespace FutebolDeBotao
     {
         private static SaveData.StatsData Data => GameSave.Data.stats;
 
+        /// <summary>
+        /// A última partida bateu o recorde de sequência de vitórias (no Geral): o novo recorde; 0 = não bateu. Só a
+        /// partir de 2 vitórias seguidas (a primeira vitória não é recorde). Para o aviso da tela de Resultado.
+        /// </summary>
+        public static int NewRecord { get; private set; }
+
         /// <summary>Começo de uma partida (também no Reiniciar e no Jogar de novo). Só conta contra a IA, vindo do Menu.</summary>
         public static void BeginMatch()
         {
+            NewRecord = 0;
             if (MatchSession.VsAi != true) return;
             CountLeftover();
             Data.inProgressLevel = (int)MatchSession.AiLevel;
@@ -53,7 +60,11 @@ namespace FutebolDeBotao
                 {
                     stats.wins++;
                     stats.streak++;
-                    if (stats.streak > stats.bestStreak) stats.bestStreak = stats.streak;
+                    if (stats.streak > stats.bestStreak)
+                    {
+                        stats.bestStreak = stats.streak;
+                        if (stats == Data.total && stats.streak > 1) NewRecord = stats.streak;
+                    }
                 }
                 else
                 {

@@ -327,16 +327,15 @@ namespace FutebolDeBotao.Editor
             CreateFieldBackground(canvas);
             var result = canvas.gameObject.AddComponent<ResultScreen>();
 
-            CreateText(canvas, "Título", "Fim de jogo", 64, new Vector2(0f, 320f), new Vector2(680f, 110f), FontStyle.Bold);
-            var score = CreateText(canvas, "Placar", "Azul 0 x 0 Vermelho", 48, new Vector2(0f, 160f), new Vector2(680f, 90f), FontStyle.Bold);
-            var verdict = CreateText(canvas, "Vencedor", "Empate!", 38, new Vector2(0f, 60f), new Vector2(680f, 80f));
-            var again = CreateButton(canvas, "Jogar de novo", "Jogar de novo", new Vector2(0f, -120f), new Vector2(420f, 90f), result.PlayAgain, ButtonStyle.Yellow);
-            var toMenu = CreateButton(canvas, "Menu", "Menu", new Vector2(0f, -240f), new Vector2(420f, 90f), result.BackToMenu, ButtonStyle.Red);
+            // O placar (botão e nome de cada time) e a tabela com os números da partida o ResultScreen monta ao abrir.
+            CreateText(canvas, "Título", "Fim de Jogo", 64, new Vector2(0f, 530f), new Vector2(680f, 110f), FontStyle.Bold);
+            var again = CreateButton(canvas, "Jogar de novo", "Jogar de novo", new Vector2(0f, -420f), new Vector2(420f, 90f), result.PlayAgain, ButtonStyle.Yellow);
+            var toMenu = CreateButton(canvas, "Menu", "Menu", new Vector2(0f, -530f), new Vector2(420f, 90f), result.BackToMenu, ButtonStyle.Red);
             AddNavigator(canvas, toMenu, Item(again), Item(toMenu));
 
             var againRoute = AddRouteTrigger(canvas, "Ir para a Partida", matchRoute, "resultado.jogar_de_novo");
             var toMenuRoute = AddRouteTrigger(canvas, "Ir para o Menu", menuRoute, "resultado.menu");
-            result.Configure(score, verdict, againRoute, toMenuRoute);
+            result.Configure(againRoute, toMenuRoute);
 
             AudioBuilder.AddRouteMusic(null, AudioBuilder.MenuMusic, Load<RouteAsset>(ownRoute));
             EditorSceneManager.SaveScene(scene, ResultScenePath);
