@@ -197,6 +197,8 @@ namespace FutebolDeBotao
         public void Play()
         {
             GameSave.Save("selecao de times");
+            // Partida nova: o feltro é sorteado de novo.
+            MatchSession.GradientFelt = null;
             if (menu != null) menu.Play();
         }
 

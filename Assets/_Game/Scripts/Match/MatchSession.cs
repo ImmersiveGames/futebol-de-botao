@@ -45,6 +45,9 @@ namespace FutebolDeBotao
         /// <summary>Nível da IA escolhido no Menu.</summary>
         public static AiLevel AiLevel { get; set; } = AiLevel.Medium;
 
+        /// <summary>Feltro sorteado da partida (gradiente ou liso); nulo = sortear de novo. O Reiniciar mantém.</summary>
+        public static bool? GradientFelt { get; set; }
+
         // Times e esquemas escolhidos na Seleção de times, por lado (0 = baixo, 1 = cima).
         private static readonly int[] teamIndex = { 0, 1 };
         private static readonly int[] scheme5 = { 0, 0 };

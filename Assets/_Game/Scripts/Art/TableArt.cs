@@ -4,15 +4,17 @@ using UnityEngine.Tilemaps;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Desenho da mesa em pixel art: o feltro em faixas (lisas ou com gradiente, para comparar) e os gols grande e
-    /// pequeno (sem goleiro). Montado por "Futebol de Botão/Aplicar artes"; a física da mesa não depende dele.
+    /// Desenho da mesa em pixel art: o feltro em faixas (lisas ou com gradiente, nunca misturadas) e os gols grande e
+    /// pequeno (sem goleiro). Com "Sortear", cada partida nova sorteia um dos dois padrões; o Reiniciar mantém o
+    /// sorteado (guardado na <see cref="MatchSession"/>). Montado por "Futebol de Botão/Aplicar artes"; a física da
+    /// mesa não depende dele.
     /// </summary>
     public sealed class TableArt : MonoBehaviour
     {
-        public enum FeltStyle { Lisa, Gradiente }
+        public enum FeltStyle { Lisa, Gradiente, Sortear }
 
-        [Tooltip("Faixas do feltro: tiles lisos ou com gradiente.")]
-        [SerializeField] private FeltStyle feltStyle = FeltStyle.Lisa;
+        [Tooltip("Faixas do feltro: tiles lisos, com gradiente, ou sorteado a cada partida nova.")]
+        [SerializeField] private FeltStyle feltStyle = FeltStyle.Sortear;
         [SerializeField] private Tilemap felt;
         [SerializeField] private TileBase bright;
         [SerializeField] private TileBase dark;
@@ -40,6 +42,11 @@ namespace FutebolDeBotao
             SetSmallGoals(false);
         }
 
+        private void Start()
+        {
+            if (feltStyle == FeltStyle.Sortear) PaintFelt();
+        }
+
         /// <summary>Sem goleiro o gol é menor: troca o desenho dos dois gols.</summary>
         public void SetSmallGoals(bool small)
         {
@@ -51,7 +58,7 @@ namespace FutebolDeBotao
         public void PaintFelt()
         {
             if (felt == null) return;
-            bool gradient = feltStyle == FeltStyle.Gradiente && brightGradient != null && darkGradient != null;
+            bool gradient = UsesGradient() && brightGradient != null && darkGradient != null;
             for (int row = 0; row < feltSize.y; row++)
             {
                 bool light = row % 2 == 0;
@@ -59,6 +66,15 @@ namespace FutebolDeBotao
                 for (int column = 0; column < feltSize.x; column++)
                     felt.SetTile(new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), tile);
             }
+        }
+
+        /// <summary>No Sortear, fora do Play (no editor) mostra o liso; jogando, o sorteio da partida.</summary>
+        private bool UsesGradient()
+        {
+            if (feltStyle != FeltStyle.Sortear) return feltStyle == FeltStyle.Gradiente;
+            if (!Application.isPlaying) return false;
+            MatchSession.GradientFelt ??= Random.value < 0.5f;
+            return MatchSession.GradientFelt.Value;
         }
 
 #if UNITY_EDITOR
