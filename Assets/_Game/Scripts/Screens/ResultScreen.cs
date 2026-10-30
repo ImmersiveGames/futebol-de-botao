@@ -43,6 +43,8 @@ namespace FutebolDeBotao
 
         public void PlayAgain()
         {
+            // Partida nova: sorteia o feltro de novo (só o Reiniciar mantém).
+            MatchSession.GradientFelt = null;
             if (matchRoute != null) matchRoute.RequestRoute();
         }
 

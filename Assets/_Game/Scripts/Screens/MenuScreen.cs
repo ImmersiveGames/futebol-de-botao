@@ -37,6 +37,8 @@ namespace FutebolDeBotao
         [SerializeField] private TeamSelectionScreen selection;
         [Tooltip("Tela Controles: cada jogador escolhe o dispositivo. Vazio: pula direto para as Opções.")]
         [SerializeField] private DeviceSelectionScreen devices;
+        [Tooltip("Tela Estatísticas (botão na primeira tela do Menu).")]
+        [SerializeField] private StatsScreen stats;
         [Tooltip("Mostra nas Opções o modo escolhido.")]
         [SerializeField] private Text modeLabel;
         [Tooltip("Acerta quem está na sessão (Jogador 1 contra a IA). Vazio: a partida lê o mouse/teclado direto.")]
@@ -133,6 +135,16 @@ namespace FutebolDeBotao
 
         public void SetDevices(DeviceSelectionScreen deviceSelection) => devices = deviceSelection;
 
+        public void SetStats(StatsScreen statsScreen) => stats = statsScreen;
+
+        /// <summary>"Estatísticas" na primeira tela do Menu.</summary>
+        public void ShowStats()
+        {
+            if (stats == null) return;
+            Show(stats.gameObject);
+            stats.Open();
+        }
+
         public void SetPlayers(MenuPlayers menuPlayers) => players = menuPlayers;
 
         public void SetSelection(TeamSelectionScreen teamSelection) => selection = teamSelection;
@@ -168,7 +180,7 @@ namespace FutebolDeBotao
         private void Show(GameObject panel)
         {
             foreach (var other in new[] { modePanel, optionsPanel, selection != null ? selection.gameObject : null,
-                         devices != null ? devices.gameObject : null })
+                         devices != null ? devices.gameObject : null, stats != null ? stats.gameObject : null })
                 if (other != null) other.SetActive(other == panel);
         }
 

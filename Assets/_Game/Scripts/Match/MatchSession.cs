@@ -30,6 +30,12 @@ namespace FutebolDeBotao
 
         public static MatchResult? LastResult { get; set; }
 
+        /// <summary>
+        /// Números dos dois times na última partida terminada (0 = baixo, 1 = cima), para a tela do pós-jogo. Ficam só na
+        /// memória: o save guarda só os do jogador (<see cref="PlayerStats"/>).
+        /// </summary>
+        public static SaveData.MatchNumbers[] LastMatchNumbers { get; set; }
+
         /// <summary>Modo escolhido no Menu: true = contra a IA, false = 2 jogadores. Nulo: a partida abriu sem passar pelo Menu.</summary>
         public static bool? VsAi { get; set; }
 
@@ -113,6 +119,7 @@ namespace FutebolDeBotao
         {
             options = null;
             LastResult = null;
+            LastMatchNumbers = null;
             VsAi = null;
             AiLevel = AiLevel.Medium;
             teamIndex[0] = 0;

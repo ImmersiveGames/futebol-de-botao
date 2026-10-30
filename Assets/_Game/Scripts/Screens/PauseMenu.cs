@@ -13,6 +13,7 @@ namespace FutebolDeBotao
     /// este componente fica fora do painel escondido para as corrotinas não pararem.
     /// Reiniciar e Menu primeiro tiram a pausa e só depois fazem o pedido, para o jogo não voltar congelado.
     /// O botão Música liga e desliga a música na hora (a mesma opção das Opções da partida).
+    /// Reiniciar e Menu contam a partida como abandonada nas estatísticas.
     /// </summary>
     public sealed class PauseMenu : MonoBehaviour
     {
@@ -55,6 +56,7 @@ namespace FutebolDeBotao
         {
             if (restartTrigger != null) RunAfterResume(() =>
             {
+                PlayerStats.Abandon();
                 MatchPlayers.ReleaseBeforeLeaving("reiniciar");
                 restartTrigger.RequestActivityRestart();
             });
@@ -64,6 +66,7 @@ namespace FutebolDeBotao
         {
             if (menuRoute != null) RunAfterResume(() =>
             {
+                PlayerStats.Abandon();
                 MatchPlayers.ReleaseBeforeLeaving("sair para o menu");
                 menuRoute.RequestRoute();
             });

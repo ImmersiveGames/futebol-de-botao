@@ -58,6 +58,8 @@ namespace FutebolDeBotao
                 Debug.LogWarning($"[Save] Save indisponível, começando do padrão: {exception.Message}");
             }
             ApplyToSession();
+            // Partida contra a IA que ficou no meio quando o jogo fechou: conta como abandonada.
+            if (PlayerStats.CountLeftover()) Save("partida abandonada");
         }
 
         /// <summary>Junta o estado atual (MatchSession, opções, música) e grava.</summary>
@@ -164,6 +166,21 @@ namespace FutebolDeBotao
             }
             for (int i = 0; i < data.players.Length; i++) data.players[i] ??= new SaveData.PlayerChoices { team = i };
             data.stats ??= new SaveData.StatsData();
+            var stats = data.stats;
+            stats.total ??= new SaveData.LevelStats();
+            if (stats.levels == null || stats.levels.Length != 3)
+            {
+                var levels = new SaveData.LevelStats[3];
+                for (int i = 0; stats.levels != null && i < stats.levels.Length && i < 3; i++) levels[i] = stats.levels[i];
+                stats.levels = levels;
+            }
+            for (int i = 0; i < 3; i++) stats.levels[i] ??= new SaveData.LevelStats();
+            stats.total.numbers ??= new SaveData.MatchNumbers();
+            foreach (var level in stats.levels) level.numbers ??= new SaveData.MatchNumbers();
+            stats.last ??= new SaveData.LastMatchData();
+            stats.last.numbers ??= new SaveData.MatchNumbers();
+            // Versão 1 não tinha a marca de partida em andamento (o campo vinha 0 = "Fácil em andamento").
+            if (data.version < 2) stats.inProgressLevel = -1;
             data.unlocked ??= new System.Collections.Generic.List<string>();
             data.tournaments ??= new System.Collections.Generic.List<SaveData.TournamentData>();
             data.version = SaveData.CurrentVersion;

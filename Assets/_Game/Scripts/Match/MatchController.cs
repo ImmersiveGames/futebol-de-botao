@@ -64,6 +64,11 @@ namespace FutebolDeBotao
         private Camera worldCamera;
         private GoalTrigger pendingGoal;
         private bool pendingGoalValid;
+        /// <summary>Números da partida por lado (0 = baixo, 1 = cima), para as estatísticas.</summary>
+        private readonly SaveData.MatchNumbers[] numbers = { new(), new() };
+        /// <summary>Peteleco em andamento ainda não contado como toque na bola ou toque errado.</summary>
+        private bool touchPending;
+        private TeamSide touchSide;
         private string message = string.Empty;
         private bool initialized;
         private bool resultRequested;
@@ -143,6 +148,8 @@ namespace FutebolDeBotao
         public void OnActivityContentExited(ActivityContentLifecycleContext context)
         {
             if (!initialized) return;
+            // Saiu antes do fim (menu ou reiniciar): partida abandonada. Terminada, já foi gravada e não conta de novo.
+            PlayerStats.Abandon();
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
@@ -267,6 +274,10 @@ namespace FutebolDeBotao
             restoreControls = false;
             score[0] = score[1] = 0;
             farFouls[0] = farFouls[1] = 0;
+            numbers[0] = new SaveData.MatchNumbers();
+            numbers[1] = new SaveData.MatchNumbers();
+            touchPending = false;
+            PlayerStats.BeginMatch();
             clock = options.DurationSeconds;
             // Início: time sorteado dá a saída.
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
@@ -548,6 +559,7 @@ namespace FutebolDeBotao
         {
             if (State != MatchState.GoalKick) return;
             ball.MarkTouchedBy(Turn);
+            Count(Turn).touches++;
             shotWasCalled = false;
             shotFromAttackHalf = InAttackHalf(ball.Body.position, Turn);
             shooter = null;
@@ -560,6 +572,9 @@ namespace FutebolDeBotao
         {
             if (State != MatchState.Aim && State != MatchState.ShotAim) return;
             shotWasCalled = State == MatchState.ShotAim;
+            if (shotWasCalled) Count(Turn).shots++;
+            touchPending = true;
+            touchSide = Turn;
             shooter = disc;
             shotBallStart = ball.Body.position;
             shotFromAttackHalf = InAttackHalf(shotBallStart, Turn);
@@ -599,6 +614,21 @@ namespace FutebolDeBotao
         {
             if (shooter != null) shooter.EndShot();
             shooter = null;
+            CountTouch();
+        }
+
+        private SaveData.MatchNumbers Count(TeamSide side) => numbers[(int)side];
+
+        /// <summary>Fim do peteleco: algum botão do time tocou na bola (toque) ou nenhum (toque errado).</summary>
+        private void CountTouch()
+        {
+            if (!touchPending) return;
+            touchPending = false;
+            bool hit = false;
+            foreach (var touch in ball.Touches)
+                if (touch.Side == touchSide && touch.What != "goleiro") hit = true;
+            if (hit) Count(touchSide).touches++;
+            else Count(touchSide).misses++;
         }
 
         /// <summary>Passa a vez para <paramref name="side"/> com os toques cheios.</summary>
@@ -645,6 +675,7 @@ namespace FutebolDeBotao
             if (asShooter ? disc != shooter : disc == shooter || disc.Side != shooter.Side || ball.LastTouchSide != null) return;
 
             Debug.Log($"[Falta] {disc.name} ({TeamName(disc.Side)}) acertou o goleiro do {TeamName(keeper.Side)}.");
+            Count(disc.Side).fouls++;
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
@@ -663,6 +694,7 @@ namespace FutebolDeBotao
             Debug.Log($"[Falta] {offender.name} ({TeamName(offender.Side)}) acertou {victim.name}. " +
                       $"Último toque na bola neste peteleco: {(ball.LastDiscTouch != null ? ball.LastDiscTouch.name : "ninguém")}.");
 
+            Count(offender.Side).fouls++;
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
@@ -683,6 +715,8 @@ namespace FutebolDeBotao
         {
             var side = offender.Side;
             int count = ++farFouls[(int)side];
+            if (count == 1) Count(side).yellow++;
+            else Count(side).red++;
             if (count == 1)
             {
                 Noticed?.Invoke(MatchNotice.YellowCard);
@@ -715,6 +749,7 @@ namespace FutebolDeBotao
             message = $"W.O.! O {TeamName(loser)} ficou sem botões. Vitória do {TeamName(winner)}!";
             Noticed?.Invoke(MatchNotice.FinalWhistle);
             MatchSession.LastResult = new MatchResult(Score(TeamSide.Bottom), Score(TeamSide.Top), true);
+            RecordStats(walkover: true);
             Enter(MatchState.End);
         }
 
@@ -945,6 +980,10 @@ namespace FutebolDeBotao
             if (pendingGoalValid)
             {
                 score[(int)scorer]++;
+                Count(scorer).goals++;
+                Count(goal.DefendingSide).conceded++;
+                if (ownGoal) Count(Turn).ownGoals++;
+                else if (shotWasCalled) Count(scorer).shotGoals++;
                 message = ownGoal ? $"Gol contra! Ponto do {TeamName(scorer)}." : $"GOL do {TeamName(scorer)}!";
             }
             else
@@ -1125,8 +1164,16 @@ namespace FutebolDeBotao
             int top = Score(TeamSide.Top);
             message = bottom == top ? "Fim de jogo: empate!" : $"Fim de jogo: vitória do {TeamName(bottom > top ? TeamSide.Bottom : TeamSide.Top)}!";
             MatchSession.LastResult = new MatchResult(bottom, top);
+            RecordStats(walkover: false);
             Noticed?.Invoke(MatchNotice.FinalWhistle);
             Enter(MatchState.End);
+        }
+
+        /// <summary>Fim da partida: os números dos dois times vão para o pós-jogo; os do jogador (baixo), para o save.</summary>
+        private void RecordStats(bool walkover)
+        {
+            MatchSession.LastMatchNumbers = new[] { numbers[0], numbers[1] };
+            PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover);
         }
 
         private void RequestResult()

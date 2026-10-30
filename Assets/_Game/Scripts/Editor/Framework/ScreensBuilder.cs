@@ -239,14 +239,16 @@ namespace FutebolDeBotao.Editor
             CreateFieldBackground(canvas);
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
 
-            // Primeira tela do Menu: o título, o ícone e o logo da Immersive como na Abertura e, embaixo, Um jogador (contra a IA) ou Dois jogadores.
+            // Primeira tela do Menu: o título, o ícone e o logo da Immersive como na Abertura e, embaixo, Um jogador (contra a IA),
+            // Dois jogadores, Estatísticas e Sair.
             var modePanel = CreateGroup(canvas, "Como jogar");
             CreateText(modePanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
-            var onePlayer = CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -180f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
-            var twoPlayers = CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -300f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
-            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -420f), new Vector2(420f, 90f), menu.QuitApp, ButtonStyle.Red);
+            var onePlayer = CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -150f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
+            var twoPlayers = CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -260f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
+            var statsButton = CreateButton(modePanel, "Estatísticas", "Estatísticas", new Vector2(0f, -370f), new Vector2(420f, 90f), menu.ShowStats, ButtonStyle.Green);
+            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -480f), new Vector2(420f, 90f), menu.QuitApp, ButtonStyle.Red);
             quit.gameObject.AddComponent<HideOnWeb>();
-            AddNavigator(modePanel, null, Item(onePlayer), Item(twoPlayers), Item(quit));
+            AddNavigator(modePanel, null, Item(onePlayer), Item(twoPlayers), Item(statsButton), Item(quit));
             CreateStudioLogo(modePanel);
             CreateGameLogo(modePanel);
 
@@ -287,6 +289,13 @@ namespace FutebolDeBotao.Editor
             devices.Configure(menu);
             menu.SetDevices(devices);
             devicesPanel.gameObject.SetActive(false);
+
+            // Estatísticas contra a IA (abas por nível e a última partida). Monta a UI sozinha ao abrir.
+            var statsPanel = CreateGroup(canvas, "Estatísticas");
+            var stats = statsPanel.gameObject.AddComponent<StatsScreen>();
+            stats.Configure(menu);
+            menu.SetStats(stats);
+            statsPanel.gameObject.SetActive(false);
 
             // Seleção de times no campo desenhado ("Jogar" vai para a Partida). Monta a UI sozinha no Awake.
             var selectionPanel = CreateGroup(canvas, "Seleção de times");
