@@ -18,8 +18,9 @@ namespace FutebolDeBotao
         private const float DiscX = 230f;
         private const float DiscSize = 160f;
         private const float NameY = 245f;
-        private const float RecordY = 180f;
-        private static readonly Vector2 TableCenter = new(0f, -95f);
+        private const float RecordY = 188f;
+        /// <summary>Alto do quadro: logo abaixo dos nomes (e do aviso de recorde); ele cresce para baixo.</summary>
+        private const float TableTop = 155f;
         private const float TableWidth = 680f;
         private const float TablePadding = 16f;
         private const float RowHeight = 50f;
@@ -55,7 +56,7 @@ namespace FutebolDeBotao
             BuildScore(root, result.Value);
             if (MatchSession.VsAi == true && PlayerStats.NewRecord > 0)
                 CreateText(root, "Recorde", $"Novo recorde de sequência: {PlayerStats.NewRecord} vitórias!", 30, FontStyle.Bold,
-                    HighlightColor, new Vector2(0f, RecordY), new Vector2(680f, 60f));
+                    HighlightColor, new Vector2(0f, RecordY), new Vector2(680f, 44f));
             var numbers = MatchSession.LastMatchNumbers;
             if (numbers != null && numbers.Length == 2) BuildTable(root, numbers[0], numbers[1]);
         }
@@ -136,7 +137,7 @@ namespace FutebolDeBotao
                 rows.Add(("Gols contra", bottom.ownGoals.ToString(), top.ownGoals.ToString()));
 
             float height = rows.Count * RowHeight + 2f * TablePadding;
-            var panel = CreateRect(root, "Números", TableCenter, new Vector2(TableWidth, height)).gameObject.AddComponent<Image>();
+            var panel = CreateRect(root, "Números", new Vector2(0f, TableTop - height * 0.5f), new Vector2(TableWidth, height)).gameObject.AddComponent<Image>();
             panel.raycastTarget = false;
             var sprite = ButtonArt.Find(ButtonSkin.HudPanelName);
             if (sprite != null)
