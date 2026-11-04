@@ -94,6 +94,10 @@ namespace FutebolDeBotao
 
         private readonly Dictionary<TeamSide, HalfView> halves = new();
         private RectTransform field;
+        /// <summary>Fileiras do feltro (de baixo para cima) e a metade de cima da do meio (Meio a meio).</summary>
+        private readonly List<Image> feltRows = new();
+        private Image feltUpperHalf;
+        private Sprite oldBright, oldDark;
         private GameObject bigGoals;
         private GameObject smallGoals;
         private GameObject bigPoles;
@@ -137,6 +141,9 @@ namespace FutebolDeBotao
                 MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             }
             EnsureDifferentTeams();
+            // Partida nova: sorteia o feltro aqui, para a Seleção de times mostrar o mesmo da Partida.
+            MatchSession.FeltId = null;
+            PaintFelt();
 
             starting = false;
             foreach (var pair in halves) SetReady(pair.Key, false);
@@ -197,8 +204,6 @@ namespace FutebolDeBotao
         public void Play()
         {
             GameSave.Save("selecao de times");
-            // Partida nova: o feltro é sorteado de novo.
-            MatchSession.GradientFelt = null;
             if (menu != null) menu.Play();
         }
 
@@ -414,11 +419,16 @@ namespace FutebolDeBotao
             CreateImage(field, "Canto de baixo esquerdo", Color.white, art["Bottom_Corner_L"], new Vector2(-halfW, -halfH), Vector2.one);
             CreateImage(field, "Canto de baixo direito", Color.white, art["Bottom_Corner_R"], new Vector2(halfW, -halfH), Vector2.one);
 
-            // Feltro: faixas horizontais, clara embaixo (o meio fica claro).
+            // Feltro: uma faixa por fileira, pintada com o feltro da partida (PaintFelt).
+            oldBright = art["Field_Braight"];
+            oldDark = art["Field_Dark"];
             int rows = Mathf.RoundToInt(FieldLayout.Height);
             for (int row = 0; row < rows; row++)
-                CreateTiled(field, $"Feltro {row + 1}", art[row % 2 == 0 ? "Field_Braight" : "Field_Dark"],
-                    new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal);
+                feltRows.Add(CreateTiled(field, $"Feltro {row + 1}", oldBright, new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal));
+            feltUpperHalf = CreateTiled(field, "Feltro (meia fileira)", oldBright,
+                new Vector2(0f, -FieldLayout.HalfHeight + rows / 2 + 0.75f), new Vector2(FieldLayout.Width, 0.5f));
+            feltUpperHalf.gameObject.SetActive(false);
+            PaintFelt();
 
             if (art.TryGetValue("Field_Marks", out var marks))
                 CreateImage(field, "Marcações", Color.white, marks, Vector2.zero, new Vector2(FieldLayout.Width, FieldLayout.Height));
@@ -447,6 +457,28 @@ namespace FutebolDeBotao
                 for (int i = 0; i < GoalPieces.Length; i++)
                     CreateImage(group, $"{end} {i + 1}", Color.white, art[$"{prefix}_{end}_{GoalPieces[i]}"], new Vector2(i - 1, sign * y), Vector2.one);
             return group.gameObject;
+        }
+
+        /// <summary>Feltro da partida (<see cref="FeltTheme.Current"/>), como a mesa pinta; sem os feltros, as faixas antigas.</summary>
+        private void PaintFelt()
+        {
+            if (feltRows.Count == 0) return;
+            var theme = FeltTheme.Current();
+            var art = FeltArt.Load();
+            bool themed = theme != null && art != null && art.Has(theme.tile);
+            int rows = feltRows.Count;
+            for (int row = 0; row < rows; row++)
+            {
+                var image = feltRows[row];
+                image.sprite = themed ? art.GetSprite(theme.tile) : row % 2 == 0 ? oldBright : oldDark;
+                image.color = themed ? theme.RowColor(row, rows) : Color.white;
+            }
+
+            bool split = themed && theme.SplitsMiddleRow(rows);
+            feltUpperHalf.gameObject.SetActive(split);
+            if (!split) return;
+            feltUpperHalf.sprite = art.UpperHalf(theme.tile);
+            feltUpperHalf.color = theme.secondary;
         }
 
         /// <summary>Imagem repetida tile a tile (32 px = 1 unidade do campo = <see cref="Unit"/> da UI).</summary>

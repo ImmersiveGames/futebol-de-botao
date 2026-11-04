@@ -48,6 +48,12 @@ namespace FutebolDeBotao.Editor
         private const string TilesFolder = "Assets/_Game/Art/Campo/Tiles";
         private const string FieldAtlasPath = "Assets/_Game/Art/Campo/Campo.spriteatlasv2";
         private const string TableArtName = "Desenho da mesa";
+        // Feltros: tiles brancos de 32x32 (liso, gradiente, textura) que o jogo pinta com as cores de cada feltro.
+        private const string FeltSheetPath = "Assets/_Game/Art/Campo/padrão_feltros_Sheet.png";
+        private const string FeltAtlasPath = "Assets/_Game/Art/Campo/Feltros.spriteatlasv2";
+        private const string FeltArtPath = "Assets/_Game/Resources/FeltroArte.asset";
+        private const string FeltThemesFolder = "Assets/_Game/Resources/Feltros";
+        private static readonly string[] FeltSpriteNames = { "Felt_White", "Felt_White_Gradient", "Felt_White_Texture" };
 
         // Camisas: células de 32x32, uma coluna por camada e uma linha por padrão (as colunas do goleiro têm outra ordem).
         private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Base_Botao_32-Sheet.png";
@@ -403,7 +409,8 @@ namespace FutebolDeBotao.Editor
         {
             ConfigureImport(FieldSheetPath);
             if (File.Exists(FieldMarksPath)) ConfigureImport(FieldMarksPath);
-            EnsureFieldAtlas();
+            EnsureAtlas(FieldAtlasPath, FieldSheetPath);
+            BuildFelts();
             var sprites = LoadSprites(FieldSheetPath);
 
             string[] required =
@@ -462,35 +469,108 @@ namespace FutebolDeBotao.Editor
             var big = CreateGoals(root.transform, "Gols grandes", sprites, "Goal", "Pole", top, bottom);
             var small = CreateGoals(root.transform, "Gols pequenos", sprites, "Small_Goal", "Small_Pole", top, bottom);
 
-            sprites.TryGetValue("Field_Braight_Gradient", out var brightGradient);
-            sprites.TryGetValue("Field_Dark_Gradient", out var darkGradient);
             root.AddComponent<TableArt>().Configure(felt,
                 LoadOrCreateTile(sprites["Field_Braight"]), LoadOrCreateTile(sprites["Field_Dark"]),
-                brightGradient != null ? LoadOrCreateTile(brightGradient) : null,
-                darkGradient != null ? LoadOrCreateTile(darkGradient) : null,
                 FeltOrigin, FeltSize, big, small);
 
             Debug.Log("[Futebol de Botão] Mesa em pixel art montada (madeira, moldura, feltro, marcações e gols).");
         }
 
+        // ---- Feltros ----
+
+        /// <summary>
+        /// Folha de feltros: importa, põe num atlas, cria um Tile sem trava de cor por recorte, grava a
+        /// <see cref="FeltArt"/> em Resources e, se a pasta Resources/Feltros estiver vazia, cria os feltros de teste.
+        /// </summary>
+        private static void BuildFelts()
+        {
+            if (!File.Exists(FeltSheetPath))
+            {
+                Debug.LogWarning($"[Futebol de Botão] Sem {FeltSheetPath}: o feltro fica nas faixas antigas.");
+                return;
+            }
+            ConfigureImport(FeltSheetPath);
+            EnsureAtlas(FeltAtlasPath, FeltSheetPath);
+            var sprites = LoadSprites(FeltSheetPath);
+            var missing = FeltSpriteNames.Where(n => !sprites.ContainsKey(n)).ToArray();
+            if (missing.Length > 0)
+            {
+                Debug.LogError($"[Futebol de Botão] Faltam recortes em {FeltSheetPath}: {string.Join(", ", missing)}. Feltros não montados.");
+                return;
+            }
+
+            var art = AssetDatabase.LoadAssetAtPath<FeltArt>(FeltArtPath);
+            if (art == null)
+            {
+                art = ScriptableObject.CreateInstance<FeltArt>();
+                AssetDatabase.CreateAsset(art, FeltArtPath);
+            }
+            art.sprites = FeltSpriteNames.Select(n => sprites[n]).ToArray();
+            art.tiles = art.sprites.Select(sprite =>
+            {
+                var tile = LoadOrCreateTile(sprite);
+                // Cada célula leva a cor da sua faixa: o Tile não pode travar a cor.
+                tile.flags = TileFlags.None;
+                return (TileBase)tile;
+            }).ToArray();
+            EditorUtility.SetDirty(art);
+            CreateTestFelts();
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Futebol de Botão] Feltros: {FeltSpriteNames.Length} tiles e {AssetDatabase.FindAssets("t:FeltTheme", new[] { FeltThemesFolder }).Length} feltros em {FeltThemesFolder}.");
+        }
+
+        /// <summary>Feltros de teste, um de cada padrão e tile; só quando a pasta ainda não tem nenhum.</summary>
+        private static void CreateTestFelts()
+        {
+            if (!AssetDatabase.IsValidFolder(FeltThemesFolder)) AssetDatabase.CreateFolder("Assets/_Game/Resources", "Feltros");
+            if (AssetDatabase.FindAssets("t:FeltTheme", new[] { FeltThemesFolder }).Length > 0) return;
+
+            var green = Hex("1A7A3E");
+            var darkGreen = Hex("24523B");
+            var blue = Hex("2F5FA8");
+            var purple = Hex("6A3D9A");
+            CreateFelt("verde_listrado", "Verde listrado", FeltTheme.Pattern.Listrado, FeltTheme.TileKind.Liso, green, darkGreen, 0, true);
+            CreateFelt("verde_listrado_gradiente", "Verde listrado com gradiente", FeltTheme.Pattern.Listrado, FeltTheme.TileKind.Gradiente, green, darkGreen, 0, true);
+            CreateFelt("azul_liso", "Azul liso", FeltTheme.Pattern.Liso, FeltTheme.TileKind.Textura, blue, blue, 100, false);
+            CreateFelt("roxo_meio_a_meio", "Roxo e verde meio a meio", FeltTheme.Pattern.MeioAMeio, FeltTheme.TileKind.Liso, purple, green, 150, false);
+            CreateFelt("azul_roxo_listrado", "Azul e roxo listrado", FeltTheme.Pattern.Listrado, FeltTheme.TileKind.Gradiente, blue, purple, 200, false);
+        }
+
+        private static void CreateFelt(string id, string displayName, FeltTheme.Pattern pattern, FeltTheme.TileKind tile,
+            Color primary, Color secondary, int price, bool unlocked)
+        {
+            var felt = ScriptableObject.CreateInstance<FeltTheme>();
+            felt.id = id;
+            felt.displayName = displayName;
+            felt.pattern = pattern;
+            felt.tile = tile;
+            felt.primary = primary;
+            felt.secondary = secondary;
+            felt.price = price;
+            felt.unlockedByDefault = unlocked;
+            AssetDatabase.CreateAsset(felt, $"{FeltThemesFolder}/{id}.asset");
+        }
+
+        private static Color Hex(string hex) => ColorUtility.TryParseHtmlString("#" + hex, out var color) ? color : Color.magenta;
+
         /// <summary>
         /// Tiles lado a lado na mesma imagem "vazam" um pixel do vizinho na emenda (linhas finas no feltro). Um Sprite
         /// Atlas com folga entre os recortes resolve: a Unity repete a beira de cada recorte na folga.
         /// </summary>
-        private static void EnsureFieldAtlas()
+        private static void EnsureAtlas(string atlasPath, string texturePath)
         {
             if (EditorSettings.spritePackerMode != SpritePackerMode.SpriteAtlasV2)
                 EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
 
-            if (!File.Exists(FieldAtlasPath))
+            if (!File.Exists(atlasPath))
             {
                 var atlas = new SpriteAtlasAsset();
-                atlas.Add(new Object[] { AssetDatabase.LoadAssetAtPath<Texture2D>(FieldSheetPath) });
-                SpriteAtlasAsset.Save(atlas, FieldAtlasPath);
-                AssetDatabase.ImportAsset(FieldAtlasPath);
+                atlas.Add(new Object[] { AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath) });
+                SpriteAtlasAsset.Save(atlas, atlasPath);
+                AssetDatabase.ImportAsset(atlasPath);
             }
 
-            var importer = (SpriteAtlasImporter)AssetImporter.GetAtPath(FieldAtlasPath);
+            var importer = (SpriteAtlasImporter)AssetImporter.GetAtPath(atlasPath);
             importer.includeInBuild = true;
             importer.packingSettings = new SpriteAtlasPackingSettings
             {
