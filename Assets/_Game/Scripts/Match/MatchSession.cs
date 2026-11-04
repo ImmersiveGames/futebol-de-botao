@@ -54,6 +54,12 @@ namespace FutebolDeBotao
         /// <summary>Id do feltro da partida (<see cref="FeltTheme"/>); nulo = sortear de novo. O Reiniciar mantém.</summary>
         public static string FeltId { get; set; }
 
+        /// <summary>Id da mesa da partida (<see cref="TableTheme"/>); nulo = sortear de novo (com a cor das traves). O Reiniciar mantém.</summary>
+        public static string TableId { get; set; }
+
+        /// <summary>Cor das traves da mesa da partida (índice nas cores da mesa).</summary>
+        public static int GoalColor { get; set; }
+
         // Times e esquemas escolhidos na Seleção de times, por lado (0 = baixo, 1 = cima).
         private static readonly int[] teamIndex = { 0, 1 };
         private static readonly int[] scheme5 = { 0, 0 };
@@ -121,6 +127,8 @@ namespace FutebolDeBotao
             LastResult = null;
             LastMatchNumbers = null;
             FeltId = null;
+            TableId = null;
+            GoalColor = 0;
             VsAi = null;
             AiLevel = AiLevel.Medium;
             teamIndex[0] = 0;

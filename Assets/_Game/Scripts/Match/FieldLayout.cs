@@ -14,10 +14,17 @@ namespace FutebolDeBotao
         public const float GoalDepth = 0.8f;
 
         /// <summary>
-        /// A colisão das paredes fica um pouco para dentro da face inclinada desenhada (3 px a 32 px por unidade): bola e
-        /// botões encostam na parede em vez de parar na linha do feltro. As regras continuam usando a linha do feltro.
+        /// Na mesa clássica a colisão das paredes fica um pouco para dentro da face inclinada desenhada (3 px a 32 px por
+        /// unidade): bola e botões encostam na parede em vez de parar na linha do feltro. As regras continuam usando a
+        /// linha do feltro.
         /// </summary>
-        public const float WallInset = 3f / 32f;
+        public const float ClassicWallInset = 3f / 32f;
+
+        /// <summary>Quanto a colisão das paredes da mesa da partida fica para fora da linha do feltro (a <see cref="TableArt"/> acerta).</summary>
+        public static float WallInset { get; set; } = ClassicWallInset;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => WallInset = ClassicWallInset;
 
         /// <summary>Área do goleiro: retângulo na frente de cada gol.</summary>
         public const float AreaWidth = 4f;

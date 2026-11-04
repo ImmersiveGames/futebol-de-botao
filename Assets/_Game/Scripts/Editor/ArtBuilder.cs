@@ -55,6 +55,17 @@ namespace FutebolDeBotao.Editor
         private const string FeltThemesFolder = "Assets/_Game/Resources/Feltros";
         private static readonly string[] FeltSpriteNames = { "Felt_White", "Felt_White_Gradient", "Felt_White_Texture" };
 
+        private const string BoardSheetPath = "Assets/_Game/Art/Campo/Board_02_Tiles_Sheet.png";
+        private const string GoalFramesPath = "Assets/_Game/Art/Campo/Goal_Frames_Sheet.png";
+        private const string TableAtlasPath = "Assets/_Game/Art/Campo/Mesas.spriteatlasv2";
+        private const string TablesFolder = "Assets/_Game/Resources/Mesas";
+        private static readonly string[] BoardSpriteNames =
+        {
+            "Board_02_Corner", "Board_02_Near_Corner_Left", "Board_02_Center", "Board_02_Near_Corner_right",
+            "Board_02_Big_Goal_frame", "Board_02_Small_Goal_frame",
+        };
+        private static readonly (string suffix, string name)[] GoalColorNames = { ("White", "Branca"), ("Red", "Vermelha"), ("Yellow", "Amarela") };
+
         // Camisas: células de 32x32, uma coluna por camada e uma linha por padrão (as colunas do goleiro têm outra ordem).
         private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Base_Botao_32-Sheet.png";
         private const string KeeperSheetPath = "Assets/_Game/Art/Botoes/Goal_Keeper_sheet.png";
@@ -411,6 +422,7 @@ namespace FutebolDeBotao.Editor
             if (File.Exists(FieldMarksPath)) ConfigureImport(FieldMarksPath);
             EnsureAtlas(FieldAtlasPath, FieldSheetPath);
             BuildFelts();
+            BuildTables();
             var sprites = LoadSprites(FieldSheetPath);
 
             string[] required =
@@ -471,9 +483,94 @@ namespace FutebolDeBotao.Editor
 
             root.AddComponent<TableArt>().Configure(felt,
                 LoadOrCreateTile(sprites["Field_Braight"]), LoadOrCreateTile(sprites["Field_Dark"]),
-                FeltOrigin, FeltSize, big, small);
+                FeltOrigin, FeltSize, frame.gameObject, big, small);
 
             Debug.Log("[Futebol de Botão] Mesa em pixel art montada (madeira, moldura, feltro, marcações e gols).");
+        }
+
+        // ---- Mesas ----
+
+        /// <summary>
+        /// Mesas em Resources/Mesas: a clássica (a moldura e os gols da folha do campo) e a de placas (folhas
+        /// Board_02_Tiles_Sheet e Goal_Frames_Sheet), as duas já liberadas. Cria só as que faltam; as que existem só
+        /// têm os recortes religados (para seguir a folha se o usuário recortar de novo).
+        /// </summary>
+        private static void BuildTables()
+        {
+            if (!AssetDatabase.IsValidFolder(TablesFolder)) AssetDatabase.CreateFolder("Assets/_Game/Resources", "Mesas");
+
+            var classic = LoadOrCreateTable("mesa_classica");
+            if (classic.displayName == "Mesa")
+            {
+                classic.displayName = "Clássica";
+                classic.classic = true;
+                classic.wallInsetPixels = 3f;
+                classic.unlockedByDefault = true;
+            }
+            EditorUtility.SetDirty(classic);
+
+            if (!File.Exists(BoardSheetPath) || !File.Exists(GoalFramesPath))
+            {
+                Debug.LogWarning($"[Futebol de Botão] Sem {BoardSheetPath} ou {GoalFramesPath}: só a mesa clássica.");
+                AssetDatabase.SaveAssets();
+                return;
+            }
+            ConfigureImport(BoardSheetPath);
+            ConfigureImport(GoalFramesPath);
+            EnsureAtlas(TableAtlasPath, BoardSheetPath, GoalFramesPath);
+            var boards = LoadSprites(BoardSheetPath);
+            var frames = LoadSprites(GoalFramesPath);
+            var missing = BoardSpriteNames.Where(n => !boards.ContainsKey(n)).ToArray();
+            if (missing.Length > 0)
+            {
+                Debug.LogError($"[Futebol de Botão] Faltam recortes em {BoardSheetPath}: {string.Join(", ", missing)}. Mesa de placas não montada.");
+                AssetDatabase.SaveAssets();
+                return;
+            }
+
+            var table = LoadOrCreateTable("mesa_placas");
+            if (table.displayName == "Mesa")
+            {
+                table.displayName = "Placas";
+                table.wallInsetPixels = 0f;
+                table.unlockedByDefault = true;
+            }
+            table.classic = false;
+            table.corner = boards[BoardSpriteNames[0]];
+            table.afterCorner = boards[BoardSpriteNames[1]];
+            table.center = boards[BoardSpriteNames[2]];
+            table.beforeCorner = boards[BoardSpriteNames[3]];
+            table.bigGoalBoard = boards[BoardSpriteNames[4]];
+            table.smallGoalBoard = boards[BoardSpriteNames[5]];
+            Sprite Frame(string spriteName) => frames.TryGetValue(spriteName, out var sprite) ? sprite : null;
+            table.goalColors = GoalColorNames
+                .Select(c => new TableTheme.GoalFrames
+                {
+                    name = c.name,
+                    bigLeft = Frame($"Big_Left_{c.suffix}"),
+                    bigRight = Frame($"Big_Right_{c.suffix}"),
+                    smallLeft = Frame($"Small_Left_{c.suffix}"),
+                    smallRight = Frame($"Small_Right_{c.suffix}"),
+                    center = Frame($"Goal_Center_{c.suffix}"),
+                })
+                .Where(f => f.Complete)
+                .ToArray();
+            if (table.goalColors.Length < GoalColorNames.Length)
+                Debug.LogWarning($"[Futebol de Botão] {GoalFramesPath}: só {table.goalColors.Length} de {GoalColorNames.Length} cores de trave com todos os recortes.");
+            EditorUtility.SetDirty(table);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Futebol de Botão] Mesas: clássica e de placas ({table.goalColors.Length} cores de trave) em {TablesFolder}.");
+        }
+
+        private static TableTheme LoadOrCreateTable(string id)
+        {
+            string path = $"{TablesFolder}/{id}.asset";
+            var table = AssetDatabase.LoadAssetAtPath<TableTheme>(path);
+            if (table != null) return table;
+            table = ScriptableObject.CreateInstance<TableTheme>();
+            table.id = id;
+            AssetDatabase.CreateAsset(table, path);
+            return table;
         }
 
         // ---- Feltros ----
@@ -557,7 +654,7 @@ namespace FutebolDeBotao.Editor
         /// Tiles lado a lado na mesma imagem "vazam" um pixel do vizinho na emenda (linhas finas no feltro). Um Sprite
         /// Atlas com folga entre os recortes resolve: a Unity repete a beira de cada recorte na folga.
         /// </summary>
-        private static void EnsureAtlas(string atlasPath, string texturePath)
+        private static void EnsureAtlas(string atlasPath, params string[] texturePaths)
         {
             if (EditorSettings.spritePackerMode != SpritePackerMode.SpriteAtlasV2)
                 EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
@@ -565,7 +662,7 @@ namespace FutebolDeBotao.Editor
             if (!File.Exists(atlasPath))
             {
                 var atlas = new SpriteAtlasAsset();
-                atlas.Add(new Object[] { AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath) });
+                atlas.Add(texturePaths.Select(p => (Object)AssetDatabase.LoadAssetAtPath<Texture2D>(p)).ToArray());
                 SpriteAtlasAsset.Save(atlas, atlasPath);
                 AssetDatabase.ImportAsset(atlasPath);
             }
@@ -588,12 +685,12 @@ namespace FutebolDeBotao.Editor
         }
 
         /// <summary>
-        /// Paredes de colisão afastadas <see cref="FieldLayout.WallInset"/> para dentro da face desenhada (a mesma conta
+        /// Paredes de colisão afastadas <see cref="FieldLayout.ClassicWallInset"/> para dentro da face desenhada (a mesma conta
         /// do "Criar cena da partida"); pode rodar quantas vezes quiser. A rede do gol não muda.
         /// </summary>
         private static void AlignWallsToArt()
         {
-            float inset = FieldLayout.WallInset;
+            float inset = FieldLayout.ClassicWallInset;
             float sideSegment = (FieldLayout.Width - FieldLayout.GoalWidth) * 0.5f + inset;
             foreach (var wall in Object.FindObjectsByType<Wall>())
             {

@@ -117,7 +117,7 @@ namespace FutebolDeBotao.Editor
             float halfW = FieldWidth * 0.5f;
             float halfH = FieldHeight * 0.5f;
             float t = WallThickness;
-            float inset = FieldLayout.WallInset;
+            float inset = FieldLayout.ClassicWallInset;
             // O fundo vai do gol até a parede lateral, que fica afastada pelo inset.
             float sideSegment = (FieldWidth - GoalWidth) * 0.5f + inset;
             float segmentX = GoalWidth * 0.5f + sideSegment * 0.5f;
