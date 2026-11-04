@@ -27,6 +27,8 @@ namespace FutebolDeBotao
         public TileKind tile = TileKind.Liso;
         public Color primary = new(0.102f, 0.478f, 0.243f);
         public Color secondary = new(0.141f, 0.322f, 0.231f);
+        [Tooltip("Cor das marcações do campo (linhas, círculo e áreas) com este feltro.")]
+        public Color marks = Color.white;
         [Tooltip("Altura de cada faixa do listrado, em tiles.")]
         [Min(1)] public int stripeRows = 1;
         [Tooltip("Preço em moedas.")]
