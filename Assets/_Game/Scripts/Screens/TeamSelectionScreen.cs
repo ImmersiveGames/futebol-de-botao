@@ -97,6 +97,7 @@ namespace FutebolDeBotao
         /// <summary>Fileiras do feltro (de baixo para cima) e a metade de cima da do meio (Meio a meio).</summary>
         private readonly List<Image> feltRows = new();
         private Image feltUpperHalf;
+        private Image marksImage;
         private Sprite oldBright, oldDark;
         private GameObject bigGoals;
         private GameObject smallGoals;
@@ -453,7 +454,7 @@ namespace FutebolDeBotao
             PaintFelt();
 
             if (art.TryGetValue("Field_Marks", out var marks))
-                CreateImage(field, "Marcações", Color.white, marks, Vector2.zero, new Vector2(FieldLayout.Width, FieldLayout.Height));
+                marksImage = CreateImage(field, "Marcações", Color.white, marks, Vector2.zero, new Vector2(FieldLayout.Width, FieldLayout.Height));
 
             // Placas das outras mesas por cima do feltro e das marcações (montadas no PaintTable).
             boardsLayer = CreateRect(field, "Placas da mesa", Vector2.zero, Vector2.zero);
@@ -550,6 +551,7 @@ namespace FutebolDeBotao
                 feltEnds[i].gameObject.SetActive(boardsTable);
             }
 
+            if (marksImage != null) marksImage.color = themed ? theme.marks : Color.white;
             bool split = themed && theme.SplitsMiddleRow(rows);
             feltUpperHalf.gameObject.SetActive(split);
             if (!split) return;

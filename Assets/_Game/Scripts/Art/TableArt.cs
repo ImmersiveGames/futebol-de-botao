@@ -204,12 +204,20 @@ namespace FutebolDeBotao
                     PaintCell(felt, new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), rowTile, color);
             }
 
+            PaintMarks(themed ? theme.marks : Color.white);
             if (!themed || !theme.SplitsMiddleRow(rows)) return;
             var half = art.UpperHalfTile(theme.tile);
             var layer = UpperHalfLayer();
             if (half == null || layer == null) return;
             for (int column = -margin; column < feltSize.x + margin; column++)
                 PaintCell(layer, new Vector3Int(feltOrigin.x + column, feltOrigin.y + rows / 2, 0), half, theme.secondary);
+        }
+
+        /// <summary>Marcações (o sprite branco "Marcações" da mesa) na cor do feltro.</summary>
+        private void PaintMarks(Color color)
+        {
+            var marks = transform.Find("Marcações");
+            if (marks != null && marks.TryGetComponent(out SpriteRenderer renderer)) renderer.color = color;
         }
 
         private static void PaintCell(Tilemap map, Vector3Int cell, TileBase tile, Color color)
