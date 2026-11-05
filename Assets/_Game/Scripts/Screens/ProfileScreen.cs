@@ -21,7 +21,6 @@ namespace FutebolDeBotao
         private const float ArrowSize = 70f;
         private const float PreviewY = 330f;
         private const float PreviewSize = 150f;
-        private static readonly Color FeltColor = new(0.13f, 0.45f, 0.2f);
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
         private static readonly Color CoinColor = new(1f, 0.85f, 0.25f);
@@ -137,12 +136,10 @@ namespace FutebolDeBotao
             CreateText(root, "Título", "Meu time", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f));
             coinsLabel = CreateText(root, "Moedas", "Moedas: 0", 34, FontStyle.Bold, CoinColor, new Vector2(0f, 475f), new Vector2(680f, 60f));
 
-            // Prévia: o botão e o goleiro pintados sobre um pedaço de feltro.
-            var felt = CreateRect(root, "Prévia", new Vector2(0f, PreviewY), new Vector2(460f, 200f)).gameObject.AddComponent<Image>();
-            felt.color = FeltColor;
-            felt.raycastTarget = false;
-            discLayers = CreatePiece(felt.transform, "Botão", new Vector2(-110f, 0f), false);
-            keeperLayers = CreatePiece(felt.transform, "Goleiro", new Vector2(110f, 0f), true);
+            // Prévia: o botão e o goleiro pintados, direto sobre o fundo da tela.
+            var preview = CreateRect(root, "Prévia", new Vector2(0f, PreviewY), new Vector2(460f, 200f));
+            discLayers = CreatePiece(preview, "Botão", new Vector2(-110f, 0f), false);
+            keeperLayers = CreatePiece(preview, "Goleiro", new Vector2(110f, 0f), true);
 
             var nameEntry = CreateField(root, "Nome", "Nome do time", 0, PlayerProfile.NameLength, false, out nameField);
             var abbreviationEntry = CreateField(root, "Sigla", "Sigla (3 letras)", 1, PlayerProfile.AbbreviationLength, true, out abbreviationField);
