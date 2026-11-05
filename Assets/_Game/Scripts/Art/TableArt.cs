@@ -242,6 +242,19 @@ namespace FutebolDeBotao
                     PaintCell(felt, new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), rowTile, color);
             }
 
+            // Clássica: o fundo do gol é transparente; o feltro (cor da fileira da ponta) passa por baixo das 3 células do gol.
+            if (!boards)
+            {
+                int middle = feltSize.x / 2;
+                foreach (var (row, inside) in new[] { (-1, 0), (rows, rows - 1) })
+                {
+                    var color = themed ? theme.RowColor(inside, rows) : Color.white;
+                    var rowTile = themed ? tile : inside % 2 == 0 ? bright : dark;
+                    for (int column = middle - 1; column <= middle + 1; column++)
+                        PaintCell(felt, new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), rowTile, color);
+                }
+            }
+
             PaintMarks(themed ? theme.marks : Color.white);
             if (!themed || !theme.SplitsMiddleRow(rows)) return;
             var half = art.UpperHalfTile(theme.tile);
