@@ -39,6 +39,8 @@ namespace FutebolDeBotao
         [SerializeField] private GameObject smallGoals;
 
         private Tilemap upperHalf;
+        private GameObject wood;
+        private BoundsInt? woodCells;
         private bool small;
         private bool boards;
         private GameObject boardsBig, boardsSmall, goalsBig, goalsSmall;
@@ -84,9 +86,31 @@ namespace FutebolDeBotao
             // Cena montada antes das mesas: a moldura é o filho "Moldura".
             if (classicFrame == null && transform.Find("Moldura") is { } frame) classicFrame = frame.gameObject;
             if (classicFrame != null) classicFrame.SetActive(!boards);
+            ApplyWood();
             BuildBoards(boards ? table : null);
             SetSmallGoals(small);
             PaintFelt();
+        }
+
+        /// <summary>
+        /// A madeira em volta é da mesa clássica. Nas de placas o feltro cobre a área dela: no Play ela sai da cena (não
+        /// volta até a cena recarregar); no editor só fica desligada.
+        /// </summary>
+        private void ApplyWood()
+        {
+            if (wood == null && transform.Find("Madeira") is { } found) wood = found.gameObject;
+            if (wood == null) return;
+            if (woodCells == null && wood.TryGetComponent(out Tilemap map))
+            {
+                map.CompressBounds();
+                woodCells = map.cellBounds;
+            }
+            if (boards && Application.isPlaying)
+            {
+                Destroy(wood);
+                wood = null;
+            }
+            else wood.SetActive(!boards);
         }
 
         private TableTheme CurrentTable()
@@ -181,8 +205,8 @@ namespace FutebolDeBotao
         // ---- Feltro ----
 
         /// <summary>
-        /// Pinta cada fileira com a cor do feltro (de baixo para cima). Nas mesas de placas o feltro vai uma célula além,
-        /// por baixo das placas e dos gols, com a cor da fileira vizinha.
+        /// Pinta cada fileira com a cor do feltro (de baixo para cima). Nas mesas de placas o feltro vai além, por baixo
+        /// das placas e dos gols e por toda a área da madeira, com a cor da fileira da ponta.
         /// </summary>
         public void PaintFelt()
         {
@@ -192,15 +216,29 @@ namespace FutebolDeBotao
             felt.ClearAllTiles();
             ClearUpperHalf();
             int rows = feltSize.y;
-            int margin = boards ? 1 : 0;
+            // Clássica: só o feltro. Placas: por baixo das placas e dos gols, até onde ia a madeira (no mínimo 1 célula além).
+            int left = 0, right = feltSize.x, bottom = 0, top = rows;
+            if (boards)
+            {
+                left = bottom = -1;
+                right++;
+                top++;
+                if (woodCells is { } cells)
+                {
+                    left = Mathf.Min(left, cells.xMin - feltOrigin.x);
+                    right = Mathf.Max(right, cells.xMax - feltOrigin.x);
+                    bottom = Mathf.Min(bottom, cells.yMin - feltOrigin.y);
+                    top = Mathf.Max(top, cells.yMax - feltOrigin.y);
+                }
+            }
             bool themed = theme != null && art != null && art.Has(theme.tile);
             var tile = themed ? art.GetTile(theme.tile) : null;
-            for (int row = -margin; row < rows + margin; row++)
+            for (int row = bottom; row < top; row++)
             {
                 int inside = Mathf.Clamp(row, 0, rows - 1);
                 var color = themed ? theme.RowColor(inside, rows) : Color.white;
                 var rowTile = themed ? tile : inside % 2 == 0 ? bright : dark;
-                for (int column = -margin; column < feltSize.x + margin; column++)
+                for (int column = left; column < right; column++)
                     PaintCell(felt, new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), rowTile, color);
             }
 
@@ -209,7 +247,7 @@ namespace FutebolDeBotao
             var half = art.UpperHalfTile(theme.tile);
             var layer = UpperHalfLayer();
             if (half == null || layer == null) return;
-            for (int column = -margin; column < feltSize.x + margin; column++)
+            for (int column = left; column < right; column++)
                 PaintCell(layer, new Vector3Int(feltOrigin.x + column, feltOrigin.y + rows / 2, 0), half, theme.secondary);
         }
 

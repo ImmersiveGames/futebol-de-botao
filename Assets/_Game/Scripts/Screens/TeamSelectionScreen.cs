@@ -106,6 +106,7 @@ namespace FutebolDeBotao
         /// <summary>Fileiras do feltro além das de cima e de baixo, por baixo das placas (só nas mesas de placas).</summary>
         private readonly List<Image> feltEnds = new();
         private GameObject classicFrame;
+        private GameObject woodImage;
         private RectTransform boardsLayer, goalsLayer;
         private GameObject boardsBig, boardsSmall, goalsBig, goalsSmall;
         private bool boardsTable;
@@ -419,7 +420,7 @@ namespace FutebolDeBotao
             field = CreateRect(root, "Campo", Vector2.zero, new Vector2(halfW, halfH) * 2f * Unit);
 
             // Madeira por toda a tela, na mesma escala da mesa.
-            CreateTiled(field, "Madeira", art["Wall_Fill"], Vector2.zero, WoodTiles);
+            woodImage = CreateTiled(field, "Madeira", art["Wall_Fill"], Vector2.zero, WoodTiles).gameObject;
 
             // Moldura da mesa clássica: faixas das paredes e os 4 cantos.
             var horizontal = new Vector2(FieldLayout.Width, 1f);
@@ -500,6 +501,7 @@ namespace FutebolDeBotao
             var table = TableTheme.Current();
             boardsTable = table != null && table.HasBoards;
             SetActive(classicFrame, !boardsTable);
+            SetActive(woodImage, !boardsTable);
             if (boardsTable)
             {
                 boardsBig = CreateTablePieces(boardsLayer, "Placas (gol grande)", table.Boards(false));
@@ -534,7 +536,8 @@ namespace FutebolDeBotao
             var art = FeltArt.Load();
             bool themed = theme != null && art != null && art.Has(theme.tile);
             int rows = feltRows.Count;
-            float width = FieldLayout.Width + (boardsTable ? 2f : 0f);
+            // Placas: o feltro cobre a tela toda (no lugar da madeira); clássica: só o campo.
+            float width = boardsTable ? WoodTiles.x : FieldLayout.Width;
             for (int row = 0; row < rows; row++)
             {
                 var image = feltRows[row];
@@ -549,6 +552,10 @@ namespace FutebolDeBotao
                 feltEnds[i].sprite = source.sprite;
                 feltEnds[i].color = source.color;
                 feltEnds[i].gameObject.SetActive(boardsTable);
+                // Da linha de fundo até a beira da madeira, atrás do gol.
+                float depth = (WoodTiles.y - FieldLayout.Height) * 0.5f;
+                feltEnds[i].rectTransform.sizeDelta = new Vector2(width, depth) * Unit;
+                feltEnds[i].rectTransform.anchoredPosition = new Vector2(0f, (i == 0 ? -1f : 1f) * (FieldLayout.HalfHeight + depth * 0.5f)) * Unit;
             }
 
             if (marksImage != null) marksImage.color = themed ? theme.marks : Color.white;
