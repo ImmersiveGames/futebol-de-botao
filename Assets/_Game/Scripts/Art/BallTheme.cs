@@ -30,6 +30,12 @@ namespace FutebolDeBotao
         [Tooltip("O jogador já tem desde o começo.")]
         public bool unlockedByDefault = true;
 
+        /// <summary>Código na lista de comprados do save.</summary>
+        public string ShopKey => "bola:" + id;
+
+        /// <summary>Vem liberada ou o jogador comprou.</summary>
+        public bool Unlocked => unlockedByDefault || Shop.Owns(ShopKey);
+
         public bool HasFrames => frames != null && frames.Length > 0 && frames[0] != null;
 
         private static BallTheme[] cached;
@@ -62,7 +68,7 @@ namespace FutebolDeBotao
             if (ball != null) return ball;
             var pool = new List<BallTheme>();
             foreach (var item in All())
-                if (item.unlockedByDefault && item.HasFrames) pool.Add(item);
+                if (item.Unlocked && item.HasFrames) pool.Add(item);
             if (pool.Count == 0)
                 foreach (var item in All())
                     if (item.HasFrames) pool.Add(item);

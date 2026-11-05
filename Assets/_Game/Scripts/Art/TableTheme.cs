@@ -70,6 +70,14 @@ namespace FutebolDeBotao
         [Min(0)] public int price;
         [Tooltip("O jogador já tem desde o começo.")]
         public bool unlockedByDefault;
+        [Tooltip("Miniatura na Loja. Vazio: a Loja monta com o canto, a placa e a trave.")]
+        public Sprite thumbnail;
+
+        /// <summary>Código na lista de comprados do save.</summary>
+        public string ShopKey => "mesa:" + id;
+
+        /// <summary>Vem liberada ou o jogador comprou.</summary>
+        public bool Unlocked => unlockedByDefault || Shop.Owns(ShopKey);
 
         /// <summary>Mesa de placas com todos os recortes.</summary>
         public bool HasBoards => !classic && corner != null && afterCorner != null && center != null && beforeCorner != null
@@ -172,7 +180,7 @@ namespace FutebolDeBotao
             if (all.Length == 0) return null;
             var unlocked = new List<TableTheme>();
             foreach (var item in all)
-                if (item.unlockedByDefault) unlocked.Add(item);
+                if (item.Unlocked) unlocked.Add(item);
             var pool = unlocked.Count > 0 ? unlocked : new List<TableTheme>(all);
             table = pool[Random.Range(0, pool.Count)];
             MatchSession.TableId = table.id;

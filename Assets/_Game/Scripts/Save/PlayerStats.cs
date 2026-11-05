@@ -16,10 +16,14 @@ namespace FutebolDeBotao
         /// </summary>
         public static int NewRecord { get; private set; }
 
+        /// <summary>Moedas que a última partida pagou (para a tela de Resultado); 0 = nenhuma.</summary>
+        public static int CoinsEarned { get; private set; }
+
         /// <summary>Começo de uma partida (também no Reiniciar e no Jogar de novo). Só conta contra a IA, vindo do Menu.</summary>
         public static void BeginMatch()
         {
             NewRecord = 0;
+            CoinsEarned = 0;
             if (MatchSession.VsAi != true) return;
             CountLeftover();
             Data.inProgressLevel = (int)MatchSession.AiLevel;
@@ -85,6 +89,8 @@ namespace FutebolDeBotao
             last.numbers.Add(player);
             Data.last = last;
             Data.hasLast = true;
+            CoinsEarned = Shop.Reward(level, playerScore, aiScore);
+            Shop.AddCoins(CoinsEarned);
             GameSave.Save("fim da partida");
         }
 

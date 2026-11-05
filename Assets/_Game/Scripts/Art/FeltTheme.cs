@@ -35,6 +35,14 @@ namespace FutebolDeBotao
         [Min(0)] public int price;
         [Tooltip("O jogador já tem desde o começo.")]
         public bool unlockedByDefault;
+        [Tooltip("Miniatura na Loja. Vazio: a Loja mostra as faixas de cor.")]
+        public Sprite thumbnail;
+
+        /// <summary>Código na lista de comprados do save.</summary>
+        public string ShopKey => "feltro:" + id;
+
+        /// <summary>Vem liberado ou o jogador comprou.</summary>
+        public bool Unlocked => unlockedByDefault || Shop.Owns(ShopKey);
 
         /// <summary>Cor da fileira <paramref name="row"/> (0 = de baixo) de um feltro com <paramref name="rows"/> fileiras.</summary>
         public Color RowColor(int row, int rows)
@@ -87,7 +95,7 @@ namespace FutebolDeBotao
             if (all.Length == 0) return null;
             var unlocked = new List<FeltTheme>();
             foreach (var theme in all)
-                if (theme.unlockedByDefault) unlocked.Add(theme);
+                if (theme.Unlocked) unlocked.Add(theme);
             var pool = unlocked.Count > 0 ? unlocked : new List<FeltTheme>(all);
             return pool[Random.Range(0, pool.Count)];
         }
