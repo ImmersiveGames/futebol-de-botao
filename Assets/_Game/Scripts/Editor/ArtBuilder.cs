@@ -70,6 +70,8 @@ namespace FutebolDeBotao.Editor
         private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Base_Botao_32-Sheet.png";
         private const string KeeperSheetPath = "Assets/_Game/Art/Botoes/Goal_Keeper_sheet.png";
         private const string ShirtArtPath = "Assets/_Game/Resources/Camisas.asset";
+        private const string ShirtPatternsFolder = "Assets/_Game/Resources/PadroesCamisa";
+        private const string BallsFolder = "Assets/_Game/Resources/Bolas";
         private const string PieceVisualName = "Desenho";
         private const int ShirtCell = 32;
         private static readonly ShirtLayer[] DiscColumns =
@@ -184,6 +186,7 @@ namespace FutebolDeBotao.Editor
 
             var trail = File.Exists(BallTrailPath) ? SliceStrip(BallTrailPath, BallTrailPrefix, BallTrailCell, BallTrailPivot) : new Sprite[0];
             SetupBall(ball, frames, shine, shadow, trail);
+            CreateDefaultBall(frames, shine, shadow);
             Debug.Log($"[Futebol de Botão] Bola com {frames.Length} quadros de rolagem" +
                       $"{(shine != null ? ", luz" : "")}{(shadow != null ? ", sombra" : "")}" +
                       $"{(trail.Length > 0 ? $", rastro de {trail.Length} quadros" : "")}.");
@@ -293,6 +296,8 @@ namespace FutebolDeBotao.Editor
             art.disc = SliceShirtSheet(DiscSheetPath, "Botao", DiscColumns);
             art.keeper = SliceShirtSheet(KeeperSheetPath, "Goleiro", KeeperColumns);
             EditorUtility.SetDirty(art);
+            CreateShirtPatterns(ShirtPattern.Kind.Botao, art.disc.PatternCount);
+            CreateShirtPatterns(ShirtPattern.Kind.Goleiro, art.keeper.PatternCount);
             AssetDatabase.SaveAssets();
 
             // Mesma ordem dos círculos do protótipo: goleiro embaixo da bola, botões por cima dela.
@@ -309,6 +314,55 @@ namespace FutebolDeBotao.Editor
                 SetupPiece(keeper.transform, art.keeper, true, 5);
 
             Debug.Log($"[Futebol de Botão] Camisas montadas: {art.disc.PatternCount} padrões de botão e {art.keeper.PatternCount} de goleiro.");
+        }
+
+        /// <summary>
+        /// Um item <see cref="ShirtPattern"/> por linha da folha que ainda não tenha (botao_1, goleiro_1...), já liberado.
+        /// Os que existem não mudam (preço e liberado são do usuário).
+        /// </summary>
+        private static void CreateShirtPatterns(ShirtPattern.Kind kind, int rows)
+        {
+            if (!AssetDatabase.IsValidFolder(ShirtPatternsFolder)) AssetDatabase.CreateFolder("Assets/_Game/Resources", "PadroesCamisa");
+            var existing = AssetDatabase.FindAssets("t:ShirtPattern", new[] { ShirtPatternsFolder })
+                .Select(guid => AssetDatabase.LoadAssetAtPath<ShirtPattern>(AssetDatabase.GUIDToAssetPath(guid)))
+                .Where(p => p != null && p.kind == kind)
+                .Select(p => p.row)
+                .ToHashSet();
+            string prefix = kind == ShirtPattern.Kind.Botao ? "botao" : "goleiro";
+            string label = kind == ShirtPattern.Kind.Botao ? "Botão" : "Goleiro";
+            for (int row = 0; row < rows; row++)
+            {
+                if (existing.Contains(row)) continue;
+                var pattern = ScriptableObject.CreateInstance<ShirtPattern>();
+                pattern.id = $"{prefix}_{row + 1}";
+                pattern.displayName = $"{label} {row + 1}";
+                pattern.kind = kind;
+                pattern.row = row;
+                pattern.unlockedByDefault = true;
+                AssetDatabase.CreateAsset(pattern, $"{ShirtPatternsFolder}/{pattern.id}.asset");
+            }
+        }
+
+        /// <summary>A bola padrão (a folha atual, branca, liberada) em Resources/Bolas, se ainda não houver; senão só religa os recortes.</summary>
+        private static void CreateDefaultBall(Sprite[] frames, Sprite shine, Sprite shadow)
+        {
+            if (!AssetDatabase.IsValidFolder(BallsFolder)) AssetDatabase.CreateFolder("Assets/_Game/Resources", "Bolas");
+            string path = $"{BallsFolder}/bola_padrao.asset";
+            var ball = AssetDatabase.LoadAssetAtPath<BallTheme>(path);
+            if (ball == null)
+            {
+                ball = ScriptableObject.CreateInstance<BallTheme>();
+                ball.id = "bola_padrao";
+                ball.displayName = "Clássica";
+                ball.color = Color.white;
+                ball.unlockedByDefault = true;
+                AssetDatabase.CreateAsset(ball, path);
+            }
+            ball.frames = frames;
+            ball.shine = shine;
+            ball.shadow = shadow;
+            EditorUtility.SetDirty(ball);
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>

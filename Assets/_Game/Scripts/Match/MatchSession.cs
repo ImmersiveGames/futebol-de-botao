@@ -57,6 +57,9 @@ namespace FutebolDeBotao
         /// <summary>Id da mesa da partida (<see cref="TableTheme"/>); nulo = sortear de novo (com a cor das traves). O Reiniciar mantém.</summary>
         public static string TableId { get; set; }
 
+        /// <summary>Id da bola da partida (<see cref="BallTheme"/>); nulo = sortear de novo. O Reiniciar mantém.</summary>
+        public static string BallId { get; set; }
+
         /// <summary>Cor das traves da mesa da partida (índice nas cores da mesa).</summary>
         public static int GoalColor { get; set; }
 
@@ -128,6 +131,7 @@ namespace FutebolDeBotao
             LastMatchNumbers = null;
             FeltId = null;
             TableId = null;
+            BallId = null;
             GoalColor = 0;
             VsAi = null;
             AiLevel = AiLevel.Medium;

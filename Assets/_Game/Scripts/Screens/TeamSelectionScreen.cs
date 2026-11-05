@@ -98,6 +98,7 @@ namespace FutebolDeBotao
         private readonly List<Image> feltRows = new();
         private Image feltUpperHalf;
         private Image marksImage;
+        private Image ballImage, ballShineImage, ballShadowImage;
         private Sprite oldBright, oldDark;
         private GameObject bigGoals;
         private GameObject smallGoals;
@@ -143,16 +144,25 @@ namespace FutebolDeBotao
                 MatchSession.SetSchemeIndex(TeamSide.Top, discs, Random.Range(0, catalog.SchemeCount(discs)));
                 if (shirts != null)
                 {
-                    MatchSession.SetDiscPattern(TeamSide.Top, Random.Range(0, Mathf.Max(1, shirts.disc.PatternCount)));
-                    MatchSession.SetKeeperPattern(TeamSide.Top, Random.Range(0, Mathf.Max(1, shirts.keeper.PatternCount)));
+                    MatchSession.SetDiscPattern(TeamSide.Top, ShirtPattern.RandomRow(ShirtPattern.Kind.Botao, Mathf.Max(1, shirts.disc.PatternCount)));
+                    MatchSession.SetKeeperPattern(TeamSide.Top, ShirtPattern.RandomRow(ShirtPattern.Kind.Goleiro, Mathf.Max(1, shirts.keeper.PatternCount)));
                 }
                 MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             }
             EnsureDifferentTeams();
+            // Camisa guardada que não está (mais) liberada: volta para a primeira liberada.
+            if (shirts != null)
+                foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
+                {
+                    MatchSession.SetDiscPattern(side, ShirtPattern.Allowed(ShirtPattern.Kind.Botao, MatchSession.DiscPattern(side), Mathf.Max(1, shirts.disc.PatternCount)));
+                    MatchSession.SetKeeperPattern(side, ShirtPattern.Allowed(ShirtPattern.Kind.Goleiro, MatchSession.KeeperPattern(side), Mathf.Max(1, shirts.keeper.PatternCount)));
+                }
             // Partida nova: sorteia o feltro e a mesa aqui, para a Seleção de times mostrar os mesmos da Partida.
             MatchSession.FeltId = null;
             MatchSession.TableId = null;
+            MatchSession.BallId = null;
             PaintTable();
+            PaintBall();
 
             starting = false;
             foreach (var pair in halves) SetReady(pair.Key, false);
@@ -200,8 +210,9 @@ namespace FutebolDeBotao
         public void ChangeShirt(TeamSide side, bool keeper, int step)
         {
             int count = shirts == null ? 1 : Mathf.Max(1, (keeper ? shirts.keeper : shirts.disc).PatternCount);
-            if (keeper) MatchSession.SetKeeperPattern(side, Wrap(MatchSession.KeeperPattern(side) + step, count));
-            else MatchSession.SetDiscPattern(side, Wrap(MatchSession.DiscPattern(side) + step, count));
+            // Só os padrões liberados (ShirtPattern).
+            if (keeper) MatchSession.SetKeeperPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Goleiro, MatchSession.KeeperPattern(side), step, count));
+            else MatchSession.SetDiscPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Botao, MatchSession.DiscPattern(side), step, count));
             Refresh();
         }
 
@@ -465,10 +476,11 @@ namespace FutebolDeBotao
             smallGoals = CreateGoalPieces(field, "Gols pequenos", art, "Small_Goal");
 
             // Bola no meio: sombra, desenho e luz, 1 tile cada.
-            if (art.TryGetValue("Ball_Shadow", out var shadow)) CreateImage(field, "Sombra da bola", BallShadowColor, shadow, Vector2.zero, Vector2.one);
-            if (art.TryGetValue("Ball_Frame_1", out var ball)) CreateImage(field, "Bola", Color.white, ball, Vector2.zero, Vector2.one);
+            if (art.TryGetValue("Ball_Shadow", out var shadow)) ballShadowImage = CreateImage(field, "Sombra da bola", BallShadowColor, shadow, Vector2.zero, Vector2.one);
+            if (art.TryGetValue("Ball_Frame_1", out var ball)) ballImage = CreateImage(field, "Bola", Color.white, ball, Vector2.zero, Vector2.one);
             else CreateImage(field, "Bola", Color.white, circle, Vector2.zero, Vector2.one * 0.4f);
-            if (art.TryGetValue("Ball_Light", out var light)) CreateImage(field, "Luz da bola", Color.white, light, Vector2.zero, Vector2.one);
+            if (art.TryGetValue("Ball_Light", out var light)) ballShineImage = CreateImage(field, "Luz da bola", Color.white, light, Vector2.zero, Vector2.one);
+            PaintBall();
         }
 
         /// <summary>Um par de gols (cima e baixo) com 3 peças cada, no lugar dos 3 tiles do meio da moldura. Nulo se faltar recorte.</summary>
@@ -510,6 +522,21 @@ namespace FutebolDeBotao
                 goalsSmall = CreateTablePieces(goalsLayer, "Traves pequenas", table.Goals(true, MatchSession.GoalColor));
             }
             PaintFelt();
+        }
+
+        /// <summary>Bola da partida (<see cref="BallTheme.Current"/>): o primeiro quadro na cor dela, a luz e a sombra.</summary>
+        private void PaintBall()
+        {
+            var ball = BallTheme.Current();
+            if (ball == null || !ball.HasFrames || ballImage == null) return;
+            ballImage.sprite = ball.frames[0];
+            ballImage.color = ball.color;
+            if (ballShineImage != null)
+            {
+                ballShineImage.sprite = ball.shine;
+                ballShineImage.enabled = ball.shine != null;
+            }
+            if (ballShadowImage != null && ball.shadow != null) ballShadowImage.sprite = ball.shadow;
         }
 
         /// <summary>Peças da mesa (1 tile = 1 unidade), giradas e espelhadas como na Partida.</summary>

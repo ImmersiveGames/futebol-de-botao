@@ -10,6 +10,8 @@ namespace FutebolDeBotao
     /// </summary>
     public sealed class BallVisual : MonoBehaviour
     {
+        [Tooltip("Para testar: esta bola em vez da da partida. Vazio: a da partida (a mesma da Seleção de times).")]
+        [SerializeField] private BallTheme ballOverride;
         [SerializeField] private SpriteRenderer rolling;
         [SerializeField] private Transform shine;
         [SerializeField] private Transform shadow;
@@ -54,7 +56,37 @@ namespace FutebolDeBotao
             trailFrames = frames;
         }
 
-        private void Awake() => body = GetComponentInParent<Rigidbody2D>();
+        private void Awake()
+        {
+            body = GetComponentInParent<Rigidbody2D>();
+            Apply(ballOverride != null ? ballOverride : BallTheme.Current());
+        }
+
+        /// <summary>Troca o desenho pela bola <paramref name="ball"/>: quadros (tingidos com a cor dela), luz e sombra.</summary>
+        public void Apply(BallTheme ball)
+        {
+            if (ball == null || !ball.HasFrames) return;
+            frames = ball.frames;
+            if (rolling != null)
+            {
+                rolling.sprite = frames[0];
+                rolling.color = ball.color;
+            }
+            if (shine != null && shine.TryGetComponent(out SpriteRenderer light))
+            {
+                light.sprite = ball.shine;
+                light.enabled = ball.shine != null;
+            }
+            if (shadow != null && ball.shadow != null && shadow.TryGetComponent(out SpriteRenderer dark)) dark.sprite = ball.shadow;
+        }
+
+#if UNITY_EDITOR
+        // Trocar a bola no Inspector durante o Play troca o desenho na hora.
+        private void OnValidate()
+        {
+            if (Application.isPlaying && ballOverride != null) Apply(ballOverride);
+        }
+#endif
 
         private void OnEnable() => lastPosition = transform.position;
 
