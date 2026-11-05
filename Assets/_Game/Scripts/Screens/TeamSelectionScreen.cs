@@ -578,10 +578,10 @@ namespace FutebolDeBotao
                 var source = feltRows[i == 0 ? 0 : rows - 1];
                 feltEnds[i].sprite = source.sprite;
                 feltEnds[i].color = source.color;
-                feltEnds[i].gameObject.SetActive(boardsTable);
-                // Da linha de fundo até a beira da madeira, atrás do gol.
-                float depth = (WoodTiles.y - FieldLayout.Height) * 0.5f;
-                feltEnds[i].rectTransform.sizeDelta = new Vector2(width, depth) * Unit;
+                feltEnds[i].gameObject.SetActive(true);
+                // Placas: da linha de fundo até a beira da madeira, atrás do gol. Clássica: só embaixo do gol (3 células).
+                float depth = boardsTable ? (WoodTiles.y - FieldLayout.Height) * 0.5f : 1f;
+                feltEnds[i].rectTransform.sizeDelta = new Vector2(boardsTable ? width : 3f, depth) * Unit;
                 feltEnds[i].rectTransform.anchoredPosition = new Vector2(0f, (i == 0 ? -1f : 1f) * (FieldLayout.HalfHeight + depth * 0.5f)) * Unit;
             }
 
