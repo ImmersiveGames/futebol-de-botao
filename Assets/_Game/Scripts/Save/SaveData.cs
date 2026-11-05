@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -20,6 +20,8 @@ namespace FutebolDeBotao
 
         /// <summary>Estatísticas do jogador contra a IA (versão 2). Partidas de 2 jogadores não entram.</summary>
         public StatsData stats = new();
+        /// <summary>Meu time (versão 3): nome, sigla, cores, camisas e moedas do jogador.</summary>
+        public ProfileData profile = new();
         // Reservados para as próximas fases.
         public List<string> unlocked = new();
         public List<TournamentData> tournaments = new();
@@ -58,6 +60,19 @@ namespace FutebolDeBotao
             public string keeperPatternId;
             public int scheme3;
             public int scheme5;
+        }
+
+        /// <summary>O time do jogador (tela Meu time). As cores são guardadas em si, não a posição na lista de cores.</summary>
+        [Serializable]
+        public sealed class ProfileData
+        {
+            public string teamName = PlayerProfile.DefaultName;
+            public string abbreviation = PlayerProfile.DefaultAbbreviation;
+            public UnityEngine.Color primary = PlayerProfile.DefaultPrimary;
+            public UnityEngine.Color secondary = PlayerProfile.DefaultSecondary;
+            public string discPatternId;
+            public string keeperPatternId;
+            public int coins;
         }
 
         [Serializable]

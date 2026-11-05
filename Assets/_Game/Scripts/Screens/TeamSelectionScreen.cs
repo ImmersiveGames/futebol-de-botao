@@ -134,13 +134,20 @@ namespace FutebolDeBotao
         public void Open()
         {
             Build();
+            // O Jogador 1 começa sempre com o Meu time (dá para trocar pelos do catálogo nas setas).
+            MatchSession.UseProfile(TeamSide.Bottom);
             if (MatchSession.VsAi == true)
             {
                 var catalog = TeamCatalog.Load();
                 int discs = MatchSession.Options(defaults).discsPerTeam;
                 int mine = MatchSession.TeamIndex(TeamSide.Bottom);
-                int pick = Random.Range(0, catalog.TeamCount - 1);
-                if (pick >= Wrap(mine, catalog.TeamCount)) pick++;
+                int pick;
+                if (mine < 0) pick = Random.Range(0, catalog.TeamCount);
+                else
+                {
+                    pick = Random.Range(0, catalog.TeamCount - 1);
+                    if (pick >= Wrap(mine, catalog.TeamCount)) pick++;
+                }
                 MatchSession.SetTeamIndex(TeamSide.Top, pick);
                 MatchSession.SetSchemeIndex(TeamSide.Top, discs, Random.Range(0, catalog.SchemeCount(discs)));
                 if (hasShirts)
@@ -178,14 +185,27 @@ namespace FutebolDeBotao
             Refresh();
         }
 
+        /// <summary>
+        /// Próximo time do lado. O Jogador 1 tem o Meu time antes dos do catálogo (-1, 0, 1...); o time do outro lado é pulado.
+        /// </summary>
         public void ChangeTeam(TeamSide side, int step)
         {
             var catalog = TeamCatalog.Load();
-            int other = Wrap(MatchSession.TeamIndex(Other(side)), catalog.TeamCount);
-            int index = Wrap(MatchSession.TeamIndex(side) + step, catalog.TeamCount);
-            if (index == other) index = Wrap(index + step, catalog.TeamCount);
-            MatchSession.SetTeamIndex(side, index);
-            MatchSession.SetSecondaryIndex(side, 0);
+            int other = MatchSession.TeamIndex(Other(side));
+            if (other >= 0) other = Wrap(other, catalog.TeamCount);
+            // Posições nas setas: com o Meu time, a 0 é ele e o time i do catálogo fica na i + 1.
+            int first = side == TeamSide.Bottom ? MatchSession.ProfileTeam : 0;
+            int count = catalog.TeamCount - first;
+            int current = MatchSession.TeamIndex(side);
+            current = current < 0 ? first : Wrap(current, catalog.TeamCount);
+            int index = Wrap(current - first + step, count) + first;
+            if (index == other) index = Wrap(index - first + step, count) + first;
+            if (index < 0) MatchSession.UseProfile(side);
+            else
+            {
+                MatchSession.SetTeamIndex(side, index);
+                MatchSession.SetSecondaryIndex(side, 0);
+            }
             Refresh();
         }
 
@@ -265,7 +285,9 @@ namespace FutebolDeBotao
         private void EnsureDifferentTeams()
         {
             var catalog = TeamCatalog.Load();
-            int bottom = Wrap(MatchSession.TeamIndex(TeamSide.Bottom), catalog.TeamCount);
+            // Meu time (-1) nunca bate com um do catálogo.
+            int bottom = MatchSession.TeamIndex(TeamSide.Bottom);
+            if (bottom >= 0) bottom = Wrap(bottom, catalog.TeamCount);
             int top = Wrap(MatchSession.TeamIndex(TeamSide.Top), catalog.TeamCount);
             MatchSession.SetTeamIndex(TeamSide.Bottom, bottom);
             if (top == bottom)

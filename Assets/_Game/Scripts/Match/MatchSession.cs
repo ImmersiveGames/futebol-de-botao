@@ -71,7 +71,23 @@ namespace FutebolDeBotao
         private static readonly string[] keeperPattern = { null, null };
         private static readonly int[] secondaryIndex = { 0, 0 };
 
-        public static TeamData Team(TeamSide side) => TeamCatalog.Load().Team(teamIndex[(int)side]);
+        /// <summary>Índice de time que quer dizer "Meu time" (<see cref="PlayerProfile"/>), só do Jogador 1.</summary>
+        public const int ProfileTeam = -1;
+
+        public static TeamData Team(TeamSide side) =>
+            teamIndex[(int)side] < 0 ? PlayerProfile.Team : TeamCatalog.Load().Team(teamIndex[(int)side]);
+
+        /// <summary>O lado está com o Meu time.</summary>
+        public static bool IsProfile(TeamSide side) => teamIndex[(int)side] < 0;
+
+        /// <summary>Põe o Meu time no lado, com a segunda cor e as camisas dele.</summary>
+        public static void UseProfile(TeamSide side)
+        {
+            teamIndex[(int)side] = ProfileTeam;
+            secondaryIndex[(int)side] = 0;
+            discPattern[(int)side] = PlayerProfile.Data.discPatternId;
+            keeperPattern[(int)side] = PlayerProfile.Data.keeperPatternId;
+        }
 
         public static int TeamIndex(TeamSide side) => teamIndex[(int)side];
 

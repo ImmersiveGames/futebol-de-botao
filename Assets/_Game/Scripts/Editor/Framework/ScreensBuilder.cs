@@ -239,18 +239,37 @@ namespace FutebolDeBotao.Editor
             CreateFieldBackground(canvas);
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
 
-            // Primeira tela do Menu: o título, o ícone e o logo da Immersive como na Abertura e, embaixo, Um jogador (contra a IA),
-            // Dois jogadores, Estatísticas e Sair.
+            // Primeira tela do Menu: o título, o ícone e o logo da Immersive como na Abertura e, embaixo, Jogar, Meu time,
+            // Estatísticas e Sair.
             var modePanel = CreateGroup(canvas, "Como jogar");
             CreateText(modePanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
-            var onePlayer = CreateButton(modePanel, "Um jogador", "Um jogador", new Vector2(0f, -150f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
-            var twoPlayers = CreateButton(modePanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -260f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
+            var play = CreateButton(modePanel, "Jogar", "Jogar", new Vector2(0f, -150f), new Vector2(420f, 90f), menu.ShowPlay, ButtonStyle.Yellow);
+            var profileButton = CreateButton(modePanel, "Meu time", "Meu time", new Vector2(0f, -260f), new Vector2(420f, 90f), menu.ShowProfile, ButtonStyle.Green);
             var statsButton = CreateButton(modePanel, "Estatísticas", "Estatísticas", new Vector2(0f, -370f), new Vector2(420f, 90f), menu.ShowStats, ButtonStyle.Green);
             var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -480f), new Vector2(420f, 90f), menu.QuitApp, ButtonStyle.Red);
             quit.gameObject.AddComponent<HideOnWeb>();
-            AddNavigator(modePanel, null, Item(onePlayer), Item(twoPlayers), Item(statsButton), Item(quit));
+            AddNavigator(modePanel, null, Item(play), Item(profileButton), Item(statsButton), Item(quit));
             CreateStudioLogo(modePanel);
             CreateGameLogo(modePanel);
+
+            // Jogar: Um jogador (contra a IA) ou Dois jogadores; Voltar volta à primeira tela.
+            var playPanel = CreateGroup(canvas, "Jogar");
+            CreateText(playPanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
+            var onePlayer = CreateButton(playPanel, "Um jogador", "Um jogador", new Vector2(0f, -150f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
+            var twoPlayers = CreateButton(playPanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -260f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
+            var playBack = CreateButton(playPanel, "Voltar", "Voltar", new Vector2(0f, -370f), new Vector2(420f, 90f), menu.ShowMode, ButtonStyle.Red);
+            AddNavigator(playPanel, playBack, Item(onePlayer), Item(twoPlayers), Item(playBack));
+            CreateStudioLogo(playPanel);
+            CreateGameLogo(playPanel);
+            menu.SetPlayPanel(playPanel.gameObject);
+            playPanel.gameObject.SetActive(false);
+
+            // Meu time: nome, sigla, cores, camisas e moedas do jogador. Monta a UI sozinha ao abrir.
+            var profilePanel = CreateGroup(canvas, "Meu time");
+            var profile = profilePanel.gameObject.AddComponent<ProfileScreen>();
+            profile.Configure(menu);
+            menu.SetProfile(profile);
+            profilePanel.gameObject.SetActive(false);
 
             // Opções da partida (GDD), depois do modo; "Avançar" abre a Seleção de times
             var optionsPanel = CreateGroup(canvas, "Opções da partida");

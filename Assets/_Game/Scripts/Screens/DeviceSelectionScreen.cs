@@ -108,7 +108,7 @@ namespace FutebolDeBotao
             // Voltar do Android: volta para a escolha do modo.
             if (AndroidBack.TryUse())
             {
-                if (menu != null) menu.ShowMode();
+                if (menu != null) menu.ShowPlay();
                 return;
             }
             foreach (var entry in entries.ToArray()) ReadDevice(entry);
@@ -177,7 +177,7 @@ namespace FutebolDeBotao
             else if (entry.Position != 0) entry.Position = 0;
             else
             {
-                if (menu != null) menu.ShowMode();
+                if (menu != null) menu.ShowPlay();
                 return;
             }
             Refresh();
@@ -298,7 +298,7 @@ namespace FutebolDeBotao
             cards = CreateRect(root, "Dispositivos", Vector2.zero, Vector2.zero);
             CreateButton(root, "Voltar", "Voltar", new Vector2(0f, -450f), new Vector2(240f, 70f), () =>
             {
-                if (menu != null) menu.ShowMode();
+                if (menu != null) menu.ShowPlay();
             }, ButtonStyle.Red);
         }
 
