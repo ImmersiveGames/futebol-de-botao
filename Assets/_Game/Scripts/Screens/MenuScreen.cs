@@ -19,7 +19,7 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: a primeira tela tem Jogar, Meu time, Estatísticas e Sair. Jogar abre a escolha entre Um jogador (contra a IA)
+    /// Menu: a primeira tela tem Jogar, Meu time, Loja, Estatísticas e Sair. Jogar abre a escolha entre Um jogador (contra a IA)
     /// e Dois jogadores; escolhido o modo, abre os Controles (só com mais de um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
     /// "Jogar" põe os jogadores na sessão e pede a Route da Partida.
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.
@@ -38,6 +38,8 @@ namespace FutebolDeBotao
         [SerializeField] private GameObject playPanel;
         [Tooltip("Tela Meu time (botão na primeira tela do Menu).")]
         [SerializeField] private ProfileScreen profile;
+        [Tooltip("Tela Loja (botão na primeira tela do Menu).")]
+        [SerializeField] private ShopScreen shop;
         [SerializeField] private TeamSelectionScreen selection;
         [Tooltip("Tela Controles: cada jogador escolhe o dispositivo. Vazio: pula direto para as Opções.")]
         [SerializeField] private DeviceSelectionScreen devices;
@@ -145,6 +147,16 @@ namespace FutebolDeBotao
 
         public void SetProfile(ProfileScreen profileScreen) => profile = profileScreen;
 
+        public void SetShop(ShopScreen shopScreen) => shop = shopScreen;
+
+        /// <summary>"Loja" na primeira tela.</summary>
+        public void ShowShop()
+        {
+            if (shop == null) return;
+            Show(shop.gameObject);
+            shop.Open();
+        }
+
         /// <summary>"Jogar" na primeira tela: a escolha entre Um jogador e Dois jogadores.</summary>
         public void ShowPlay() => Show(playPanel != null ? playPanel : modePanel);
 
@@ -200,7 +212,7 @@ namespace FutebolDeBotao
         {
             foreach (var other in new[] { modePanel, playPanel, optionsPanel, selection != null ? selection.gameObject : null,
                          devices != null ? devices.gameObject : null, stats != null ? stats.gameObject : null,
-                         profile != null ? profile.gameObject : null })
+                         profile != null ? profile.gameObject : null, shop != null ? shop.gameObject : null })
                 if (other != null) other.SetActive(other == panel);
         }
 

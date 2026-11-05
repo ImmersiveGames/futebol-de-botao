@@ -61,6 +61,9 @@ namespace FutebolDeBotao
             if (isActiveAndEnabled) ResetSelection();
         }
 
+        /// <summary>Item onde o cursor está (nulo sem itens).</summary>
+        public MenuEntry Current => items.Length > 0 && index >= 0 && index < items.Length ? items[index] : null;
+
         public void SetFrameColor(Color color) => frameColor = color;
 
         public void FollowPauser() => followPauser = true;

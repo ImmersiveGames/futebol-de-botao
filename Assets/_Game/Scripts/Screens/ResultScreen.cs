@@ -19,6 +19,7 @@ namespace FutebolDeBotao
         private const float DiscSize = 160f;
         private const float NameY = 245f;
         private const float RecordY = 188f;
+        private const float CoinsY = 462f;
         /// <summary>Alto do quadro: logo abaixo dos nomes (e do aviso de recorde); ele cresce para baixo.</summary>
         private const float TableTop = 155f;
         private const float TableWidth = 680f;
@@ -57,6 +58,9 @@ namespace FutebolDeBotao
             if (MatchSession.VsAi == true && PlayerStats.NewRecord > 0)
                 CreateText(root, "Recorde", $"Novo recorde de sequência: {PlayerStats.NewRecord} vitórias!", 30, FontStyle.Bold,
                     HighlightColor, new Vector2(0f, RecordY), new Vector2(680f, 44f));
+            if (MatchSession.VsAi == true && PlayerStats.CoinsEarned > 0)
+                CreateText(root, "Moedas", $"+{PlayerStats.CoinsEarned} moedas (saldo: {Shop.Coins})", 30, FontStyle.Bold,
+                    HighlightColor, new Vector2(0f, CoinsY), new Vector2(680f, 44f));
             var numbers = MatchSession.LastMatchNumbers;
             if (numbers != null && numbers.Length == 2) BuildTable(root, numbers[0], numbers[1]);
         }

@@ -48,6 +48,12 @@ namespace FutebolDeBotao
 
         public bool Usable => body != null;
 
+        /// <summary>Código na lista de comprados do save.</summary>
+        public string ShopKey => "camisa:" + id;
+
+        /// <summary>Vem liberado ou o jogador comprou.</summary>
+        public bool Unlocked => unlockedByDefault || Shop.Owns(ShopKey);
+
         public Sprite Get(ShirtLayer layer) => layer switch
         {
             ShirtLayer.Shadow => shadow,
@@ -75,7 +81,7 @@ namespace FutebolDeBotao
         {
             var list = new List<ShirtPattern>();
             foreach (var item in All())
-                if (item.kind == kind && item.Usable && (!unlockedOnly || item.unlockedByDefault)) list.Add(item);
+                if (item.kind == kind && item.Usable && (!unlockedOnly || item.Unlocked)) list.Add(item);
             // Nenhum liberado: todos (para nunca ficar sem camisa).
             if (list.Count == 0 && unlockedOnly) return Of(kind, false);
             return list;
