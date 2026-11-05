@@ -90,7 +90,8 @@ namespace FutebolDeBotao
             {
                 var side = (TeamSide)i;
                 var choices = Data.players[i];
-                MatchSession.SetTeamIndex(side, Mathf.Max(0, choices.team));
+                // O Jogador 1 pode estar com o Meu time (-1).
+                MatchSession.SetTeamIndex(side, Mathf.Max(side == TeamSide.Bottom ? MatchSession.ProfileTeam : 0, choices.team));
                 MatchSession.SetSecondaryIndex(side, Mathf.Max(0, choices.secondary));
                 // Save antigo (sem id): converte pela linha da folha de onde o padrão veio.
                 MatchSession.SetDiscPattern(side, !string.IsNullOrEmpty(choices.discPatternId)
@@ -186,6 +187,12 @@ namespace FutebolDeBotao
             stats.last.numbers ??= new SaveData.MatchNumbers();
             // Versão 1 não tinha a marca de partida em andamento (o campo vinha 0 = "Fácil em andamento").
             if (data.version < 2) stats.inProgressLevel = -1;
+            data.profile ??= new SaveData.ProfileData();
+            if (string.IsNullOrWhiteSpace(data.profile.teamName)) data.profile.teamName = PlayerProfile.DefaultName;
+            if (string.IsNullOrWhiteSpace(data.profile.abbreviation)) data.profile.abbreviation = PlayerProfile.DefaultAbbreviation;
+            // Save sem perfil (JsonUtility deixa a cor zerada): cores padrão.
+            if (data.profile.primary.a <= 0f) data.profile.primary = PlayerProfile.DefaultPrimary;
+            if (data.profile.secondary.a <= 0f) data.profile.secondary = PlayerProfile.DefaultSecondary;
             data.unlocked ??= new System.Collections.Generic.List<string>();
             data.tournaments ??= new System.Collections.Generic.List<SaveData.TournamentData>();
             data.version = SaveData.CurrentVersion;

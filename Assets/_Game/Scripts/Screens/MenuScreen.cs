@@ -19,8 +19,8 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: começa com Um jogador (contra a IA) ou Dois jogadores; escolhido o modo, abre os Controles (só com mais de
-    /// um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
+    /// Menu: a primeira tela tem Jogar, Meu time, Estatísticas e Sair. Jogar abre a escolha entre Um jogador (contra a IA)
+    /// e Dois jogadores; escolhido o modo, abre os Controles (só com mais de um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
     /// "Jogar" põe os jogadores na sessão e pede a Route da Partida.
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.
     /// </summary>
@@ -34,6 +34,10 @@ namespace FutebolDeBotao
         [SerializeField] private RouteRequestTrigger matchRoute;
         [SerializeField] private GameObject modePanel;
         [SerializeField] private GameObject optionsPanel;
+        [Tooltip("Escolha entre Um jogador e Dois jogadores (botão Jogar). Vazio: os botões ficam na primeira tela.")]
+        [SerializeField] private GameObject playPanel;
+        [Tooltip("Tela Meu time (botão na primeira tela do Menu).")]
+        [SerializeField] private ProfileScreen profile;
         [SerializeField] private TeamSelectionScreen selection;
         [Tooltip("Tela Controles: cada jogador escolhe o dispositivo. Vazio: pula direto para as Opções.")]
         [SerializeField] private DeviceSelectionScreen devices;
@@ -119,11 +123,11 @@ namespace FutebolDeBotao
         /// <summary>Os Controles terminaram: segue para as Opções.</summary>
         public void ShowOptionsFromDevices() => ShowOptions();
 
-        /// <summary>"Voltar" nas Opções: volta aos Controles se eles apareceram, senão à primeira tela.</summary>
+        /// <summary>"Voltar" nas Opções: volta aos Controles se eles apareceram, senão à escolha do modo.</summary>
         public void BackFromOptions()
         {
             if (devicesShown) OpenDevices();
-            else ShowMode();
+            else ShowPlay();
         }
 
         /// <summary>"Jogar" na Seleção de times: põe os jogadores na sessão (com os dispositivos) e vai para a Partida.</summary>
@@ -136,6 +140,21 @@ namespace FutebolDeBotao
         public void SetDevices(DeviceSelectionScreen deviceSelection) => devices = deviceSelection;
 
         public void SetStats(StatsScreen statsScreen) => stats = statsScreen;
+
+        public void SetPlayPanel(GameObject panel) => playPanel = panel;
+
+        public void SetProfile(ProfileScreen profileScreen) => profile = profileScreen;
+
+        /// <summary>"Jogar" na primeira tela: a escolha entre Um jogador e Dois jogadores.</summary>
+        public void ShowPlay() => Show(playPanel != null ? playPanel : modePanel);
+
+        /// <summary>"Meu time" na primeira tela.</summary>
+        public void ShowProfile()
+        {
+            if (profile == null) return;
+            Show(profile.gameObject);
+            profile.Open();
+        }
 
         /// <summary>"Estatísticas" na primeira tela do Menu.</summary>
         public void ShowStats()
@@ -179,8 +198,9 @@ namespace FutebolDeBotao
 
         private void Show(GameObject panel)
         {
-            foreach (var other in new[] { modePanel, optionsPanel, selection != null ? selection.gameObject : null,
-                         devices != null ? devices.gameObject : null, stats != null ? stats.gameObject : null })
+            foreach (var other in new[] { modePanel, playPanel, optionsPanel, selection != null ? selection.gameObject : null,
+                         devices != null ? devices.gameObject : null, stats != null ? stats.gameObject : null,
+                         profile != null ? profile.gameObject : null })
                 if (other != null) other.SetActive(other == panel);
         }
 

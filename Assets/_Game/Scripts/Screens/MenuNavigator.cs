@@ -43,6 +43,9 @@ namespace FutebolDeBotao
 
         private int index;
         private int enabledFrame;
+        private int typingFrame = -10;
+        private InputField selectedField;
+        private int fieldSelectedFrame;
         private Vector2Int heldDirection;
         private float repeatAt;
         private RectTransform frame;
@@ -117,14 +120,25 @@ namespace FutebolDeBotao
             EnsureControls();
 
             // Botão clicado com o mouse fica "selecionado" no EventSystem e o Enter/A apertaria de novo: a navegação é daqui.
+            // Campo de texto sendo digitado fica selecionado (senão perde o foco) e o teclado não navega enquanto isso.
             var events = EventSystem.current;
-            if (events != null && events.currentSelectedGameObject != null) events.SetSelectedGameObject(null);
+            var selected = events != null ? events.currentSelectedGameObject : null;
+            var field = selected != null ? selected.GetComponent<InputField>() : null;
+            if (field != selectedField)
+            {
+                selectedField = field;
+                fieldSelectedFrame = Time.frameCount;
+            }
+            // O campo clicado só fica com o foco no fim do quadro: alguns quadros de folga antes de soltar.
+            if (field != null && (field.isFocused || Time.frameCount - fieldSelectedFrame <= 2)) typingFrame = Time.frameCount;
+            else if (selected != null) events.SetSelectedGameObject(null);
 
             var pointer = Pointer.current;
             if (pointer != null && pointer.press.wasPressedThisFrame) PadMode.Active = false;
             UpdatePointerBlock(pointer);
 
-            if (Time.frameCount != enabledFrame) ReadInput();
+            // O Enter/Esc que termina a digitação não vale como comando do menu (um quadro de folga).
+            if (Time.frameCount != enabledFrame && Time.frameCount - typingFrame > 1) ReadInput();
             UpdateFrame();
         }
 
