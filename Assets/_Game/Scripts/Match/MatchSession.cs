@@ -67,8 +67,8 @@ namespace FutebolDeBotao
         private static readonly int[] teamIndex = { 0, 1 };
         private static readonly int[] scheme5 = { 0, 0 };
         private static readonly int[] scheme3 = { 0, 0 };
-        private static readonly int[] discPattern = { 0, 0 };
-        private static readonly int[] keeperPattern = { 0, 0 };
+        private static readonly string[] discPattern = { null, null };
+        private static readonly string[] keeperPattern = { null, null };
         private static readonly int[] secondaryIndex = { 0, 0 };
 
         public static TeamData Team(TeamSide side) => TeamCatalog.Load().Team(teamIndex[(int)side]);
@@ -90,15 +90,20 @@ namespace FutebolDeBotao
             return options[((secondaryIndex[(int)side] % count) + count) % count];
         }
 
-        /// <summary>Padrão da camisa dos botões do lado (linha da folha Base_Botao_32-Sheet).</summary>
-        public static int DiscPattern(TeamSide side) => discPattern[(int)side];
+        /// <summary>Padrão da camisa dos botões do lado (o escolhido, se liberado; senão o primeiro liberado).</summary>
+        public static ShirtPattern DiscPattern(TeamSide side) => ShirtPattern.Resolve(ShirtPattern.Kind.Botao, discPattern[(int)side]);
 
-        public static void SetDiscPattern(TeamSide side, int index) => discPattern[(int)side] = index;
+        /// <summary>Id do padrão dos botões escolhido (pode estar vazio ou travado; <see cref="DiscPattern"/> resolve).</summary>
+        public static string DiscPatternId(TeamSide side) => DiscPattern(side)?.id ?? discPattern[(int)side];
 
-        /// <summary>Padrão da camisa do goleiro do lado (linha da folha Goal_Keeper_sheet).</summary>
-        public static int KeeperPattern(TeamSide side) => keeperPattern[(int)side];
+        public static void SetDiscPattern(TeamSide side, string patternId) => discPattern[(int)side] = patternId;
 
-        public static void SetKeeperPattern(TeamSide side, int index) => keeperPattern[(int)side] = index;
+        /// <summary>Padrão da camisa do goleiro do lado (o escolhido, se liberado; senão o primeiro liberado).</summary>
+        public static ShirtPattern KeeperPattern(TeamSide side) => ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, keeperPattern[(int)side]);
+
+        public static string KeeperPatternId(TeamSide side) => KeeperPattern(side)?.id ?? keeperPattern[(int)side];
+
+        public static void SetKeeperPattern(TeamSide side, string patternId) => keeperPattern[(int)side] = patternId;
 
         /// <summary>Índice do esquema do lado <paramref name="side"/> para 3 ou 5 botões.</summary>
         public static int SchemeIndex(TeamSide side, int discs) => (discs == 3 ? scheme3 : scheme5)[(int)side];
@@ -139,8 +144,8 @@ namespace FutebolDeBotao
             teamIndex[1] = 1;
             scheme5[0] = scheme5[1] = 0;
             scheme3[0] = scheme3[1] = 0;
-            discPattern[0] = discPattern[1] = 0;
-            keeperPattern[0] = keeperPattern[1] = 0;
+            discPattern[0] = discPattern[1] = null;
+            keeperPattern[0] = keeperPattern[1] = null;
             secondaryIndex[0] = secondaryIndex[1] = 0;
         }
     }

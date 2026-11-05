@@ -115,7 +115,8 @@ namespace FutebolDeBotao
         private bool built;
         private bool starting;
         private MenuNavigator sharedNavigator;
-        private ShirtArt shirts;
+        /// <summary>Há padrões de camisa (Resources/PadroesCamisa); sem eles, as peças são formas lisas.</summary>
+        private bool hasShirts;
 
         public void Configure(MenuScreen menuScreen, MatchOptions defaultOptions, Sprite circleSprite, Sprite[] tableArt)
         {
@@ -142,21 +143,20 @@ namespace FutebolDeBotao
                 if (pick >= Wrap(mine, catalog.TeamCount)) pick++;
                 MatchSession.SetTeamIndex(TeamSide.Top, pick);
                 MatchSession.SetSchemeIndex(TeamSide.Top, discs, Random.Range(0, catalog.SchemeCount(discs)));
-                if (shirts != null)
+                if (hasShirts)
                 {
-                    MatchSession.SetDiscPattern(TeamSide.Top, ShirtPattern.RandomRow(ShirtPattern.Kind.Botao, Mathf.Max(1, shirts.disc.PatternCount)));
-                    MatchSession.SetKeeperPattern(TeamSide.Top, ShirtPattern.RandomRow(ShirtPattern.Kind.Goleiro, Mathf.Max(1, shirts.keeper.PatternCount)));
+                    MatchSession.SetDiscPattern(TeamSide.Top, ShirtPattern.RandomId(ShirtPattern.Kind.Botao));
+                    MatchSession.SetKeeperPattern(TeamSide.Top, ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro));
                 }
                 MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             }
             EnsureDifferentTeams();
-            // Camisa guardada que não está (mais) liberada: volta para a primeira liberada.
-            if (shirts != null)
-                foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
-                {
-                    MatchSession.SetDiscPattern(side, ShirtPattern.Allowed(ShirtPattern.Kind.Botao, MatchSession.DiscPattern(side), Mathf.Max(1, shirts.disc.PatternCount)));
-                    MatchSession.SetKeeperPattern(side, ShirtPattern.Allowed(ShirtPattern.Kind.Goleiro, MatchSession.KeeperPattern(side), Mathf.Max(1, shirts.keeper.PatternCount)));
-                }
+            // Camisa guardada que não está (mais) liberada: fica com a primeira liberada.
+            foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
+            {
+                MatchSession.SetDiscPattern(side, MatchSession.DiscPatternId(side));
+                MatchSession.SetKeeperPattern(side, MatchSession.KeeperPatternId(side));
+            }
             // Partida nova: sorteia o feltro e a mesa aqui, para a Seleção de times mostrar os mesmos da Partida.
             MatchSession.FeltId = null;
             MatchSession.TableId = null;
@@ -209,10 +209,9 @@ namespace FutebolDeBotao
         /// <summary>Próxima camisa dos botões (ou do goleiro) do time.</summary>
         public void ChangeShirt(TeamSide side, bool keeper, int step)
         {
-            int count = shirts == null ? 1 : Mathf.Max(1, (keeper ? shirts.keeper : shirts.disc).PatternCount);
-            // Só os padrões liberados (ShirtPattern).
-            if (keeper) MatchSession.SetKeeperPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Goleiro, MatchSession.KeeperPattern(side), step, count));
-            else MatchSession.SetDiscPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Botao, MatchSession.DiscPattern(side), step, count));
+            // Só os padrões liberados, na ordem dos assets (ShirtPattern).
+            if (keeper) MatchSession.SetKeeperPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Goleiro, MatchSession.KeeperPatternId(side), step));
+            else MatchSession.SetDiscPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Botao, MatchSession.DiscPatternId(side), step));
             Refresh();
         }
 
@@ -312,12 +311,12 @@ namespace FutebolDeBotao
                         ? scheme.PositionFor(i, TeamSide.Bottom)
                         : Formation.Mirror((discs == 3 ? Formation.Default3 : Formation.Default5)[Mathf.Min(i, discs - 1)], TeamSide.Bottom);
                     disc.Root.anchoredPosition = position * Unit;
-                    PaintPiece(disc, shirts != null ? shirts.disc : null, team, secondary, MatchSession.DiscPattern(side));
+                    PaintPiece(disc, MatchSession.DiscPattern(side), team, secondary, false);
                     if (disc.Layers == null) disc.Center.color = team.PrimaryColor;
                 }
 
                 view.Keeper.Root.gameObject.SetActive(options.hasGoalkeeper);
-                SetActive(view.KeeperArrows.gameObject, options.hasGoalkeeper && shirts != null);
+                SetActive(view.KeeperArrows.gameObject, options.hasGoalkeeper && hasShirts);
                 SetActive(bigGoals, !boardsTable && options.hasGoalkeeper);
                 SetActive(bigPoles, !boardsTable && options.hasGoalkeeper);
                 SetActive(smallGoals, !boardsTable && !options.hasGoalkeeper);
@@ -326,7 +325,7 @@ namespace FutebolDeBotao
                 SetActive(goalsBig, options.hasGoalkeeper);
                 SetActive(boardsSmall, !options.hasGoalkeeper);
                 SetActive(goalsSmall, !options.hasGoalkeeper);
-                PaintPiece(view.Keeper, shirts != null ? shirts.keeper : null, team, secondary, MatchSession.KeeperPattern(side));
+                PaintPiece(view.Keeper, MatchSession.KeeperPattern(side), team, secondary, true);
                 if (view.Keeper.Layers == null) view.Keeper.Body.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
 
                 view.Name.text = team.TeamName;
@@ -336,7 +335,7 @@ namespace FutebolDeBotao
             }
         }
 
-        private static void PaintPiece(PieceView piece, ShirtArt.Sheet sheet, TeamData team, Color secondary, int pattern)
+        private static void PaintPiece(PieceView piece, ShirtPattern pattern, TeamData team, Color secondary, bool keeper)
         {
             if (piece.Layers == null)
             {
@@ -348,8 +347,8 @@ namespace FutebolDeBotao
             {
                 var layer = (ShirtLayer)i;
                 var image = piece.Layers[i];
-                image.sprite = sheet.Get(layer, pattern);
-                image.color = ShirtArt.Tint(layer, team.PrimaryColor, secondary, sheet != null && sheet == ShirtArt.Load()?.keeper);
+                image.sprite = pattern != null ? pattern.Get(layer) : null;
+                image.color = ShirtArt.Tint(layer, team.PrimaryColor, secondary, keeper);
                 image.enabled = image.sprite != null;
             }
         }
@@ -361,7 +360,7 @@ namespace FutebolDeBotao
             if (built) return;
             built = true;
             font = GameFont.Get();
-            shirts = ShirtArt.Load();
+            hasShirts = ShirtPattern.Any(ShirtPattern.Kind.Botao);
 
             var root = (RectTransform)transform;
             Stretch(CreateImage(root, "Fundo", Background, null).rectTransform);
@@ -693,10 +692,10 @@ namespace FutebolDeBotao
             view.ShirtItem = CreateRect(controls, "Item da camisa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.ShirtItem.Configure(null, previousShirt, nextShirt, shirtTitle.rectTransform,
                 (RectTransform)previousShirt.transform, (RectTransform)nextShirt.transform);
-            view.ShirtItem.gameObject.SetActive(shirts != null);
-            SetActive(shirtTitle.gameObject, shirts != null);
-            SetActive(previousShirt.gameObject, shirts != null);
-            SetActive(nextShirt.gameObject, shirts != null);
+            view.ShirtItem.gameObject.SetActive(hasShirts);
+            SetActive(shirtTitle.gameObject, hasShirts);
+            SetActive(previousShirt.gameObject, hasShirts);
+            SetActive(nextShirt.gameObject, hasShirts);
 
             // Camisa do goleiro: uma seta de cada lado dele (somem sem goleiro).
             view.KeeperArrows = CreateRect(controls, "Setas do goleiro", keeperPosition * Unit, Vector2.zero);
@@ -732,7 +731,7 @@ namespace FutebolDeBotao
         private PieceView CreatePiece(RectTransform half, string objectName, Vector2 position, TeamSide side, bool keeper)
         {
             var piece = new PieceView();
-            if (shirts == null)
+            if (!hasShirts)
             {
                 // Sem a arte: círculos (botão) ou retângulo (goleiro) lisos.
                 piece.Body = keeper

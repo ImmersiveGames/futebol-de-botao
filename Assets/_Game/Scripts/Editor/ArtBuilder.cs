@@ -69,7 +69,6 @@ namespace FutebolDeBotao.Editor
         // Camisas: células de 32x32, uma coluna por camada e uma linha por padrão (as colunas do goleiro têm outra ordem).
         private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Base_Botao_32-Sheet.png";
         private const string KeeperSheetPath = "Assets/_Game/Art/Botoes/Goal_Keeper_sheet.png";
-        private const string ShirtArtPath = "Assets/_Game/Resources/Camisas.asset";
         private const string ShirtPatternsFolder = "Assets/_Game/Resources/PadroesCamisa";
         private const string BallsFolder = "Assets/_Game/Resources/Bolas";
         private const string PieceVisualName = "Desenho";
@@ -287,23 +286,21 @@ namespace FutebolDeBotao.Editor
 
         private static void BuildShirts()
         {
-            var art = AssetDatabase.LoadAssetAtPath<ShirtArt>(ShirtArtPath);
-            if (art == null)
-            {
-                art = ScriptableObject.CreateInstance<ShirtArt>();
-                AssetDatabase.CreateAsset(art, ShirtArtPath);
-            }
-            art.disc = SliceShirtSheet(DiscSheetPath, "Botao", DiscColumns);
-            art.keeper = SliceShirtSheet(KeeperSheetPath, "Goleiro", KeeperColumns);
-            EditorUtility.SetDirty(art);
-            CreateShirtPatterns(ShirtPattern.Kind.Botao, art.disc.PatternCount);
-            CreateShirtPatterns(ShirtPattern.Kind.Goleiro, art.keeper.PatternCount);
+            // As folhas de camisa não são mais recortadas aqui: os recortes são do usuário e cada ShirtPattern aponta os seus.
+            ImportShirtSheet(DiscSheetPath);
+            ImportShirtSheet(KeeperSheetPath);
+            MigrateShirtPatterns(ShirtPattern.Kind.Botao, DiscSheetPath, "Botao", DiscColumns);
+            MigrateShirtPatterns(ShirtPattern.Kind.Goleiro, KeeperSheetPath, "Goleiro", KeeperColumns);
             AssetDatabase.SaveAssets();
+
+            var firstDisc = FindShirtPatterns(ShirtPattern.Kind.Botao).FirstOrDefault(p => p.Usable);
+            var firstKeeper = FindShirtPatterns(ShirtPattern.Kind.Goleiro).FirstOrDefault(p => p.Usable);
+            if (firstDisc == null) Debug.LogWarning($"[Futebol de Botão] Nenhum padrão de botão com recortes em {ShirtPatternsFolder}.");
 
             // Mesma ordem dos círculos do protótipo: goleiro embaixo da bola, botões por cima dela.
             foreach (var disc in Object.FindObjectsByType<Disc>())
             {
-                SetupPiece(disc.transform, art.disc, false, 10);
+                SetupPiece(disc.transform, firstDisc, false, 10);
                 foreach (var placeholder in new[] { "Anel", "Centro" })
                 {
                     var child = disc.transform.Find(placeholder);
@@ -311,34 +308,73 @@ namespace FutebolDeBotao.Editor
                 }
             }
             foreach (var keeper in Object.FindObjectsByType<Goalkeeper>())
-                SetupPiece(keeper.transform, art.keeper, true, 5);
+                SetupPiece(keeper.transform, firstKeeper, true, 5);
 
-            Debug.Log($"[Futebol de Botão] Camisas montadas: {art.disc.PatternCount} padrões de botão e {art.keeper.PatternCount} de goleiro.");
+            Debug.Log($"[Futebol de Botão] Camisas: {FindShirtPatterns(ShirtPattern.Kind.Botao).Count(p => p.Usable)} padrões de botão e " +
+                      $"{FindShirtPatterns(ShirtPattern.Kind.Goleiro).Count(p => p.Usable)} de goleiro em {ShirtPatternsFolder}.");
+        }
+
+        /// <summary>Padrões do tipo em Resources/PadroesCamisa (direto do AssetDatabase), na ordem das setas.</summary>
+        private static ShirtPattern[] FindShirtPatterns(ShirtPattern.Kind kind) =>
+            AssetDatabase.FindAssets("t:ShirtPattern", new[] { ShirtPatternsFolder })
+                .Select(guid => AssetDatabase.LoadAssetAtPath<ShirtPattern>(AssetDatabase.GUIDToAssetPath(guid)))
+                .Where(p => p != null && p.kind == kind)
+                .OrderBy(p => p.order).ThenBy(p => p.id, System.StringComparer.Ordinal)
+                .ToArray();
+
+        /// <summary>Só a importação da folha (sprite em vários recortes, 32 px por unidade, sem filtro); os recortes ficam.</summary>
+        private static void ImportShirtSheet(string path)
+        {
+            if (!File.Exists(path)) return;
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            bool changed = importer.textureType != TextureImporterType.Sprite
+                           || importer.spriteImportMode != SpriteImportMode.Multiple;
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            if (changed) importer.SaveAndReimport();
+            ConfigureImport(path);
         }
 
         /// <summary>
-        /// Um item <see cref="ShirtPattern"/> por linha da folha que ainda não tenha (botao_1, goleiro_1...), já liberado.
-        /// Os que existem não mudam (preço e liberado são do usuário).
+        /// Uma vez só: os padrões que ainda não têm recortes (criados antes de o padrão guardar os seus) pegam os da linha
+        /// antiga da folha (Botao_Corpo_3...), e a ordem das setas fica a da linha. Sem nenhum padrão do tipo, cria um por
+        /// linha recortada com esses nomes, já liberado. Padrões com recortes não mudam.
         /// </summary>
-        private static void CreateShirtPatterns(ShirtPattern.Kind kind, int rows)
+        private static void MigrateShirtPatterns(ShirtPattern.Kind kind, string sheetPath, string prefix, ShirtLayer[] columns)
         {
             if (!AssetDatabase.IsValidFolder(ShirtPatternsFolder)) AssetDatabase.CreateFolder("Assets/_Game/Resources", "PadroesCamisa");
-            var existing = AssetDatabase.FindAssets("t:ShirtPattern", new[] { ShirtPatternsFolder })
-                .Select(guid => AssetDatabase.LoadAssetAtPath<ShirtPattern>(AssetDatabase.GUIDToAssetPath(guid)))
-                .Where(p => p != null && p.kind == kind)
-                .Select(p => p.row)
-                .ToHashSet();
-            string prefix = kind == ShirtPattern.Kind.Botao ? "botao" : "goleiro";
-            string label = kind == ShirtPattern.Kind.Botao ? "Botão" : "Goleiro";
-            for (int row = 0; row < rows; row++)
+            var sprites = File.Exists(sheetPath) ? LoadSprites(sheetPath) : new System.Collections.Generic.Dictionary<string, Sprite>();
+            Sprite Find(ShirtLayer layer, int row) =>
+                columns.Contains(layer) && sprites.TryGetValue(SpriteName(prefix, layer, row), out var sprite) ? sprite : null;
+
+            void Fill(ShirtPattern pattern)
             {
-                if (existing.Contains(row)) continue;
+                pattern.shadow = Find(ShirtLayer.Shadow, pattern.row);
+                pattern.body = Find(ShirtLayer.Body, pattern.row);
+                pattern.pattern = Find(ShirtLayer.Pattern, pattern.row);
+                pattern.outline = Find(ShirtLayer.Outline, pattern.row);
+                pattern.innerShade = Find(ShirtLayer.InnerShade, pattern.row);
+                pattern.shine = Find(ShirtLayer.Shine, pattern.row);
+                pattern.order = pattern.row;
+                EditorUtility.SetDirty(pattern);
+            }
+
+            var existing = FindShirtPatterns(kind);
+            foreach (var pattern in existing)
+                if (!pattern.Usable && pattern.row >= 0) Fill(pattern);
+            if (existing.Length > 0) return;
+
+            string idPrefix = kind == ShirtPattern.Kind.Botao ? "botao" : "goleiro";
+            string label = kind == ShirtPattern.Kind.Botao ? "Botão" : "Goleiro";
+            for (int row = 0; Find(ShirtLayer.Body, row) != null; row++)
+            {
                 var pattern = ScriptableObject.CreateInstance<ShirtPattern>();
-                pattern.id = $"{prefix}_{row + 1}";
+                pattern.id = $"{idPrefix}_{row + 1}";
                 pattern.displayName = $"{label} {row + 1}";
                 pattern.kind = kind;
                 pattern.row = row;
                 pattern.unlockedByDefault = true;
+                Fill(pattern);
                 AssetDatabase.CreateAsset(pattern, $"{ShirtPatternsFolder}/{pattern.id}.asset");
             }
         }
@@ -365,59 +401,6 @@ namespace FutebolDeBotao.Editor
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>
-        /// Recorta a folha em células de 32x32 com nome por camada e padrão (ex.: Botao_Padrao_3) e devolve as camadas.
-        /// Pode rodar quantas vezes quiser: os recortes com o mesmo nome mantêm o ID.
-        /// </summary>
-        private static ShirtArt.Sheet SliceShirtSheet(string path, string prefix, ShirtLayer[] columns)
-        {
-            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-            importer.textureType = TextureImporterType.Sprite;
-            importer.spriteImportMode = SpriteImportMode.Multiple;
-            importer.spritePixelsPerUnit = PixelsPerUnit;
-            importer.filterMode = FilterMode.Point;
-            importer.textureCompression = TextureImporterCompression.Uncompressed;
-            importer.mipmapEnabled = false;
-            importer.SaveAndReimport();
-            importer.GetSourceTextureWidthAndHeight(out int width, out int height);
-            int rows = height / ShirtCell;
-
-            var factory = new SpriteDataProviderFactories();
-            factory.Init();
-            var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
-            provider.InitSpriteEditorDataProvider();
-            var existing = provider.GetSpriteRects().GroupBy(r => r.name).ToDictionary(g => g.Key, g => g.First());
-
-            var rects = new System.Collections.Generic.List<SpriteRect>();
-            for (int row = 0; row < rows; row++)
-                for (int column = 0; column < columns.Length && (column + 1) * ShirtCell <= width; column++)
-                {
-                    string name = SpriteName(prefix, columns[column], row);
-                    if (!existing.TryGetValue(name, out var rect)) rect = new SpriteRect { name = name, spriteID = GUID.Generate() };
-                    // A linha 1 é a de cima da imagem (a Unity conta de baixo para cima).
-                    rect.rect = new Rect(column * ShirtCell, height - (row + 1) * ShirtCell, ShirtCell, ShirtCell);
-                    rect.alignment = SpriteAlignment.Center;
-                    rect.pivot = new Vector2(0.5f, 0.5f);
-                    rect.border = Vector4.zero;
-                    rects.Add(rect);
-                }
-            provider.SetSpriteRects(rects.ToArray());
-            var names = provider.GetDataProvider<ISpriteNameFileIdDataProvider>();
-            names?.SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
-            provider.Apply();
-            importer.SaveAndReimport();
-
-            var sprites = LoadSprites(path);
-            Sprite[] Layer(ShirtLayer layer) => Enumerable.Range(0, rows)
-                .Select(row => sprites.TryGetValue(SpriteName(prefix, layer, row), out var sprite) ? sprite : null)
-                .Where(sprite => sprite != null).ToArray();
-            return new ShirtArt.Sheet
-            {
-                shadow = Layer(ShirtLayer.Shadow), body = Layer(ShirtLayer.Body), pattern = Layer(ShirtLayer.Pattern),
-                outline = Layer(ShirtLayer.Outline), innerShade = Layer(ShirtLayer.InnerShade), shine = Layer(ShirtLayer.Shine),
-            };
-        }
-
         private static string SpriteName(string prefix, ShirtLayer layer, int row) => $"{prefix}_{LayerName(layer)}_{row + 1}";
 
         private static string LayerName(ShirtLayer layer) => layer switch
@@ -434,7 +417,7 @@ namespace FutebolDeBotao.Editor
         /// Troca o desenho do protótipo pelas camadas, dentro de um Sorting Group na ordem antiga da peça. O círculo/retângulo
         /// do protótipo fica desligado (o destaque da vez copia o formato dele).
         /// </summary>
-        private static void SetupPiece(Transform piece, ShirtArt.Sheet sheet, bool keeper, int order)
+        private static void SetupPiece(Transform piece, ShirtPattern pattern, bool keeper, int order)
         {
             var old = piece.Find(PieceVisualName);
             if (old != null) Object.DestroyImmediate(old.gameObject);
@@ -460,7 +443,7 @@ namespace FutebolDeBotao.Editor
             for (int i = 0; i < renderers.Length; i++)
             {
                 var layer = (ShirtLayer)i;
-                var go = CreateLayer(ShirtArt.Spins(layer) ? spinning : still, LayerName(layer), sheet.Get(layer, 0), i,
+                var go = CreateLayer(ShirtArt.Spins(layer) ? spinning : still, LayerName(layer), pattern != null ? pattern.Get(layer) : null, i,
                     ShirtArt.Tint(layer, Color.white, Color.white));
                 if (keeper && layer == ShirtLayer.Shadow) go.localPosition = ShirtArt.KeeperShadowOffset;
                 renderers[i] = go.GetComponent<SpriteRenderer>();

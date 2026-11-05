@@ -92,8 +92,13 @@ namespace FutebolDeBotao
                 var choices = Data.players[i];
                 MatchSession.SetTeamIndex(side, Mathf.Max(0, choices.team));
                 MatchSession.SetSecondaryIndex(side, Mathf.Max(0, choices.secondary));
-                MatchSession.SetDiscPattern(side, Mathf.Max(0, choices.discPattern));
-                MatchSession.SetKeeperPattern(side, Mathf.Max(0, choices.keeperPattern));
+                // Save antigo (sem id): converte pela linha da folha de onde o padrão veio.
+                MatchSession.SetDiscPattern(side, !string.IsNullOrEmpty(choices.discPatternId)
+                    ? choices.discPatternId
+                    : ShirtPattern.FromLegacyRow(ShirtPattern.Kind.Botao, Mathf.Max(0, choices.discPattern)));
+                MatchSession.SetKeeperPattern(side, !string.IsNullOrEmpty(choices.keeperPatternId)
+                    ? choices.keeperPatternId
+                    : ShirtPattern.FromLegacyRow(ShirtPattern.Kind.Goleiro, Mathf.Max(0, choices.keeperPattern)));
                 MatchSession.SetSchemeIndex(side, 3, Mathf.Max(0, choices.scheme3));
                 MatchSession.SetSchemeIndex(side, 5, Mathf.Max(0, choices.scheme5));
             }
@@ -126,8 +131,8 @@ namespace FutebolDeBotao
                 var choices = Data.players[i];
                 choices.team = MatchSession.TeamIndex(side);
                 choices.secondary = MatchSession.SecondaryIndex(side);
-                choices.discPattern = MatchSession.DiscPattern(side);
-                choices.keeperPattern = MatchSession.KeeperPattern(side);
+                choices.discPatternId = MatchSession.DiscPatternId(side);
+                choices.keeperPatternId = MatchSession.KeeperPatternId(side);
                 choices.scheme3 = MatchSession.SchemeIndex(side, 3);
                 choices.scheme5 = MatchSession.SchemeIndex(side, 5);
             }

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Desenho de um botão ou goleiro com as camadas de <see cref="ShirtArt"/>. O desenho nunca gira, mesmo com o botão
+    /// Desenho de um botão ou goleiro com as camadas de um <see cref="ShirtPattern"/>. O desenho nunca gira, mesmo com o botão
     /// girando na física: o padrão fica sempre igual na tela, nos dois times.
     /// Montado por "Futebol de Botão/Aplicar artes"; a Partida pinta com <see cref="Paint"/>.
     /// </summary>
@@ -24,16 +24,14 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Troca o padrão e pinta com as cores do time.</summary>
-        public void Paint(Color primary, Color secondary, int pattern)
+        public void Paint(Color primary, Color secondary, ShirtPattern pattern)
         {
-            var art = ShirtArt.Load();
-            var sheet = art == null ? null : keeper ? art.keeper : art.disc;
             for (int i = 0; i < layers.Length; i++)
             {
                 if (layers[i] == null) continue;
                 var layer = (ShirtLayer)i;
-                var sprite = sheet?.Get(layer, pattern);
-                if (sprite != null) layers[i].sprite = sprite;
+                // Camada que o padrão não tem (o contorno do goleiro, por exemplo) fica vazia.
+                if (pattern != null) layers[i].sprite = pattern.Get(layer);
                 layers[i].color = ShirtArt.Tint(layer, primary, secondary, keeper);
             }
         }

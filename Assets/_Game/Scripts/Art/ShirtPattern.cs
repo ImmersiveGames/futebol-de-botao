@@ -4,10 +4,11 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Um padrão de camisa (item desbloqueável): uma linha da folha de botões (Base_Botao_32-Sheet) ou de goleiros
-    /// (Goal_Keeper_sheet), com nome, preço e se já vem liberado. O corpo leva a cor principal e o padrão a segunda cor
-    /// (<see cref="ShirtArt"/>). Os assets ficam em Resources/PadroesCamisa; o "Aplicar artes" cria um por linha que
-    /// ainda não tenha. Sem nenhum asset de um tipo, todas as linhas da folha valem.
+    /// Um padrão de camisa de botão ou de goleiro (item desbloqueável), com os próprios recortes: sombra, corpo, padrão,
+    /// contorno (só botão), sombra interna e brilho, de qualquer folha e com qualquer nome. Desenhados em cinza e
+    /// tingidos no jogo (<see cref="ShirtArt.Tint"/>): o corpo leva a cor principal e o padrão a segunda cor. As setas da
+    /// Seleção de times seguem a <see cref="order"/>; a escolha do jogador é guardada pelo <see cref="id"/>. Os assets
+    /// ficam em Resources/PadroesCamisa.
     /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Padrão de camisa", fileName = "Camisa")]
     public sealed class ShirtPattern : ScriptableObject
@@ -21,65 +22,108 @@ namespace FutebolDeBotao
         [Tooltip("Nome que o jogador vê.")]
         public string displayName = "Camisa";
         public Kind kind;
-        [Tooltip("Linha da folha (0 = a de cima).")]
-        [Min(0)] public int row;
+        [Tooltip("Posição nas setas da Seleção de times (menor primeiro; empate pelo id).")]
+        public int order;
         [Tooltip("Preço em moedas.")]
         [Min(0)] public int price;
         [Tooltip("O jogador já tem desde o começo.")]
         public bool unlockedByDefault = true;
 
+        [Header("Recortes (cinza; o jogo tinge)")]
+        [Tooltip("Preta: o jogo deixa semitransparente.")]
+        public Sprite shadow;
+        [Tooltip("Cor principal.")]
+        public Sprite body;
+        [Tooltip("Segunda cor.")]
+        public Sprite pattern;
+        [Tooltip("Cor principal (o goleiro não tem).")]
+        public Sprite outline;
+        [Tooltip("Cor principal.")]
+        public Sprite innerShade;
+        [Tooltip("Cor principal.")]
+        public Sprite shine;
+
+        [Tooltip("Linha da folha antiga: só para converter saves e preencher os recortes uma vez. Não precisa mexer.")]
+        [HideInInspector] public int row = -1;
+
+        public bool Usable => body != null;
+
+        public Sprite Get(ShirtLayer layer) => layer switch
+        {
+            ShirtLayer.Shadow => shadow,
+            ShirtLayer.Body => body,
+            ShirtLayer.Pattern => pattern,
+            ShirtLayer.Outline => outline,
+            ShirtLayer.InnerShade => innerShade,
+            _ => shine,
+        };
+
         private static ShirtPattern[] cached;
 
-        /// <summary>Todos os padrões de Resources/PadroesCamisa, na ordem do id.</summary>
+        /// <summary>Todos os padrões de Resources/PadroesCamisa, na ordem das setas.</summary>
         public static ShirtPattern[] All()
         {
             if (cached != null) return cached;
             var list = new List<ShirtPattern>(Resources.LoadAll<ShirtPattern>(ResourceFolder));
-            list.Sort((a, b) => string.CompareOrdinal(a.id, b.id));
+            list.Sort((a, b) => a.order != b.order ? a.order.CompareTo(b.order) : string.CompareOrdinal(a.id, b.id));
             cached = list.ToArray();
             return cached;
         }
 
-        /// <summary>Linhas liberadas do tipo, em ordem (sem nenhum asset do tipo: todas as <paramref name="rowCount"/>).</summary>
-        public static List<int> UnlockedRows(Kind kind, int rowCount)
+        /// <summary>Padrões do tipo com recortes, liberados (ou todos), na ordem das setas.</summary>
+        public static List<ShirtPattern> Of(Kind kind, bool unlockedOnly = true)
         {
-            var rows = new List<int>();
-            bool anyOfKind = false;
-            foreach (var pattern in All())
-            {
-                if (pattern.kind != kind) continue;
-                anyOfKind = true;
-                if (pattern.unlockedByDefault && pattern.row < rowCount && !rows.Contains(pattern.row)) rows.Add(pattern.row);
-            }
-            if (!anyOfKind)
-                for (int i = 0; i < rowCount; i++) rows.Add(i);
-            if (rows.Count == 0) rows.Add(0);
-            rows.Sort();
-            return rows;
+            var list = new List<ShirtPattern>();
+            foreach (var item in All())
+                if (item.kind == kind && item.Usable && (!unlockedOnly || item.unlockedByDefault)) list.Add(item);
+            // Nenhum liberado: todos (para nunca ficar sem camisa).
+            if (list.Count == 0 && unlockedOnly) return Of(kind, false);
+            return list;
         }
 
-        /// <summary>O liberado <paramref name="step"/> casas depois de <paramref name="current"/> (dá a volta).</summary>
-        public static int Step(Kind kind, int current, int step, int rowCount)
+        public static bool Any(Kind kind) => Of(kind).Count > 0;
+
+        public static ShirtPattern Find(string patternId)
         {
-            var rows = UnlockedRows(kind, rowCount);
-            int index = rows.IndexOf(current);
-            if (index < 0) return rows[0];
-            int count = rows.Count;
-            return rows[((index + step) % count + count) % count];
+            if (string.IsNullOrEmpty(patternId)) return null;
+            foreach (var item in All())
+                if (item.id == patternId) return item;
+            return null;
         }
 
-        /// <summary><paramref name="current"/> se estiver liberado; senão o primeiro liberado.</summary>
-        public static int Allowed(Kind kind, int current, int rowCount)
+        /// <summary>O padrão do id, se for do tipo e estiver liberado; senão o primeiro liberado (nulo sem nenhum).</summary>
+        public static ShirtPattern Resolve(Kind kind, string patternId)
         {
-            var rows = UnlockedRows(kind, rowCount);
-            return rows.Contains(current) ? current : rows[0];
+            var list = Of(kind);
+            foreach (var item in list)
+                if (item.id == patternId) return item;
+            return list.Count > 0 ? list[0] : null;
         }
 
-        /// <summary>Um liberado qualquer (a IA sorteia o dela).</summary>
-        public static int RandomRow(Kind kind, int rowCount)
+        /// <summary>O id do liberado <paramref name="step"/> casas depois de <paramref name="currentId"/> (dá a volta).</summary>
+        public static string Step(Kind kind, string currentId, int step)
         {
-            var rows = UnlockedRows(kind, rowCount);
-            return rows[Random.Range(0, rows.Count)];
+            var list = Of(kind);
+            if (list.Count == 0) return currentId;
+            int index = list.FindIndex(item => item.id == currentId);
+            if (index < 0) return list[0].id;
+            int count = list.Count;
+            return list[((index + step) % count + count) % count].id;
+        }
+
+        /// <summary>Um liberado qualquer (a IA sorteia o dela); nulo sem nenhum.</summary>
+        public static string RandomId(Kind kind)
+        {
+            var list = Of(kind);
+            return list.Count > 0 ? list[Random.Range(0, list.Count)].id : null;
+        }
+
+        /// <summary>Save antigo (posição na folha): o padrão que veio daquela linha, ou nulo.</summary>
+        public static string FromLegacyRow(Kind kind, int legacyRow)
+        {
+            foreach (var item in All())
+                if (item.kind == kind && item.row == legacyRow) return item.id;
+            return null;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

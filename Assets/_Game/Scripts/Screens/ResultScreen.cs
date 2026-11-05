@@ -98,8 +98,8 @@ namespace FutebolDeBotao
             var piece = CreateRect(root, $"Botão {side}", position, Vector2.one * DiscSize);
             var team = MatchSession.Team(side);
             var secondary = MatchSession.SecondaryColor(side);
-            var shirts = ShirtArt.Load();
-            if (shirts == null)
+            var shirt = MatchSession.DiscPattern(side);
+            if (shirt == null)
             {
                 // Sem a arte: um quadrado na cor do time.
                 var plain = piece.gameObject.AddComponent<Image>();
@@ -112,7 +112,7 @@ namespace FutebolDeBotao
             for (int i = 0; i < ShirtArt.LayerCount; i++)
             {
                 var layer = (ShirtLayer)i;
-                var sprite = shirts.disc.Get(layer, MatchSession.DiscPattern(side));
+                var sprite = shirt.Get(layer);
                 if (sprite == null) continue;
                 var image = CreateRect(piece, layer.ToString(), Vector2.zero, Vector2.one * DiscSize).gameObject.AddComponent<Image>();
                 image.sprite = sprite;

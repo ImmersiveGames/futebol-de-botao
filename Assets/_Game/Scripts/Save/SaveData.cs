@@ -50,8 +50,12 @@ namespace FutebolDeBotao
         {
             public int team;
             public int secondary;
+            /// <summary>Saves antigos: posição do padrão na folha (agora vale o id).</summary>
             public int discPattern;
             public int keeperPattern;
+            /// <summary>Id do padrão de camisa (<see cref="ShirtPattern"/>) dos botões e do goleiro.</summary>
+            public string discPatternId;
+            public string keeperPatternId;
             public int scheme3;
             public int scheme5;
         }
