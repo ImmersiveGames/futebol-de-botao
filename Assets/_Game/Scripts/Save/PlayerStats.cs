@@ -79,17 +79,23 @@ namespace FutebolDeBotao
                 stats.numbers.Add(player);
             }
 
+            int coins = Shop.Reward(level, playerScore, aiScore);
+            Data.levels[level].coins += coins;
+            Data.total.coins += coins;
+            Data.coinsEarned += coins;
+
             var last = new SaveData.LastMatchData
             {
                 level = level,
                 playerScore = playerScore,
                 aiScore = aiScore,
-                walkover = walkover
+                walkover = walkover,
+                coins = coins
             };
             last.numbers.Add(player);
             Data.last = last;
             Data.hasLast = true;
-            CoinsEarned = Shop.Reward(level, playerScore, aiScore);
+            CoinsEarned = coins;
             Shop.AddCoins(CoinsEarned);
             GameSave.Save("fim da partida");
         }

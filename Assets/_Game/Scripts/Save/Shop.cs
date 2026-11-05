@@ -30,10 +30,22 @@ namespace FutebolDeBotao
         {
             if (Owns(key) || Coins < price) return false;
             AddCoins(-price);
+            GameSave.Data.stats.coinsSpent += price;
+            GameSave.Data.stats.itemsBought++;
             GameSave.Data.unlocked ??= new System.Collections.Generic.List<string>();
             GameSave.Data.unlocked.Add(key);
             GameSave.Save("compra " + key);
             return true;
+        }
+
+        /// <summary>Preço do item do código (camisa:, bola:, mesa: ou feltro: + id); -1 se ele não existir mais.</summary>
+        public static int PriceOf(string key)
+        {
+            foreach (var item in ShirtPattern.All()) if (item.ShopKey == key) return item.price;
+            foreach (var item in BallTheme.All()) if (item.ShopKey == key) return item.price;
+            foreach (var item in TableTheme.All()) if (item.ShopKey == key) return item.price;
+            foreach (var item in FeltTheme.All()) if (item.ShopKey == key) return item.price;
+            return -1;
         }
 
         /// <summary>Teste: apaga todas as compras.</summary>

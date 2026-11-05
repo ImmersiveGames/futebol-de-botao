@@ -114,10 +114,12 @@ namespace FutebolDeBotao
             else
             {
                 var level = tab == 0 ? stats.total : stats.levels[tab - 1];
-                if (level.Played > 0) AddLevel(rows, level);
+                if (level.Played > 0) AddLevel(rows, level, tab > 0);
                 else empty = tab == 0
                     ? "Jogue contra a IA para ver suas estatísticas."
                     : $"Jogue contra a IA no nível {TabNames[tab]} para ver suas estatísticas.";
+                // Moedas no Geral mesmo sem partidas (compras e saldo).
+                if (tab == 0) AddCoins(rows, stats);
             }
 
             float width = ListSize.x - 2f * ListPadding;
@@ -162,7 +164,16 @@ namespace FutebolDeBotao
             scroll.velocity = Vector2.zero;
         }
 
-        private static void AddLevel(List<(string, string)> rows, SaveData.LevelStats s)
+        private static void AddCoins(List<(string, string)> rows, SaveData.StatsData stats)
+        {
+            rows.Add(("Moedas", null));
+            rows.Add(("Saldo", Shop.Coins.ToString()));
+            rows.Add(("Moedas ganhas", stats.coinsEarned.ToString()));
+            rows.Add(("Moedas gastas", stats.coinsSpent.ToString()));
+            rows.Add(("Itens comprados", stats.itemsBought.ToString()));
+        }
+
+        private static void AddLevel(List<(string, string)> rows, SaveData.LevelStats s, bool showCoins)
         {
             int played = s.Played;
             int finished = s.Finished;
@@ -176,6 +187,7 @@ namespace FutebolDeBotao
             rows.Add(("Abandonadas", WithPercent(s.abandoned, played)));
             rows.Add(("Sequência de vitórias", s.streak.ToString()));
             rows.Add(("Recorde de sequência", s.bestStreak.ToString()));
+            if (showCoins) rows.Add(("Moedas ganhas", s.coins.ToString()));
 
             rows.Add(("Gols", null));
             rows.Add(("Gols feitos", n.goals.ToString()));
@@ -208,6 +220,7 @@ namespace FutebolDeBotao
             rows.Add(("Nível", AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(last.level, 0, 2))));
             rows.Add(("Placar (você x IA)", $"{last.playerScore} x {last.aiScore}"));
             rows.Add(("Resultado", result));
+            rows.Add(("Moedas ganhas", last.coins.ToString()));
 
             rows.Add(("Gols", null));
             rows.Add(("Gols feitos", n.goals.ToString()));

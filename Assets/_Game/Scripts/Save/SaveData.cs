@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -87,6 +87,10 @@ namespace FutebolDeBotao
             /// <summary>Já houve uma partida terminada (a aba Última partida).</summary>
             public bool hasLast;
             public LastMatchData last = new();
+            /// <summary>Moedas ganhas em partidas (versão 4; as do menu de teste não contam).</summary>
+            public int coinsEarned;
+            public int coinsSpent;
+            public int itemsBought;
         }
 
         /// <summary>Números do jogador numa partida (ou somados em várias).</summary>
@@ -138,6 +142,8 @@ namespace FutebolDeBotao
             public int bestStreak;
             /// <summary>Somados só das partidas terminadas.</summary>
             public MatchNumbers numbers = new();
+            /// <summary>Moedas que as partidas pagaram.</summary>
+            public int coins;
 
             public int Played => wins + draws + losses + abandoned;
             public int Finished => wins + draws + losses;
@@ -152,6 +158,7 @@ namespace FutebolDeBotao
             public int playerScore;
             public int aiScore;
             public bool walkover;
+            public int coins;
             public MatchNumbers numbers = new();
         }
 
