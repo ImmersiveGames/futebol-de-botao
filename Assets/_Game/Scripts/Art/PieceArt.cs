@@ -34,7 +34,7 @@ namespace FutebolDeBotao
                 var layer = (ShirtLayer)i;
                 var sprite = sheet?.Get(layer, pattern);
                 if (sprite != null) layers[i].sprite = sprite;
-                layers[i].color = ShirtArt.Tint(layer, primary, secondary);
+                layers[i].color = ShirtArt.Tint(layer, primary, secondary, keeper);
             }
         }
 

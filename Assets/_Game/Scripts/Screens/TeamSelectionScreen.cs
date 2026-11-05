@@ -349,7 +349,7 @@ namespace FutebolDeBotao
                 var layer = (ShirtLayer)i;
                 var image = piece.Layers[i];
                 image.sprite = sheet.Get(layer, pattern);
-                image.color = ShirtArt.Tint(layer, team.PrimaryColor, secondary);
+                image.color = ShirtArt.Tint(layer, team.PrimaryColor, secondary, sheet != null && sheet == ShirtArt.Load()?.keeper);
                 image.enabled = image.sprite != null;
             }
         }

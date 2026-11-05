@@ -79,14 +79,22 @@ namespace FutebolDeBotao
             return cached;
         }
 
-        /// <summary>Cor de cada camada com as cores do time.</summary>
-        public static Color Tint(ShirtLayer layer, Color primary, Color secondary) => layer switch
+        /// <summary>Transparência da luz (brilho) e da sombra interna do goleiro.</summary>
+        public const float KeeperLightAlpha = 0.5f;
+
+        /// <summary>Cor de cada camada com as cores do time (no goleiro, luz e sombra interna semitransparentes).</summary>
+        public static Color Tint(ShirtLayer layer, Color primary, Color secondary, bool keeper = false)
         {
-            ShirtLayer.Shadow => ShadowColor,
-            ShirtLayer.Pattern => secondary,
-            ShirtLayer.Shine => Color.Lerp(primary, Color.white, ShineLightness),
-            _ => primary,
-        };
+            var color = layer switch
+            {
+                ShirtLayer.Shadow => ShadowColor,
+                ShirtLayer.Pattern => secondary,
+                ShirtLayer.Shine => Color.Lerp(primary, Color.white, ShineLightness),
+                _ => primary,
+            };
+            if (keeper && layer is ShirtLayer.Shine or ShirtLayer.InnerShade) color.a *= KeeperLightAlpha;
+            return color;
+        }
 
         /// <summary>Corpo, padrão e contorno (grupo "Gira" na cena); hoje nenhuma camada gira na tela.</summary>
         public static bool Spins(ShirtLayer layer) => layer is ShirtLayer.Body or ShirtLayer.Pattern or ShirtLayer.Outline;
