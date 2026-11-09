@@ -35,6 +35,8 @@ namespace FutebolDeBotao
         [Min(0)] public int price;
         [Tooltip("O jogador já tem desde o começo.")]
         public bool unlockedByDefault;
+        [Tooltip("Cores de trave que combinam com este feltro, pelo nome da cor na mesa (ex.: Branca). Vazio: qualquer uma.")]
+        public string[] goalColors = { };
         [Tooltip("Miniatura na Loja. Vazio: a Loja mostra as faixas de cor.")]
         public Sprite thumbnail;
 
@@ -43,6 +45,16 @@ namespace FutebolDeBotao
 
         /// <summary>Vem liberado ou o jogador comprou.</summary>
         public bool Unlocked => unlockedByDefault || Shop.Owns(ShopKey);
+
+        /// <summary>A cor de trave (nome na mesa) está na lista deste feltro (sem diferenciar maiúsculas e espaços).</summary>
+        public bool AcceptsGoal(string colorName)
+        {
+            if (string.IsNullOrWhiteSpace(colorName) || goalColors == null) return false;
+            foreach (var accepted in goalColors)
+                if (!string.IsNullOrWhiteSpace(accepted) && string.Equals(accepted.Trim(), colorName.Trim(), System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
+        }
 
         /// <summary>Cor da fileira <paramref name="row"/> (0 = de baixo) de um feltro com <paramref name="rows"/> fileiras.</summary>
         public Color RowColor(int row, int rows)

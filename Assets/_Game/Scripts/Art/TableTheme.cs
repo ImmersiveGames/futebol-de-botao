@@ -184,8 +184,23 @@ namespace FutebolDeBotao
             var pool = unlocked.Count > 0 ? unlocked : new List<TableTheme>(all);
             table = pool[Random.Range(0, pool.Count)];
             MatchSession.TableId = table.id;
-            MatchSession.GoalColor = Random.Range(0, Mathf.Max(1, table.goalColors?.Length ?? 0));
+            MatchSession.GoalColor = table.PickGoalColor(FeltTheme.Current());
             return table;
+        }
+
+        /// <summary>
+        /// Sorteia a cor das traves entre as que o feltro aceita (<see cref="FeltTheme.goalColors"/>, pelo nome); sem lista
+        /// ou sem nenhuma dessas cores na mesa, entre todas.
+        /// </summary>
+        public int PickGoalColor(FeltTheme felt)
+        {
+            int count = goalColors?.Length ?? 0;
+            if (count == 0) return 0;
+            var allowed = new List<int>();
+            if (felt != null && felt.goalColors != null && felt.goalColors.Length > 0)
+                for (int i = 0; i < count; i++)
+                    if (goalColors[i] != null && felt.AcceptsGoal(goalColors[i].name)) allowed.Add(i);
+            return allowed.Count > 0 ? allowed[Random.Range(0, allowed.Count)] : Random.Range(0, count);
         }
 
         // Com o "Enter Play Mode" sem recarregar o domínio, a lista sobreviveria a mudanças nos assets.
