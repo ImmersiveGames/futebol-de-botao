@@ -34,9 +34,10 @@ namespace FutebolDeBotao
         private static readonly float[] AdvanceOffsets = { -1.5f, 0f, 1.5f };
         private static readonly float[] GoalOffsets = { -0.8f, -0.4f, 0f, 0.4f, 0.8f };
         private static readonly float[] PowerScales = { 0.85f, 1f, 1.2f };
-        // Pênalti: chute forte (a força passa de 1 e fica no máximo) e mira com folga da trave.
+        // Pênalti: chute forte (a força passa de 1 e fica no máximo). Alvos no vão entre o goleiro no meio e a trave
+        // (com a bola de raio 0,2: centro entre 0,7 e 1,0), mais o meio para quando o goleiro sai dele.
         private static readonly float[] PenaltyPowerScales = { 1.3f, 1.7f, 2.5f };
-        private static readonly float[] PenaltyGoalOffsets = { -0.6f, -0.3f, 0f, 0.3f, 0.6f };
+        private static readonly float[] PenaltyGoalOffsets = { -0.88f, -0.78f, 0f, 0.78f, 0.88f };
         private const float WideSideDistance = 2.5f;
         private const float WideBackDistance = 1.5f;
         /// <summary>Empurrãozinho do toque seguro: um botão anda só isso, longe de tudo.</summary>
