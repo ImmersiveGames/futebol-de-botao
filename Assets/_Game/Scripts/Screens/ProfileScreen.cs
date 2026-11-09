@@ -5,21 +5,28 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tela Meu time (do Menu): nome do time, sigla de 3 letras, cor principal e segunda cor (da lista Cores do time; podem
-    /// ser iguais), camisa do botão e do goleiro (só as liberadas) e o saldo de moedas. Em cima, o botão e o goleiro já
-    /// pintados. "Salvar" grava no save e volta ao Menu; "Voltar" volta sem gravar. Tocar no nome ou na sigla abre o
-    /// teclado (no celular, o do aparelho); no teclado/controle, Confirmar começa a digitar. Monta a UI sozinha.
+    /// Tela Meu time (do Menu), em duas abas. Time: nome do time, sigla de 3 letras, cor principal e segunda cor (da lista
+    /// Cores do time; podem ser iguais), camisa do botão e do goleiro (só as liberadas), com o botão e o goleiro pintados em
+    /// cima. Mesa: a mesa de casa (mesa, feltro, cor das traves que o feltro aceita e bola, só os liberados), com a mesa
+    /// montada em cima. "Salvar" grava as duas abas e volta ao Menu; "Voltar" volta sem gravar. Tocar no nome ou na sigla
+    /// abre o teclado (no celular, o do aparelho); no teclado/controle, Confirmar começa a digitar. Monta a UI sozinha.
     /// </summary>
     public sealed class ProfileScreen : MonoBehaviour
     {
-        private const float RowTop = 150f;
+        private const float RowTop = 130f;
+        private const float TabY = 405f;
+        private static readonly Vector2 TabSize = new(240f, 70f);
+        private const float TableRowTop = -120f;
+        private const float TableRowSpacing = 90f;
+        private const float TablePreviewY = 150f;
+        private const float TablePreviewTile = 32f;
         private const float RowSpacing = 100f;
         private const float LabelX = -200f;
         private const float LabelWidth = 280f;
         private const float ValueX = 150f;
         private const float ValueWidth = 360f;
         private const float ArrowSize = 70f;
-        private const float PreviewY = 330f;
+        private const float PreviewY = 285f;
         private const float PreviewSize = 150f;
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
@@ -27,6 +34,8 @@ namespace FutebolDeBotao
         private static readonly Color LabelColor = new(1f, 1f, 1f, 0.85f);
 
         [SerializeField] private MenuScreen menu;
+        [Tooltip("Recortes da mesa e da bola (Field_Sprites, Field_Marks e Ball_SpriteSheet), para a prévia da aba Mesa.")]
+        [SerializeField] private Sprite[] tableSprites;
 
         private Font font;
         private bool built;
@@ -35,12 +44,26 @@ namespace FutebolDeBotao
         private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel;
         private GameObject discRow, keeperRow;
         private Image[] discLayers, keeperLayers;
+        private GameObject teamTab, tableTab;
+        private Button teamTabButton, tableTabButton;
+        private MenuEntry[] teamEntries, tableEntries;
+        private MenuEntry tabsEntry, backEntry, saveEntry;
+        private MenuNavigator navigator;
+        private TablePreview tablePreview;
+        private Text tableLabel, feltLabel, goalLabel, ballLabel;
+        private GameObject goalRow;
+        private bool showingTable;
+        private VenueSetup home;
 
         // Escolhas ainda não salvas.
         private Color primary, secondary;
         private string discId, keeperId;
 
-        public void Configure(MenuScreen menuScreen) => menu = menuScreen;
+        public void Configure(MenuScreen menuScreen, Sprite[] tableArt)
+        {
+            menu = menuScreen;
+            tableSprites = tableArt;
+        }
 
         /// <summary>Abre com o que está salvo.</summary>
         public void Open()
@@ -54,13 +77,75 @@ namespace FutebolDeBotao
             discId = PlayerProfile.DiscPattern?.id ?? data.discPatternId;
             keeperId = PlayerProfile.KeeperPattern?.id ?? data.keeperPatternId;
             coinsLabel.text = $"Moedas: {PlayerProfile.Coins}";
+            home = Venue.Home();
+            ShowTab(false);
             Refresh();
         }
 
         private void Save()
         {
             PlayerProfile.Save(nameField.text, abbreviationField.text, primary, secondary, discId, keeperId);
+            PlayerProfile.SaveHome(home);
             Back();
+        }
+
+        /// <summary>Aba Time ou Mesa: o botão da aba fica apertado e o cursor passa pelas linhas dela.</summary>
+        private void ShowTab(bool table)
+        {
+            showingTable = table;
+            teamTab.SetActive(!table);
+            tableTab.SetActive(table);
+            ButtonSkin.SetHeld(teamTabButton, ButtonStyle.Green, !table);
+            ButtonSkin.SetHeld(tableTabButton, ButtonStyle.Green, table);
+            var items = new System.Collections.Generic.List<MenuEntry> { tabsEntry };
+            items.AddRange(table ? tableEntries : teamEntries);
+            items.Add(backEntry);
+            items.Add(saveEntry);
+            navigator.Configure(items.ToArray(), (Button)backEntry.GetComponent<Button>(), 0);
+            if (table) RefreshTable();
+        }
+
+        private void ChangeTable(int step)
+        {
+            home.TableId = Venue.Step(Venue.Tables(), home.TableId, step, table => table.id);
+            home.GoalColor = Venue.GoalByName(home.Table, home.Felt, null);
+            RefreshTable();
+        }
+
+        private void ChangeFelt(int step)
+        {
+            string goal = home.Table != null ? home.Table.Goal(home.GoalColor)?.name : null;
+            home.FeltId = Venue.Step(Venue.Felts(), home.FeltId, step, felt => felt.id);
+            // Fica com a mesma cor de trave se o feltro novo aceitar; senão, a primeira que ele aceita.
+            home.GoalColor = Venue.GoalByName(home.Table, home.Felt, goal);
+            RefreshTable();
+        }
+
+        private void ChangeGoal(int step)
+        {
+            home.GoalColor = Venue.StepGoal(home.Table, home.Felt, home.GoalColor, step);
+            RefreshTable();
+        }
+
+        private void ChangeBall(int step)
+        {
+            home.BallId = Venue.Step(Venue.Balls(), home.BallId, step, ball => ball.id);
+            RefreshTable();
+        }
+
+        private void RefreshTable()
+        {
+            var table = home.Table;
+            var felt = home.Felt;
+            var ball = home.Ball;
+            tableLabel.text = table != null ? table.displayName : "-";
+            feltLabel.text = felt != null ? felt.displayName : "-";
+            ballLabel.text = ball != null ? ball.displayName : "-";
+            // Cor da trave só nas mesas de placas (a clássica tem os gols da folha do campo).
+            bool goals = table != null && table.HasBoards && table.AllowedGoalColors(felt).Count > 0;
+            goalRow.SetActive(goals);
+            goalLabel.text = goals ? table.Goal(home.GoalColor)?.name ?? "-" : string.Empty;
+            tablePreview.Paint(home);
         }
 
         private void Back()
@@ -136,23 +221,43 @@ namespace FutebolDeBotao
             CreateText(root, "Título", "Meu time", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f));
             coinsLabel = CreateText(root, "Moedas", "Moedas: 0", 34, FontStyle.Bold, CoinColor, new Vector2(0f, 475f), new Vector2(680f, 60f));
 
-            // Prévia: o botão e o goleiro pintados, direto sobre o fundo da tela.
-            var preview = CreateRect(root, "Prévia", new Vector2(0f, PreviewY), new Vector2(460f, 200f));
+            // Abas: Time | Mesa (a escolhida fica apertada).
+            teamTabButton = CreateButton(root, "Aba Time", "Time", new Vector2(-130f, TabY), TabSize, () => ShowTab(false));
+            tableTabButton = CreateButton(root, "Aba Mesa", "Mesa", new Vector2(130f, TabY), TabSize, () => ShowTab(true));
+            tabsEntry = CreateRect(root, "Item das abas", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            tabsEntry.Configure(null, teamTabButton, tableTabButton, (RectTransform)teamTabButton.transform, (RectTransform)tableTabButton.transform);
+
+            // Aba Time. Prévia: o botão e o goleiro pintados, direto sobre o fundo da tela.
+            var teamPage = CreateRect(root, "Aba Time", Vector2.zero, Vector2.zero);
+            teamTab = teamPage.gameObject;
+            var preview = CreateRect(teamPage, "Prévia", new Vector2(0f, PreviewY), new Vector2(460f, 200f));
             discLayers = CreatePiece(preview, "Botão", new Vector2(-110f, 0f), false);
             keeperLayers = CreatePiece(preview, "Goleiro", new Vector2(110f, 0f), true);
 
-            var nameEntry = CreateField(root, "Nome", "Nome do time", 0, PlayerProfile.NameLength, false, out nameField);
-            var abbreviationEntry = CreateField(root, "Sigla", "Sigla (3 letras)", 1, PlayerProfile.AbbreviationLength, true, out abbreviationField);
-            var primaryEntry = CreateArrowRow(root, "Cor principal", 2, ChangePrimary, true, out primaryLabel, out primarySwatch, out _);
-            var secondaryEntry = CreateArrowRow(root, "Segunda cor", 3, ChangeSecondary, true, out secondaryLabel, out secondarySwatch, out _);
-            var discEntry = CreateArrowRow(root, "Camisa do botão", 4, step => ChangeShirt(false, step), false, out discLabel, out _, out discRow);
-            var keeperEntry = CreateArrowRow(root, "Camisa do goleiro", 5, step => ChangeShirt(true, step), false, out keeperLabel, out _, out keeperRow);
+            var nameEntry = CreateField(teamPage, "Nome", "Nome do time", 0, PlayerProfile.NameLength, false, out nameField);
+            var abbreviationEntry = CreateField(teamPage, "Sigla", "Sigla (3 letras)", 1, PlayerProfile.AbbreviationLength, true, out abbreviationField);
+            var primaryEntry = CreateArrowRow(teamPage, "Cor principal", RowY(2), ChangePrimary, true, out primaryLabel, out primarySwatch, out _);
+            var secondaryEntry = CreateArrowRow(teamPage, "Segunda cor", RowY(3), ChangeSecondary, true, out secondaryLabel, out secondarySwatch, out _);
+            var discEntry = CreateArrowRow(teamPage, "Camisa do botão", RowY(4), step => ChangeShirt(false, step), false, out discLabel, out _, out discRow);
+            var keeperEntry = CreateArrowRow(teamPage, "Camisa do goleiro", RowY(5), step => ChangeShirt(true, step), false, out keeperLabel, out _, out keeperRow);
+            teamEntries = new[] { nameEntry, abbreviationEntry, primaryEntry, secondaryEntry, discEntry, keeperEntry };
+
+            // Aba Mesa: a mesa de casa montada e as setas de cada parte.
+            var tablePage = CreateRect(root, "Aba Mesa", Vector2.zero, Vector2.zero);
+            tableTab = tablePage.gameObject;
+            tablePreview = new TablePreview(tablePage, new Vector2(0f, TablePreviewY), TablePreviewTile, tableSprites);
+            var tableEntry = CreateArrowRow(tablePage, "Mesa", TableRowY(0), ChangeTable, false, out tableLabel, out _, out _);
+            var feltEntry = CreateArrowRow(tablePage, "Feltro", TableRowY(1), ChangeFelt, false, out feltLabel, out _, out _);
+            var goalEntry = CreateArrowRow(tablePage, "Cor da trave", TableRowY(2), ChangeGoal, false, out goalLabel, out _, out goalRow);
+            var ballEntry = CreateArrowRow(tablePage, "Bola", TableRowY(3), ChangeBall, false, out ballLabel, out _, out _);
+            tableEntries = new[] { tableEntry, feltEntry, goalEntry, ballEntry };
 
             var back = CreateButton(root, "Voltar", "Voltar", new Vector2(-180f, -510f), new Vector2(260f, 80f), Back, ButtonStyle.Red);
             var save = CreateButton(root, "Salvar", "Salvar", new Vector2(150f, -510f), new Vector2(300f, 80f), Save, ButtonStyle.Yellow);
+            backEntry = Entry(back);
+            saveEntry = Entry(save);
 
-            var navigator = gameObject.AddComponent<MenuNavigator>();
-            navigator.Configure(new[] { nameEntry, abbreviationEntry, primaryEntry, secondaryEntry, discEntry, keeperEntry, Entry(back), Entry(save) }, back);
+            navigator = gameObject.AddComponent<MenuNavigator>();
         }
 
         private Image[] CreatePiece(Transform parent, string objectName, Vector2 position, bool keeper)
@@ -171,6 +276,8 @@ namespace FutebolDeBotao
         }
 
         private static float RowY(int row) => RowTop - row * RowSpacing;
+
+        private static float TableRowY(int row) => TableRowTop - row * TableRowSpacing;
 
         private Text CreateRowLabel(Transform parent, string label, float y)
         {
@@ -231,10 +338,9 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Linha com setas "&lt;" e "&gt;" e o valor no meio (numa amostra da cor, nas linhas de cor).</summary>
-        private MenuEntry CreateArrowRow(Transform parent, string label, int row, UnityAction<int> change, bool swatch,
+        private MenuEntry CreateArrowRow(Transform parent, string label, float y, UnityAction<int> change, bool swatch,
             out Text value, out Image swatchImage, out GameObject rowObject)
         {
-            float y = RowY(row);
             var line = CreateRect(parent, label, Vector2.zero, Vector2.zero);
             rowObject = line.gameObject;
             CreateRowLabel(line, label, y);

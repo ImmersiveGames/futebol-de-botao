@@ -25,6 +25,9 @@ namespace FutebolDeBotao
 
         private bool pressed;
 
+        /// <summary>Fica apertado mesmo sem o dedo (botões de escolha, como Em casa / Visitante).</summary>
+        public bool Held { get; set; }
+
         public void Configure(Button target, RectTransform shown, Color textColor, float raiseUnits)
         {
             button = target;
@@ -53,7 +56,7 @@ namespace FutebolDeBotao
         {
             if (content == null) return;
             bool enabledButton = button == null || button.IsInteractable();
-            bool down = pressed && enabledButton;
+            bool down = (pressed || Held) && enabledButton;
             if (hasBase) content.anchoredPosition = basePosition + new Vector2(0f, down ? 0f : raise);
             var tint = !enabledButton ? Color.white
                 : down ? new Color(color.r * PressedDarken, color.g * PressedDarken, color.b * PressedDarken, color.a)

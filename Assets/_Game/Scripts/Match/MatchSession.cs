@@ -51,7 +51,7 @@ namespace FutebolDeBotao
         /// <summary>Nível da IA escolhido no Menu.</summary>
         public static AiLevel AiLevel { get; set; } = AiLevel.Medium;
 
-        /// <summary>Id do feltro da partida (<see cref="FeltTheme"/>); nulo = sortear de novo. O Reiniciar mantém.</summary>
+        /// <summary>Id do feltro da partida (<see cref="FeltTheme"/>); nulo = sortear. O Reiniciar e o Jogar de novo mantêm.</summary>
         public static string FeltId { get; set; }
 
         /// <summary>Id da mesa da partida (<see cref="TableTheme"/>); nulo = sortear de novo (com a cor das traves). O Reiniciar mantém.</summary>
@@ -62,6 +62,36 @@ namespace FutebolDeBotao
 
         /// <summary>Cor das traves da mesa da partida (índice nas cores da mesa).</summary>
         public static int GoalColor { get; set; }
+
+        /// <summary>A partida é na mesa do visitante (sorteada); falso = na mesa de casa do jogador.</summary>
+        public static bool Away { get; private set; }
+
+        /// <summary>Mesa de casa (do Meu time) e a do visitante (sorteada) da partida; nulas antes da Seleção de times.</summary>
+        public static VenueSetup HomeVenue { get; private set; }
+        public static VenueSetup AwayVenue { get; private set; }
+
+        /// <summary>
+        /// Partida nova (Seleção de times aberta pelo Menu): pega a mesa de casa, sorteia a do visitante e começa em casa.
+        /// O Reiniciar e o Jogar de novo não passam aqui: ficam com a mesma mesa, feltro, traves e bola.
+        /// </summary>
+        public static void PrepareVenues()
+        {
+            HomeVenue = Venue.Home();
+            AwayVenue = Venue.RollAway(HomeVenue);
+            SetAway(false);
+        }
+
+        /// <summary>Joga em casa ou fora: mesa, feltro, traves e bola daquele lado (a bola volta à do lado).</summary>
+        public static void SetAway(bool away)
+        {
+            Away = away;
+            var venue = away ? AwayVenue : HomeVenue;
+            if (venue == null) return;
+            TableId = venue.TableId;
+            FeltId = venue.FeltId;
+            GoalColor = venue.GoalColor;
+            BallId = venue.BallId;
+        }
 
         // Times e esquemas escolhidos na Seleção de times, por lado (0 = baixo, 1 = cima).
         private static readonly int[] teamIndex = { 0, 1 };
@@ -154,6 +184,9 @@ namespace FutebolDeBotao
             TableId = null;
             BallId = null;
             GoalColor = 0;
+            Away = false;
+            HomeVenue = null;
+            AwayVenue = null;
             VsAi = null;
             AiLevel = AiLevel.Medium;
             teamIndex[0] = 0;

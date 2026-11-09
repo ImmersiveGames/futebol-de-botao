@@ -194,13 +194,26 @@ namespace FutebolDeBotao
         /// </summary>
         public int PickGoalColor(FeltTheme felt)
         {
-            int count = goalColors?.Length ?? 0;
-            if (count == 0) return 0;
+            var allowed = AllowedGoalColors(felt);
+            return allowed.Count > 0 ? allowed[Random.Range(0, allowed.Count)] : 0;
+        }
+
+        /// <summary>
+        /// Posições das cores de trave completas que o feltro aceita; se o feltro não tiver lista ou nenhuma bater, todas
+        /// as completas.
+        /// </summary>
+        public List<int> AllowedGoalColors(FeltTheme felt)
+        {
+            var complete = new List<int>();
             var allowed = new List<int>();
-            if (felt != null && felt.goalColors != null && felt.goalColors.Length > 0)
-                for (int i = 0; i < count; i++)
-                    if (goalColors[i] != null && felt.AcceptsGoal(goalColors[i].name)) allowed.Add(i);
-            return allowed.Count > 0 ? allowed[Random.Range(0, allowed.Count)] : Random.Range(0, count);
+            int count = goalColors?.Length ?? 0;
+            for (int i = 0; i < count; i++)
+            {
+                if (goalColors[i] == null || !goalColors[i].Complete) continue;
+                complete.Add(i);
+                if (felt != null && felt.AcceptsGoal(goalColors[i].name)) allowed.Add(i);
+            }
+            return allowed.Count > 0 ? allowed : complete;
         }
 
         // Com o "Enter Play Mode" sem recarregar o domínio, a lista sobreviveria a mudanças nos assets.

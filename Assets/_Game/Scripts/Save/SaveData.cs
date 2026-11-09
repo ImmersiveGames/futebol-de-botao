@@ -73,6 +73,11 @@ namespace FutebolDeBotao
             public string discPatternId;
             public string keeperPatternId;
             public int coins;
+            /// <summary>Mesa de casa (aba Mesa do Meu time): ids da mesa, do feltro e da bola e o nome da cor das traves. Vazio: a primeira liberada.</summary>
+            public string tableId;
+            public string feltId;
+            public string goalColorName;
+            public string ballId;
         }
 
         [Serializable]

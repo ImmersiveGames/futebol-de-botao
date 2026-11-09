@@ -268,7 +268,7 @@ namespace FutebolDeBotao.Editor
             // Meu time: nome, sigla, cores, camisas e moedas do jogador. Monta a UI sozinha ao abrir.
             var profilePanel = CreateGroup(canvas, "Meu time");
             var profile = profilePanel.gameObject.AddComponent<ProfileScreen>();
-            profile.Configure(menu);
+            profile.Configure(menu, LoadTableSprites());
             menu.SetProfile(profile);
             profilePanel.gameObject.SetActive(false);
 

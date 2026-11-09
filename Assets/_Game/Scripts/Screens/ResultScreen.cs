@@ -67,10 +67,7 @@ namespace FutebolDeBotao
 
         public void PlayAgain()
         {
-            // Partida nova: sorteia o feltro e a mesa de novo (só o Reiniciar mantém).
-            MatchSession.FeltId = null;
-            MatchSession.TableId = null;
-            MatchSession.BallId = null;
+            // Mesma mesa, feltro, traves e bola (só uma partida nova pelo Menu muda).
             if (matchRoute != null) matchRoute.RequestRoute();
         }
 

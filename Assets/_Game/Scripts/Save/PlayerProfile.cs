@@ -57,6 +57,17 @@ namespace FutebolDeBotao
             GameSave.Save("meu time");
         }
 
+        /// <summary>Grava a mesa de casa (aba Mesa do Meu time).</summary>
+        public static void SaveHome(VenueSetup home)
+        {
+            var data = Data;
+            data.tableId = home.TableId;
+            data.feltId = home.FeltId;
+            data.goalColorName = home.Table != null ? home.Table.Goal(home.GoalColor)?.name : null;
+            data.ballId = home.BallId;
+            GameSave.Save("mesa de casa");
+        }
+
         public static string CleanName(string value)
         {
             value = value?.Trim() ?? string.Empty;

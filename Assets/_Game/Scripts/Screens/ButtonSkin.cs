@@ -111,6 +111,20 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
+        /// Deixa o botão já vestido apertado (ou solto) sem o dedo: a face apertada e o texto afundado, como num botão de
+        /// escolha. Devolve falso sem a folha.
+        /// </summary>
+        public static bool SetHeld(Button button, ButtonStyle style, bool held)
+        {
+            if (button == null || button.targetGraphic is not Image image) return false;
+            var sprite = Find(style, held);
+            if (sprite == null) return false;
+            image.sprite = sprite;
+            if (button.TryGetComponent<ButtonSkinText>(out var text)) text.Held = held;
+            return true;
+        }
+
+        /// <summary>
         /// Troca o texto do botão por um ícone da folha de ícones. <paramref name="cellSize"/> é o lado, em unidades da UI,
         /// de uma célula de 32 px da arte. Com mais de um nome (teclado e mouse), as imagens ficam lado a lado na mesma
         /// escala, com um vão de 3 px. Sem a arte, não mexe em nada e devolve falso (fica o texto). Chamar antes do

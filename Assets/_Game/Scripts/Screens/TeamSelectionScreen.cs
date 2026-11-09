@@ -38,7 +38,10 @@ namespace FutebolDeBotao
         private static readonly Color SecondPlayerFrame = new(0.45f, 0.85f, 1f, 1f);
         private static readonly Vector2 MiddleButtonSize = new(1.5f, 0.5f);
         private const float MiddleButtonX = 2.45f;
-        private const float MiddleButtonY = -0.32f;
+        // Voltar e Pronto ficam na linha das placas, ao lado do gol de cada um.
+        private const float EndButtonY = -(FieldLayout.HalfHeight + 0.5f);
+        private const float BallArrowX = 0.6f;
+        private const float BallArrowSize = 0.42f;
         // Time, segunda cor e camisa, uma linha embaixo da outra: as duas setas lado a lado e o texto à direita delas.
         private const float TeamRowY = BlockY + 0.35f;
         private const float SecondaryY = BlockY - 0.35f;
@@ -117,6 +120,8 @@ namespace FutebolDeBotao
         private bool built;
         private bool starting;
         private MenuNavigator sharedNavigator;
+        /// <summary>Em casa / Visitante na linha do meio (um fica apertado) e as setas da bola.</summary>
+        private Button homeButton, awayButton;
         /// <summary>Há padrões de camisa (Resources/PadroesCamisa); sem eles, as peças são formas lisas.</summary>
         private bool hasShirts;
 
@@ -166,12 +171,9 @@ namespace FutebolDeBotao
                 MatchSession.SetDiscPattern(side, MatchSession.DiscPatternId(side));
                 MatchSession.SetKeeperPattern(side, MatchSession.KeeperPatternId(side));
             }
-            // Partida nova: sorteia o feltro e a mesa aqui, para a Seleção de times mostrar os mesmos da Partida.
-            MatchSession.FeltId = null;
-            MatchSession.TableId = null;
-            MatchSession.BallId = null;
-            PaintTable();
-            PaintBall();
+            // Partida nova: mesa de casa do jogador e a do visitante sorteada; começa em casa.
+            MatchSession.PrepareVenues();
+            PaintVenue();
 
             starting = false;
             foreach (var pair in halves) SetReady(pair.Key, false);
@@ -235,6 +237,32 @@ namespace FutebolDeBotao
             if (keeper) MatchSession.SetKeeperPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Goleiro, MatchSession.KeeperPatternId(side), step));
             else MatchSession.SetDiscPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Botao, MatchSession.DiscPatternId(side), step));
             Refresh();
+        }
+
+        /// <summary>Em casa (mesa do jogador) ou Visitante (a sorteada): troca mesa, feltro, traves e bola.</summary>
+        public void SetAway(bool away)
+        {
+            MatchSession.SetAway(away);
+            PaintVenue();
+        }
+
+        /// <summary>Outra bola liberada, só nesta partida (Em casa / Visitante volta à bola daquela mesa).</summary>
+        public void ChangeBall(int step)
+        {
+            MatchSession.BallId = Venue.Step(Venue.Balls(), MatchSession.BallId, step, ball => ball.id);
+            PaintBall();
+        }
+
+        private void PaintVenue()
+        {
+            PaintTable();
+            PaintBall();
+            foreach (var (button, held) in new[] { (homeButton, !MatchSession.Away), (awayButton, MatchSession.Away) })
+            {
+                if (button == null) continue;
+                if (!ButtonSkin.SetHeld(button, ButtonStyle.Green, held))
+                    ((Image)button.targetGraphic).color = held ? ReadyColor : ButtonColor;
+            }
         }
 
         public void Back()
@@ -410,27 +438,38 @@ namespace FutebolDeBotao
                 PaintTable();
             }
 
-            // Faixa do meio-campo: o Voltar é do Jogador 1 (fica na metade de baixo); cada Pronto à direita do seu dono.
+            // Voltar (do Jogador 1) e Pronto ao lado do gol de baixo; o Pronto do Jogador 2 ao lado do gol de cima.
             var top = halves[TeamSide.Top];
             var bottom = halves[TeamSide.Bottom];
-            var back = CreateButton(bottom.Root, "Voltar", "Voltar", new Vector2(-MiddleButtonX, MiddleButtonY), MiddleButtonSize, Back, ButtonStyle.Red);
+            var back = CreateButton(bottom.Root, "Voltar", "Voltar", new Vector2(-MiddleButtonX, EndButtonY), MiddleButtonSize, Back, ButtonStyle.Red);
             var backItem = back.gameObject.AddComponent<MenuEntry>();
             backItem.Configure(back);
+
+            // Linha do meio: Em casa à esquerda, Visitante à direita (um fica apertado) e as setas da bola.
+            homeButton = CreateButton(field, "Em casa", "Em casa", new Vector2(-MiddleButtonX, 0f), MiddleButtonSize, () => SetAway(false));
+            awayButton = CreateButton(field, "Visitante", "Visitante", new Vector2(MiddleButtonX, 0f), MiddleButtonSize, () => SetAway(true));
+            var venueItem = CreateRect(field, "Item da mesa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            venueItem.Configure(null, homeButton, awayButton, (RectTransform)homeButton.transform, (RectTransform)awayButton.transform);
+            var previousBall = CreateButton(field, "Bola anterior", "<", new Vector2(-BallArrowX, 0f), Vector2.one * BallArrowSize, () => ChangeBall(-1));
+            var nextBall = CreateButton(field, "Próxima bola", ">", new Vector2(BallArrowX, 0f), Vector2.one * BallArrowSize, () => ChangeBall(1));
+            var ballItem = CreateRect(field, "Item da bola", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            ballItem.Configure(null, previousBall, nextBall, (RectTransform)previousBall.transform, (RectTransform)nextBall.transform);
+            PaintVenue();
 
             // Teclado/controle, um cursor só (contra a IA ou revezando): de cima para baixo na tela; começa no time de baixo.
             sharedNavigator = gameObject.AddComponent<MenuNavigator>();
             sharedNavigator.Configure(new[]
             {
-                top.KeeperItem, top.ShirtItem, top.SecondaryItem, top.TeamItem, top.SchemeItem, top.ReadyItem, backItem,
-                bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem, bottom.SecondaryItem, bottom.ShirtItem, bottom.KeeperItem,
+                top.ReadyItem, top.KeeperItem, top.ShirtItem, top.SecondaryItem, top.TeamItem, top.SchemeItem, venueItem, ballItem,
+                bottom.TeamItem, bottom.SchemeItem, bottom.SecondaryItem, bottom.ShirtItem, bottom.KeeperItem, backItem, bottom.ReadyItem,
             }, back, 8, 1);
 
-            // Um cursor por jogador, cada um na sua metade (começa no time).
+            // Um cursor por jogador, cada um na sua metade (começa no time); a mesa e a bola ficam com o Jogador 1.
             bottom.Navigator = bottom.Root.gameObject.AddComponent<MenuNavigator>();
-            bottom.Navigator.Configure(new[] { backItem, bottom.ReadyItem, bottom.TeamItem, bottom.SchemeItem, bottom.SecondaryItem, bottom.ShirtItem, bottom.KeeperItem }, back, 2, 1);
+            bottom.Navigator.Configure(new[] { venueItem, ballItem, bottom.TeamItem, bottom.SchemeItem, bottom.SecondaryItem, bottom.ShirtItem, bottom.KeeperItem, backItem, bottom.ReadyItem }, back, 2, 1);
             bottom.Navigator.BackAction = () => SideBack(TeamSide.Bottom);
             top.Navigator = top.Root.gameObject.AddComponent<MenuNavigator>();
-            top.Navigator.Configure(new[] { top.ReadyItem, top.TeamItem, top.SchemeItem, top.SecondaryItem, top.ShirtItem, top.KeeperItem }, null, 1, 2);
+            top.Navigator.Configure(new[] { top.TeamItem, top.SchemeItem, top.SecondaryItem, top.ShirtItem, top.KeeperItem, top.ReadyItem }, null, 0, 2);
             top.Navigator.SetFrameColor(SecondPlayerFrame);
             top.Navigator.BackAction = () => SideBack(TeamSide.Top);
             top.Navigator.enabled = bottom.Navigator.enabled = false;
@@ -756,7 +795,7 @@ namespace FutebolDeBotao
                 (RectTransform)previousKeeper.transform, (RectTransform)nextKeeper.transform);
 
             view.Arrows = new[] { previousTeam, nextTeam, previousScheme, nextScheme, previousSecondary, nextSecondary, previousShirt, nextShirt, previousKeeper, nextKeeper };
-            view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, MiddleButtonY), MiddleButtonSize, () => ToggleReady(side), ButtonStyle.Yellow);
+            view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, EndButtonY), MiddleButtonSize, () => ToggleReady(side), ButtonStyle.Yellow);
             view.ReadyItem = view.Ready.gameObject.AddComponent<MenuEntry>();
             view.ReadyItem.Configure(view.Ready);
             foreach (RectTransform child in controls) view.ControlPositions.Add((child, child.anchoredPosition));
