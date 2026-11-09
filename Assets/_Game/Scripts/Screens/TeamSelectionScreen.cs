@@ -106,6 +106,8 @@ namespace FutebolDeBotao
         private GameObject smallPoles;
         /// <summary>Fileiras do feltro além das de cima e de baixo, por baixo das placas (só nas mesas de placas).</summary>
         private readonly List<Image> feltEnds = new();
+        /// <summary>Textos em cima do campo (nome, sigla, Cor 2, Camisa, esquema): levam a cor das marcações do feltro.</summary>
+        private readonly List<(Text text, bool soft)> fieldLabels = new();
         private GameObject classicFrame;
         private GameObject woodImage;
         private RectTransform boardsLayer, goalsLayer;
@@ -607,12 +609,38 @@ namespace FutebolDeBotao
             }
 
             if (marksImage != null) marksImage.color = themed ? theme.marks : Color.white;
+            PaintLabels(themed ? theme.marks : Color.white);
             bool split = themed && theme.SplitsMiddleRow(rows);
             feltUpperHalf.gameObject.SetActive(split);
             if (!split) return;
             feltUpperHalf.sprite = art.UpperHalf(theme.tile);
             feltUpperHalf.color = theme.secondary;
             feltUpperHalf.rectTransform.sizeDelta = new Vector2(width, 0.5f) * Unit;
+        }
+
+        /// <summary>
+        /// Textos em cima do campo na cor das marcações do feltro (os secundários um pouco transparentes), com uma sombra
+        /// que contrasta: clara com marcação escura, preta com marcação clara.
+        /// </summary>
+        private void PaintLabels(Color marks)
+        {
+            Color.RGBToHSV(marks, out _, out _, out float value);
+            var shadow = value < 0.5f ? new Color(1f, 1f, 1f, 0.35f) : new Color(0f, 0f, 0f, 0.5f);
+            foreach (var (text, soft) in fieldLabels)
+            {
+                if (text == null) continue;
+                text.color = new Color(marks.r, marks.g, marks.b, soft ? SoftText.a : 1f);
+                if (text.TryGetComponent(out Shadow outline)) outline.effectColor = shadow;
+            }
+        }
+
+        /// <summary>Registra um texto em cima do campo (pintado com a cor das marcações em <see cref="PaintLabels"/>).</summary>
+        private Text FieldLabel(Text text, bool soft)
+        {
+            var shadow = text.gameObject.AddComponent<Shadow>();
+            shadow.effectDistance = new Vector2(1.5f, -1.5f);
+            fieldLabels.Add((text, soft));
+            return text;
         }
 
         /// <summary>Imagem repetida tile a tile (32 px = 1 unidade do campo = <see cref="Unit"/> da UI).</summary>
@@ -679,18 +707,18 @@ namespace FutebolDeBotao
             // Esquerda (de quem joga deste lado): as setas do time com o nome e a abreviação à direita.
             var previousTeam = CreateButton(controls, "Time anterior", "<", new Vector2(RowArrowX[0], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, -1));
             var nextTeam = CreateButton(controls, "Próximo time", ">", new Vector2(RowArrowX[1], TeamRowY), Vector2.one * RowArrowSize, () => ChangeTeam(side, 1));
-            view.Name = CreateRowLabel(controls, "Nome", 22, FontStyle.Bold, Color.white, TeamRowY + 0.13f, 0.32f);
-            view.Abbreviation = CreateRowLabel(controls, "Abreviação", 18, FontStyle.Normal, SoftText, TeamRowY - 0.15f, 0.26f);
+            view.Name = FieldLabel(CreateRowLabel(controls, "Nome", 22, FontStyle.Bold, Color.white, TeamRowY + 0.13f, 0.32f), false);
+            view.Abbreviation = FieldLabel(CreateRowLabel(controls, "Abreviação", 18, FontStyle.Normal, SoftText, TeamRowY - 0.15f, 0.26f), true);
             view.TeamItem = CreateRect(controls, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.TeamItem.Configure(null, previousTeam, nextTeam, view.Name.rectTransform,
                 view.Abbreviation.rectTransform, (RectTransform)previousTeam.transform, (RectTransform)nextTeam.transform);
 
             // Direita: o esquema tático.
             float x = StripX;
-            var schemeTitle = CreateText(controls, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f));
+            var schemeTitle = FieldLabel(CreateText(controls, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f)), true);
             schemeTitle.text = "Esquema";
-            view.Scheme = CreateText(controls, "Nome do esquema", 32, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.5f), new Vector2(1.4f, 0.44f));
-            view.Style = CreateText(controls, "Estilo", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.26f));
+            view.Scheme = FieldLabel(CreateText(controls, "Nome do esquema", 32, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.5f), new Vector2(1.4f, 0.44f)), false);
+            view.Style = FieldLabel(CreateText(controls, "Estilo", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.26f)), true);
             var previousScheme = CreateButton(controls, "Esquema anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, -1));
             var nextScheme = CreateButton(controls, "Próximo esquema", ">", new Vector2(x + 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, 1));
             view.SchemeItem = CreateRect(controls, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
@@ -700,7 +728,7 @@ namespace FutebolDeBotao
             // Segunda cor: embaixo do time, no mesmo formato.
             var previousSecondary = CreateButton(controls, "Cor 2 anterior", "<", new Vector2(RowArrowX[0], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, -1));
             var nextSecondary = CreateButton(controls, "Próxima cor 2", ">", new Vector2(RowArrowX[1], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, 1));
-            var secondaryTitle = CreateRowLabel(controls, "Cor 2", 20, FontStyle.Bold, Color.white, SecondaryY, 0.32f);
+            var secondaryTitle = FieldLabel(CreateRowLabel(controls, "Cor 2", 20, FontStyle.Bold, Color.white, SecondaryY, 0.32f), false);
             secondaryTitle.text = "Cor 2";
             view.SecondaryItem = CreateRect(controls, "Item da cor 2", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SecondaryItem.Configure(null, previousSecondary, nextSecondary, secondaryTitle.rectTransform,
@@ -709,7 +737,7 @@ namespace FutebolDeBotao
             // Camisa dos botões: embaixo da segunda cor, no mesmo formato.
             var previousShirt = CreateButton(controls, "Camisa anterior", "<", new Vector2(RowArrowX[0], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, -1));
             var nextShirt = CreateButton(controls, "Próxima camisa", ">", new Vector2(RowArrowX[1], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, 1));
-            var shirtTitle = CreateRowLabel(controls, "Camisa", 20, FontStyle.Bold, Color.white, ShirtY, 0.32f);
+            var shirtTitle = FieldLabel(CreateRowLabel(controls, "Camisa", 20, FontStyle.Bold, Color.white, ShirtY, 0.32f), false);
             shirtTitle.text = "Camisa";
             view.ShirtItem = CreateRect(controls, "Item da camisa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.ShirtItem.Configure(null, previousShirt, nextShirt, shirtTitle.rectTransform,
