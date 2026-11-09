@@ -13,7 +13,7 @@ namespace FutebolDeBotao
     {
         private const string PrefsKey = "musica_ligada";
 
-        private static bool? enabled;
+        private static bool? musicOn;
         private readonly List<AudioSource> sources = new();
         private AudioBgmService service;
 
@@ -21,21 +21,21 @@ namespace FutebolDeBotao
         {
             get
             {
-                if (enabled == null)
+                if (musicOn == null)
                 {
                     // Sem save ainda: vale o que ficou guardado antes dele (PlayerPrefs).
-                    if (GameSave.Existed) enabled = GameSave.Data.settings.music;
+                    if (GameSave.Existed) musicOn = GameSave.Data.settings.music;
                     else
                     {
-                        try { enabled = PlayerPrefs.GetInt(PrefsKey, 1) != 0; }
-                        catch { enabled = true; }
+                        try { musicOn = PlayerPrefs.GetInt(PrefsKey, 1) != 0; }
+                        catch { musicOn = true; }
                     }
                 }
-                return enabled.Value;
+                return musicOn.Value;
             }
             set
             {
-                enabled = value;
+                musicOn = value;
                 GameSave.Save("musica");
             }
         }
@@ -43,7 +43,7 @@ namespace FutebolDeBotao
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Create()
         {
-            enabled = null;
+            musicOn = null;
             var go = new GameObject("Música ligada/desligada") { hideFlags = HideFlags.HideAndDontSave };
             DontDestroyOnLoad(go);
             go.AddComponent<MusicSetting>();
