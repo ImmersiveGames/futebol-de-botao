@@ -29,7 +29,16 @@ namespace FutebolDeBotao.Editor
                 if (keeper && layer == ShirtLayer.Shadow)
                     rect.position += new Vector2(ShirtArt.KeeperShadowOffset.x, -ShirtArt.KeeperShadowOffset.y) * PreviewSize;
                 var texture = sprite.texture;
-                var source = sprite.textureRect;
+                // Fora do atlas vale o recorte inteiro; num atlas, a parte guardada (sem o transparente) vai no lugar dela
+                // dentro da célula, senão cada camada estica de um jeito e o botão fica torto.
+                var full = sprite.rect;
+                var source = sprite.packed ? sprite.textureRect : full;
+                var offset = sprite.packed ? sprite.textureRectOffset : Vector2.zero;
+                rect = new Rect(
+                    rect.x + offset.x / full.width * rect.width,
+                    rect.y + (full.height - offset.y - source.height) / full.height * rect.height,
+                    source.width / full.width * rect.width,
+                    source.height / full.height * rect.height);
                 var coords = new Rect(source.x / texture.width, source.y / texture.height, source.width / texture.width, source.height / texture.height);
                 var old = GUI.color;
                 GUI.color = ShirtArt.Tint(layer, previewPrimary, previewSecondary, keeper);
