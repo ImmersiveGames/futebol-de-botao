@@ -51,16 +51,31 @@ namespace FutebolDeBotao
             return true;
         }
 
-        /// <summary>Fim da partida (também W.O.): resultado, sequência, números do jogador e a Última partida.</summary>
-        public static void Finish(SaveData.MatchNumbers player, int playerScore, int aiScore, bool walkover)
+        /// <summary>
+        /// Fim da partida (também W.O.): resultado, sequência, números do jogador e a Última partida. Com disputa de
+        /// pênaltis (<paramref name="playerPenalties"/> 0 ou mais), quem venceu a disputa venceu a partida.
+        /// </summary>
+        public static void Finish(SaveData.MatchNumbers player, int playerScore, int aiScore, bool walkover,
+            int playerPenalties = -1, int aiPenalties = -1)
         {
             int level = Data.inProgressLevel;
             if (level < 0 || level > 2) return;
             Data.inProgressLevel = -1;
 
+            bool shootout = playerPenalties >= 0 && aiPenalties >= 0;
+            int outcome = playerScore.CompareTo(aiScore);
+            if (outcome == 0 && shootout) outcome = playerPenalties.CompareTo(aiPenalties);
+
             foreach (var stats in new[] { Data.total, Data.levels[level] })
             {
-                if (playerScore > aiScore)
+                if (shootout)
+                {
+                    if (playerPenalties > aiPenalties) stats.shootoutWins++;
+                    else stats.shootoutLosses++;
+                    stats.shootoutGoals += playerPenalties;
+                    stats.shootoutConceded += aiPenalties;
+                }
+                if (outcome > 0)
                 {
                     stats.wins++;
                     stats.streak++;
@@ -72,14 +87,14 @@ namespace FutebolDeBotao
                 }
                 else
                 {
-                    if (playerScore == aiScore) stats.draws++;
+                    if (outcome == 0) stats.draws++;
                     else stats.losses++;
                     stats.streak = 0;
                 }
                 stats.numbers.Add(player);
             }
 
-            int coins = Shop.Reward(level, playerScore, aiScore);
+            int coins = Shop.RewardFor(level, outcome);
             Data.levels[level].coins += coins;
             Data.total.coins += coins;
             Data.coinsEarned += coins;
@@ -90,7 +105,10 @@ namespace FutebolDeBotao
                 playerScore = playerScore,
                 aiScore = aiScore,
                 walkover = walkover,
-                coins = coins
+                coins = coins,
+                hasPenalties = shootout,
+                playerPenalties = shootout ? playerPenalties : 0,
+                aiPenalties = shootout ? aiPenalties : 0
             };
             last.numbers.Add(player);
             Data.last = last;

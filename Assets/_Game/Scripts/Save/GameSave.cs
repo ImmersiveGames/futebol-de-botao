@@ -81,6 +81,8 @@ namespace FutebolDeBotao
             options.discsPerTeam = saved.discsPerTeam == 5 ? 5 : 3;
             options.hasGoalkeeper = saved.hasGoalkeeper;
             options.aimAssist = (AimAssistMode)Mathf.Clamp(saved.aimAssist, 0, 2);
+            options.extraTimePercent = saved.extraTimePercent >= 100 ? 100 : saved.extraTimePercent >= 50 ? 50 : 0;
+            options.penalties = saved.penalties;
         }
 
         private static void ApplyToSession()
@@ -122,6 +124,8 @@ namespace FutebolDeBotao
                 saved.discsPerTeam = options.discsPerTeam;
                 saved.hasGoalkeeper = options.hasGoalkeeper;
                 saved.aimAssist = (int)options.aimAssist;
+                saved.extraTimePercent = options.extraTimePercent;
+                saved.penalties = options.penalties;
             }
 
             // Contra a IA o time de cima é dela (sorteado): guarda só o do Jogador 1 e mantém o que o Jogador 2 usou.

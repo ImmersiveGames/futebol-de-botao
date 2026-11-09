@@ -45,6 +45,9 @@ namespace FutebolDeBotao
             public int discsPerTeam = 3;
             public bool hasGoalkeeper = true;
             public int aimAssist;
+            /// <summary>Prorrogação: 0 (Desligado), 50 ou 100 (% do tempo).</summary>
+            public int extraTimePercent;
+            public bool penalties;
         }
 
         [Serializable]
@@ -145,6 +148,11 @@ namespace FutebolDeBotao
             public int abandoned;
             public int streak;
             public int bestStreak;
+            /// <summary>Disputas de pênaltis (no fim da partida empatada; pênalti de falta não conta).</summary>
+            public int shootoutWins;
+            public int shootoutLosses;
+            public int shootoutGoals;
+            public int shootoutConceded;
             /// <summary>Somados só das partidas terminadas.</summary>
             public MatchNumbers numbers = new();
             /// <summary>Moedas que as partidas pagaram.</summary>
@@ -164,6 +172,10 @@ namespace FutebolDeBotao
             public int aiScore;
             public bool walkover;
             public int coins;
+            /// <summary>Teve disputa de pênaltis: gols do jogador e da IA nela.</summary>
+            public bool hasPenalties;
+            public int playerPenalties;
+            public int aiPenalties;
             public MatchNumbers numbers = new();
         }
 

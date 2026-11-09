@@ -15,6 +15,8 @@ namespace FutebolDeBotao
         GoalAfterWall,
         AimAssist,
         Fouls,
+        ExtraTime,
+        Penalties,
         Music
     }
 
@@ -27,8 +29,9 @@ namespace FutebolDeBotao
     public sealed class MenuScreen : MonoBehaviour
     {
         private static readonly int[] Durations = { 3, 5, 8, 10 };
+        private static readonly int[] ExtraTimes = { 0, 50, 100 };
         /// <summary>Distância entre as linhas das Opções; sem a Dificuldade, as de baixo sobem uma linha.</summary>
-        public const float OptionRowSpacing = 80f;
+        public const float OptionRowSpacing = 70f;
 
         [SerializeField] private MatchOptions defaults;
         [SerializeField] private RouteRequestTrigger matchRoute;
@@ -225,7 +228,10 @@ namespace FutebolDeBotao
             {
                 var row = optionRows[i];
                 if (row == null) continue;
-                bool shown = vsAi || (MatchOptionKind)i != MatchOptionKind.Difficulty;
+                var kind = (MatchOptionKind)i;
+                // Dificuldade só contra a IA; Pênaltis só com goleiro.
+                bool shown = (vsAi || kind != MatchOptionKind.Difficulty) &&
+                             (kind != MatchOptionKind.Penalties || MatchSession.Options(defaults).hasGoalkeeper);
                 row.gameObject.SetActive(shown);
                 if (!shown) continue;
                 row.anchoredPosition = new Vector2(0f, (i - slot) * OptionRowSpacing);
@@ -255,6 +261,15 @@ namespace FutebolDeBotao
                     break;
                 case MatchOptionKind.Goalkeeper:
                     options.hasGoalkeeper = !options.hasGoalkeeper;
+                    LayoutRows();
+                    break;
+                case MatchOptionKind.ExtraTime:
+                    int extra = System.Array.IndexOf(ExtraTimes, options.extraTimePercent);
+                    if (extra < 0) extra = 0;
+                    options.extraTimePercent = ExtraTimes[Wrap(extra + step, ExtraTimes.Length)];
+                    break;
+                case MatchOptionKind.Penalties:
+                    options.penalties = !options.penalties;
                     break;
                 case MatchOptionKind.Touches:
                     options.touchesPerTurn = Wrap(options.touchesPerTurn - 1 + step, 3) + 1;
@@ -295,6 +310,8 @@ namespace FutebolDeBotao
             MatchOptionKind.GoalAfterWall => "Gol após parede",
             MatchOptionKind.AimAssist => "Ajuda de mira",
             MatchOptionKind.Fouls => "Faltas",
+            MatchOptionKind.ExtraTime => "Prorrogação",
+            MatchOptionKind.Penalties => "Pênaltis",
             MatchOptionKind.Music => "Música",
             _ => kind.ToString()
         };
@@ -314,6 +331,8 @@ namespace FutebolDeBotao
                 _ => "Desligada"
             },
             MatchOptionKind.Fouls => OnOff(options.fouls),
+            MatchOptionKind.ExtraTime => options.extraTimePercent > 0 ? $"{options.extraTimePercent}%" : "Desligado",
+            MatchOptionKind.Penalties => OnOff(options.penalties),
             MatchOptionKind.Music => OnOff(MusicSetting.Enabled),
             _ => string.Empty
         };

@@ -281,29 +281,29 @@ namespace FutebolDeBotao.Editor
 
             // Opções da partida (GDD), depois do modo; "Avançar" abre a Seleção de times
             var optionsPanel = CreateGroup(canvas, "Opções da partida");
-            CreateText(optionsPanel, "Título", "Opções da partida", 52, new Vector2(0f, 440f), new Vector2(680f, 90f), FontStyle.Bold);
-            var modeLabel = CreateText(optionsPanel, "Modo", "-", 30, new Vector2(0f, 370f), new Vector2(680f, 50f));
+            CreateText(optionsPanel, "Título", "Opções da partida", 52, new Vector2(0f, 460f), new Vector2(680f, 90f), FontStyle.Bold);
+            var modeLabel = CreateText(optionsPanel, "Modo", "-", 30, new Vector2(0f, 390f), new Vector2(680f, 50f));
             var kinds = (MatchOptionKind[])Enum.GetValues(typeof(MatchOptionKind));
             var values = new Text[kinds.Length];
             var rows = new RectTransform[kinds.Length];
             var optionItems = new List<MenuEntry>();
             for (int i = 0; i < kinds.Length; i++)
             {
-                float y = 290f - i * MenuScreen.OptionRowSpacing;
+                float y = 300f - i * MenuScreen.OptionRowSpacing;
                 var row = CreateGroup(optionsPanel, MenuScreen.Label(kinds[i]));
                 rows[i] = (RectTransform)row;
                 var name = CreateText(row, "Nome", MenuScreen.Label(kinds[i]), 30, new Vector2(-170f, y), new Vector2(300f, 70f), FontStyle.Normal, TextAnchor.MiddleLeft);
-                var previous = CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(70f, 70f), menu.Previous, i);
+                var previous = CreateIntButton(row, "Anterior", "<", new Vector2(40f, y), new Vector2(62f, 62f), menu.Previous, i);
                 values[i] = CreateText(row, "Valor", "-", 30, new Vector2(165f, y), new Vector2(170f, 70f), FontStyle.Bold);
-                var next = CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(70f, 70f), menu.Next, i);
+                var next = CreateIntButton(row, "Próximo", ">", new Vector2(290f, y), new Vector2(62f, 62f), menu.Next, i);
                 // Teclado/controle: esquerda/direita apertam as setas da linha.
                 var item = row.gameObject.AddComponent<MenuEntry>();
                 item.Configure(null, previous, next, name.rectTransform, (RectTransform)previous.transform,
                     values[i].rectTransform, (RectTransform)next.transform);
                 optionItems.Add(item);
             }
-            var optionsBack = CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-140f, -450f), new Vector2(240f, 70f), menu.BackFromOptions, ButtonStyle.Red);
-            var optionsNext = CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(140f, -450f), new Vector2(240f, 70f), menu.ShowSelection, ButtonStyle.Yellow);
+            var optionsBack = CreateButton(optionsPanel, "Voltar", "Voltar", new Vector2(-140f, -530f), new Vector2(240f, 70f), menu.BackFromOptions, ButtonStyle.Red);
+            var optionsNext = CreateButton(optionsPanel, "Avançar", "Avançar", new Vector2(140f, -530f), new Vector2(240f, 70f), menu.ShowSelection, ButtonStyle.Yellow);
             optionItems.Add(Item(optionsBack));
             optionItems.Add(Item(optionsNext));
             // Só o Jogador 1 mexe nas Opções.

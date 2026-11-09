@@ -14,6 +14,10 @@ namespace FutebolDeBotao
         [Tooltip("Toques por vez, de 1 a 3.")]
         [Range(1, 3)] public int touchesPerTurn = 3;
         public bool goalAfterWallIsValid;
+        [Tooltip("Prorrogação se terminar empatado: 0 (Desligado), 50 ou 100 (% do tempo da partida).")]
+        public int extraTimePercent;
+        [Tooltip("Disputa de pênaltis se continuar empatado (só com goleiro).")]
+        public bool penalties;
         [Tooltip("Desligado: bater em adversário é só física, sem tiro livre nem pênalti.")]
         public bool fouls = true;
         [Tooltip("Falta longe do lance: o botão atingido estava a mais que isto da bola no começo da jogada. " +
@@ -52,6 +56,12 @@ namespace FutebolDeBotao
 
         public float DurationSeconds => durationMinutes * 60f;
 
+        /// <summary>Tempo da prorrogação (0 = sem prorrogação).</summary>
+        public float ExtraTimeSeconds => DurationSeconds * extraTimePercent / 100f;
+
+        /// <summary>Tem disputa de pênaltis no empate: ligada e com goleiro.</summary>
+        public bool PenaltiesEnabled => penalties && hasGoalkeeper;
+
         /// <summary>Posição inicial do botão <paramref name="index"/> do time <paramref name="side"/>.</summary>
         public Vector2 FormationPosition(int index, TeamSide side)
         {
@@ -76,6 +86,7 @@ namespace FutebolDeBotao
             foreach (int d in Durations)
                 if (Mathf.Abs(d - durationMinutes) < Mathf.Abs(closest - durationMinutes)) closest = d;
             durationMinutes = closest;
+            extraTimePercent = extraTimePercent <= 0 ? 0 : extraTimePercent <= 75 ? 50 : 100;
         }
     }
 }

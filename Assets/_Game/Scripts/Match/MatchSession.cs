@@ -6,17 +6,23 @@ namespace FutebolDeBotao
     /// <summary>Placar final da última partida, lido pela tela de Resultado.</summary>
     public readonly struct MatchResult
     {
-        public MatchResult(int bottom, int top, bool walkover = false)
+        public MatchResult(int bottom, int top, bool walkover = false, int penaltiesBottom = -1, int penaltiesTop = -1)
         {
             Bottom = bottom;
             Top = top;
             Walkover = walkover;
+            PenaltiesBottom = penaltiesBottom;
+            PenaltiesTop = penaltiesTop;
         }
 
         public int Bottom { get; }
         public int Top { get; }
         /// <summary>Acabou por W.O. (um time ficou sem botões por cartão vermelho).</summary>
         public bool Walkover { get; }
+        /// <summary>Gols de cada time na disputa de pênaltis; -1 = não teve disputa.</summary>
+        public int PenaltiesBottom { get; }
+        public int PenaltiesTop { get; }
+        public bool HasPenalties => PenaltiesBottom >= 0 && PenaltiesTop >= 0;
     }
 
     /// <summary>

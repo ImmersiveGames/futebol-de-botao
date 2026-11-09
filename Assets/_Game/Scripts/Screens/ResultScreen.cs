@@ -20,6 +20,9 @@ namespace FutebolDeBotao
         private const float NameY = 245f;
         private const float RecordY = 188f;
         private const float CoinsY = 462f;
+        /// <summary>Gols da disputa de pênaltis, entre parênteses, embaixo de cada número do placar.</summary>
+        private const float PenaltyX = 82f;
+        private const float PenaltyY = 272f;
         /// <summary>Alto do quadro: logo abaixo dos nomes (e do aviso de recorde); ele cresce para baixo.</summary>
         private const float TableTop = 155f;
         private const float TableWidth = 680f;
@@ -89,6 +92,10 @@ namespace FutebolDeBotao
             }
             CreateText(root, "Placar", $"{result.Bottom} x {result.Top}", 96, FontStyle.Bold, Color.white,
                 new Vector2(0f, ScoreY), new Vector2(280f, 130f));
+            if (result.HasPenalties)
+                foreach (var (side, goals) in new[] { (-1f, result.PenaltiesBottom), (1f, result.PenaltiesTop) })
+                    CreateText(root, side < 0f ? "Pênaltis (baixo)" : "Pênaltis (cima)", $"({goals})", 40, FontStyle.Bold, HighlightColor,
+                        new Vector2(side * PenaltyX, PenaltyY), new Vector2(110f, 56f));
             if (result.Walkover)
                 CreateText(root, "W.O.", "W.O.", 30, FontStyle.Bold, HighlightColor, new Vector2(0f, NameY), new Vector2(200f, 50f));
         }

@@ -199,6 +199,12 @@ namespace FutebolDeBotao
             rows.Add(("Média de gols feitos", Average(n.goals, finished)));
             rows.Add(("Média de gols sofridos", Average(n.conceded, finished)));
 
+            rows.Add(("Disputas de pênaltis", null));
+            rows.Add(("Disputas vencidas", s.shootoutWins.ToString()));
+            rows.Add(("Disputas perdidas", s.shootoutLosses.ToString()));
+            rows.Add(("Gols feitos nos pênaltis", s.shootoutGoals.ToString()));
+            rows.Add(("Gols sofridos nos pênaltis", s.shootoutConceded.ToString()));
+
             rows.Add(("Jogo (total e por partida)", null));
             rows.Add(("Chutes a gol (Pro Gol!)", WithAverage(n.shots, finished)));
             rows.Add(("Conversão", Conversion(n)));
@@ -215,6 +221,9 @@ namespace FutebolDeBotao
             string result = last.playerScore > last.aiScore ? "Vitória"
                 : last.playerScore < last.aiScore ? "Derrota" : "Empate";
             if (last.walkover) result += " por W.O.";
+            if (last.hasPenalties)
+                result = (last.playerPenalties > last.aiPenalties ? "Vitória" : "Derrota") +
+                         $" nos pênaltis ({last.playerPenalties} x {last.aiPenalties})";
 
             rows.Add(("Partida", null));
             rows.Add(("Nível", AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(last.level, 0, 2))));

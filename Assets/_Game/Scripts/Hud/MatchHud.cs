@@ -76,6 +76,18 @@ namespace FutebolDeBotao
         private float messageUntil;
         private bool messageHeld;
 
+        // Placar da disputa de pênaltis: uma linha por time com 5 casas (bolinha preta; verde = gol, vermelha = erro)
+        // e os gols no fim. Fica na metade oposta à da cobrança, sempre em pé (virado para o Jogador 1).
+        private static readonly Color SlotEmpty = new(0f, 0f, 0f, 0.85f);
+        private static readonly Color SlotGoal = new(0.2f, 0.8f, 0.3f);
+        private static readonly Color SlotMiss = new(0.9f, 0.2f, 0.2f);
+        private static readonly Color ExtraTimeColor = new(1f, 0.85f, 0.25f);
+        private const float ShootoutBoardY = 3f;
+        private GameObject shootoutRoot;
+        private Text shootoutTitle;
+        private readonly Dictionary<TeamSide, (Text name, Image[] slots, Text total)> shootoutRows = new();
+        private static Sprite dotSprite;
+
         public void Configure(MatchController matchController, Sprite panel = null)
         {
             match = matchController;
@@ -97,6 +109,7 @@ namespace FutebolDeBotao
             BuildStrips();
             BuildMessages();
             BuildPcPanel();
+            BuildShootoutBoard();
             highlight = gameObject.AddComponent<TurnHighlight>();
             highlight.Configure(match);
         }
@@ -112,6 +125,7 @@ namespace FutebolDeBotao
             stripsRoot.SetActive(visible && portrait);
             pcRoot.SetActive(visible && !portrait);
             UpdateMessages(visible, portrait);
+            UpdateShootout(visible);
             if (!visible) return;
 
             if (portrait)
@@ -156,7 +170,12 @@ namespace FutebolDeBotao
                 view.FirstCards.text = Cards(side, false).Trim();
                 view.SecondCards.text = Cards(other, false).Trim();
             }
-            if (view.Clock != null) view.Clock.text = ClockText(match.ClockSeconds);
+            if (view.Clock != null)
+            {
+                // Prorrogação: relógio em amarelo; na disputa de pênaltis, "Pên." no lugar do tempo.
+                view.Clock.text = match.IsShootout ? "Pên." : ClockText(match.ClockSeconds);
+                view.Clock.color = match.IsExtraTime || match.IsShootout ? ExtraTimeColor : Color.white;
+            }
 
             var state = match.State;
             var acting = match.ActingSide;
@@ -172,7 +191,7 @@ namespace FutebolDeBotao
             }
             if (view.Turn == null) return;
 
-            view.Turn.text = !active ? StateText(state)
+            view.Turn.text = !active ? (match.IsShootout && state == MatchState.Goal ? "Pênaltis" : StateText(state))
                 : match.IsAi(acting) ? ThinkingText()
                 : !mine ? $"Vez do {MatchController.TeamName(acting)}"
                 : state == MatchState.ShotCall ? "Ajuste o goleiro"
@@ -378,6 +397,87 @@ namespace FutebolDeBotao
             buttons.Action.onClick.AddListener(() => OnAction(match.IsAi(TeamSide.Bottom) ? TeamSide.Top : TeamSide.Bottom));
             buttons.Root = bottom.gameObject;
             soloButtons = buttons;
+        }
+
+        // ---- Disputa de pênaltis ----
+
+        private void BuildShootoutBoard()
+        {
+            shootoutRoot = new GameObject("Placar dos pênaltis");
+            shootoutRoot.transform.SetParent(transform, false);
+            var canvas = CreateWorldCanvas("Placar dos pênaltis", shootoutRoot.transform, new Vector2(0f, -ShootoutBoardY), new Vector2(4.6f, 1.8f), 0f);
+            Destroy(canvas.GetComponent<GraphicRaycaster>());
+            CreateFramedPanel(canvas.transform, 1f).raycastTarget = false;
+            shootoutTitle = CreateText(canvas.transform, "Título", 26, FontStyle.Bold, new Vector2(0f, 58f), new Vector2(420f, 40f));
+
+            const float slotSize = 34f;
+            foreach (var (side, y) in new[] { (TeamSide.Bottom, 8f), (TeamSide.Top, -46f) })
+            {
+                var name = CreateText(canvas.transform, $"Nome {Name(side)}", 28, FontStyle.Bold, new Vector2(-170f, y), new Vector2(90f, 44f));
+                var slots = new Image[MatchController.ShootoutRounds];
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    var go = new GameObject($"Casa {i + 1}", typeof(RectTransform));
+                    go.transform.SetParent(canvas.transform, false);
+                    var rect = (RectTransform)go.transform;
+                    rect.anchoredPosition = new Vector2(-95f + i * 46f, y);
+                    rect.sizeDelta = Vector2.one * slotSize;
+                    slots[i] = go.AddComponent<Image>();
+                    slots[i].sprite = DotSprite();
+                    slots[i].raycastTarget = false;
+                }
+                var total = CreateText(canvas.transform, $"Gols {Name(side)}", 36, FontStyle.Bold, new Vector2(175f, y), new Vector2(70f, 44f));
+                shootoutRows[side] = (name, slots, total);
+            }
+            shootoutRoot.SetActive(false);
+        }
+
+        private void UpdateShootout(bool visible)
+        {
+            bool show = visible && match.IsShootout;
+            shootoutRoot.SetActive(show);
+            if (!show) return;
+
+            // Na metade oposta à de quem bate agora: o de baixo bate no gol de cima, o placar fica embaixo.
+            float y = match.Turn == TeamSide.Bottom ? -ShootoutBoardY : ShootoutBoardY;
+            shootoutRoot.transform.GetChild(0).position = new Vector3(0f, y, 0f);
+            shootoutTitle.text = match.IsSuddenDeath ? "Morte súbita" : "Pênaltis";
+
+            // Morte súbita: quando as 5 casas enchem, elas zeram e voltam a encher (o total continua somando).
+            int rounds = Mathf.Max(match.ShootoutKicks(TeamSide.Bottom).Count, match.ShootoutKicks(TeamSide.Top).Count);
+            int rows = MatchController.ShootoutRounds;
+            int start = rounds <= rows ? 0 : rows + (rounds - rows - 1) / rows * rows;
+            foreach (var pair in shootoutRows)
+            {
+                var kicks = match.ShootoutKicks(pair.Key);
+                var (name, slots, total) = pair.Value;
+                name.text = Abbreviation(pair.Key);
+                for (int i = 0; i < slots.Length; i++)
+                {
+                    int kick = start + i;
+                    slots[i].color = kick >= kicks.Count ? SlotEmpty : kicks[kick] ? SlotGoal : SlotMiss;
+                }
+                total.text = match.ShootoutGoals(pair.Key).ToString();
+            }
+        }
+
+        /// <summary>Bolinha branca (pintada pela cor da casa), feita uma vez em código.</summary>
+        private static Sprite DotSprite()
+        {
+            if (dotSprite != null) return dotSprite;
+            const int size = 32;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Bolinha", hideFlags = HideFlags.DontSave };
+            float radius = size * 0.5f;
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(radius, radius));
+                texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(radius - distance)));
+            }
+            texture.Apply();
+            dotSprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+            dotSprite.hideFlags = HideFlags.DontSave;
+            return dotSprite;
         }
 
         private void BuildMessages()

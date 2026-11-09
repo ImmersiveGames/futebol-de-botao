@@ -121,6 +121,32 @@ namespace FutebolDeBotao
         private bool goalKickPlacing;
         private bool draggingGoalKickBall;
 
+        // ---- Prorrogação e pênaltis ----
+
+        private enum Period { Regular, ExtraTime, Shootout }
+
+        /// <summary>Cobranças de cada lado na disputa antes da morte súbita.</summary>
+        public const int ShootoutRounds = 5;
+
+        private Period period;
+        /// <summary>Resultado de cada cobrança da disputa, por lado (true = gol).</summary>
+        private readonly List<bool>[] shootoutKicks = { new(), new() };
+        /// <summary>Botões de cada lado que batem na disputa (os que estavam em campo), em revezamento.</summary>
+        private readonly List<Disc>[] shootoutTakers = { new(), new() };
+        private readonly int[] shootoutNext = new int[2];
+        private TeamSide shootoutFirst;
+
+        /// <summary>A partida está na prorrogação.</summary>
+        public bool IsExtraTime => period == Period.ExtraTime;
+        /// <summary>A partida está na disputa de pênaltis (continua true no Fim depois dela).</summary>
+        public bool IsShootout => period == Period.Shootout;
+        /// <summary>Cobranças do lado na disputa, em ordem (true = gol).</summary>
+        public IReadOnlyList<bool> ShootoutKicks(TeamSide side) => shootoutKicks[(int)side];
+        /// <summary>Gols do lado na disputa.</summary>
+        public int ShootoutGoals(TeamSide side) => shootoutKicks[(int)side].FindAll(scored => scored).Count;
+        /// <summary>Já passaram as 5 cobranças de cada lado e segue empatado.</summary>
+        public bool IsSuddenDeath => IsShootout && Mathf.Min(shootoutKicks[0].Count, shootoutKicks[1].Count) >= ShootoutRounds;
+
         public void Configure(MatchOptions matchOptions) => options = matchOptions;
 
         public void ConfigureFramework(RouteRequestTrigger result, PauseRequestTrigger pause)
@@ -277,6 +303,8 @@ namespace FutebolDeBotao
             numbers[0] = new SaveData.MatchNumbers();
             numbers[1] = new SaveData.MatchNumbers();
             touchPending = false;
+            period = Period.Regular;
+            foreach (var list in shootoutKicks) list.Clear();
             PlayerStats.BeginMatch();
             clock = options.DurationSeconds;
             // Início: time sorteado dá a saída.
@@ -590,6 +618,13 @@ namespace FutebolDeBotao
             if (State != MatchState.Moving) return;
             EndShot();
 
+            // Disputa de pênaltis: a bola parou sem entrar.
+            if (IsShootout)
+            {
+                monitor.FreezeAll();
+                RecordShootoutKick(false);
+                return;
+            }
             if (clock <= 0f) EndMatch();
             else if (TryKeeperZoneGoalKick()) return;
             else if (ball.LastTouchSide == null) PassTurn("Errou a bola.");
@@ -602,6 +637,7 @@ namespace FutebolDeBotao
         /// <summary>Bola do goleiro (parada na área em volta dele) vira tiro de meta para o time dele, não importa quem jogou.</summary>
         private bool TryKeeperZoneGoalKick()
         {
+            if (IsShootout) return false;
             var owner = KeeperBall.Owner(ball.Body.position, ball.Radius, keepers, options.hasGoalkeeper);
             if (owner == null) return false;
             message = "Bola do goleiro.";
@@ -641,6 +677,12 @@ namespace FutebolDeBotao
 
         private void PassTurn(string reason)
         {
+            // Na disputa de pênaltis, perder a vez (tempo de mira esgotado) é pênalti perdido.
+            if (IsShootout)
+            {
+                RecordShootoutKick(false);
+                return;
+            }
             GiveTurn(Opponent(Turn));
             message = string.IsNullOrEmpty(reason) ? $"Vez do {TeamName(Turn)}." : $"{reason} Vez do {TeamName(Turn)}.";
             Enter(MatchState.Aim);
@@ -650,7 +692,7 @@ namespace FutebolDeBotao
 
         private void OnFouled(Disc offender, Disc victim, Vector2 victimPosition)
         {
-            if (State != MatchState.Moving || offender != shooter || !options.fouls) return;
+            if (State != MatchState.Moving || offender != shooter || !options.fouls || IsShootout) return;
             CommitFoul(offender, victim, victimPosition);
         }
 
@@ -660,7 +702,7 @@ namespace FutebolDeBotao
         /// </summary>
         private void OnHitOpponent(Disc disc, Disc victim, Vector2 victimPosition)
         {
-            if (State != MatchState.Moving || shooter == null || !options.fouls) return;
+            if (State != MatchState.Moving || shooter == null || !options.fouls || IsShootout) return;
             if (disc == shooter || disc.Side != shooter.Side || ball.LastTouchSide != null) return;
             CommitFoul(disc, victim, victimPosition);
         }
@@ -671,7 +713,7 @@ namespace FutebolDeBotao
         /// </summary>
         private void OnHitOpponentKeeper(Disc disc, Goalkeeper keeper, bool asShooter)
         {
-            if (State != MatchState.Moving || shooter == null || !options.fouls) return;
+            if (State != MatchState.Moving || shooter == null || !options.fouls || IsShootout) return;
             if (asShooter ? disc != shooter : disc == shooter || disc.Side != shooter.Side || ball.LastTouchSide != null) return;
 
             Debug.Log($"[Falta] {disc.name} ({TeamName(disc.Side)}) acertou o goleiro do {TeamName(keeper.Side)}.");
@@ -965,6 +1007,13 @@ namespace FutebolDeBotao
             EndShot();
             monitor.StopWatching();
             enteredBall.StopInGoal();
+
+            // Disputa de pênaltis: entrou no gol de quem defende = gol.
+            if (IsShootout)
+            {
+                RecordShootoutKick(goal.DefendingSide == Opponent(Turn));
+                return;
+            }
             pendingGoal = goal;
 
             // Gol contra: a jogada era de quem defende este gol (o chute saiu de um botão dele), mesmo que a bola tenha
@@ -1002,6 +1051,11 @@ namespace FutebolDeBotao
 
         private void ResolveGoal()
         {
+            if (IsShootout)
+            {
+                ContinueShootout();
+                return;
+            }
             var defending = pendingGoal.DefendingSide;
             pendingGoal = null;
 
@@ -1158,7 +1212,155 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>
+        /// Fim do tempo. Empatado: prorrogação (se ligada e ainda não jogada); depois, disputa de pênaltis (se ligada e
+        /// com goleiro). Senão termina como está.
+        /// </summary>
         private void EndMatch()
+        {
+            if (Score(TeamSide.Bottom) == Score(TeamSide.Top))
+            {
+                if (period == Period.Regular && options.ExtraTimeSeconds > 0f)
+                {
+                    StartExtraTime();
+                    return;
+                }
+                if (period != Period.Shootout && options.PenaltiesEnabled)
+                {
+                    StartShootout();
+                    return;
+                }
+            }
+            FinishMatch();
+        }
+
+        private void StartExtraTime()
+        {
+            period = Period.ExtraTime;
+            clock = options.ExtraTimeSeconds;
+            KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
+            message = $"Prorrogação! Saída do {TeamName(Turn)}.";
+            Hold();
+        }
+
+        // ---- Disputa de pênaltis ----
+
+        /// <summary>
+        /// Começa a disputa: um time sorteado bate primeiro, cada um no seu gol de ataque, revezando os botões que
+        /// estavam em campo. Em campo ficam só o batedor e o goleiro de quem defende.
+        /// </summary>
+        private void StartShootout()
+        {
+            period = Period.Shootout;
+            EndShot();
+            monitor.StopWatching();
+            monitor.FreezeAll();
+            for (int i = 0; i < 2; i++)
+            {
+                shootoutKicks[i].Clear();
+                shootoutNext[i] = 0;
+                shootoutTakers[i].Clear();
+                foreach (var disc in discs[(TeamSide)i])
+                    if (disc.isActiveAndEnabled) shootoutTakers[i].Add(disc);
+            }
+            shootoutFirst = Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top;
+            Noticed?.Invoke(MatchNotice.FinalWhistle);
+            NextShootoutKick();
+            message = $"Disputa de pênaltis! {message}";
+            Hold();
+        }
+
+        /// <summary>Prepara a próxima cobrança: bate quem cobrou menos (empatados, quem começou).</summary>
+        private void NextShootoutKick()
+        {
+            int bottomKicks = shootoutKicks[(int)TeamSide.Bottom].Count;
+            int topKicks = shootoutKicks[(int)TeamSide.Top].Count;
+            var side = bottomKicks == topKicks ? shootoutFirst : bottomKicks < topKicks ? TeamSide.Bottom : TeamSide.Top;
+            var defending = Opponent(side);
+
+            var takers = shootoutTakers[(int)side];
+            Disc kicker = takers.Count > 0 ? takers[shootoutNext[(int)side]++ % takers.Count] : null;
+            foreach (var disc in allDiscs) disc.gameObject.SetActive(disc == kicker);
+            foreach (var keeper in keepers)
+            {
+                keeper.gameObject.SetActive(keeper.Side == defending);
+                if (keeper.Side == defending) keeper.ResetToCenter();
+            }
+
+            ball.ResetTo(FieldLayout.PenaltySpot(defending));
+            GiveTurn(side);
+            touchesLeft = 1;
+            setupIsPenalty = true;
+            freeKickDisc = kicker;
+            if (kicker != null) PlaceKickerNearest(kicker, 0f);
+            message = $"Pênalti do {TeamName(side)}: posicione o batedor.";
+            Enter(MatchState.PenaltySetup);
+        }
+
+        /// <summary>Fim de uma cobrança: marca no placar da disputa e para um pouco para todo mundo ver.</summary>
+        private void RecordShootoutKick(bool scored)
+        {
+            shootoutKicks[(int)Turn].Add(scored);
+            message = scored ? $"GOL do {TeamName(Turn)}!" : $"{TeamName(Turn)} perdeu o pênalti!";
+            Noticed?.Invoke(scored ? MatchNotice.Goal : MatchNotice.GoalAnnulled);
+            pendingGoal = null;
+            Enter(MatchState.Goal);
+            if (options.noticeHoldSeconds > 0f) stateTimer = 0f;
+            Hold();
+        }
+
+        private void ContinueShootout()
+        {
+            var winner = ShootoutWinner();
+            if (winner == null)
+            {
+                NextShootoutKick();
+                return;
+            }
+
+            message = $"Fim de jogo: {TeamName(winner.Value)} vence nos pênaltis!";
+            MatchSession.LastResult = new MatchResult(Score(TeamSide.Bottom), Score(TeamSide.Top), false,
+                ShootoutGoals(TeamSide.Bottom), ShootoutGoals(TeamSide.Top));
+            RecordStats(walkover: false);
+            Noticed?.Invoke(MatchNotice.FinalWhistle);
+            Enter(MatchState.End);
+        }
+
+        /// <summary>
+        /// Quem já ganhou a disputa: nas 5 cobranças, quando o outro não alcança mais; depois (morte súbita), quando
+        /// os dois bateram o mesmo número de vezes e um fez mais. Nulo: continua.
+        /// </summary>
+        private TeamSide? ShootoutWinner()
+        {
+            int bottomKicks = shootoutKicks[(int)TeamSide.Bottom].Count, topKicks = shootoutKicks[(int)TeamSide.Top].Count;
+            int bottomGoals = ShootoutGoals(TeamSide.Bottom), topGoals = ShootoutGoals(TeamSide.Top);
+            if (bottomKicks <= ShootoutRounds && topKicks <= ShootoutRounds)
+            {
+                if (bottomGoals + (ShootoutRounds - bottomKicks) < topGoals) return TeamSide.Top;
+                if (topGoals + (ShootoutRounds - topKicks) < bottomGoals) return TeamSide.Bottom;
+            }
+            if (bottomKicks == topKicks && bottomKicks >= ShootoutRounds && bottomGoals != topGoals)
+                return bottomGoals > topGoals ? TeamSide.Bottom : TeamSide.Top;
+            return null;
+        }
+
+        // ---- Fim ----
+
+        /// <summary>Menu de teste: zera o relógio (a partida acaba no próximo lance, como no fim do tempo).</summary>
+        public void DebugEndTime()
+        {
+            if (IsShootout || State is MatchState.Waiting or MatchState.End) return;
+            clock = 0f;
+        }
+
+        /// <summary>Menu de teste: iguala o placar (o time com menos gols fica com os do outro).</summary>
+        public void DebugTieScore()
+        {
+            int most = Mathf.Max(score[0], score[1]);
+            score[0] = score[1] = most;
+        }
+
+        private void FinishMatch()
         {
             int bottom = Score(TeamSide.Bottom);
             int top = Score(TeamSide.Top);
@@ -1173,7 +1375,10 @@ namespace FutebolDeBotao
         private void RecordStats(bool walkover)
         {
             MatchSession.LastMatchNumbers = new[] { numbers[0], numbers[1] };
-            PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover);
+            int bottomPenalties = IsShootout ? ShootoutGoals(TeamSide.Bottom) : -1;
+            int topPenalties = IsShootout ? ShootoutGoals(TeamSide.Top) : -1;
+            PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
+                bottomPenalties, topPenalties);
         }
 
         private void RequestResult()
