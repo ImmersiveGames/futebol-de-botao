@@ -246,6 +246,7 @@ namespace FutebolDeBotao
             planner.HasYellow = match.HasYellow(Side);
             planner.AllDiscs = match.AllDiscs;
             planner.Keepers = match.Keepers;
+            planner.PenaltyMode = match.IsPenaltyKick;
             simulator.FoulsEnabled = match.Options.fouls;
             simulator.GoalWidth = match.GoalWidth;
             brain ??= new AiBrain(Side, planner, simulator);
@@ -259,6 +260,7 @@ namespace FutebolDeBotao
             attackerPlanner.GoalWidth = match.GoalWidth;
             attackerPlanner.AllDiscs = match.AllDiscs;
             attackerPlanner.Keepers = match.Keepers;
+            attackerPlanner.PenaltyMode = match.IsPenaltyKick;
             return attackerPlanner;
         }
 
@@ -554,6 +556,9 @@ namespace FutebolDeBotao
             return true;
         }
 
+        /// <summary>Até quantos graus o batedor do pênalti sai do reto atrás da bola.</summary>
+        private const float PenaltyKickerAngle = 8f;
+
         private IEnumerator SetUpKicker()
         {
             busy = true;
@@ -565,7 +570,13 @@ namespace FutebolDeBotao
                 EnsureBrain();
 
                 var kicker = match.FreeKickDisc;
-                if (kicker != null)
+                if (kicker != null && match.IsPenaltySetup)
+                {
+                    // Pênalti: o goleiro se ajusta depois de ver o batedor, então ele fica quase reto atrás da bola
+                    // (sem mostrar o canto); o canto sai do toque na hora do chute.
+                    match.TryPlaceKicker(Random.Range(-PenaltyKickerAngle, PenaltyKickerAngle));
+                }
+                else if (kicker != null)
                 {
                     Vector2 ballPosition = match.Ball.Body.position;
                     bool hasKeeper = match.Options.hasGoalkeeper;

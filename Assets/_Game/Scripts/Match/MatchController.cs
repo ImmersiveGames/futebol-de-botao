@@ -117,6 +117,8 @@ namespace FutebolDeBotao
         public Disc FreeKickDisc => freeKickDisc;
         /// <summary>No posicionamento do batedor: true = pênalti (arco atrás da bola), false = tiro livre (volta inteira).</summary>
         public bool IsPenaltySetup => setupIsPenalty;
+        /// <summary>Cobrança de pênalti em andamento (de falta ou da disputa): do posicionamento até o chute.</summary>
+        public bool IsPenaltyKick => setupIsPenalty && freeKickDisc != null;
 
         private bool goalKickPlacing;
         private bool draggingGoalKickBall;

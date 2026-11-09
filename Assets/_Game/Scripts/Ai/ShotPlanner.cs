@@ -34,6 +34,9 @@ namespace FutebolDeBotao
         private static readonly float[] AdvanceOffsets = { -1.5f, 0f, 1.5f };
         private static readonly float[] GoalOffsets = { -0.8f, -0.4f, 0f, 0.4f, 0.8f };
         private static readonly float[] PowerScales = { 0.85f, 1f, 1.2f };
+        // Pênalti: chute forte (a força passa de 1 e fica no máximo) e mira com folga da trave.
+        private static readonly float[] PenaltyPowerScales = { 1.3f, 1.7f, 2.5f };
+        private static readonly float[] PenaltyGoalOffsets = { -0.6f, -0.3f, 0f, 0.3f, 0.6f };
         private const float WideSideDistance = 2.5f;
         private const float WideBackDistance = 1.5f;
         /// <summary>Empurrãozinho do toque seguro: um botão anda só isso, longe de tudo.</summary>
@@ -64,6 +67,9 @@ namespace FutebolDeBotao
         public IReadOnlyList<Disc> AllDiscs { get; set; }
         public IReadOnlyList<Goalkeeper> Keepers { get; set; }
         public float BallRadius => ball.Radius;
+
+        /// <summary>Cobrança de pênalti (de falta ou da disputa): chutes fortes, longe da trave.</summary>
+        public bool PenaltyMode { get; set; }
 
         /// <summary>Bola a menos que isto da parede: grudada nela (no canto, nas duas).</summary>
         private const float WallNear = 0.45f;
@@ -185,8 +191,10 @@ namespace FutebolDeBotao
             try { all = DiscCandidates(usable, true); }
             finally { ignoreKeepers = false; }
             var list = new List<ShotCandidate>();
-            int middle = System.Array.IndexOf(PowerScales, 1f);
-            for (int i = middle; i < all.Count; i += PowerScales.Length)
+            // No pênalti o goleiro conta com todas as forças (o batedor costuma chutar forte); senão, só a do meio.
+            int first = PenaltyMode ? 0 : System.Array.IndexOf(PowerScales, 1f);
+            int step = PenaltyMode ? 1 : PowerScales.Length;
+            for (int i = first; i < all.Count; i += step)
                 if (!all[i].FoulRisk && !all[i].Blocked) list.Add(all[i]);
             list.Sort((a, b) =>
             {
@@ -423,7 +431,7 @@ namespace FutebolDeBotao
             if (ballBlocked) preScore -= 8f;
             if (power > 1.15f) preScore -= 6f;
 
-            foreach (float scale in PowerScales)
+            foreach (float scale in PenaltyMode && scoring ? PenaltyPowerScales : PowerScales)
             {
                 list.Add(new ShotCandidate
                 {
@@ -463,7 +471,7 @@ namespace FutebolDeBotao
             var targets = new List<Vector2>();
             float y = FieldLayout.GoalLineY(Opponent) + Attack.y * 0.4f;
             float scale = GoalWidth / FieldLayout.GoalWidth;
-            foreach (float x in GoalOffsets) targets.Add(new Vector2(x * scale, y));
+            foreach (float x in PenaltyMode ? PenaltyGoalOffsets : GoalOffsets) targets.Add(new Vector2(x * scale, y));
             return targets;
         }
 
