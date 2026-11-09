@@ -43,7 +43,7 @@ namespace FutebolDeBotao
         [Tooltip("Tempo para o atacante posicionar o batedor em volta da bola (pênalti e tiro livre).")]
         [Min(1f)] public float penaltySetupSeconds = 30f;
         [Tooltip("Distância entre a borda do batedor e a borda da bola no pênalti e no tiro livre.")]
-        [Min(0.05f)] public float penaltyDiscGap = 0.6f;
+        [Min(0.05f)] public float penaltyDiscGap = 0.4f;
         [Tooltip("Abertura do arco atrás da bola onde o botão pode ficar, em graus para cada lado.")]
         [Range(0f, 90f)] public float penaltyArcDegrees = 70f;
 

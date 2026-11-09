@@ -556,8 +556,8 @@ namespace FutebolDeBotao
             return true;
         }
 
-        /// <summary>Até quantos graus o batedor do pênalti sai do reto atrás da bola.</summary>
-        private const float PenaltyKickerAngle = 8f;
+        /// <summary>Lugares que o batedor do pênalti testa no arco (graus a partir do reto atrás da bola).</summary>
+        private static readonly float[] PenaltyKickerAngles = { 0f, -7f, 7f, -14f, 14f };
 
         private IEnumerator SetUpKicker()
         {
@@ -570,13 +570,7 @@ namespace FutebolDeBotao
                 EnsureBrain();
 
                 var kicker = match.FreeKickDisc;
-                if (kicker != null && match.IsPenaltySetup)
-                {
-                    // Pênalti: o goleiro se ajusta depois de ver o batedor, então ele fica quase reto atrás da bola
-                    // (sem mostrar o canto); o canto sai do toque na hora do chute.
-                    match.TryPlaceKicker(Random.Range(-PenaltyKickerAngle, PenaltyKickerAngle));
-                }
-                else if (kicker != null)
+                if (kicker != null)
                 {
                     Vector2 ballPosition = match.Ball.Body.position;
                     bool hasKeeper = match.Options.hasGoalkeeper;
@@ -588,18 +582,28 @@ namespace FutebolDeBotao
                     var usable = new List<Disc> { kicker };
                     var angles = new List<(float angle, float score)>();
 
+                    // Pênalti: poucos lugares perto do reto (o goleiro vê o batedor), e cada um testa todos os chutes.
+                    // Tiro livre: um lugar por alvo, reto atrás da bola, e os melhores chutes de cada um.
+                    bool penalty = match.IsPenaltySetup;
+                    var tryAngles = new List<float>();
+                    if (penalty) tryAngles.AddRange(PenaltyKickerAngles);
+                    else
+                        foreach (var target in planner.KickTargets(scoring))
+                        {
+                            Vector2 toTarget = target - ballPosition;
+                            if (toTarget.sqrMagnitude >= 0.01f) tryAngles.Add(match.KickerAngleFor(toTarget.normalized));
+                        }
+
                     simulator.Sync();
-                    foreach (var target in planner.KickTargets(scoring))
+                    foreach (float angle in tryAngles)
                     {
-                        Vector2 toTarget = target - ballPosition;
-                        if (toTarget.sqrMagnitude < 0.01f) continue;
-                        float angle = match.KickerAngleFor(toTarget.normalized);
                         if (!match.TryPlaceKicker(angle)) continue;
 
                         var candidates = planner.DiscCandidates(usable, scoring);
                         candidates.Sort((a, b) => b.PreScore.CompareTo(a.PreScore));
                         float best = float.MinValue;
-                        for (int i = 0; i < Mathf.Min(KickSimulationsPerAngle, candidates.Count); i++)
+                        int simulations = penalty ? candidates.Count : Mathf.Min(KickSimulationsPerAngle, candidates.Count);
+                        for (int i = 0; i < simulations; i++)
                         {
                             var candidate = candidates[i];
                             best = Mathf.Max(best, SimulateAndScore(kicker, candidate.Direction, candidate.Power01, maxImpulse,
@@ -613,7 +617,12 @@ namespace FutebolDeBotao
 
                     if (angles.Count > 0)
                     {
-                        angles.Sort((a, b) => b.score.CompareTo(a.score));
+                        // Empate: o lugar mais perto do reto (mostra menos o canto).
+                        angles.Sort((a, b) =>
+                        {
+                            int byScore = b.score.CompareTo(a.score);
+                            return byScore != 0 ? byScore : Mathf.Abs(a.angle).CompareTo(Mathf.Abs(b.angle));
+                        });
                         int pool = 1;
                         while (pool < angles.Count && pool < difficulty.pickAmongBest && angles[pool].score >= angles[0].score - PickWindow) pool++;
                         var pick = angles[Random.Range(0, pool)];
