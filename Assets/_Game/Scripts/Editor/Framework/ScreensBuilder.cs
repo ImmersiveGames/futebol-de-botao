@@ -253,13 +253,14 @@ namespace FutebolDeBotao.Editor
             CreateStudioLogo(modePanel);
             CreateGameLogo(modePanel);
 
-            // Jogar: Um jogador (contra a IA) ou Dois jogadores; Voltar volta à primeira tela.
+            // Jogar: Torneio, Partida única (contra a IA) ou Dois jogadores; Voltar volta à primeira tela.
             var playPanel = CreateGroup(canvas, "Jogar");
             CreateText(playPanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
-            var onePlayer = CreateButton(playPanel, "Um jogador", "Um jogador", new Vector2(0f, -150f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
-            var twoPlayers = CreateButton(playPanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -260f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
-            var playBack = CreateButton(playPanel, "Voltar", "Voltar", new Vector2(0f, -370f), new Vector2(420f, 90f), menu.ShowMode, ButtonStyle.Red);
-            AddNavigator(playPanel, playBack, Item(onePlayer), Item(twoPlayers), Item(playBack));
+            var tournamentButton = CreateButton(playPanel, "Torneio", "Torneio", new Vector2(0f, -110f), new Vector2(420f, 90f), menu.PlayTournament, ButtonStyle.Yellow);
+            var onePlayer = CreateButton(playPanel, "Partida única", "Partida única", new Vector2(0f, -210f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
+            var twoPlayers = CreateButton(playPanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -310f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
+            var playBack = CreateButton(playPanel, "Voltar", "Voltar", new Vector2(0f, -410f), new Vector2(420f, 90f), menu.ShowMode, ButtonStyle.Red);
+            AddNavigator(playPanel, playBack, Item(tournamentButton), Item(onePlayer), Item(twoPlayers), Item(playBack));
             CreateStudioLogo(playPanel);
             CreateGameLogo(playPanel);
             menu.SetPlayPanel(playPanel.gameObject);
@@ -323,6 +324,13 @@ namespace FutebolDeBotao.Editor
             stats.Configure(menu);
             menu.SetStats(stats);
             statsPanel.gameObject.SetActive(false);
+
+            // Torneio: a chave por fase e o fim do torneio. Monta a UI sozinha ao abrir.
+            var tournamentPanel = CreateGroup(canvas, "Torneio");
+            var tournament = tournamentPanel.gameObject.AddComponent<TournamentScreen>();
+            tournament.Configure(menu);
+            menu.SetTournament(tournament);
+            tournamentPanel.gameObject.SetActive(false);
 
             // Seleção de times no campo desenhado ("Jogar" vai para a Partida). Monta a UI sozinha no Awake.
             var selectionPanel = CreateGroup(canvas, "Seleção de times");

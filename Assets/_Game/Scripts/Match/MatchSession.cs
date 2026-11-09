@@ -165,9 +165,35 @@ namespace FutebolDeBotao
         /// <summary>Esquema tático escolhido para o lado, com 3 ou 5 botões.</summary>
         public static Formation Scheme(TeamSide side, int discs) => TeamCatalog.Load().Scheme(discs, SchemeIndex(side, discs));
 
+        /// <summary>Torneio: o Menu está montando um torneio novo (Opções do torneio).</summary>
+        public static bool TournamentSetup { get; set; }
+
+        /// <summary>A partida é do torneio (<see cref="Tournament"/>): as opções são as dele.</summary>
+        public static bool InTournamentMatch { get; private set; }
+
+        /// <summary>Ao abrir, o Menu vai direto para a chave do torneio (Avançar no Resultado).</summary>
+        public static bool OpenTournament { get; set; }
+
+        private static MatchOptions tournamentOptions;
+
+        /// <summary>Partida do torneio com estas opções (o <see cref="Options"/> passa a devolvê-las).</summary>
+        public static void UseTournamentOptions(MatchOptions matchOptions)
+        {
+            tournamentOptions = matchOptions;
+            InTournamentMatch = matchOptions != null;
+        }
+
+        /// <summary>Fora do torneio: volta às opções da sessão.</summary>
+        public static void LeaveTournament()
+        {
+            tournamentOptions = null;
+            InTournamentMatch = false;
+        }
+
         /// <summary>Opções da sessão; na primeira vez copia <paramref name="defaults"/> (ou o padrão do código).</summary>
         public static MatchOptions Options(MatchOptions defaults)
         {
+            if (InTournamentMatch && tournamentOptions != null) return tournamentOptions;
             if (options != null) return options;
             options = defaults != null ? Object.Instantiate(defaults) : MatchOptions.CreateDefault();
             options.name = "Opções da sessão";
@@ -184,6 +210,10 @@ namespace FutebolDeBotao
         private static void ResetStatics()
         {
             options = null;
+            tournamentOptions = null;
+            InTournamentMatch = false;
+            TournamentSetup = false;
+            OpenTournament = false;
             LastResult = null;
             LastMatchNumbers = null;
             FeltId = null;

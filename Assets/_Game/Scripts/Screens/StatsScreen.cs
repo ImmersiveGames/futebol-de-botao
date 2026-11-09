@@ -205,6 +205,13 @@ namespace FutebolDeBotao
             rows.Add(("Gols feitos nos pênaltis", s.shootoutGoals.ToString()));
             rows.Add(("Gols sofridos nos pênaltis", s.shootoutConceded.ToString()));
 
+            rows.Add(("Torneios", null));
+            rows.Add(("Torneios jogados", s.tournaments.ToString()));
+            rows.Add(("Títulos", s.tournamentTitles.ToString()));
+            rows.Add(("Vice-campeão", s.tournamentRunnerUps.ToString()));
+            rows.Add(("3º lugar", s.tournamentThirds.ToString()));
+            rows.Add(("Abandonados", s.tournamentsAbandoned.ToString()));
+
             rows.Add(("Jogo (total e por partida)", null));
             rows.Add(("Chutes a gol (Pro Gol!)", WithAverage(n.shots, finished)));
             rows.Add(("Conversão", Conversion(n)));

@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -22,9 +22,10 @@ namespace FutebolDeBotao
         public StatsData stats = new();
         /// <summary>Meu time (versão 3): nome, sigla, cores, camisas e moedas do jogador.</summary>
         public ProfileData profile = new();
-        // Reservados para as próximas fases.
+        /// <summary>Itens comprados na Loja ("camisa:id", "bola:id"...).</summary>
         public List<string> unlocked = new();
-        public List<TournamentData> tournaments = new();
+        /// <summary>Torneio (versão 5): o em andamento, ou o último terminado (<see cref="TournamentRun.active"/> falso).</summary>
+        public TournamentRun tournament = new();
 
         [Serializable]
         public sealed class SettingsData
@@ -155,8 +156,14 @@ namespace FutebolDeBotao
             public int shootoutConceded;
             /// <summary>Somados só das partidas terminadas.</summary>
             public MatchNumbers numbers = new();
-            /// <summary>Moedas que as partidas pagaram.</summary>
+            /// <summary>Moedas que as partidas pagaram (e os prêmios dos torneios).</summary>
             public int coins;
+            /// <summary>Torneios (versão 5): jogados (terminados ou abandonados), títulos, vices e 3º lugares.</summary>
+            public int tournaments;
+            public int tournamentTitles;
+            public int tournamentRunnerUps;
+            public int tournamentThirds;
+            public int tournamentsAbandoned;
 
             public int Played => wins + draws + losses + abandoned;
             public int Finished => wins + draws + losses;
@@ -179,13 +186,63 @@ namespace FutebolDeBotao
             public MatchNumbers numbers = new();
         }
 
+        /// <summary>Um torneio mata-mata: a chave (times por posição), os jogos e como o jogador terminou.</summary>
         [Serializable]
-        public sealed class TournamentData
+        public sealed class TournamentRun
         {
-            /// <summary>Tamanho da torre: 3, 5, 7 ou 10 degraus.</summary>
-            public int steps;
-            public int bestStep;
-            public int completed;
+            /// <summary>Tem torneio guardado (em andamento ou terminado).</summary>
+            public bool exists;
+            /// <summary>Em andamento: falso depois que o jogador terminou (campeão, eliminado ou abandonou).</summary>
+            public bool active;
+            /// <summary>Partida do jogador começou e ainda não terminou (fechar o jogo no meio = abandono).</summary>
+            public bool playing;
+            /// <summary>Id do asset do torneio (<see cref="TournamentConfig"/>).</summary>
+            public string configId;
+            public int level;
+            /// <summary>Opções escolhidas no começo (goleiro, prorrogação e pênaltis o torneio liga sempre).</summary>
+            public int durationMinutes = 5;
+            public int touchesPerTurn = 3;
+            public bool goalAfterWallIsValid;
+            public bool fouls = true;
+            public int discsPerTeam = 3;
+            public int aimAssist;
+            /// <summary>Times nas posições da chave, de cima para baixo: índice no catálogo; -1 = o jogador.</summary>
+            public List<int> slots = new();
+            public List<TournamentMatch> matches = new();
+            /// <summary>Colocação final do jogador: 1, 2, 3, 4...; 0 = ainda jogando ou abandonou.</summary>
+            public int position;
+            /// <summary>Fase em que o jogador saiu (0 = primeira); -1 = chegou ao fim.</summary>
+            public int eliminatedRound = -1;
+            public bool abandoned;
+            public int matchCoins;
+            public int prize;
+        }
+
+        /// <summary>Um jogo da chave. O mandante é o de cima (<see cref="home"/>).</summary>
+        [Serializable]
+        public sealed class TournamentMatch
+        {
+            /// <summary>Fase (0 = primeira) e posição na fase (de cima para baixo).</summary>
+            public int round;
+            public int order;
+            /// <summary>Disputa de 3º lugar (na fase da final, junto com ela).</summary>
+            public bool third;
+            /// <summary>Times: índice no catálogo; -1 = o jogador.</summary>
+            public int home;
+            public int away;
+            public bool played;
+            public int homeGoals;
+            public int awayGoals;
+            /// <summary>Gols na disputa de pênaltis; -1 = não teve.</summary>
+            public int homePenalties = -1;
+            public int awayPenalties = -1;
+            public bool walkover;
+
+            public bool HasPenalties => homePenalties >= 0 && awayPenalties >= 0;
+            public bool HomeWon => homeGoals != awayGoals ? homeGoals > awayGoals : homePenalties > awayPenalties;
+            public int Winner => HomeWon ? home : away;
+            public int Loser => HomeWon ? away : home;
+            public bool Has(int team) => home == team || away == team;
         }
     }
 }

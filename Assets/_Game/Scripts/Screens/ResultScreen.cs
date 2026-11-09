@@ -10,7 +10,8 @@ namespace FutebolDeBotao
     /// Resultado: "Fim de Jogo", o placar com o botão e o nome de cada time (baixo à esquerda, cima à direita) e uma
     /// tabela com os números da partida dos dois times (<see cref="MatchSession.LastMatchNumbers"/>, só na memória).
     /// Contra a IA, avisa quando bateu o recorde de sequência de vitórias. "Jogar de novo" volta para a Partida e "Menu"
-    /// para o Menu. O título e os botões vêm do "Criar telas"; o placar e a tabela são montados aqui.
+    /// para o Menu. No torneio, os botões viram "Avançar" (a chave, ou o fim do torneio) e "Sair" (Menu; o torneio fica
+    /// guardado) e aparece como o jogador está no torneio. O título e os botões vêm do "Criar telas"; o placar e a tabela são montados aqui.
     /// </summary>
     public sealed class ResultScreen : MonoBehaviour
     {
@@ -20,6 +21,7 @@ namespace FutebolDeBotao
         private const float NameY = 245f;
         private const float RecordY = 188f;
         private const float CoinsY = 462f;
+        private const float TournamentY = -345f;
         /// <summary>Gols da disputa de pênaltis, entre parênteses, embaixo de cada número do placar.</summary>
         private const float PenaltyX = 82f;
         private const float PenaltyY = 272f;
@@ -66,10 +68,38 @@ namespace FutebolDeBotao
                     HighlightColor, new Vector2(0f, CoinsY), new Vector2(680f, 44f));
             var numbers = MatchSession.LastMatchNumbers;
             if (numbers != null && numbers.Length == 2) BuildTable(root, numbers[0], numbers[1]);
+            if (MatchSession.InTournamentMatch) BuildTournament(root);
+        }
+
+        /// <summary>Torneio: Avançar e Sair no lugar de Jogar de novo e Menu, e a situação do jogador.</summary>
+        private void BuildTournament(RectTransform root)
+        {
+            foreach (var (objectName, label) in new[] { ("Jogar de novo", "Avançar"), ("Menu", "Sair") })
+            {
+                var button = root.Find(objectName);
+                var text = button != null ? button.GetComponentInChildren<Text>() : null;
+                if (text != null) text.text = label;
+            }
+
+            var run = Tournament.Run;
+            string status;
+            var next = Tournament.PlayerMatch();
+            if (next != null)
+                status = "Torneio: próximo jogo na " +
+                         (next.third ? "disputa de 3º lugar" : Tournament.RoundName(next.round, Tournament.Rounds).ToLowerInvariant());
+            else status = "Torneio: " + Tournament.PositionText(run);
+            CreateText(root, "Torneio", status, 30, FontStyle.Bold, HighlightColor, new Vector2(0f, TournamentY), new Vector2(680f, 50f));
         }
 
         public void PlayAgain()
         {
+            // Torneio: "Avançar" volta ao Menu já na chave (ou no fim do torneio).
+            if (MatchSession.InTournamentMatch)
+            {
+                MatchSession.OpenTournament = true;
+                if (menuRoute != null) menuRoute.RequestRoute();
+                return;
+            }
             // Mesma mesa, feltro, traves e bola (só uma partida nova pelo Menu muda).
             if (matchRoute != null) matchRoute.RequestRoute();
         }

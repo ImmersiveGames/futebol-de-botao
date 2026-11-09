@@ -91,6 +91,8 @@ namespace FutebolDeBotao
             public Button Ready;
             public MenuEntry ReadyItem;
             public Button[] Arrows;
+            /// <summary>Setas do time (somem no torneio: os times vêm da chave).</summary>
+            public Button[] TeamArrows;
             public MenuNavigator Navigator;
             public bool IsReady;
         }
@@ -141,9 +143,11 @@ namespace FutebolDeBotao
         public void Open()
         {
             Build();
+            // Torneio: times, esquema e camisas do adversário e a mesa já vêm do Tournament.PrepareMatch.
+            bool tournament = MatchSession.InTournamentMatch;
             // O Jogador 1 começa sempre com o Meu time (dá para trocar pelos do catálogo nas setas).
             MatchSession.UseProfile(TeamSide.Bottom);
-            if (MatchSession.VsAi == true)
+            if (MatchSession.VsAi == true && !tournament)
             {
                 var catalog = TeamCatalog.Load();
                 int discs = MatchSession.Options(defaults).discsPerTeam;
@@ -164,7 +168,7 @@ namespace FutebolDeBotao
                 }
                 MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             }
-            EnsureDifferentTeams();
+            if (!tournament) EnsureDifferentTeams();
             // Camisa guardada que não está (mais) liberada: fica com a primeira liberada.
             foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
             {
@@ -172,7 +176,13 @@ namespace FutebolDeBotao
                 MatchSession.SetKeeperPattern(side, MatchSession.KeeperPatternId(side));
             }
             // Partida nova: mesa de casa do jogador e a do visitante sorteada; começa em casa.
-            MatchSession.PrepareVenues();
+            if (!tournament) MatchSession.PrepareVenues();
+            foreach (var pair in halves)
+                foreach (var arrow in pair.Value.TeamArrows)
+                    arrow.gameObject.SetActive(!tournament);
+            // Torneio: o mandante é da chave; fica só o botão da mesa do jogo (o SetAway não troca).
+            homeButton.gameObject.SetActive(!tournament || !MatchSession.Away);
+            awayButton.gameObject.SetActive(!tournament || MatchSession.Away);
             PaintVenue();
 
             starting = false;
@@ -194,6 +204,7 @@ namespace FutebolDeBotao
         /// </summary>
         public void ChangeTeam(TeamSide side, int step)
         {
+            if (MatchSession.InTournamentMatch) return;
             var catalog = TeamCatalog.Load();
             int other = MatchSession.TeamIndex(Other(side));
             if (other >= 0) other = Wrap(other, catalog.TeamCount);
@@ -242,6 +253,7 @@ namespace FutebolDeBotao
         /// <summary>Em casa (mesa do jogador) ou Visitante (a sorteada): troca mesa, feltro, traves e bola.</summary>
         public void SetAway(bool away)
         {
+            if (MatchSession.InTournamentMatch) return;
             MatchSession.SetAway(away);
             PaintVenue();
         }
@@ -269,7 +281,14 @@ namespace FutebolDeBotao
 
         public void Back()
         {
-            if (menu != null) menu.ShowOptions();
+            if (menu == null) return;
+            // Torneio: volta para a chave.
+            if (MatchSession.InTournamentMatch)
+            {
+                MatchSession.LeaveTournament();
+                menu.ShowTournament();
+            }
+            else menu.ShowOptions();
         }
 
         public void Play()
@@ -796,6 +815,7 @@ namespace FutebolDeBotao
             view.KeeperItem.Configure(null, previousKeeper, nextKeeper, view.Keeper.Root,
                 (RectTransform)previousKeeper.transform, (RectTransform)nextKeeper.transform);
 
+            view.TeamArrows = new[] { previousTeam, nextTeam };
             view.Arrows = new[] { previousTeam, nextTeam, previousScheme, nextScheme, previousSecondary, nextSecondary, previousShirt, nextShirt, previousKeeper, nextKeeper };
             view.Ready = CreateButton(half, "Pronto", "Pronto", new Vector2(MiddleButtonX, EndButtonY), MiddleButtonSize, () => ToggleReady(side), ButtonStyle.Yellow);
             view.ReadyItem = view.Ready.gameObject.AddComponent<MenuEntry>();

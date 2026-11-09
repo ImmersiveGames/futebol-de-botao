@@ -1383,6 +1383,9 @@ namespace FutebolDeBotao
             int topPenalties = IsShootout ? ShootoutGoals(TeamSide.Top) : -1;
             PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
                 bottomPenalties, topPenalties);
+            if (MatchSession.InTournamentMatch)
+                Tournament.RecordPlayerMatch(Score(TeamSide.Bottom), Score(TeamSide.Top), bottomPenalties, topPenalties, walkover,
+                    PlayerStats.CoinsEarned);
         }
 
         private void RequestResult()

@@ -198,7 +198,9 @@ namespace FutebolDeBotao
             if (data.profile.primary.a <= 0f) data.profile.primary = PlayerProfile.DefaultPrimary;
             if (data.profile.secondary.a <= 0f) data.profile.secondary = PlayerProfile.DefaultSecondary;
             data.unlocked ??= new System.Collections.Generic.List<string>();
-            data.tournaments ??= new System.Collections.Generic.List<SaveData.TournamentData>();
+            data.tournament ??= new SaveData.TournamentRun();
+            data.tournament.slots ??= new System.Collections.Generic.List<int>();
+            data.tournament.matches ??= new System.Collections.Generic.List<SaveData.TournamentMatch>();
             // Versão 4 passou a contar moedas ganhas e gastas: gastos pelo preço do que já foi comprado, ganhos = saldo + gastos.
             if (data.version < 4)
             {

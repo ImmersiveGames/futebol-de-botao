@@ -21,8 +21,9 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: a primeira tela tem Jogar, Meu time, Loja, Estatísticas e Sair. Jogar abre a escolha entre Um jogador (contra a IA)
-    /// e Dois jogadores; escolhido o modo, abre os Controles (só com mais de um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
+    /// Menu: a primeira tela tem Jogar, Meu time, Loja, Estatísticas e Sair. Jogar abre a escolha entre Torneio, Partida única
+    /// (contra a IA) e Dois jogadores. O Torneio continua o guardado ou monta um novo (Controles, Opções do torneio e a
+    /// chave, <see cref="TournamentScreen"/>); nas outras, escolhido o modo, abre os Controles (só com mais de um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
     /// "Jogar" põe os jogadores na sessão e pede a Route da Partida.
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.
     /// </summary>
@@ -48,6 +49,8 @@ namespace FutebolDeBotao
         [SerializeField] private DeviceSelectionScreen devices;
         [Tooltip("Tela Estatísticas (botão na primeira tela do Menu).")]
         [SerializeField] private StatsScreen stats;
+        [Tooltip("Tela do Torneio: a chave e o fim do torneio.")]
+        [SerializeField] private TournamentScreen tournament;
         [Tooltip("Mostra nas Opções o modo escolhido.")]
         [SerializeField] private Text modeLabel;
         [Tooltip("Acerta quem está na sessão (Jogador 1 contra a IA). Vazio: a partida lê o mouse/teclado direto.")]
@@ -73,16 +76,63 @@ namespace FutebolDeBotao
 
         private void Start()
         {
-            ShowMode();
+            // Voltou de uma partida: as opções voltam a ser as da sessão; torneio que ficou no meio vira abandono.
+            MatchSession.LeaveTournament();
+            MatchSession.TournamentSetup = false;
+            Tournament.ResolveLeftover();
+            if (MatchSession.OpenTournament && tournament != null)
+            {
+                MatchSession.OpenTournament = false;
+                ShowTournament();
+            }
+            else ShowMode();
             Refresh();
         }
 
-        /// <summary>Um jogador: contra a IA (nível nas Opções). Você joga com o time de baixo. Abre as Opções.</summary>
+        /// <summary>Partida única: contra a IA (nível nas Opções). Você joga com o time de baixo. Abre as Opções.</summary>
         public void PlayOnePlayer()
         {
             MatchSession.VsAi = true;
+            MatchSession.TournamentSetup = false;
             OpenDevices();
         }
+
+        /// <summary>Torneio: com um em andamento, a tela dele pergunta se continua; senão monta um novo.</summary>
+        public void PlayTournament()
+        {
+            MatchSession.VsAi = true;
+            if (Tournament.InProgress && tournament != null)
+            {
+                Show(tournament.gameObject);
+                tournament.OpenAsk();
+            }
+            else NewTournament();
+        }
+
+        /// <summary>Torneio novo: Controles e as Opções do torneio; o "Avançar" sorteia a chave.</summary>
+        public void NewTournament()
+        {
+            MatchSession.VsAi = true;
+            MatchSession.TournamentSetup = true;
+            OpenDevices();
+        }
+
+        /// <summary>A chave do torneio guardado (ou o fim dele).</summary>
+        public void ShowTournament()
+        {
+            if (tournament == null) return;
+            Show(tournament.gameObject);
+            tournament.Open();
+        }
+
+        /// <summary>"Jogar" na chave: prepara o jogo do jogador e abre a Seleção de times (só esquema e camisas).</summary>
+        public void PlayTournamentMatch()
+        {
+            if (!Tournament.PrepareMatch(defaults)) return;
+            ShowSelection();
+        }
+
+        public void SetTournament(TournamentScreen tournamentScreen) => tournament = tournamentScreen;
 
         /// <summary>
         /// Fecha o aplicativo (no editor, para o Play). No Android também tira o jogo da lista de apps recentes
@@ -114,6 +164,7 @@ namespace FutebolDeBotao
         public void PlayTwoPlayers()
         {
             MatchSession.VsAi = false;
+            MatchSession.TournamentSetup = false;
             OpenDevices();
         }
 
@@ -160,8 +211,12 @@ namespace FutebolDeBotao
             shop.Open();
         }
 
-        /// <summary>"Jogar" na primeira tela: a escolha entre Um jogador e Dois jogadores.</summary>
-        public void ShowPlay() => Show(playPanel != null ? playPanel : modePanel);
+        /// <summary>"Jogar" na primeira tela: a escolha entre Torneio, Partida única e Dois jogadores.</summary>
+        public void ShowPlay()
+        {
+            MatchSession.TournamentSetup = false;
+            Show(playPanel != null ? playPanel : modePanel);
+        }
 
         /// <summary>"Meu time" na primeira tela.</summary>
         public void ShowProfile()
@@ -186,6 +241,15 @@ namespace FutebolDeBotao
         /// <summary>"Avançar" nas Opções: abre a Seleção de times (sem ela, vai direto para a Partida).</summary>
         public void ShowSelection()
         {
+            // Opções do torneio novo: sorteia a chave e mostra.
+            if (MatchSession.TournamentSetup)
+            {
+                MatchSession.TournamentSetup = false;
+                GameSave.Save("opcoes");
+                Tournament.StartNew(TournamentConfig.Find(null), MatchSession.Options(defaults), MatchSession.AiLevel);
+                ShowTournament();
+                return;
+            }
             if (selection == null)
             {
                 Play();
@@ -203,7 +267,9 @@ namespace FutebolDeBotao
         public void ShowOptions()
         {
             Show(optionsPanel);
-            if (modeLabel != null) modeLabel.text = MatchSession.VsAi == true ? "Um jogador" : "Dois jogadores";
+            if (modeLabel != null)
+                modeLabel.text = MatchSession.TournamentSetup ? $"Torneio: {TournamentConfig.Find(null).displayName}"
+                    : MatchSession.VsAi == true ? "Partida única" : "Dois jogadores";
             LayoutRows();
             Refresh();
         }
@@ -215,7 +281,8 @@ namespace FutebolDeBotao
         {
             foreach (var other in new[] { modePanel, playPanel, optionsPanel, selection != null ? selection.gameObject : null,
                          devices != null ? devices.gameObject : null, stats != null ? stats.gameObject : null,
-                         profile != null ? profile.gameObject : null, shop != null ? shop.gameObject : null })
+                         profile != null ? profile.gameObject : null, shop != null ? shop.gameObject : null,
+                         tournament != null ? tournament.gameObject : null })
                 if (other != null) other.SetActive(other == panel);
         }
 
@@ -223,6 +290,7 @@ namespace FutebolDeBotao
         private void LayoutRows()
         {
             bool vsAi = MatchSession.VsAi == true;
+            bool tournamentSetup = MatchSession.TournamentSetup;
             int slot = 0;
             for (int i = 0; i < optionRows.Length; i++)
             {
@@ -230,8 +298,10 @@ namespace FutebolDeBotao
                 if (row == null) continue;
                 var kind = (MatchOptionKind)i;
                 // Dificuldade só contra a IA; Pênaltis só com goleiro.
+                // Torneio: goleiro, prorrogação e pênaltis sempre ligados (não aparecem).
                 bool shown = (vsAi || kind != MatchOptionKind.Difficulty) &&
-                             (kind != MatchOptionKind.Penalties || MatchSession.Options(defaults).hasGoalkeeper);
+                             (kind != MatchOptionKind.Penalties || MatchSession.Options(defaults).hasGoalkeeper) &&
+                             !(tournamentSetup && kind is MatchOptionKind.Goalkeeper or MatchOptionKind.ExtraTime or MatchOptionKind.Penalties);
                 row.gameObject.SetActive(shown);
                 if (!shown) continue;
                 row.anchoredPosition = new Vector2(0f, (i - slot) * OptionRowSpacing);
