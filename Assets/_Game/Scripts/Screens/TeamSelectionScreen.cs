@@ -257,6 +257,8 @@ namespace FutebolDeBotao
         {
             PaintTable();
             PaintBall();
+            // Gols grandes ou pequenos e moldura clássica ou placas: quem liga e desliga é o Refresh.
+            Refresh();
             foreach (var (button, held) in new[] { (homeButton, !MatchSession.Away), (awayButton, MatchSession.Away) })
             {
                 if (button == null) continue;
