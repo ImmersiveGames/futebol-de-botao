@@ -201,7 +201,8 @@ namespace FutebolDeBotao
                 int byScore = b.PreScore.CompareTo(a.PreScore);
                 return byScore != 0 ? byScore : a.Power01.CompareTo(b.Power01);
             });
-            if (list.Count > count) list.RemoveRange(count, list.Count - count);
+            // Pênalti: um batedor só, poucos chutes: o goleiro testa todos, fracos e fortes.
+            if (!PenaltyMode && list.Count > count) list.RemoveRange(count, list.Count - count);
             return list;
         }
 
