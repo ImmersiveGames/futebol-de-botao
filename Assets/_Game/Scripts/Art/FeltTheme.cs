@@ -36,7 +36,7 @@ namespace FutebolDeBotao
         [Tooltip("O jogador já tem desde o começo.")]
         public bool unlockedByDefault;
         [Tooltip("Cores de trave que combinam com este feltro, pelo nome da cor na mesa (ex.: Branca). Vazio: qualquer uma.")]
-        public string[] goalColors = { };
+        [GoalColorName] public string[] goalColors = { };
         [Tooltip("Miniatura na Loja. Vazio: a Loja mostra as faixas de cor.")]
         public Sprite thumbnail;
 
