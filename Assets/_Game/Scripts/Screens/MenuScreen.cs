@@ -324,7 +324,7 @@ namespace FutebolDeBotao
                     options.durationMinutes = Durations[Wrap(index + step, Durations.Length)];
                     break;
                 case MatchOptionKind.Difficulty:
-                    MatchSession.AiLevel = (AiLevel)Wrap((int)MatchSession.AiLevel + step, 3);
+                    MatchSession.AiLevel = (AiLevel)Wrap((int)MatchSession.AiLevel + step, AiDifficulty.LevelCount);
                     break;
                 case MatchOptionKind.Discs:
                     options.discsPerTeam = options.discsPerTeam == 5 ? 3 : 5;

@@ -8,18 +8,19 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tela Estatísticas (do Menu): abas Geral, Fácil, Médio, Difícil e Última partida, com uma lista que rola (nome à
+    /// Tela Estatísticas (do Menu): abas Geral, Fácil, Médio, Difícil, Pro e Última partida, com uma lista que rola (nome à
     /// esquerda, valor à direita). Só partidas contra a IA (<see cref="PlayerStats"/>). Esquerda/direita na linha das
     /// abas (ou LB/RB) troca a aba; o analógico direito, PageUp/PageDown, a roda do mouse e arrastar rolam a lista.
     /// "Zerar estatísticas" pergunta antes e apaga tudo. Monta a UI sozinha (como os Controles).
     /// </summary>
     public sealed class StatsScreen : MonoBehaviour
     {
-        private static readonly string[] TabNames = { "Geral", "Fácil", "Médio", "Difícil", "Última\npartida" };
-        private const int LastTab = 4;
+        private static readonly string[] TabNames = { "Geral", "Fácil", "Médio", "Difícil", "Pro", "Última\npartida" };
+        private const int LastTab = 5;
         private const float TabY = 440f;
-        private const float TabSpacing = 136f;
-        private static readonly Vector2 TabSize = new(128f, 76f);
+        // 6 abas nos 720 da largura.
+        private const float TabSpacing = 114f;
+        private static readonly Vector2 TabSize = new(108f, 76f);
         private static readonly Vector2 ListCenter = new(0f, -10f);
         private static readonly Vector2 ListSize = new(680f, 800f);
         private const float ListPadding = 18f;
@@ -233,7 +234,7 @@ namespace FutebolDeBotao
                          $" nos pênaltis ({last.playerPenalties} x {last.aiPenalties})";
 
             rows.Add(("Partida", null));
-            rows.Add(("Nível", AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(last.level, 0, 2))));
+            rows.Add(("Nível", AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(last.level, 0, AiDifficulty.LevelCount - 1))));
             rows.Add(("Placar (você x IA)", $"{last.playerScore} x {last.aiScore}"));
             rows.Add(("Resultado", result));
             rows.Add(("Moedas ganhas", last.coins.ToString()));
@@ -311,7 +312,7 @@ namespace FutebolDeBotao
                 float x = (i - (TabNames.Length - 1) * 0.5f) * TabSpacing;
                 tabs[i] = CreateButton(tabRow, TabNames[i], TabNames[i], new Vector2(x, 0f), TabSize, () => ShowTab(index));
                 var label = tabs[i].GetComponentInChildren<Text>();
-                label.fontSize = i == LastTab ? 20 : 26;
+                label.fontSize = i == LastTab ? 19 : 24;
                 label.lineSpacing = 0.85f;
                 tabAreas[i] = (RectTransform)tabs[i].transform;
             }

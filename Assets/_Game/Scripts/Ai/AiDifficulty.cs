@@ -7,15 +7,20 @@ namespace FutebolDeBotao
     {
         Easy,
         Medium,
-        Hard
+        Hard,
+        /// <summary>4º nível: quase não erra e pensa mais longe.</summary>
+        Pro
     }
 
     /// <summary>
-    /// Números de um nível da IA (Fácil, Médio, Difícil). Quanto mais jogadas ela testa e menos erra, mais forte fica.
+    /// Números de um nível da IA (Fácil, Médio, Difícil, Pro). Quanto mais jogadas ela testa e menos erra, mais forte fica.
     /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Nível da IA", fileName = "NivelDaIA")]
     public sealed class AiDifficulty : ScriptableObject
     {
+        /// <summary>Quantos níveis existem (Fácil, Médio, Difícil, Pro).</summary>
+        public const int LevelCount = 4;
+
         [Header("Escolha da jogada")]
         [Tooltip("Quantos botões, dos mais perto da bola, a IA considera.")]
         [Min(1)] public int discsToTest = 3;
@@ -24,19 +29,19 @@ namespace FutebolDeBotao
         [Tooltip("Escolhe ao acaso entre as N melhores jogadas simuladas. 1 = sempre a melhor.")]
         [Min(1)] public int pickAmongBest = 2;
         [Tooltip("Chance de falta (testando o erro de mira e de força) que a IA aceita numa jogada. Falta certa (sem erro) " +
-                 "nunca é aceita. Fácil 0,5; Médio 0,35; Difícil 0,2.")]
+                 "nunca é aceita. Fácil 0,5; Médio 0,35; Difícil 0,2; Pro 0,1.")]
         [Range(0f, 1f)] public float maxFoulChance = 0.35f;
 
         [Header("Pensar o toque seguinte")]
         [Tooltip("No Preparar o chute com 3 toques: quantas das melhores jogadas a IA testa também o toque seguinte (o chute " +
-                 "fica pronto depois? a bola fica sem saída?). 0 = não pensa. Fácil 0; Médio 2; Difícil 4.")]
+                 "fica pronto depois? a bola fica sem saída?). 0 = não pensa. Fácil 0; Médio 2; Difícil 4; Pro 6.")]
         [Min(0)] public int planAhead = 2;
         [Tooltip("Quantas jogadas do toque seguinte vão para a mesa simulada, para cada jogada testada.")]
         [Min(1)] public int followUpSimulations = 4;
 
         [Header("Erro na execução")]
         [Tooltip("Chance de a IA errar o peteleco (0,35 = 35% das jogadas). Quando erra, sorteia o erro dentro das faixas " +
-                 "abaixo; quando não erra, o peteleco sai exato. Fácil 0,6; Médio 0,35; Difícil 0,15.")]
+                 "abaixo; quando não erra, o peteleco sai exato. Fácil 0,6; Médio 0,45; Difícil 0,25; Pro 0,12.")]
         [Range(0f, 1f)] public float errorChance = 0.45f;
         [Tooltip("Erro máximo no ângulo do peteleco, em graus para cada lado.")]
         [Min(0f)] public float angleErrorDegrees = 6f;
@@ -58,7 +63,7 @@ namespace FutebolDeBotao
         [Min(0f)] public float aimSeconds = 0.7f;
 
         /// <summary>
-        /// Asset do nível em Resources/IA (Facil, Medio, Dificil), que você ajusta no Inspector.
+        /// Asset do nível em Resources/IA (Facil, Medio, Dificil, Pro), que você ajusta no Inspector.
         /// Sem o asset, usa os números do plano direto do código.
         /// </summary>
         public static AiDifficulty Load(AiLevel level)
@@ -71,6 +76,7 @@ namespace FutebolDeBotao
         {
             AiLevel.Easy => "Facil",
             AiLevel.Hard => "Dificil",
+            AiLevel.Pro => "Pro",
             _ => "Medio"
         };
 
@@ -78,6 +84,7 @@ namespace FutebolDeBotao
         {
             AiLevel.Easy => "Fácil",
             AiLevel.Hard => "Difícil",
+            AiLevel.Pro => "Pro",
             _ => "Médio"
         };
 
@@ -120,6 +127,22 @@ namespace FutebolDeBotao
                     difficulty.keeperShotsToConsider = 10;
                     difficulty.thinkSeconds = 0.3f;
                     difficulty.aimSeconds = 0.6f;
+                    break;
+                case AiLevel.Pro:
+                    difficulty.discsToTest = 4;
+                    difficulty.simulations = 16;
+                    difficulty.pickAmongBest = 1;
+                    difficulty.planAhead = 6;
+                    difficulty.followUpSimulations = 8;
+                    difficulty.maxFoulChance = 0.1f;
+                    difficulty.errorChance = 0.12f;
+                    difficulty.angleErrorDegrees = 1.5f;
+                    difficulty.powerError = 0.02f;
+                    difficulty.shotCallDistance = 6.5f;
+                    difficulty.keeperError = 0.1f;
+                    difficulty.keeperShotsToConsider = 15;
+                    difficulty.thinkSeconds = 0.25f;
+                    difficulty.aimSeconds = 0.5f;
                     break;
             }
             return difficulty;

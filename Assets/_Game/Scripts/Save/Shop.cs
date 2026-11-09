@@ -7,20 +7,20 @@ namespace FutebolDeBotao
     /// </summary>
     public static class Shop
     {
-        /// <summary>Moedas por vitória, empate e derrota em cada nível (Fácil, Médio, Difícil).</summary>
-        private static readonly int[,] Rewards = { { 5, 3, 1 }, { 10, 5, 2 }, { 12, 6, 3 } };
+        /// <summary>Moedas por vitória, empate e derrota em cada nível (Fácil, Médio, Difícil, Pro).</summary>
+        private static readonly int[,] Rewards = { { 5, 3, 1 }, { 10, 5, 2 }, { 12, 6, 3 }, { 15, 8, 3 } };
 
         public static int Coins => PlayerProfile.Data.coins;
 
         public static bool Owns(string key) => GameSave.Data.unlocked != null && GameSave.Data.unlocked.Contains(key);
 
-        /// <summary>Moedas de uma partida terminada contra a IA no nível (0 a 2) com o placar do jogador e da IA.</summary>
+        /// <summary>Moedas de uma partida terminada contra a IA no nível (0 a 3) com o placar do jogador e da IA.</summary>
         public static int Reward(int level, int playerScore, int aiScore) => RewardFor(level, playerScore.CompareTo(aiScore));
 
         /// <summary>Moedas pelo resultado: <paramref name="outcome"/> maior que 0 = vitória, 0 = empate, menor = derrota.</summary>
         public static int RewardFor(int level, int outcome)
         {
-            if (level < 0 || level > 2) return 0;
+            if (level < 0 || level >= Rewards.GetLength(0)) return 0;
             int result = outcome > 0 ? 0 : outcome == 0 ? 1 : 2;
             return Rewards[level, result];
         }

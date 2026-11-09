@@ -45,7 +45,7 @@ namespace FutebolDeBotao
             int level = Data.inProgressLevel;
             if (level < 0) return false;
             Data.inProgressLevel = -1;
-            if (level > 2) return true;
+            if (level >= AiDifficulty.LevelCount) return true;
             foreach (var stats in new[] { Data.total, Data.levels[level] })
             {
                 stats.abandoned++;
@@ -62,7 +62,7 @@ namespace FutebolDeBotao
             int playerPenalties = -1, int aiPenalties = -1)
         {
             int level = Data.inProgressLevel;
-            if (level < 0 || level > 2) return;
+            if (level < 0 || level >= AiDifficulty.LevelCount) return;
             Data.inProgressLevel = -1;
 
             bool shootout = playerPenalties >= 0 && aiPenalties >= 0;

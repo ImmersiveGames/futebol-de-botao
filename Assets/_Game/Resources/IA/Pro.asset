@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad9576a290948ad9be1131746b13b14, type: 3}
+  m_Name: Pro
+  m_EditorClassIdentifier: FutebolDeBotao::FutebolDeBotao.AiDifficulty
+  discsToTest: 4
+  simulations: 16
+  pickAmongBest: 1
+  planAhead: 6
+  followUpSimulations: 8
+  maxFoulChance: 0.1
+  errorChance: 0.12
+  angleErrorDegrees: 1.5
+  powerError: 0.02
+  shotCallDistance: 6.5
+  keeperError: 0.1
+  keeperShotsToConsider: 15
+  thinkSeconds: 0.25
+  aimSeconds: 0.5

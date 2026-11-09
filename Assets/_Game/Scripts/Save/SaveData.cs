@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 6;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -89,8 +89,8 @@ namespace FutebolDeBotao
         {
             /// <summary>Todos os níveis juntos (a sequência de vitórias é a de todas as partidas, de qualquer nível).</summary>
             public LevelStats total = new();
-            /// <summary>Por nível da IA: 0 = Fácil, 1 = Médio, 2 = Difícil.</summary>
-            public LevelStats[] levels = { new(), new(), new() };
+            /// <summary>Por nível da IA: 0 = Fácil, 1 = Médio, 2 = Difícil, 3 = Pro (versão 6).</summary>
+            public LevelStats[] levels = { new(), new(), new(), new() };
             /// <summary>Nível da partida contra a IA em andamento; -1 = nenhuma. Sobrou ao abrir o jogo = abandonada.</summary>
             public int inProgressLevel = -1;
             /// <summary>Já houve uma partida terminada (a aba Última partida).</summary>

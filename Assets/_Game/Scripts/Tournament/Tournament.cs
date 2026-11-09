@@ -162,7 +162,7 @@ namespace FutebolDeBotao
             var config = Config;
 
             MatchSession.VsAi = true;
-            MatchSession.AiLevel = (AiLevel)Mathf.Clamp(run.level, 0, 2);
+            MatchSession.AiLevel = (AiLevel)Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1);
             var options = defaults != null ? Object.Instantiate(defaults) : MatchOptions.CreateDefault();
             options.name = "Opções do torneio";
             options.hideFlags = HideFlags.DontSave;
@@ -337,7 +337,7 @@ namespace FutebolDeBotao
             run.prize = run.abandoned ? 0 : config.PrizeFor(position);
 
             var stats = GameSave.Data.stats;
-            int level = Mathf.Clamp(run.level, 0, 2);
+            int level = Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1);
             foreach (var s in new[] { stats.total, stats.levels[level] })
             {
                 s.tournaments++;

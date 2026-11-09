@@ -87,7 +87,7 @@ namespace FutebolDeBotao
 
         private static void ApplyToSession()
         {
-            MatchSession.AiLevel = (AiLevel)Mathf.Clamp(Data.settings.aiLevel, 0, 2);
+            MatchSession.AiLevel = (AiLevel)Mathf.Clamp(Data.settings.aiLevel, 0, AiDifficulty.LevelCount - 1);
             for (int i = 0; i < 2; i++)
             {
                 var side = (TeamSide)i;
@@ -178,13 +178,15 @@ namespace FutebolDeBotao
             data.stats ??= new SaveData.StatsData();
             var stats = data.stats;
             stats.total ??= new SaveData.LevelStats();
-            if (stats.levels == null || stats.levels.Length != 3)
+            // Versão 6 ganhou o nível Pro: saves antigos têm 3 níveis, o Pro entra zerado.
+            int levelCount = AiDifficulty.LevelCount;
+            if (stats.levels == null || stats.levels.Length != levelCount)
             {
-                var levels = new SaveData.LevelStats[3];
-                for (int i = 0; stats.levels != null && i < stats.levels.Length && i < 3; i++) levels[i] = stats.levels[i];
+                var levels = new SaveData.LevelStats[levelCount];
+                for (int i = 0; stats.levels != null && i < stats.levels.Length && i < levelCount; i++) levels[i] = stats.levels[i];
                 stats.levels = levels;
             }
-            for (int i = 0; i < 3; i++) stats.levels[i] ??= new SaveData.LevelStats();
+            for (int i = 0; i < levelCount; i++) stats.levels[i] ??= new SaveData.LevelStats();
             stats.total.numbers ??= new SaveData.MatchNumbers();
             foreach (var level in stats.levels) level.numbers ??= new SaveData.MatchNumbers();
             stats.last ??= new SaveData.LastMatchData();

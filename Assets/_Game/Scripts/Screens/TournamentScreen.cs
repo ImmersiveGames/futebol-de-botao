@@ -136,7 +136,7 @@ namespace FutebolDeBotao
             titleText.text = config.displayName;
 
             var next = Tournament.PlayerMatch();
-            string level = AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(run.level, 0, 2));
+            string level = AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1));
             if (next != null)
             {
                 int opponent = next.home == Tournament.Player ? next.away : next.home;
