@@ -49,6 +49,31 @@ namespace FutebolDeBotao
             ball = trackedBall;
         }
 
+        /// <summary>
+        /// Muda a largura do goleiro (colisão e desenho) e quanto ele desliza dentro de um gol de
+        /// <paramref name="goalWidth"/>. O desenho (filho com <see cref="PieceArt"/>) é esticado para a mesma largura.
+        /// </summary>
+        public void SetWidth(float width, float goalWidth)
+        {
+            width = Mathf.Clamp(width, 0.1f, goalWidth);
+            var scale = transform.localScale;
+            scale.x = width;
+            transform.localScale = scale;
+            halfRange = Mathf.Max(0f, (goalWidth - width) * 0.5f);
+            targetX = Mathf.Clamp(targetX, centerX - halfRange, centerX + halfRange);
+
+            var art = GetComponentInChildren<PieceArt>(true);
+            if (art == null) return;
+            float artWidth = 0f;
+            foreach (var renderer in art.GetComponentsInChildren<SpriteRenderer>(true))
+                if (renderer.sprite != null) artWidth = Mathf.Max(artWidth, renderer.sprite.bounds.size.x);
+            if (artWidth <= 0.001f) return;
+            // Largura no mundo = largura da peça x escala do desenho x largura do sprite.
+            var artScale = art.transform.localScale;
+            artScale.x = 1f / artWidth;
+            art.transform.localScale = artScale;
+        }
+
         /// <summary>Define para onde o goleiro deve deslizar (posição X no mundo).</summary>
         public void SetTargetX(float worldX)
         {

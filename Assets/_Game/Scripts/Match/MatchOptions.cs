@@ -28,6 +28,8 @@ namespace FutebolDeBotao
         [Tooltip("3 (padrão) ou 5 botões por time.")]
         public int discsPerTeam = 3;
         public bool hasGoalkeeper = true;
+        [Tooltip("Largura do goleiro (o gol tem 2,4). A arte é esticada para caber.")]
+        [Range(0.6f, 2f)] public float keeperWidth = 1.2f;
         [Tooltip("Largura da boca do gol sem goleiro (com goleiro é 2,4).")]
         [Range(0.6f, FieldLayout.GoalWidth)] public float goalWidthWithoutKeeper = 1.4f;
         public Formation formation5;

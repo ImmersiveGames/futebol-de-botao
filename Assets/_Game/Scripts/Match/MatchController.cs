@@ -234,6 +234,8 @@ namespace FutebolDeBotao
 
             foreach (var keeper in keepers) keeper.gameObject.SetActive(options.hasGoalkeeper);
             ApplyGoalWidth();
+            if (options.hasGoalkeeper)
+                foreach (var keeper in keepers) keeper.SetWidth(options.keeperWidth, GoalWidth);
             if (aimVisuals != null) aimVisuals.Mode = options.aimAssist;
             PaintTeams();
         }
