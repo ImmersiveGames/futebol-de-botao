@@ -112,6 +112,8 @@ namespace FutebolDeBotao
 
             var goals = Plan(situation);
             var rejected = new StringBuilder();
+            // No log: quantas saídas já usadas a IA está evitando.
+            if (situation.IsKickOff && usedKickOffs.Count > 0) rejected.Append("saídas já usadas: ").Append(usedKickOffs.Count);
             AiDecision fallback = null;
             AiDecision chosen = null;
             simulator.Sync();
@@ -189,7 +191,7 @@ namespace FutebolDeBotao
                 chosen.NoGoalAccepted = true;
             }
             chosen ??= new AiDecision { Candidate = Straight(situation, match) };
-            if (situation.IsKickOff && chosen.HasExpected) usedKickOffs.Add(KickOffKey(chosen.Candidate));
+            if (situation.IsKickOff && chosen.HasExpected) usedKickOffs.Add(KickOffKey(chosen.Candidate, chosen.Expected.BallEnd));
 
             var line = new StringBuilder();
             foreach (var goal in goals)
@@ -390,16 +392,17 @@ namespace FutebolDeBotao
         }
 
         private bool UsedKickOff(AiSituation situation, in Rated rated) =>
-            situation.IsKickOff && usedKickOffs.Contains(KickOffKey(rated.Trial.Candidate));
+            situation.IsKickOff && usedKickOffs.Contains(KickOffKey(rated.Trial.Candidate, rated.Trial.Main.BallEnd));
 
         /// <summary>
-        /// Jogada de saída pelo botão e pela direção (de 20 em 20 graus): parecidas contam como a mesma, e a do lado
-        /// espelhado também (a formação é simétrica).
+        /// Jogada de saída pelo botão e por onde a bola para (quadrados de 0,75): parecidas contam como a mesma, e a do
+        /// lado espelhado também (a formação é simétrica).
         /// </summary>
-        private static string KickOffKey(in ShotCandidate candidate)
+        private static string KickOffKey(in ShotCandidate candidate, Vector2 ballEnd)
         {
-            float angle = Mathf.Atan2(candidate.Direction.y, Mathf.Abs(candidate.Direction.x)) * Mathf.Rad2Deg;
-            return $"{(candidate.Disc != null ? candidate.Disc.name : "?")}:{Mathf.RoundToInt(angle / 20f)}";
+            const float Cell = 0.75f;
+            string disc = candidate.Disc != null ? candidate.Disc.name : "?";
+            return $"{disc}:{Mathf.RoundToInt(Mathf.Abs(ballEnd.x) / Cell)}:{Mathf.RoundToInt(ballEnd.y / Cell)}";
         }
 
         /// <summary>
