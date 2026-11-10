@@ -12,9 +12,9 @@ namespace FutebolDeBotao
     public static class KeeperBall
     {
         /// <summary>Margem para cada lado da caixa do goleiro.</summary>
-        public const float SideMargin = 0.3f;
+        public const float SideMargin = 0.15f;
         /// <summary>Margem na frente da caixa do goleiro (para o meio do campo).</summary>
-        public const float FrontMargin = 0.4f;
+        public const float FrontMargin = 0.2f;
 
         /// <summary>Time do goleiro dono da bola parada em <paramref name="ballPosition"/>. Nulo: bola de ninguém.</summary>
         public static TeamSide? Owner(Vector2 ballPosition, float ballRadius, IReadOnlyList<Goalkeeper> keepers, bool hasGoalkeeper)
