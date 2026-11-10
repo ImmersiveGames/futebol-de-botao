@@ -278,7 +278,16 @@ namespace FutebolDeBotao
 
                 var keeper = FindKeeper();
                 float travelSeconds = 0f;
-                if (keeper != null)
+                if (keeper != null && match.IsPenaltyKick)
+                {
+                    // Pênalti: a IA escolhe o canto primeiro, escondida, sem ver o batedor. Sorteia o lado e fica entre
+                    // o mínimo pedido e a trave.
+                    float center = (keeper.MinX + keeper.MaxX) * 0.5f;
+                    float half = (keeper.MaxX - keeper.MinX) * 0.5f;
+                    float side = Random.value < 0.5f ? -1f : 1f;
+                    keeper.SnapTo(center + side * half * Random.Range(match.Options.penaltyKeeperMinSide, 1f));
+                }
+                else if (keeper != null)
                 {
                     float? bestX = null;
                     yield return BestKeeperX(keeper, version, x => bestX = x);
@@ -570,7 +579,15 @@ namespace FutebolDeBotao
                 EnsureBrain();
 
                 var kicker = match.FreeKickDisc;
-                if (kicker != null)
+                if (kicker != null && match.IsPenaltySetup && match.Options.hasGoalkeeper)
+                {
+                    // Pênalti com goleiro: a IA escolhe primeiro, escondida. Sorteia o lado e o ângulo (do mínimo pedido
+                    // até 15° a mais); o chute ela pensa depois, vendo onde o goleiro ficou.
+                    float min = match.Options.penaltyKickerMinDegrees;
+                    float angle = (Random.value < 0.5f ? -1f : 1f) * Random.Range(min, min + 15f);
+                    if (!match.TryPlaceKicker(angle)) match.TryPlaceKicker(-angle);
+                }
+                else if (kicker != null)
                 {
                     Vector2 ballPosition = match.Ball.Body.position;
                     bool hasKeeper = match.Options.hasGoalkeeper;

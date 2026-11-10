@@ -31,6 +31,8 @@ namespace FutebolDeBotao
         /// <summary>Menor e maior X onde o goleiro pode ficar.</summary>
         public float MinX => centerX - halfRange;
         public float MaxX => centerX + halfRange;
+        /// <summary>Onde o goleiro está, de -1 (ponta da esquerda) a 1 (ponta da direita); 0 = no meio do gol.</summary>
+        public float SideFraction => halfRange > 0.001f && body != null ? (body.position.x - centerX) / halfRange : 0f;
 
         private void Awake()
         {
@@ -78,6 +80,17 @@ namespace FutebolDeBotao
         public void SetTargetX(float worldX)
         {
             targetX = Mathf.Clamp(worldX, centerX - halfRange, centerX + halfRange);
+        }
+
+        /// <summary>Vai na hora para <paramref name="worldX"/> (dentro dos limites), sem deslizar.</summary>
+        public void SnapTo(float worldX)
+        {
+            targetX = Mathf.Clamp(worldX, centerX - halfRange, centerX + halfRange);
+            if (body == null) return;
+            var position = body.position;
+            position.x = targetX;
+            body.position = position;
+            transform.position = position;
         }
 
         /// <summary>Volta para o centro do gol na hora.</summary>

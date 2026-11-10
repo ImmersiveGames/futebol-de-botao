@@ -61,6 +61,14 @@ namespace FutebolDeBotao
         private Disc shooter;
         private Disc freeKickDisc;
         private bool setupIsPenalty;
+        // Pênalti com goleiro: cada lado escolhe o canto sem ver o outro. Quem escolheu primeiro fica debaixo da faixa
+        // preta até o outro dar Pronto. Contra a IA ela sempre escolhe primeiro (com o jogador batendo, o goleiro dela).
+        private bool kickerHidden;
+        private bool keeperHidden;
+        private bool penaltyKeeperFirst;
+        private SpriteRenderer penaltyCover;
+        private const int PenaltyCoverOrder = 90;
+        private const float PenaltyCoverMargin = 0.25f;
         private Camera worldCamera;
         private GoalTrigger pendingGoal;
         private bool pendingGoalValid;
@@ -119,6 +127,12 @@ namespace FutebolDeBotao
         public bool IsPenaltySetup => setupIsPenalty;
         /// <summary>Cobrança de pênalti em andamento (de falta ou da disputa): do posicionamento até o chute.</summary>
         public bool IsPenaltyKick => setupIsPenalty && freeKickDisc != null;
+        /// <summary>O batedor do pênalti está escondido pela faixa preta (o goleiro ainda escolhe o canto).</summary>
+        public bool KickerHidden => kickerHidden;
+        /// <summary>O goleiro do pênalti está escondido pela faixa preta (o batedor ainda escolhe o lado).</summary>
+        public bool KeeperHidden => keeperHidden;
+        // Pênalti com goleiro: os dois escolhem um lado escondidos.
+        private bool HiddenPenalty => IsPenaltyKick && options.hasGoalkeeper;
 
         private bool goalKickPlacing;
         private bool draggingGoalKickBall;
@@ -457,6 +471,10 @@ namespace FutebolDeBotao
             aim.Cancel();
             ApplyControls();
 
+            // A faixa do pênalti só existe enquanto alguém escolhe o canto.
+            if (state is not (MatchState.PenaltySetup or MatchState.ShotCall)) kickerHidden = keeperHidden = false;
+            UpdatePenaltyCover();
+
             stateTimer = state switch
             {
                 MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick => options.aimTimeSeconds,
@@ -559,6 +577,11 @@ namespace FutebolDeBotao
         /// </summary>
         private void FinishShotCall()
         {
+            if (HiddenPenalty)
+            {
+                FinishPenaltyKeeper();
+                return;
+            }
             if (TryKeeperZoneGoalKick()) return;
             EnterShotAim();
         }
@@ -865,8 +888,143 @@ namespace FutebolDeBotao
 
             GiveTurn(attacking);
             freeKickDisc = victim;
-            message = $"Pênalti para o {TeamName(attacking)}! Posicione o botão.";
+            BeginPenaltyChoice($"Pênalti para o {TeamName(attacking)}! Posicione o botão.");
+        }
+
+        /// <summary>
+        /// Começo do pênalti (de falta ou da disputa). Com goleiro, o primeiro a escolher fica escondido: contra a IA
+        /// ela escolhe primeiro (o goleiro dela, com o jogador batendo); senão, o batedor.
+        /// </summary>
+        private void BeginPenaltyChoice(string kickerMessage)
+        {
+            kickerHidden = keeperHidden = false;
+            penaltyKeeperFirst = false;
+            if (HiddenPenalty && IsAi(Opponent(Turn)) && !IsAi(Turn))
+            {
+                penaltyKeeperFirst = true;
+                keeperHidden = true;
+                message = $"Pênalti do {TeamName(Turn)}! O goleiro do {TeamName(Opponent(Turn))} escolhe o canto.";
+                Enter(MatchState.ShotCall);
+                return;
+            }
+            kickerHidden = HiddenPenalty && IsAi(Turn);
+            message = kickerMessage;
             Enter(MatchState.PenaltySetup);
+        }
+
+        /// <summary>Goleiro do pênalti pronto: tem que estar de um lado. Depois, o batedor escolhe ou a faixa sai e ele chuta.</summary>
+        private void FinishPenaltyKeeper()
+        {
+            var keeper = DefendingKeeper();
+            if (keeper != null && !KeeperSideChosen(keeper))
+            {
+                if (stateTimer > 0f && !IsAi(Opponent(Turn)))
+                {
+                    message = "Escolha um lado: o goleiro não pode ficar no meio.";
+                    return;
+                }
+                ForceKeeperSide(keeper);
+            }
+            if (penaltyKeeperFirst)
+            {
+                message = $"{TeamName(Turn)}: posicione o batedor (o goleiro já escolheu o canto).";
+                Enter(MatchState.PenaltySetup);
+                return;
+            }
+            EnterShotAim();
+        }
+
+        private Goalkeeper DefendingKeeper()
+        {
+            foreach (var keeper in keepers)
+                if (keeper != null && keeper.isActiveAndEnabled && keeper.Side == Opponent(Turn)) return keeper;
+            return null;
+        }
+
+        private bool KickerSideChosen() =>
+            freeKickDisc == null || Mathf.Abs(PenaltyAngle(freeKickDisc)) >= options.penaltyKickerMinDegrees - 0.5f;
+
+        private bool KeeperSideChosen(Goalkeeper keeper) =>
+            Mathf.Abs(keeper.SideFraction) >= options.penaltyKeeperMinSide - 0.01f;
+
+        /// <summary>Tempo esgotado com o batedor no meio: vai para o lado mais perto (no meio exato, sorteado).</summary>
+        private void ForceKickerSide()
+        {
+            var disc = freeKickDisc;
+            if (disc == null) return;
+            float angle = PenaltyAngle(disc);
+            float sign = Mathf.Abs(angle) < 0.5f ? (Random.value < 0.5f ? -1f : 1f) : Mathf.Sign(angle);
+            float min = options.penaltyKickerMinDegrees;
+            if (!TryPlaceKicker(disc, sign * min)) TryPlaceKicker(disc, -sign * min);
+        }
+
+        /// <summary>Tempo esgotado com o goleiro no meio: vai para o lado mais perto (no meio exato, sorteado).</summary>
+        private static void ForceKeeperSide(Goalkeeper keeper, float minSide)
+        {
+            float side = keeper.SideFraction;
+            float sign = Mathf.Abs(side) < 0.01f ? (Random.value < 0.5f ? -1f : 1f) : Mathf.Sign(side);
+            float center = (keeper.MinX + keeper.MaxX) * 0.5f;
+            float half = (keeper.MaxX - keeper.MinX) * 0.5f;
+            keeper.SnapTo(center + sign * half * minSide);
+        }
+
+        private void ForceKeeperSide(Goalkeeper keeper) => ForceKeeperSide(keeper, options.penaltyKeeperMinSide);
+
+        /// <summary>
+        /// Faixa preta de lado a lado: cobre o batedor e a bola (ou o goleiro e o gol) de quem já escolheu.
+        /// </summary>
+        private void UpdatePenaltyCover()
+        {
+            bool show = kickerHidden || keeperHidden;
+            if (!show)
+            {
+                if (penaltyCover != null) penaltyCover.enabled = false;
+                return;
+            }
+
+            float minY, maxY;
+            if (kickerHidden)
+            {
+                Vector2 ballPosition = ball.Body.position;
+                float up = FieldLayout.AttackDirection(Turn).y;
+                float discRadius = freeKickDisc != null ? freeKickDisc.Radius : ball.Radius;
+                float back = freeKickDisc != null ? KickerDistance(freeKickDisc) + discRadius : discRadius;
+                float a = ballPosition.y - up * (back + PenaltyCoverMargin);
+                float b = ballPosition.y + up * (ball.Radius + PenaltyCoverMargin);
+                minY = Mathf.Min(a, b);
+                maxY = Mathf.Max(a, b);
+            }
+            else
+            {
+                var keeper = DefendingKeeper();
+                float goalY = FieldLayout.GoalLineY(Opponent(Turn));
+                float sign = Mathf.Sign(goalY);
+                float front = goalY - sign * 0.6f;
+                if (keeper != null && keeper.TryGetComponent(out Collider2D box))
+                    front = sign > 0f ? box.bounds.min.y : box.bounds.max.y;
+                float a = goalY + sign * FieldLayout.GoalDepth;
+                float b = front - sign * PenaltyCoverMargin;
+                minY = Mathf.Min(a, b);
+                maxY = Mathf.Max(a, b);
+            }
+
+            if (penaltyCover == null)
+            {
+                var go = new GameObject("Faixa do pênalti");
+                go.transform.SetParent(transform, false);
+                penaltyCover = go.AddComponent<SpriteRenderer>();
+                var texture = Texture2D.whiteTexture;
+                penaltyCover.sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f), texture.width);
+                penaltyCover.color = Color.black;
+                penaltyCover.sortingOrder = PenaltyCoverOrder;
+            }
+            penaltyCover.enabled = true;
+            var t = penaltyCover.transform;
+            t.position = new Vector3(0f, (minY + maxY) * 0.5f, 0f);
+            Vector3 parentScale = transform.lossyScale;
+            float width = FieldLayout.Width + 1f;
+            t.localScale = new Vector3(width / Mathf.Max(parentScale.x, 0.0001f), (maxY - minY) / Mathf.Max(parentScale.y, 0.0001f), 1f);
         }
 
         private float KickerDistance(Disc disc) => disc.Radius + ball.Radius + options.penaltyDiscGap;
@@ -946,7 +1104,28 @@ namespace FutebolDeBotao
 
         private void FinishPenaltySetup()
         {
-            if (setupIsPenalty)
+            if (HiddenPenalty)
+            {
+                if (!KickerSideChosen())
+                {
+                    if (stateTimer > 0f && !IsAi(Turn))
+                    {
+                        message = "Escolha um lado: o batedor não pode ficar no meio.";
+                        return;
+                    }
+                    ForceKickerSide();
+                }
+                if (penaltyKeeperFirst)
+                {
+                    // O goleiro já escolheu: a faixa sai e o batedor chuta.
+                    EnterShotAim();
+                    return;
+                }
+                kickerHidden = true;
+                message = $"{TeamName(Opponent(Turn))}: escolha o canto do goleiro.";
+                Enter(MatchState.ShotCall);
+            }
+            else if (setupIsPenalty)
             {
                 message = $"Pênalti: {TeamName(Turn)} vai chutar!";
                 BeginShotCall();
@@ -1297,8 +1476,7 @@ namespace FutebolDeBotao
             setupIsPenalty = true;
             freeKickDisc = kicker;
             if (kicker != null) PlaceKickerNearest(kicker, 0f);
-            message = $"Pênalti do {TeamName(side)}: posicione o batedor.";
-            Enter(MatchState.PenaltySetup);
+            BeginPenaltyChoice($"Pênalti do {TeamName(side)}: posicione o batedor.");
         }
 
         /// <summary>Fim de uma cobrança: marca no placar da disputa e para um pouco para todo mundo ver.</summary>

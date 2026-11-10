@@ -76,7 +76,8 @@ namespace FutebolDeBotao
 
             foreach (var pair in discHalos)
             {
-                bool on = discsActive && pair.Key != null && match.CanUse(pair.Key) && (cursor == null || pair.Key == cursor);
+                bool on = discsActive && pair.Key != null && match.CanUse(pair.Key) && (cursor == null || pair.Key == cursor) &&
+                          !(match.KickerHidden && pair.Key == match.FreeKickDisc);
                 bool isSelected = on && pair.Key == selected;
                 if (selectionArt != null) ShowSelection(pair.Value, on, isSelected ? selectedPulse : pulse, isSelected ? selectedSpin : spin);
                 else Show(pair.Value, on, isSelected ? selectedPulse : pulse, isSelected ? SelectedScale : HaloScale);
@@ -89,7 +90,8 @@ namespace FutebolDeBotao
             // No "Vai chutar" quem age é o defensor, ajustando o goleiro.
             foreach (var pair in keeperHalos)
             {
-                bool on = !paused && state == MatchState.ShotCall && pair.Key != null && pair.Key.Side == match.ActingSide;
+                bool on = !paused && state == MatchState.ShotCall && pair.Key != null && pair.Key.Side == match.ActingSide &&
+                          !match.KeeperHidden;
                 Show(pair.Value, on, pulse, 1.3f);
             }
         }

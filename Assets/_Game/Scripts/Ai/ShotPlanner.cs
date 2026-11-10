@@ -151,6 +151,7 @@ namespace FutebolDeBotao
             if (state == null) return 0;
             Vector2 goal = new(0f, FieldLayout.GoalLineY(Opponent));
             if (Vector2.Distance(state.Ball, goal) > maxDistance || Progress(state.Ball) <= 0f) return 0;
+            if (!GoalOpenPastKeeper(state.Ball)) return 0;
             int count = 0;
             ignoreKeepers = true;
             try
@@ -370,6 +371,7 @@ namespace FutebolDeBotao
         {
             var shooters = new List<Disc>();
             Vector2 ballPosition = ball.Body.position;
+            if (!GoalOpenPastKeeper(ballPosition)) return shooters;
             var targets = GoalTargets();
             ignoreKeepers = true;
             try
@@ -384,6 +386,31 @@ namespace FutebolDeBotao
             }
             finally { ignoreKeepers = false; }
             return shooters;
+        }
+
+        /// <summary>
+        /// Visto da bola, sobra gol além do goleiro adversário? Na frente do goleiro, mede o vão por onde o centro da
+        /// bola passa entre as traves; se o goleiro (mais a bola dos dois lados) cobre o vão inteiro, nem um chute
+        /// perfeito entra (bola de ângulo fechado, perto da linha de fundo). Sem goleiro, o gol está sempre aberto.
+        /// </summary>
+        private bool GoalOpenPastKeeper(Vector2 ballPosition)
+        {
+            keepers ??= Object.FindObjectsByType<Goalkeeper>();
+            var keeper = KeeperBall.Find(keepers, Opponent);
+            if (keeper == null || !keeper.isActiveAndEnabled || !keeper.TryGetComponent(out Collider2D box)) return true;
+            var bounds = box.bounds;
+            float goalY = FieldLayout.GoalLineY(Opponent);
+            float frontY = goalY < 0f ? bounds.max.y : bounds.min.y;
+            float toGoal = goalY - ballPosition.y;
+            float toFront = frontY - ballPosition.y;
+            // Bola já entre o goleiro e o gol (ou na linha): o goleiro não fica na frente dela.
+            if (Mathf.Abs(toGoal) < 0.01f || toFront * toGoal <= 0f) return true;
+            float t = Mathf.Clamp01(toFront / toGoal);
+            float r = ball.Radius;
+            float half = Mathf.Max(0f, GoalWidth * 0.5f - r);
+            float left = Mathf.Lerp(ballPosition.x, -half, t);
+            float right = Mathf.Lerp(ballPosition.x, half, t);
+            return right - left > bounds.size.x + 2f * r;
         }
 
         private static bool IsClear(ShotCandidate c) => !c.FoulRisk && !c.Blocked && !c.BallBlocked && c.Power01 < 1f;

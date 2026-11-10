@@ -48,6 +48,11 @@ namespace FutebolDeBotao
         [Min(0.05f)] public float penaltyDiscGap = 0.4f;
         [Tooltip("Abertura do arco atrás da bola onde o botão pode ficar, em graus para cada lado.")]
         [Range(0f, 90f)] public float penaltyArcDegrees = 70f;
+        [Tooltip("Pênalti com goleiro: o batedor tem que ficar a pelo menos estes graus do reto (escolher um lado).")]
+        [Range(0f, 60f)] public float penaltyKickerMinDegrees = 20f;
+        [Tooltip("Pênalti com goleiro: o goleiro tem que ficar a pelo menos esta parte do caminho do meio até a ponta " +
+                 "(0,5 = metade), de um lado ou do outro.")]
+        [Range(0f, 1f)] public float penaltyKeeperMinSide = 0.5f;
 
         [Header("Avisos")]
         [Tooltip("Avisos importantes (falta, cartão, pênalti, gol, gol anulado, bola do goleiro) param o jogo por este tempo: " +
