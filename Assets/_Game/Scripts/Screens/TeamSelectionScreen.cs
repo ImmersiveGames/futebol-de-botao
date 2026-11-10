@@ -255,6 +255,8 @@ namespace FutebolDeBotao
             if (MatchSession.InTournamentMatch) return;
             MatchSession.SetAway(away);
             PaintVenue();
+            // Quem é visitante decide quem joga de reserva.
+            Refresh();
         }
 
         /// <summary>Outra bola liberada, só nesta partida (Em casa / Visitante volta à bola daquela mesa).</summary>
@@ -370,6 +372,7 @@ namespace FutebolDeBotao
                 var side = pair.Key;
                 var view = pair.Value;
                 var team = MatchSession.Team(side);
+                var primary = MatchSession.PrimaryColor(side);
                 var secondary = MatchSession.SecondaryColor(side);
                 var scheme = MatchSession.Scheme(side, discs);
 
@@ -383,8 +386,8 @@ namespace FutebolDeBotao
                         ? scheme.PositionFor(i, TeamSide.Bottom)
                         : Formation.Mirror((discs == 3 ? Formation.Default3 : Formation.Default5)[Mathf.Min(i, discs - 1)], TeamSide.Bottom);
                     disc.Root.anchoredPosition = position * Unit;
-                    PaintPiece(disc, MatchSession.DiscPattern(side), team, secondary, false);
-                    if (disc.Layers == null) disc.Center.color = team.PrimaryColor;
+                    PaintPiece(disc, MatchSession.DiscPattern(side), primary, secondary, false);
+                    if (disc.Layers == null) disc.Center.color = primary;
                 }
 
                 view.Keeper.Root.gameObject.SetActive(options.hasGoalkeeper);
@@ -397,8 +400,8 @@ namespace FutebolDeBotao
                 SetActive(goalsBig, options.hasGoalkeeper);
                 SetActive(boardsSmall, !options.hasGoalkeeper);
                 SetActive(goalsSmall, !options.hasGoalkeeper);
-                PaintPiece(view.Keeper, MatchSession.KeeperPattern(side), team, secondary, true);
-                if (view.Keeper.Layers == null) view.Keeper.Body.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
+                PaintPiece(view.Keeper, MatchSession.KeeperPattern(side), primary, secondary, true);
+                if (view.Keeper.Layers == null) view.Keeper.Body.color = Color.Lerp(primary, Color.black, 0.25f);
 
                 view.Name.text = team.TeamName;
                 view.Abbreviation.text = team.Abbreviation;
@@ -407,11 +410,11 @@ namespace FutebolDeBotao
             }
         }
 
-        private static void PaintPiece(PieceView piece, ShirtPattern pattern, TeamData team, Color secondary, bool keeper)
+        private static void PaintPiece(PieceView piece, ShirtPattern pattern, Color primary, Color secondary, bool keeper)
         {
             if (piece.Layers == null)
             {
-                piece.Body.color = team.PrimaryColor;
+                piece.Body.color = primary;
                 if (piece.Ring != null) piece.Ring.color = secondary;
                 return;
             }
@@ -420,7 +423,7 @@ namespace FutebolDeBotao
                 var layer = (ShirtLayer)i;
                 var image = piece.Layers[i];
                 image.sprite = pattern != null ? pattern.Get(layer) : null;
-                image.color = ShirtArt.Tint(layer, team.PrimaryColor, secondary, keeper);
+                image.color = ShirtArt.Tint(layer, primary, secondary, keeper);
                 image.enabled = image.sprite != null;
             }
         }

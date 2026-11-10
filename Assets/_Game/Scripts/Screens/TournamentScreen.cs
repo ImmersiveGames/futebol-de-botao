@@ -243,11 +243,14 @@ namespace FutebolDeBotao
             var chip = CreateRect(row, "Cor", Vector2.zero, new Vector2(40f, 40f));
             chip.anchorMin = chip.anchorMax = new Vector2(0f, 0.5f);
             chip.anchoredPosition = new Vector2(36f, 0f);
+            // Cores parecidas com o adversário do jogo: quem joga de reserva aparece com ela (o visitante é o de baixo).
+            var opponent = Tournament.TeamOf(home ? match.away : match.home);
+            bool reserve = TeamData.WearsReserve(data, opponent, !home);
             var outer = chip.gameObject.AddComponent<Image>();
-            outer.color = data.PrimaryColor;
+            outer.color = data.PrimaryFor(reserve);
             outer.raycastTarget = false;
             var inner = CreateRect(chip, "Cor 2", Vector2.zero, new Vector2(16f, 16f)).gameObject.AddComponent<Image>();
-            inner.color = data.SecondaryColor;
+            inner.color = data.ReserveReplacesSecondary(reserve) ? data.ReserveColor : data.SecondaryColor;
             inner.raycastTarget = false;
 
             Color color = player ? HighlightColor : lost ? LoserColor : Color.white;

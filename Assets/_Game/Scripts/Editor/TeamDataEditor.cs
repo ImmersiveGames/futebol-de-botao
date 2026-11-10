@@ -6,7 +6,7 @@ namespace FutebolDeBotao.Editor
 {
     /// <summary>
     /// Inspector do time: os campos de sempre e a prévia do botão e do goleiro com as cores e as camisas escolhidas
-    /// (em "Sortear", mostra o primeiro padrão como exemplo).
+    /// (em "Sortear", mostra o primeiro padrão como exemplo) e, com cor reserva, outra linha com ela.
     /// </summary>
     [CustomEditor(typeof(TeamData))]
     public sealed class TeamDataEditor : UnityEditor.Editor
@@ -28,17 +28,29 @@ namespace FutebolDeBotao.Editor
                 return;
             }
 
+            DrawRow(disc, keeper, team.PrimaryColor, team.SecondaryColor);
+            if (team.HasReserve)
+            {
+                EditorGUILayout.LabelField("Com a cor reserva", EditorStyles.miniBoldLabel);
+                DrawRow(disc, keeper, team.PrimaryFor(true),
+                    team.ReserveReplacesSecondary(true) ? team.ReserveColor : team.SecondaryColor);
+            }
+            if (discRandom || keeperRandom)
+                EditorGUILayout.HelpBox("Em \"Sortear\" a prévia mostra o primeiro padrão; no jogo a IA sorteia um a cada partida.",
+                    MessageType.None);
+        }
+
+        /// <summary>Uma linha da prévia: o botão e o goleiro pintados com as duas cores.</summary>
+        private static void DrawRow(ShirtPattern disc, ShirtPattern keeper, Color primary, Color secondary)
+        {
             var discSize = ShirtPreview.Size(disc, PreviewHeight);
             var keeperSize = ShirtPreview.Size(keeper, PreviewHeight * 0.5f);
             var row = GUILayoutUtility.GetRect(discSize.x + keeperSize.x + 24f, PreviewHeight + 8f, GUILayout.ExpandWidth(false));
             EditorGUI.DrawRect(row, new Color(0.1f, 0.4f, 0.2f));
             var discArea = new Rect(row.x + 4f, row.y + 4f, discSize.x, discSize.y);
             var keeperArea = new Rect(discArea.xMax + 16f, row.y + 4f + (PreviewHeight - keeperSize.y) * 0.5f, keeperSize.x, keeperSize.y);
-            ShirtPreview.Draw(discArea, disc, team.PrimaryColor, team.SecondaryColor);
-            ShirtPreview.Draw(keeperArea, keeper, team.PrimaryColor, team.SecondaryColor);
-            if (discRandom || keeperRandom)
-                EditorGUILayout.HelpBox("Em \"Sortear\" a prévia mostra o primeiro padrão; no jogo a IA sorteia um a cada partida.",
-                    MessageType.None);
+            ShirtPreview.Draw(discArea, disc, primary, secondary);
+            ShirtPreview.Draw(keeperArea, keeper, primary, secondary);
         }
 
         /// <summary>O padrão escolhido, ou o primeiro do tipo quando está em "Sortear" (ou o escolhido sumiu).</summary>

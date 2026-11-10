@@ -34,6 +34,8 @@ namespace FutebolDeBotao
                     team.hideFlags = HideFlags.DontSave;
                 }
                 else team.Set(data.teamName, data.abbreviation, data.primary, data.secondary);
+                team.SetReserve(data.hasReserve, data.reserve,
+                    data.reserveReplacesSecondary ? TeamData.ReserveSlot.SegundaCor : TeamData.ReserveSlot.Principal);
                 return team;
             }
         }
@@ -43,9 +45,13 @@ namespace FutebolDeBotao
         public static ShirtPattern KeeperPattern => ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, Data.keeperPatternId);
 
         /// <summary>Grava o Meu time (nome e sigla já limpos; vazios voltam ao padrão).</summary>
-        public static void Save(string teamName, string abbreviation, Color primary, Color secondary, string discPatternId, string keeperPatternId)
+        public static void Save(string teamName, string abbreviation, Color primary, Color secondary, string discPatternId, string keeperPatternId,
+            bool hasReserve, Color reserve, bool reserveReplacesSecondary)
         {
             var data = Data;
+            data.hasReserve = hasReserve;
+            data.reserve = reserve;
+            data.reserveReplacesSecondary = reserveReplacesSecondary;
             data.teamName = CleanName(teamName);
             data.abbreviation = CleanAbbreviation(abbreviation);
             data.primary = primary;

@@ -151,9 +151,24 @@ namespace FutebolDeBotao
 
         public static void SetSecondaryIndex(TeamSide side, int index) => secondaryIndex[(int)side] = index;
 
-        /// <summary>Segunda cor do lado (padrão da camisa e anel), já com a escolha da Seleção de times.</summary>
+        /// <summary>Lado visitante: o do jogador quando ele joga fora (Visitante); senão o de cima.</summary>
+        public static TeamSide VisitorSide => Away ? TeamSide.Bottom : TeamSide.Top;
+
+        /// <summary>O lado joga com a cor reserva (cores principais parecidas com as do adversário).</summary>
+        public static bool WearsReserve(TeamSide side)
+        {
+            var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            return TeamData.WearsReserve(Team(side), Team(other), side == VisitorSide);
+        }
+
+        /// <summary>Cor principal do lado na partida (a reserva, quando ela troca a principal).</summary>
+        public static Color PrimaryColor(TeamSide side) => Team(side).PrimaryFor(WearsReserve(side));
+
+        /// <summary>Segunda cor do lado (padrão da camisa e anel), já com a escolha da Seleção de times e a reserva.</summary>
         public static Color SecondaryColor(TeamSide side)
         {
+            var team = Team(side);
+            if (team.ReserveReplacesSecondary(WearsReserve(side))) return team.ReserveColor;
             var options = TeamCatalog.Load().SecondaryOptions(Team(side));
             int count = options.Length;
             return options[((secondaryIndex[(int)side] % count) + count) % count];

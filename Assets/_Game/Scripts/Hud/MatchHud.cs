@@ -306,7 +306,14 @@ namespace FutebolDeBotao
         };
 
         /// <summary>Cor do time um pouco mais clara, para ler sobre o fundo escuro do HUD.</summary>
-        private static Color TeamColor(TeamSide side) => Color.Lerp(MatchSession.Team(side).TextColor, Color.white, 0.3f);
+        private static Color TeamColor(TeamSide side)
+        {
+            // Com a cor reserva da partida; cor escura demais usa a segunda cor.
+            var color = MatchSession.PrimaryColor(side);
+            Color.RGBToHSV(color, out _, out _, out float value);
+            if (value < 0.35f) color = MatchSession.SecondaryColor(side);
+            return Color.Lerp(color, Color.white, 0.3f);
+        }
 
         // ---- Montagem: faixas (celular) ----
 

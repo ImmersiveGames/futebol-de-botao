@@ -1603,31 +1603,31 @@ namespace FutebolDeBotao
         {
             foreach (var pair in discs)
             {
-                var team = MatchSession.Team(pair.Key);
+                var primary = MatchSession.PrimaryColor(pair.Key);
                 var secondary = MatchSession.SecondaryColor(pair.Key);
                 foreach (var disc in pair.Value)
                 {
                     var art = disc.GetComponentInChildren<PieceArt>(true);
                     if (art != null)
                     {
-                        art.Paint(team.PrimaryColor, secondary, MatchSession.DiscPattern(pair.Key));
+                        art.Paint(primary, secondary, MatchSession.DiscPattern(pair.Key));
                         continue;
                     }
-                    if (disc.TryGetComponent(out SpriteRenderer body)) body.color = team.PrimaryColor;
+                    if (disc.TryGetComponent(out SpriteRenderer body)) body.color = primary;
                     var ring = disc.transform.Find("Anel");
                     if (ring != null && ring.TryGetComponent(out SpriteRenderer ringRenderer)) ringRenderer.color = secondary;
                     var center = disc.transform.Find("Centro");
-                    if (center != null && center.TryGetComponent(out SpriteRenderer centerRenderer)) centerRenderer.color = team.PrimaryColor;
+                    if (center != null && center.TryGetComponent(out SpriteRenderer centerRenderer)) centerRenderer.color = primary;
                 }
             }
 
             foreach (var keeper in keepers)
             {
-                var team = MatchSession.Team(keeper.Side);
+                var primary = MatchSession.PrimaryColor(keeper.Side);
                 var art = keeper.GetComponentInChildren<PieceArt>(true);
-                if (art != null) art.Paint(team.PrimaryColor, MatchSession.SecondaryColor(keeper.Side), MatchSession.KeeperPattern(keeper.Side));
+                if (art != null) art.Paint(primary, MatchSession.SecondaryColor(keeper.Side), MatchSession.KeeperPattern(keeper.Side));
                 else if (keeper.TryGetComponent(out SpriteRenderer renderer))
-                    renderer.color = Color.Lerp(team.PrimaryColor, Color.black, 0.25f);
+                    renderer.color = Color.Lerp(primary, Color.black, 0.25f);
             }
         }
 

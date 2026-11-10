@@ -134,14 +134,14 @@ namespace FutebolDeBotao
         private static void BuildDisc(RectTransform root, TeamSide side, Vector2 position)
         {
             var piece = CreateRect(root, $"Botão {side}", position, Vector2.one * DiscSize);
-            var team = MatchSession.Team(side);
+            var primary = MatchSession.PrimaryColor(side);
             var secondary = MatchSession.SecondaryColor(side);
             var shirt = MatchSession.DiscPattern(side);
             if (shirt == null)
             {
                 // Sem a arte: um quadrado na cor do time.
                 var plain = piece.gameObject.AddComponent<Image>();
-                plain.color = team.PrimaryColor;
+                plain.color = primary;
                 plain.raycastTarget = false;
                 piece.sizeDelta = Vector2.one * DiscSize * 0.5f;
                 return;
@@ -154,7 +154,7 @@ namespace FutebolDeBotao
                 if (sprite == null) continue;
                 var image = CreateRect(piece, layer.ToString(), Vector2.zero, Vector2.one * DiscSize).gameObject.AddComponent<Image>();
                 image.sprite = sprite;
-                image.color = ShirtArt.Tint(layer, team.PrimaryColor, secondary);
+                image.color = ShirtArt.Tint(layer, primary, secondary);
                 image.raycastTarget = false;
             }
         }

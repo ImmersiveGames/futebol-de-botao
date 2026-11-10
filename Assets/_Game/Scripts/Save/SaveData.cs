@@ -78,6 +78,10 @@ namespace FutebolDeBotao
             public UnityEngine.Color secondary = PlayerProfile.DefaultSecondary;
             public string discPatternId;
             public string keeperPatternId;
+            /// <summary>Cor reserva do Meu time (cores parecidas com o adversário) e se ela troca a segunda cor.</summary>
+            public bool hasReserve;
+            public UnityEngine.Color reserve = UnityEngine.Color.white;
+            public bool reserveReplacesSecondary;
             public int coins;
             /// <summary>Mesa de casa (aba Mesa do Meu time): ids da mesa, do feltro e da bola e o nome da cor das traves. Vazio: a primeira liberada.</summary>
             public string tableId;

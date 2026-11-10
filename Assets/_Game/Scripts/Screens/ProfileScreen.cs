@@ -13,14 +13,14 @@ namespace FutebolDeBotao
     /// </summary>
     public sealed class ProfileScreen : MonoBehaviour
     {
-        private const float RowTop = 130f;
+        private const float RowTop = 140f;
         private const float TabY = 405f;
         private static readonly Vector2 TabSize = new(240f, 70f);
         private const float TableRowTop = -120f;
         private const float TableRowSpacing = 90f;
         private const float TablePreviewY = 150f;
         private const float TablePreviewTile = 32f;
-        private const float RowSpacing = 100f;
+        private const float RowSpacing = 80f;
         private const float LabelX = -200f;
         private const float LabelWidth = 280f;
         private const float ValueX = 150f;
@@ -40,8 +40,9 @@ namespace FutebolDeBotao
         private Font font;
         private bool built;
         private InputField nameField, abbreviationField;
-        private Image primarySwatch, secondarySwatch;
-        private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel;
+        private Image primarySwatch, secondarySwatch, reserveSwatch;
+        private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel, reserveLabel, reserveSlotLabel;
+        private GameObject reserveSlotRow;
         private GameObject discRow, keeperRow;
         private Image[] discLayers, keeperLayers;
         private GameObject teamTab, tableTab;
@@ -56,7 +57,8 @@ namespace FutebolDeBotao
         private VenueSetup home;
 
         // Escolhas ainda não salvas.
-        private Color primary, secondary;
+        private Color primary, secondary, reserve;
+        private bool hasReserve, reserveReplacesSecondary;
         private string discId, keeperId;
 
         public void Configure(MenuScreen menuScreen, Sprite[] tableArt)
@@ -74,6 +76,9 @@ namespace FutebolDeBotao
             abbreviationField.text = data.abbreviation;
             primary = data.primary;
             secondary = data.secondary;
+            hasReserve = data.hasReserve;
+            reserve = data.reserve;
+            reserveReplacesSecondary = data.reserveReplacesSecondary;
             discId = PlayerProfile.DiscPattern?.id ?? data.discPatternId;
             keeperId = PlayerProfile.KeeperPattern?.id ?? data.keeperPatternId;
             coinsLabel.text = $"Moedas: {PlayerProfile.Coins}";
@@ -84,7 +89,8 @@ namespace FutebolDeBotao
 
         private void Save()
         {
-            PlayerProfile.Save(nameField.text, abbreviationField.text, primary, secondary, discId, keeperId);
+            PlayerProfile.Save(nameField.text, abbreviationField.text, primary, secondary, discId, keeperId,
+                hasReserve, reserve, reserveReplacesSecondary);
             PlayerProfile.SaveHome(home);
             Back();
         }
@@ -165,6 +171,26 @@ namespace FutebolDeBotao
             Refresh();
         }
 
+        /// <summary>Cor reserva: "Nenhuma" e depois as cores da lista (dá a volta passando pelo "Nenhuma").</summary>
+        private void ChangeReserve(int step)
+        {
+            var palette = TeamColorPalette.Load();
+            int count = palette.Count;
+            if (count == 0) return;
+            // Posição 0 = Nenhuma; a cor i da lista fica na i + 1.
+            int position = hasReserve ? Mathf.Max(0, palette.IndexOf(reserve)) + 1 : 0;
+            position = ((position + step) % (count + 1) + count + 1) % (count + 1);
+            hasReserve = position > 0;
+            if (hasReserve) reserve = palette[position - 1].color;
+            Refresh();
+        }
+
+        private void ChangeReserveSlot(int step)
+        {
+            reserveReplacesSecondary = !reserveReplacesSecondary;
+            Refresh();
+        }
+
         private void ChangeShirt(bool keeper, int step)
         {
             if (keeper) keeperId = ShirtPattern.Step(ShirtPattern.Kind.Goleiro, keeperId, step);
@@ -177,6 +203,15 @@ namespace FutebolDeBotao
             var palette = TeamColorPalette.Load();
             PaintSwatch(primarySwatch, primaryLabel, primary, palette.NameOf(primary));
             PaintSwatch(secondarySwatch, secondaryLabel, secondary, palette.NameOf(secondary));
+            if (hasReserve) PaintSwatch(reserveSwatch, reserveLabel, reserve, palette.NameOf(reserve));
+            else
+            {
+                reserveSwatch.color = new Color(0f, 0f, 0f, 0.35f);
+                reserveLabel.text = "Nenhuma";
+                reserveLabel.color = Color.white;
+            }
+            reserveSlotRow.SetActive(hasReserve);
+            reserveSlotLabel.text = reserveReplacesSecondary ? "Segunda cor" : "Cor principal";
 
             var disc = ShirtPattern.Resolve(ShirtPattern.Kind.Botao, discId);
             var keeper = ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, keeperId);
@@ -240,7 +275,9 @@ namespace FutebolDeBotao
             var secondaryEntry = CreateArrowRow(teamPage, "Segunda cor", RowY(3), ChangeSecondary, true, out secondaryLabel, out secondarySwatch, out _);
             var discEntry = CreateArrowRow(teamPage, "Camisa do botão", RowY(4), step => ChangeShirt(false, step), false, out discLabel, out _, out discRow);
             var keeperEntry = CreateArrowRow(teamPage, "Camisa do goleiro", RowY(5), step => ChangeShirt(true, step), false, out keeperLabel, out _, out keeperRow);
-            teamEntries = new[] { nameEntry, abbreviationEntry, primaryEntry, secondaryEntry, discEntry, keeperEntry };
+            var reserveEntry = CreateArrowRow(teamPage, "Cor reserva", RowY(6), ChangeReserve, true, out reserveLabel, out reserveSwatch, out _);
+            var reserveSlotEntry = CreateArrowRow(teamPage, "Reserva troca", RowY(7), ChangeReserveSlot, false, out reserveSlotLabel, out _, out reserveSlotRow);
+            teamEntries = new[] { nameEntry, abbreviationEntry, primaryEntry, secondaryEntry, discEntry, keeperEntry, reserveEntry, reserveSlotEntry };
 
             // Aba Mesa: a mesa de casa montada e as setas de cada parte.
             var tablePage = CreateRect(root, "Aba Mesa", Vector2.zero, Vector2.zero);
