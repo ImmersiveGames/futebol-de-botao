@@ -44,7 +44,7 @@ namespace FutebolDeBotao
         private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel, reserveLabel, reserveSlotLabel;
         private GameObject reserveSlotRow;
         private GameObject discRow, keeperRow;
-        private Image[] discLayers, keeperLayers;
+        private Image[] discLayers, keeperLayers, reserveLayers;
         private GameObject teamTab, tableTab;
         private Button teamTabButton, tableTabButton;
         private MenuEntry[] teamEntries, tableEntries;
@@ -221,6 +221,18 @@ namespace FutebolDeBotao
             keeperLabel.text = keeper != null ? keeper.displayName : string.Empty;
             PaintPiece(discLayers, disc, false);
             PaintPiece(keeperLayers, keeper, true);
+
+            // Com reserva: botão, goleiro e botão reserva lado a lado; sem reserva, só os dois.
+            bool showReserve = hasReserve && disc != null;
+            Place(discLayers, showReserve ? -160f : -110f);
+            Place(keeperLayers, showReserve ? 0f : 110f);
+            reserveLayers[0].transform.parent.gameObject.SetActive(showReserve);
+            if (showReserve)
+            {
+                var reservePrimary = reserveReplacesSecondary ? primary : reserve;
+                var reserveSecondary = reserveReplacesSecondary ? reserve : secondary;
+                PaintPiece(reserveLayers, disc, false, reservePrimary, reserveSecondary);
+            }
         }
 
         private static void PaintSwatch(Image swatch, Text label, Color color, string colorName)
@@ -232,7 +244,12 @@ namespace FutebolDeBotao
             label.color = light > 0.6f ? new Color(0.1f, 0.1f, 0.1f) : Color.white;
         }
 
-        private void PaintPiece(Image[] layers, ShirtPattern pattern, bool keeper)
+        private static void Place(Image[] layers, float x) =>
+            ((RectTransform)layers[0].transform.parent).anchoredPosition = new Vector2(x, 0f);
+
+        private void PaintPiece(Image[] layers, ShirtPattern pattern, bool keeper) => PaintPiece(layers, pattern, keeper, primary, secondary);
+
+        private static void PaintPiece(Image[] layers, ShirtPattern pattern, bool keeper, Color primary, Color secondary)
         {
             for (int i = 0; i < layers.Length; i++)
             {
@@ -268,6 +285,10 @@ namespace FutebolDeBotao
             var preview = CreateRect(teamPage, "Prévia", new Vector2(0f, PreviewY), new Vector2(460f, 200f));
             discLayers = CreatePiece(preview, "Botão", new Vector2(-110f, 0f), false);
             keeperLayers = CreatePiece(preview, "Goleiro", new Vector2(110f, 0f), true);
+            // Botão com a cor reserva (só com reserva escolhida): à direita, com o nome embaixo.
+            reserveLayers = CreatePiece(preview, "Botão reserva", new Vector2(160f, 0f), false);
+            CreateText(reserveLayers[0].transform.parent, "Legenda", "Reserva", 22, FontStyle.Bold, LabelColor,
+                new Vector2(0f, -PreviewSize * 0.5f + 4f), new Vector2(PreviewSize, 30f));
 
             var nameEntry = CreateField(teamPage, "Nome", "Nome do time", 0, PlayerProfile.NameLength, false, out nameField);
             var abbreviationEntry = CreateField(teamPage, "Sigla", "Sigla (3 letras)", 1, PlayerProfile.AbbreviationLength, true, out abbreviationField);
