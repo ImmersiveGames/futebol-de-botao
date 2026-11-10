@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Preparar o chute (tem toque sobrando): ficar com a bola e deixá-la onde algum botão tenha chute livre no toque
-    /// seguinte, de preferência com mais de um botão com ângulo. Sem isso, a conta é o quanto a bola avança. Com 3
+    /// seguinte, de preferência com mais de um botão com ângulo. Sem isso, a conta é o quanto a bola chega perto da frente do gol. Com 3
     /// toques, imagina também o toque seguinte.
     /// </summary>
     public sealed class PrepareShotGoal : AiGoal
@@ -16,6 +16,8 @@ namespace FutebolDeBotao
         private const float ExtraShooterScore = 15f;
         /// <summary>Conta até este número de botões com chute.</summary>
         private const int MaxShooters = 3;
+        /// <summary>Sem chute pronto, a bola vai para este ponto: na frente do gol, a esta distância da linha.</summary>
+        private const float ShootingSpotDistance = 3f;
 
         private static readonly AiAction[] ActionList = { AiAction.KickBallForward };
 
@@ -39,8 +41,12 @@ namespace FutebolDeBotao
             if (shooters > 0)
                 return SetupScore + (shooters - 1) * ExtraShooterScore + (situation.ShotCallDistance - toGoal) * 3f;
 
+            // Sem chute pronto: a conta é o quanto a bola chega perto da zona de chute (na frente do gol, no meio),
+            // não o quanto avança; avançar até o fundo leva a bola para o canto, onde o goleiro fecha o gol.
             Vector2 start = from ?? situation.Ball;
-            return Vector2.Dot(end - start, FieldLayout.AttackDirection(situation.Side)) * 3f;
+            Vector2 shootingSpot = new Vector2(0f, FieldLayout.GoalLineY(opponent)) -
+                                   FieldLayout.AttackDirection(situation.Side) * ShootingSpotDistance;
+            return (Vector2.Distance(start, shootingSpot) - Vector2.Distance(end, shootingSpot)) * 3f;
         }
 
         /// <summary>
