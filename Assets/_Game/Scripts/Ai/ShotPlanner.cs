@@ -367,13 +367,12 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// Botões com chute a gol livre agora: sem risco de falta, caminho livre até a bola e da bola até o gol, sem
-        /// precisar da força máxima. O goleiro não conta (ele ainda vai se mexer depois do Vai chutar).
+        /// precisar da força máxima. O goleiro não conta (ele ainda vai se mexer depois do Vai chutar): tem caminho, chuta.
         /// </summary>
         public List<Disc> ClearShooters(IReadOnlyList<Disc> discs)
         {
             var shooters = new List<Disc>();
             Vector2 ballPosition = ball.Body.position;
-            if (!GoalOpenPastKeeper(ballPosition)) return shooters;
             var targets = GoalTargets(ballPosition);
             ignoreKeepers = true;
             try

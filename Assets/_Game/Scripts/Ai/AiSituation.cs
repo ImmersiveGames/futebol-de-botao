@@ -26,6 +26,8 @@ namespace FutebolDeBotao
         public bool GoalsCount;
         public bool IsBallKick;
         public bool IsFreeKick;
+        /// <summary>Primeiro toque da saída: bola parada no centro do campo.</summary>
+        public bool IsKickOff => !IsBallKick && !IsFreeKick && Ball.sqrMagnitude < 0.01f;
         public bool CanCallShot;
         /// <summary>Botões com chute a gol com caminho livre até a bola e da bola até o gol (sem contar o goleiro).</summary>
         public List<Disc> ClearShooters = new();

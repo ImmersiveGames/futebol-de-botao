@@ -82,6 +82,8 @@ namespace FutebolDeBotao
         private Func<bool> stillValid;
         private bool aborted;
         private int simulations;
+        /// <summary>Jogadas de saída já usadas nesta partida (botão + direção): na próxima saída tenta outra.</summary>
+        private readonly HashSet<string> usedKickOffs = new();
         private double computeMs;
 
         public AiBrain(TeamSide aiSide, ShotPlanner shotPlanner, ShotSimulator shotSimulator)
@@ -112,7 +114,6 @@ namespace FutebolDeBotao
             var rejected = new StringBuilder();
             AiDecision fallback = null;
             AiDecision chosen = null;
-            AiDecision deferredCall = null;
             simulator.Sync();
             frame.Restart();
 
@@ -127,31 +128,14 @@ namespace FutebolDeBotao
                     }
                 if (action == null) continue;
 
-                // Vai chutar adiado (só um botão com ângulo): se preparar não deixou dois, anuncia agora.
-                if (deferredCall != null && goal != AiGoal.Preparing)
-                {
-                    chosen = deferredCall;
-                    break;
-                }
-
                 if (action.IsInstant)
                 {
-                    // Vai chutar: a ação só roda com chute livre, então anuncia. Quem chuta e onde, a IA decide depois,
-                    // contra o goleiro já posicionado.
+                    // Vai chutar: a ação só roda com caminho livre até o gol, então anuncia (tem caminho, chuta). Quem
+                    // chuta e onde, a IA decide depois, contra o goleiro já posicionado.
                     var names = new StringBuilder();
                     foreach (var disc in situation.ClearShooters)
                         names.Append(names.Length > 0 ? ", " : string.Empty).Append(disc.name);
-                    var call = new AiDecision { Goal = goal, Action = action, FollowLine = $"chute livre: {names}" };
-                    // Com toque sobrando e só um botão com ângulo, o adversário sabe de onde vem o chute: tenta antes
-                    // deixar a bola onde dois botões tenham ângulo.
-                    if (!situation.IsLastTouch && situation.ClearShooters.Count < 2 && goals.Contains(AiGoal.Preparing))
-                    {
-                        deferredCall = call;
-                        rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name)
-                            .Append(" adiado (só 1 botão com ângulo)");
-                        continue;
-                    }
-                    chosen = call;
+                    chosen = new AiDecision { Goal = goal, Action = action, FollowLine = $"chute livre: {names}" };
                     break;
                 }
 
@@ -187,14 +171,6 @@ namespace FutebolDeBotao
                 };
                 if (goal.Accepts(pick.Value.Verdict, situation, difficulty))
                 {
-                    // Vai chutar adiado: só vale preparar se a bola fica com dois botões com ângulo.
-                    if (deferredCall != null && goal == AiGoal.Preparing &&
-                        PrepareShotGoal.Shooters(pick.Value.Trial.Main, situation, context) < 2)
-                    {
-                        chosen = deferredCall;
-                        rejected.Append(", Preparar o chute não deixou 2 botões com ângulo");
-                        break;
-                    }
                     chosen = decision;
                     break;
                 }
@@ -207,13 +183,13 @@ namespace FutebolDeBotao
                     fallback = decision;
             }
 
-            chosen ??= deferredCall;
             if (chosen == null && fallback != null)
             {
                 chosen = fallback;
                 chosen.NoGoalAccepted = true;
             }
             chosen ??= new AiDecision { Candidate = Straight(situation, match) };
+            if (situation.IsKickOff && chosen.HasExpected) usedKickOffs.Add(KickOffKey(chosen.Candidate));
 
             var line = new StringBuilder();
             foreach (var goal in goals)
@@ -310,7 +286,15 @@ namespace FutebolDeBotao
                 done(null);
                 yield break;
             }
-            rated.Sort((a, b) => b.Verdict.Score.CompareTo(a.Verdict.Score));
+            // Lembrança da saída: as jogadas já usadas em outras saídas vão para o fim da fila (só repete quando as
+            // outras não servem).
+            Comparison<Rated> byScore = (a, b) =>
+            {
+                bool usedA = UsedKickOff(situation, a), usedB = UsedKickOff(situation, b);
+                if (usedA != usedB) return usedA ? 1 : -1;
+                return b.Verdict.Score.CompareTo(a.Verdict.Score);
+            };
+            rated.Sort(byScore);
 
             // Pensar o toque seguinte: as melhores jogadas que ficam com a bola também são testadas um toque à frente,
             // com a mesma conta do objetivo (o chute fica pronto no toque seguinte? não fica sem saída?).
@@ -334,7 +318,7 @@ namespace FutebolDeBotao
                     rated[i] = entry;
                     planned++;
                 }
-                rated.Sort((a, b) => b.Verdict.Score.CompareTo(a.Verdict.Score));
+                rated.Sort(byScore);
             }
 
             if (action.TouchesBall)
@@ -384,7 +368,7 @@ namespace FutebolDeBotao
                 rated.Sort((a, b) =>
                 {
                     if (a.Checked != b.Checked) return a.Checked ? -1 : 1;
-                    return b.Verdict.Score.CompareTo(a.Verdict.Score);
+                    return byScore(a, b);
                 });
             }
 
@@ -400,8 +384,19 @@ namespace FutebolDeBotao
             float best = rated[first].Verdict.Score;
             var pool = new List<Rated> { rated[first] };
             for (int i = 0; i < rated.Count && rated[i].Checked && pool.Count < difficulty.pickAmongBest; i++)
-                if (i != first && rated[i].Verdict.SafeFor(difficulty) && rated[i].Verdict.Score >= best - PickWindow) pool.Add(rated[i]);
+                if (i != first && rated[i].Verdict.SafeFor(difficulty) && rated[i].Verdict.Score >= best - PickWindow &&
+                    UsedKickOff(situation, rated[i]) == UsedKickOff(situation, rated[first])) pool.Add(rated[i]);
             done(pool[Random.Range(0, pool.Count)]);
+        }
+
+        private bool UsedKickOff(AiSituation situation, in Rated rated) =>
+            situation.IsKickOff && usedKickOffs.Contains(KickOffKey(rated.Trial.Candidate));
+
+        /// <summary>Jogada de saída pelo botão e pela direção (de 20 em 20 graus): parecidas contam como a mesma.</summary>
+        private static string KickOffKey(in ShotCandidate candidate)
+        {
+            float angle = Mathf.Atan2(candidate.Direction.y, candidate.Direction.x) * Mathf.Rad2Deg;
+            return $"{(candidate.Disc != null ? candidate.Disc.name : "?")}:{Mathf.RoundToInt(angle / 20f)}";
         }
 
         /// <summary>
