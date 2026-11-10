@@ -19,7 +19,29 @@ namespace FutebolDeBotao.Editor
             previewSecondary = EditorGUILayout.ColorField("Segunda cor (exemplo)", previewSecondary);
             var area = GUILayoutUtility.GetRect(PreviewSize, PreviewSize, GUILayout.ExpandWidth(false));
             EditorGUI.DrawRect(area, new Color(0.1f, 0.4f, 0.2f));
+            ShirtPreview.Draw(area, shirt, previewPrimary, previewSecondary);
+            if (!shirt.Usable) EditorGUILayout.HelpBox("Sem o recorte do corpo este padrão não aparece no jogo.", MessageType.Warning);
+            EditorGUILayout.Space();
+            DrawDefaultInspector();
+        }
+    }
+
+    /// <summary>Desenha um padrão de camisa montado e pintado (prévia no Inspector).</summary>
+    public static class ShirtPreview
+    {
+        /// <summary>Tamanho da prévia com a altura <paramref name="height"/>, na proporção do recorte do corpo.</summary>
+        public static Vector2 Size(ShirtPattern shirt, float height)
+        {
+            if (shirt == null || shirt.body == null || shirt.body.rect.height <= 0f) return new Vector2(height, height);
+            return new Vector2(height * shirt.body.rect.width / shirt.body.rect.height, height);
+        }
+
+        public static void Draw(Rect area, ShirtPattern shirt, Color primary, Color secondary)
+        {
+            if (shirt == null) return;
             bool keeper = shirt.kind == ShirtPattern.Kind.Goleiro;
+            // Pontos da prévia por unidade do jogo (o deslocamento da sombra do goleiro é em unidades).
+            float perUnit = shirt.body != null ? area.width / (shirt.body.rect.width / shirt.body.pixelsPerUnit) : area.width;
             for (int i = 0; i < ShirtArt.LayerCount; i++)
             {
                 var layer = (ShirtLayer)i;
@@ -27,7 +49,7 @@ namespace FutebolDeBotao.Editor
                 if (sprite == null || sprite.texture == null) continue;
                 var rect = area;
                 if (keeper && layer == ShirtLayer.Shadow)
-                    rect.position += new Vector2(ShirtArt.KeeperShadowOffset.x, -ShirtArt.KeeperShadowOffset.y) * PreviewSize;
+                    rect.position += new Vector2(ShirtArt.KeeperShadowOffset.x, -ShirtArt.KeeperShadowOffset.y) * perUnit;
                 var texture = sprite.texture;
                 // Fora do atlas vale o recorte inteiro; num atlas, a parte guardada (sem o transparente) vai no lugar dela
                 // dentro da célula, senão cada camada estica de um jeito e o botão fica torto.
@@ -41,13 +63,10 @@ namespace FutebolDeBotao.Editor
                     source.height / full.height * rect.height);
                 var coords = new Rect(source.x / texture.width, source.y / texture.height, source.width / texture.width, source.height / texture.height);
                 var old = GUI.color;
-                GUI.color = ShirtArt.Tint(layer, previewPrimary, previewSecondary, keeper);
+                GUI.color = ShirtArt.Tint(layer, primary, secondary, keeper);
                 GUI.DrawTextureWithTexCoords(rect, texture, coords, true);
                 GUI.color = old;
             }
-            if (!shirt.Usable) EditorGUILayout.HelpBox("Sem o recorte do corpo este padrão não aparece no jogo.", MessageType.Warning);
-            EditorGUILayout.Space();
-            DrawDefaultInspector();
         }
     }
 }

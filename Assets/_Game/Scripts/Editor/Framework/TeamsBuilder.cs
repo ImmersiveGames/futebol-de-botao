@@ -6,7 +6,7 @@ namespace FutebolDeBotao.Editor
 {
     /// <summary>
     /// Times e esquemas táticos da Seleção de times, em Assets/_Game/Resources/Times.
-    /// Só cria o que falta: nome, cores ou posições editados no Inspector não são sobrescritos.
+    /// Só cria o que falta: nome, cores, posições e a lista de times do catálogo editados no Inspector não são sobrescritos.
     /// "Criar telas" roda isto antes de montar o Menu.
     /// </summary>
     public static class TeamsBuilder
@@ -64,7 +64,13 @@ namespace FutebolDeBotao.Editor
             };
 
             var catalog = LoadOrCreate<TeamCatalog>(CatalogPath, _ => { });
-            // O catálogo sempre lista os assets da pasta na ordem acima.
+            // Catálogo já montado: a lista de times é a do Inspector (times novos e a ordem são do usuário).
+            // Só um catálogo vazio recebe os times da lista acima.
+            if (catalog.TeamCount > 0)
+            {
+                teams = new TeamData[catalog.TeamCount];
+                for (int i = 0; i < teams.Length; i++) teams[i] = catalog.Team(i);
+            }
             catalog.Set(teams, schemes5, schemes3);
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();

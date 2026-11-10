@@ -161,11 +161,7 @@ namespace FutebolDeBotao
                 }
                 MatchSession.SetTeamIndex(TeamSide.Top, pick);
                 MatchSession.SetSchemeIndex(TeamSide.Top, discs, Random.Range(0, catalog.SchemeCount(discs)));
-                if (hasShirts)
-                {
-                    MatchSession.SetDiscPattern(TeamSide.Top, ShirtPattern.RandomId(ShirtPattern.Kind.Botao));
-                    MatchSession.SetKeeperPattern(TeamSide.Top, ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro));
-                }
+                if (hasShirts) MatchSession.UseTeamShirts(TeamSide.Top);
                 MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             }
             if (!tournament) EnsureDifferentTeams();
@@ -220,6 +216,9 @@ namespace FutebolDeBotao
             {
                 MatchSession.SetTeamIndex(side, index);
                 MatchSession.SetSecondaryIndex(side, 0);
+                // Time da IA trocado nas setas: vem com as camisas dele.
+                if (MatchSession.VsAi == true && side == TeamSide.Top && ShirtPattern.Any(ShirtPattern.Kind.Botao))
+                    MatchSession.UseTeamShirts(side);
             }
             Refresh();
         }

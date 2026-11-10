@@ -3,13 +3,13 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Times e esquemas táticos que aparecem na Seleção de times. Fica em Resources/Times/CatalogoDeTimes
+    /// Times e esquemas táticos que aparecem na Seleção de times. Fica em Resources/Times/_CatalogoDeTimes
     /// (criado por "Futebol de Botão/Criar telas"); sem o asset, o jogo usa Azul x Vermelho e os esquemas padrão.
     /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Catálogo de times", fileName = "CatalogoDeTimes")]
     public sealed class TeamCatalog : ScriptableObject
     {
-        public const string ResourcePath = "Times/CatalogoDeTimes";
+        public const string ResourcePath = "Times/_CatalogoDeTimes";
 
         [SerializeField] private TeamData[] teams = new TeamData[0];
         [Tooltip("Esquemas para 5 botões; o primeiro é o padrão.")]

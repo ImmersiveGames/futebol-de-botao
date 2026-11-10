@@ -15,12 +15,23 @@ namespace FutebolDeBotao
         [SerializeField] private Color secondaryColor = Color.black;
         [Tooltip("Escudo. Vazio: a tela mostra um círculo nas cores do time.")]
         [SerializeField] private Sprite crest;
+        [Header("Camisas (time da IA)")]
+        [Tooltip("Padrão dos botões quando a IA joga com este time. Sortear: um diferente a cada partida.")]
+        [ShirtPatternId(ShirtPattern.Kind.Botao)]
+        [SerializeField] private string discPatternId = "";
+        [Tooltip("Padrão do goleiro quando a IA joga com este time. Sortear: um diferente a cada partida.")]
+        [ShirtPatternId(ShirtPattern.Kind.Goleiro)]
+        [SerializeField] private string keeperPatternId = "";
 
         public string TeamName => teamName;
         public string Abbreviation => abbreviation;
         public Color PrimaryColor => primaryColor;
         public Color SecondaryColor => secondaryColor;
         public Sprite Crest => crest;
+        /// <summary>Id do padrão dos botões do time (vazio: sorteado).</summary>
+        public string DiscPatternId => discPatternId;
+        /// <summary>Id do padrão do goleiro do time (vazio: sorteado).</summary>
+        public string KeeperPatternId => keeperPatternId;
 
         /// <summary>Cor para escrever o nome do time sobre fundo escuro (time preto usa a cor do anel).</summary>
         public Color TextColor

@@ -105,6 +105,8 @@ namespace FutebolDeBotao
         private static readonly int[] scheme3 = { 0, 0 };
         private static readonly string[] discPattern = { null, null };
         private static readonly string[] keeperPattern = { null, null };
+        /// <summary>Lado da IA com as camisas do time: vale qualquer padrão, mesmo travado na loja do jogador.</summary>
+        private static readonly bool[] anyPattern = { false, false };
         private static readonly int[] secondaryIndex = { 0, 0 };
 
         /// <summary>Índice de time que quer dizer "Meu time" (<see cref="PlayerProfile"/>), só do Jogador 1.</summary>
@@ -123,6 +125,21 @@ namespace FutebolDeBotao
             secondaryIndex[(int)side] = 0;
             discPattern[(int)side] = PlayerProfile.Data.discPatternId;
             keeperPattern[(int)side] = PlayerProfile.Data.keeperPatternId;
+            anyPattern[(int)side] = false;
+        }
+
+        /// <summary>
+        /// Camisas do time do catálogo no lado da IA: as escolhidas no asset do time (mesmo travadas na loja) ou
+        /// sorteadas quando o time está em "Sortear".
+        /// </summary>
+        public static void UseTeamShirts(TeamSide side)
+        {
+            var team = Team(side);
+            anyPattern[(int)side] = true;
+            discPattern[(int)side] = ShirtPattern.FindOf(ShirtPattern.Kind.Botao, team.DiscPatternId)?.id
+                                     ?? ShirtPattern.RandomId(ShirtPattern.Kind.Botao);
+            keeperPattern[(int)side] = ShirtPattern.FindOf(ShirtPattern.Kind.Goleiro, team.KeeperPatternId)?.id
+                                       ?? ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro);
         }
 
         public static int TeamIndex(TeamSide side) => teamIndex[(int)side];
@@ -143,7 +160,9 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Padrão da camisa dos botões do lado (o escolhido, se liberado; senão o primeiro liberado).</summary>
-        public static ShirtPattern DiscPattern(TeamSide side) => ShirtPattern.Resolve(ShirtPattern.Kind.Botao, discPattern[(int)side]);
+        public static ShirtPattern DiscPattern(TeamSide side) =>
+            (anyPattern[(int)side] ? ShirtPattern.FindOf(ShirtPattern.Kind.Botao, discPattern[(int)side]) : null)
+            ?? ShirtPattern.Resolve(ShirtPattern.Kind.Botao, discPattern[(int)side]);
 
         /// <summary>Id do padrão dos botões escolhido (pode estar vazio ou travado; <see cref="DiscPattern"/> resolve).</summary>
         public static string DiscPatternId(TeamSide side) => DiscPattern(side)?.id ?? discPattern[(int)side];
@@ -151,7 +170,9 @@ namespace FutebolDeBotao
         public static void SetDiscPattern(TeamSide side, string patternId) => discPattern[(int)side] = patternId;
 
         /// <summary>Padrão da camisa do goleiro do lado (o escolhido, se liberado; senão o primeiro liberado).</summary>
-        public static ShirtPattern KeeperPattern(TeamSide side) => ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, keeperPattern[(int)side]);
+        public static ShirtPattern KeeperPattern(TeamSide side) =>
+            (anyPattern[(int)side] ? ShirtPattern.FindOf(ShirtPattern.Kind.Goleiro, keeperPattern[(int)side]) : null)
+            ?? ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, keeperPattern[(int)side]);
 
         public static string KeeperPatternId(TeamSide side) => KeeperPattern(side)?.id ?? keeperPattern[(int)side];
 
@@ -231,6 +252,7 @@ namespace FutebolDeBotao
             scheme3[0] = scheme3[1] = 0;
             discPattern[0] = discPattern[1] = null;
             keeperPattern[0] = keeperPattern[1] = null;
+            anyPattern[0] = anyPattern[1] = false;
             secondaryIndex[0] = secondaryIndex[1] = 0;
         }
     }

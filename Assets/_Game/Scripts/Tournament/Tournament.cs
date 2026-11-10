@@ -183,11 +183,7 @@ namespace FutebolDeBotao
             MatchSession.SetTeamIndex(TeamSide.Top, opponent);
             MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             MatchSession.SetSchemeIndex(TeamSide.Top, options.discsPerTeam, Random.Range(0, catalog.SchemeCount(options.discsPerTeam)));
-            if (ShirtPattern.Any(ShirtPattern.Kind.Botao))
-            {
-                MatchSession.SetDiscPattern(TeamSide.Top, ShirtPattern.RandomId(ShirtPattern.Kind.Botao));
-                MatchSession.SetKeeperPattern(TeamSide.Top, ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro));
-            }
+            if (ShirtPattern.Any(ShirtPattern.Kind.Botao)) MatchSession.UseTeamShirts(TeamSide.Top);
 
             MatchSession.PrepareVenues();
             MatchSession.SetAway(match.home != Player);

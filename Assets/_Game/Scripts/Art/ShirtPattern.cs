@@ -89,6 +89,13 @@ namespace FutebolDeBotao
 
         public static bool Any(Kind kind) => Of(kind).Count > 0;
 
+        /// <summary>O padrão do id, se for do tipo e tiver recortes (liberado ou não); senão nulo.</summary>
+        public static ShirtPattern FindOf(Kind kind, string patternId)
+        {
+            var item = Find(patternId);
+            return item != null && item.kind == kind && item.Usable ? item : null;
+        }
+
         public static ShirtPattern Find(string patternId)
         {
             if (string.IsNullOrEmpty(patternId)) return null;
@@ -138,5 +145,12 @@ namespace FutebolDeBotao
 #if UNITY_EDITOR
         private void OnValidate() => cached = null;
 #endif
+    }
+
+    /// <summary>Campo de texto com o id de um padrão de camisa: o Inspector mostra a lista dos padrões do tipo.</summary>
+    public sealed class ShirtPatternIdAttribute : PropertyAttribute
+    {
+        public readonly ShirtPattern.Kind Kind;
+        public ShirtPatternIdAttribute(ShirtPattern.Kind kind) => Kind = kind;
     }
 }
