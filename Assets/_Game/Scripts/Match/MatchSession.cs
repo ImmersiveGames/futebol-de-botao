@@ -189,6 +189,9 @@ namespace FutebolDeBotao
         /// <summary>Torneio: o Menu está montando um torneio novo (Opções do torneio).</summary>
         public static bool TournamentSetup { get; set; }
 
+        /// <summary>Torneio escolhido nas Opções do torneio (id do asset; vazio: o menor).</summary>
+        public static string TournamentId { get; set; }
+
         /// <summary>A partida é do torneio (<see cref="Tournament"/>): as opções são as dele.</summary>
         public static bool InTournamentMatch { get; private set; }
 

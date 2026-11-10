@@ -88,6 +88,7 @@ namespace FutebolDeBotao
         private static void ApplyToSession()
         {
             MatchSession.AiLevel = (AiLevel)Mathf.Clamp(Data.settings.aiLevel, 0, AiDifficulty.LevelCount - 1);
+            MatchSession.TournamentId = Data.settings.tournamentId;
             for (int i = 0; i < 2; i++)
             {
                 var side = (TeamSide)i;
@@ -111,6 +112,7 @@ namespace FutebolDeBotao
         {
             Data.settings.music = MusicSetting.Enabled;
             Data.settings.aiLevel = (int)MatchSession.AiLevel;
+            Data.settings.tournamentId = MatchSession.TournamentId;
 
             var options = MatchSession.Current;
             if (options != null)

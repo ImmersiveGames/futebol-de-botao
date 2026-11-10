@@ -17,7 +17,9 @@ namespace FutebolDeBotao
         Fouls,
         ExtraTime,
         Penalties,
-        Music
+        Music,
+        /// <summary>Só nas Opções do torneio: quantos times na chave (um asset de torneio por tamanho).</summary>
+        TournamentSize
     }
 
     /// <summary>
@@ -246,7 +248,7 @@ namespace FutebolDeBotao
             {
                 MatchSession.TournamentSetup = false;
                 GameSave.Save("opcoes");
-                Tournament.StartNew(TournamentConfig.Find(null), MatchSession.Options(defaults), MatchSession.AiLevel);
+                Tournament.StartNew(TournamentConfig.Find(MatchSession.TournamentId), MatchSession.Options(defaults), MatchSession.AiLevel);
                 ShowTournament();
                 return;
             }
@@ -268,7 +270,7 @@ namespace FutebolDeBotao
         {
             Show(optionsPanel);
             if (modeLabel != null)
-                modeLabel.text = MatchSession.TournamentSetup ? $"Torneio: {TournamentConfig.Find(null).displayName}"
+                modeLabel.text = MatchSession.TournamentSetup ? "Torneio"
                     : MatchSession.VsAi == true ? "Partida única" : "Dois jogadores";
             LayoutRows();
             Refresh();
@@ -300,6 +302,7 @@ namespace FutebolDeBotao
                 // Dificuldade só contra a IA; Pênaltis só com goleiro.
                 // Torneio: goleiro, prorrogação e pênaltis sempre ligados (não aparecem).
                 bool shown = (vsAi || kind != MatchOptionKind.Difficulty) &&
+                             (tournamentSetup || kind != MatchOptionKind.TournamentSize) &&
                              (kind != MatchOptionKind.Penalties || MatchSession.Options(defaults).hasGoalkeeper) &&
                              !(tournamentSetup && kind is MatchOptionKind.Goalkeeper or MatchOptionKind.ExtraTime or MatchOptionKind.Penalties);
                 row.gameObject.SetActive(shown);
@@ -353,6 +356,14 @@ namespace FutebolDeBotao
                 case MatchOptionKind.Fouls:
                     options.fouls = !options.fouls;
                     break;
+                case MatchOptionKind.TournamentSize:
+                    var sizes = TournamentConfig.All();
+                    if (sizes.Length > 0)
+                    {
+                        int current = System.Array.IndexOf(sizes, TournamentConfig.Find(MatchSession.TournamentId));
+                        MatchSession.TournamentId = sizes[Wrap(Mathf.Max(0, current) + step, sizes.Length)].id;
+                    }
+                    break;
                 case MatchOptionKind.Music:
                     // A música grava sozinha.
                     MusicSetting.Enabled = !MusicSetting.Enabled;
@@ -383,6 +394,7 @@ namespace FutebolDeBotao
             MatchOptionKind.ExtraTime => "Prorrogação",
             MatchOptionKind.Penalties => "Pênaltis",
             MatchOptionKind.Music => "Música",
+            MatchOptionKind.TournamentSize => "Times",
             _ => kind.ToString()
         };
 
@@ -404,6 +416,7 @@ namespace FutebolDeBotao
             MatchOptionKind.ExtraTime => options.extraTimePercent > 0 ? $"{options.extraTimePercent}%" : "Desligado",
             MatchOptionKind.Penalties => OnOff(options.penalties),
             MatchOptionKind.Music => OnOff(MusicSetting.Enabled),
+            MatchOptionKind.TournamentSize => TournamentConfig.Find(MatchSession.TournamentId).TeamCount.ToString(),
             _ => string.Empty
         };
 

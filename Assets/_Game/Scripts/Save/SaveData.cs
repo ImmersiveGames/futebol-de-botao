@@ -32,6 +32,8 @@ namespace FutebolDeBotao
         {
             public bool music = true;
             public int aiLevel = (int)AiLevel.Medium;
+            /// <summary>Tamanho de torneio escolhido por último (id do asset em Resources/Torneios).</summary>
+            public string tournamentId;
         }
 
         [Serializable]
