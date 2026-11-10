@@ -13,6 +13,10 @@ namespace FutebolDeBotao
         private const float OpponentReach = 6f;
         /// <summary>Desconto de deixar chute livre para ele (maior que qualquer distância do gol).</summary>
         private const float OpenShotPenalty = 30f;
+        /// <summary>Até esta distância da linha de fundo do adversário a bola ganha nota por estar longe; mais fundo, não.</summary>
+        private const float FarLineDistance = 3f;
+        /// <summary>Desconto por unidade de distância do meio do campo (para os lados).</summary>
+        private const float CenterPreference = 0.5f;
 
         private static readonly AiAction[] ActionList = { AiAction.KickBallForward };
 
@@ -24,7 +28,11 @@ namespace FutebolDeBotao
         {
             if (GoalOutcome(result, situation, context) is float goal) return goal;
             if (result.End == null) return null;
-            float score = Vector2.Distance(result.BallEnd, OwnGoal(situation)) * 2f;
+            // Mais longe do próprio gol é melhor só até perto da linha de fundo dele: dali em diante a bola fica presa no
+            // canto e o toque seguinte não tem jogada. Entre lugares iguais, o meio do campo ganha da parede.
+            float maxDistance = FieldLayout.HalfHeight * 2f - FarLineDistance;
+            float score = Mathf.Min(Vector2.Distance(result.BallEnd, OwnGoal(situation)), maxDistance) * 2f -
+                          Mathf.Abs(result.BallEnd.x) * CenterPreference;
             if (context.OpponentPlanner != null &&
                 context.OpponentPlanner.HasShotSetup(result.End, situation.OpponentDiscs, OpponentReach))
                 score -= OpenShotPenalty;
