@@ -32,7 +32,9 @@ namespace FutebolDeBotao
         private const float MinPower = 0.1f;
         private static readonly float[] AdvanceDistances = { 2.5f, 4f };
         private static readonly float[] AdvanceOffsets = { -1.5f, 0f, 1.5f };
-        private static readonly float[] GoalOffsets = { -0.8f, -0.4f, 0f, 0.4f, 0.8f };
+        // Alvos medidos NA LINHA do gol. Com o goleiro de 1,2 no meio, só passa bola com o centro entre 0,8 e 1,0 do
+        // meio (perto da trave): os alvos de fora ficam ali; os de dentro servem quando o goleiro sai do meio.
+        private static readonly float[] GoalOffsets = { -0.95f, -0.85f, -0.4f, 0f, 0.4f, 0.85f, 0.95f };
         private static readonly float[] PowerScales = { 0.85f, 1f, 1.2f };
         // Pênalti: chute forte (a força passa de 1 e fica no máximo). Alvos medidos NA LINHA do gol, no vão entre o
         // goleiro no meio e a trave (com a bola de raio 0,2: centro entre 0,7 e 1,0), mais o meio para quando o
@@ -98,7 +100,7 @@ namespace FutebolDeBotao
         {
             var list = new List<ShotCandidate>();
             Vector2 ballPosition = ball.Body.position;
-            var targets = scoring ? GoalTargets() : AdvanceTargets(ballPosition);
+            var targets = scoring ? GoalTargets(ballPosition) : AdvanceTargets(ballPosition);
 
             foreach (var disc in usable)
             foreach (var target in targets)
@@ -122,7 +124,7 @@ namespace FutebolDeBotao
         {
             var list = new List<ShotCandidate>();
             Vector2 ballPosition = state.Ball;
-            var targets = scoring ? GoalTargets() : AdvanceTargets(ballPosition);
+            var targets = scoring ? GoalTargets(ballPosition) : AdvanceTargets(ballPosition);
             foreach (var disc in discs)
             {
                 foreach (var target in targets)
@@ -156,7 +158,7 @@ namespace FutebolDeBotao
             ignoreKeepers = true;
             try
             {
-                var targets = GoalTargets();
+                var targets = GoalTargets(state.Ball);
                 foreach (var disc in discs)
                 {
                     setupList.Clear();
@@ -244,7 +246,7 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Alvos do tiro livre e do pênalti: o gol quando o chute vale gol, senão pontos à frente da bola.</summary>
-        public List<Vector2> KickTargets(bool scoring) => scoring ? GoalTargets() : AdvanceTargets(ball.Body.position);
+        public List<Vector2> KickTargets(bool scoring) => scoring ? GoalTargets(ball.Body.position) : AdvanceTargets(ball.Body.position);
 
         /// <summary>
         /// Jogadas de posicionamento: o botão anda até um ponto sem tocar em nada (a vez passa por "errou a bola").
@@ -372,7 +374,7 @@ namespace FutebolDeBotao
             var shooters = new List<Disc>();
             Vector2 ballPosition = ball.Body.position;
             if (!GoalOpenPastKeeper(ballPosition)) return shooters;
-            var targets = GoalTargets();
+            var targets = GoalTargets(ballPosition);
             ignoreKeepers = true;
             try
             {
@@ -496,20 +498,16 @@ namespace FutebolDeBotao
             return startSpeed * discMass / Mathf.Max(tuning.maxImpulse, 0.01f);
         }
 
-        private List<Vector2> GoalTargets()
+        private List<Vector2> GoalTargets(Vector2 from)
         {
             var targets = new List<Vector2>();
             float y = FieldLayout.GoalLineY(Opponent) + Attack.y * 0.4f;
             float scale = GoalWidth / FieldLayout.GoalWidth;
-            if (PenaltyMode)
-            {
-                // O alvo fica 0,4 dentro da rede: abre o x para a bola cruzar a linha no ponto pedido.
-                float toLine = Mathf.Abs(FieldLayout.GoalLineY(Opponent) - ball.Body.position.y);
-                float stretch = toLine > 0.5f ? (toLine + 0.4f) / toLine : 1f;
-                foreach (float x in PenaltyGoalOffsets) targets.Add(new Vector2(ball.Body.position.x + (x * scale - ball.Body.position.x) * stretch, y));
-                return targets;
-            }
-            foreach (float x in GoalOffsets) targets.Add(new Vector2(x * scale, y));
+            // O alvo fica 0,4 dentro da rede: abre o x para a bola cruzar a linha no ponto pedido.
+            float toLine = Mathf.Abs(FieldLayout.GoalLineY(Opponent) - from.y);
+            float stretch = toLine > 0.5f ? (toLine + 0.4f) / toLine : 1f;
+            foreach (float x in PenaltyMode ? PenaltyGoalOffsets : GoalOffsets)
+                targets.Add(new Vector2(from.x + (x * scale - from.x) * stretch, y));
             return targets;
         }
 
