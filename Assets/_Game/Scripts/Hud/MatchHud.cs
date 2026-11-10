@@ -257,8 +257,13 @@ namespace FutebolDeBotao
 
             bottom.Label.text = message;
             top.Label.text = message;
-            // Com uma mensagem só (PC) ela fica bem no meio; com duas, uma de cada lado do círculo central.
-            bottom.Root.transform.position = new Vector3(0f, portrait ? -1.3f : 0f, 0f);
+            // Com uma mensagem só (PC) ela fica bem no meio; com duas, uma de cada lado do círculo central. Com a faixa
+            // preta do pênalti, as duas encostam na linha do meio (longe da faixa, que fica perto da área).
+            bool penaltyCover = match.KickerHidden || match.KeeperHidden;
+            float offset = penaltyCover ? PenaltyMessageOffset : MessageOffset;
+            bool both = portrait && top.Root.activeSelf;
+            bottom.Root.transform.position = new Vector3(0f, !portrait || penaltyCover && !both ? 0f : -offset, 0f);
+            top.Root.transform.position = new Vector3(0f, penaltyCover && !bottom.Root.activeSelf ? 0f : offset, 0f);
         }
 
         /// <summary>Placar lido da esquerda para a direita: <paramref name="first"/> primeiro.</summary>
@@ -480,15 +485,21 @@ namespace FutebolDeBotao
             return dotSprite;
         }
 
+        private const float MessageOffset = 1.3f;
+        private const float PenaltyMessageOffset = 0.55f;
+        private const int MessageOrder = 95;
+
         private void BuildMessages()
         {
             var root = new GameObject("Mensagens").transform;
             root.SetParent(transform, false);
             foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
             {
-                float y = side == TeamSide.Bottom ? -1.3f : 1.3f;
+                float y = side == TeamSide.Bottom ? -MessageOffset : MessageOffset;
                 var canvas = CreateWorldCanvas($"Mensagem {Name(side)}", root, new Vector2(0f, y), new Vector2(6.4f, 1f),
                     side == TeamSide.Bottom ? 0f : 180f);
+                // Por cima da faixa preta do pênalti.
+                canvas.sortingOrder = MessageOrder;
                 // A mensagem não bloqueia toques no campo.
                 Destroy(canvas.GetComponent<GraphicRaycaster>());
                 CreatePanel(canvas.transform, new Color(0f, 0f, 0f, 0.65f)).raycastTarget = false;
