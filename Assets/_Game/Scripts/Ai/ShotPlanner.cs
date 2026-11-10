@@ -441,6 +441,7 @@ namespace FutebolDeBotao
             if (state == null)
             {
                 CheckDiscPath(disc, aimDirection, travel, out foulRisk, out blocked);
+                if (!foulRisk && !blocked && FoulsEnabled && GrazesOpponent(disc, aimDirection, travel)) foulRisk = true;
                 ballBlocked = BallPathBlocked(ballPosition, ballDirection, length, disc);
             }
             else
@@ -595,6 +596,45 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>Folga do botão contra adversários: passar raspando num adversário colado na bola é falta.</summary>
+        private const float OpponentMargin = 1.1f;
+
+        /// <summary>
+        /// Chega na bola sem raspar num adversário? O círculo um pouco maior que o botão vê o adversário colado na bola
+        /// (a bola parada encostada num botão dele): no jogo o botão bate nos dois juntos e é falta.
+        /// </summary>
+        private bool GrazesOpponent(Disc disc, Vector2 direction, float distance)
+        {
+            Vector2 start = disc.Body.position;
+            int count = Physics2D.CircleCast(start, disc.Radius * OpponentMargin, direction, NoFilter, hits, distance + 0.05f);
+            SortByDistance(count);
+            for (int i = 0; i < count; i++)
+            {
+                var collider = hits[i].collider;
+                if (collider.isTrigger || collider.attachedRigidbody == disc.Body) continue;
+                if (collider.GetComponent<Ball>() != null)
+                {
+                    // Bola primeiro: ainda conta o adversário tocado quase junto (antes do botão andar mais um pouco).
+                    float ballAt = hits[i].distance;
+                    for (int j = i + 1; j < count && hits[j].distance <= ballAt + 0.05f; j++)
+                        if (IsOpponent(hits[j].collider)) return true;
+                    return false;
+                }
+                // Adversário encostado do lado ou atrás na largada não atrapalha.
+                if (hits[i].distance < 0.001f && Vector2.Dot((Vector2)collider.transform.position - start, direction) <= 0f) continue;
+                if (IsOpponent(collider)) return true;
+            }
+            return false;
+        }
+
+        private bool IsOpponent(Collider2D collider)
+        {
+            if (collider.isTrigger) return false;
+            var other = collider.GetComponent<Disc>();
+            var keeper = collider.GetComponent<Goalkeeper>();
+            return (other != null && other.Side != side) || (keeper != null && keeper.Side != side);
+        }
+
         /// <summary>O botão chega até o ponto sem encostar em nada (bola, botão, goleiro ou parede).</summary>
         private bool PathClear(Disc disc, Vector2 direction, float distance)
         {
@@ -638,6 +678,11 @@ namespace FutebolDeBotao
             var hit = FirstObstacle(state, from, direction, distance + 0.05f, disc.Radius * 0.95f, disc, true);
             if (hit is Obstacle.Opponent or Obstacle.OpponentKeeper) foulRisk = FoulsEnabled;
             else if (hit is Obstacle.Teammate or Obstacle.OwnKeeper or Obstacle.Wall) blocked = true;
+            // Mesmo cuidado do caminho ao vivo: adversário colado na bola, que o botão rasparia junto, é falta.
+            else if (hit == Obstacle.Ball && FoulsEnabled &&
+                     FirstObstacle(state, from, direction, distance + 0.1f, disc.Radius * OpponentMargin, disc, false, true)
+                         is Obstacle.Opponent or Obstacle.OpponentKeeper)
+                foulRisk = true;
         }
 
         /// <summary>Mesmo que <see cref="BallPathBlocked"/>, nas posições de um momento simulado.</summary>
@@ -660,7 +705,7 @@ namespace FutebolDeBotao
 
         /// <summary>O que um círculo andando de <paramref name="from"/> encontra primeiro (a bola conta como chegar).</summary>
         private Obstacle FirstObstacle(SimState state, Vector2 from, Vector2 direction, float distance, float radius, Disc self,
-            bool stopAtBall)
+            bool stopAtBall, bool opponentsOnly = false)
         {
             Prepare(state);
             float maxX = FieldLayout.HalfWidth + FieldLayout.WallInset - radius;
@@ -670,12 +715,17 @@ namespace FutebolDeBotao
                 Vector2 point = from + direction * Mathf.Min(travelled, distance);
                 if (stopAtBall && Vector2.Distance(point, state.Ball) < radius + ball.Radius) return Obstacle.Ball;
                 foreach (var other in stateDiscs)
-                    if (other.Disc != self && Vector2.Distance(point, other.Position) < radius + other.Radius)
+                    if (other.Disc != self && (!opponentsOnly || other.Disc.Side != side) &&
+                        Vector2.Distance(point, other.Position) < radius + other.Radius)
+                    {
+                        // Só opponentsOnly: o adversário já encostado do lado ou atrás na largada não conta.
+                        if (opponentsOnly && Vector2.Dot(other.Position - from, direction) <= 0f) continue;
                         return other.Disc.Side == side ? Obstacle.Teammate : Obstacle.Opponent;
+                    }
                 foreach (var keeper in stateKeepers)
-                    if (BoxOverlaps(keeper.Center, keeper.Half, point, radius))
+                    if ((!opponentsOnly || keeper.Side != side) && BoxOverlaps(keeper.Center, keeper.Half, point, radius))
                         return keeper.Side == side ? Obstacle.OwnKeeper : Obstacle.OpponentKeeper;
-                if (Mathf.Abs(point.x) > maxX || Mathf.Abs(point.y) > maxY) return Obstacle.Wall;
+                if (!opponentsOnly && (Mathf.Abs(point.x) > maxX || Mathf.Abs(point.y) > maxY)) return Obstacle.Wall;
             }
             return Obstacle.None;
         }

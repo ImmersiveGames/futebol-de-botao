@@ -392,10 +392,13 @@ namespace FutebolDeBotao
         private bool UsedKickOff(AiSituation situation, in Rated rated) =>
             situation.IsKickOff && usedKickOffs.Contains(KickOffKey(rated.Trial.Candidate));
 
-        /// <summary>Jogada de saída pelo botão e pela direção (de 20 em 20 graus): parecidas contam como a mesma.</summary>
+        /// <summary>
+        /// Jogada de saída pelo botão e pela direção (de 20 em 20 graus): parecidas contam como a mesma, e a do lado
+        /// espelhado também (a formação é simétrica).
+        /// </summary>
         private static string KickOffKey(in ShotCandidate candidate)
         {
-            float angle = Mathf.Atan2(candidate.Direction.y, candidate.Direction.x) * Mathf.Rad2Deg;
+            float angle = Mathf.Atan2(candidate.Direction.y, Mathf.Abs(candidate.Direction.x)) * Mathf.Rad2Deg;
             return $"{(candidate.Disc != null ? candidate.Disc.name : "?")}:{Mathf.RoundToInt(angle / 20f)}";
         }
 
