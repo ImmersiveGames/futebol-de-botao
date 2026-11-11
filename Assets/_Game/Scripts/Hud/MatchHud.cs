@@ -15,7 +15,7 @@ namespace FutebolDeBotao
     /// Tela deitada (PC): painel único à esquerda e uma mensagem só, sem girar (provisório até refinar o PC).
     /// Também destaca os botões do time da vez.
     /// </summary>
-    public sealed class MatchHud : MonoBehaviour
+    public sealed partial class MatchHud : MonoBehaviour
     {
         private const float PixelsPerUnit = 100f;
 
@@ -110,6 +110,7 @@ namespace FutebolDeBotao
             BuildMessages();
             BuildPcPanel();
             BuildShootoutBoard();
+            BuildTutorial();
             highlight = gameObject.AddComponent<TurnHighlight>();
             highlight.Configure(match);
         }
@@ -126,6 +127,7 @@ namespace FutebolDeBotao
             pcRoot.SetActive(visible && !portrait);
             UpdateMessages(visible, portrait);
             UpdateShootout(visible);
+            UpdateTutorial(visible, portrait);
             if (!visible) return;
 
             if (portrait)
@@ -133,7 +135,8 @@ namespace FutebolDeBotao
                 // Contra a IA: informações em cima e botões embaixo (perto do polegar), as duas para o jogador.
                 bool vsAi = match.IsAi(TeamSide.Bottom) || match.IsAi(TeamSide.Top);
                 foreach (var view in strips.Values) view.Root.SetActive(!vsAi);
-                soloInfo.Root.SetActive(vsAi);
+                // No tutorial o balão da lição fica no lugar das informações.
+                soloInfo.Root.SetActive(vsAi && match.Tutorial == null);
                 soloButtons.Root.SetActive(vsAi);
                 if (vsAi)
                 {
@@ -222,6 +225,11 @@ namespace FutebolDeBotao
         private string ActionFor(TeamSide side)
         {
             if (match.IsAi(side)) return null;
+            if (match.Tutorial != null)
+            {
+                if (match.Tutorial.Completed) return null;
+                if (match.Tutorial.WaitingContinue) return TutorialTexts.Continue;
+            }
             if (match.CanCallShot && match.Turn == side) return ShotCallLabel;
             if (match.CanConfirmReady && match.ActingSide == side) return "Pronto";
             return null;
@@ -230,6 +238,11 @@ namespace FutebolDeBotao
         private void OnAction(TeamSide side)
         {
             if (match.IsAi(side)) return;
+            if (match.Tutorial != null && match.Tutorial.WaitingContinue)
+            {
+                match.Tutorial.Continue();
+                return;
+            }
             if (match.CanCallShot && match.Turn == side) match.TryCallShot();
             else if (match.CanConfirmReady && match.ActingSide == side) match.ConfirmReady();
         }

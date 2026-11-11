@@ -82,6 +82,7 @@ namespace FutebolDeBotao
         private bool resultRequested;
         private float holdTimer;
         private bool restoreControls;
+        private TutorialDirector tutorial;
 
         public MatchState State { get; private set; }
         public TeamSide Turn { get; private set; }
@@ -112,6 +113,12 @@ namespace FutebolDeBotao
         /// <summary>Com um HUD de verdade na cena, o HUD provisório (OnGUI) não é desenhado.</summary>
         public bool ExternalHud { get; set; }
         public PauseRequestTrigger PauseTrigger => pauseTrigger;
+        /// <summary>Quem conduz as lições quando a partida é o tutorial; nulo numa partida normal.</summary>
+        public TutorialDirector Tutorial => tutorial;
+        // Tutorial explicando (balão com Continuar) ou com a lição concluída na tela: ninguém joga.
+        private bool TutorialLocked => tutorial != null && tutorial.LocksControls;
+        /// <summary>A jogada em andamento (ou a última) foi um chute anunciado.</summary>
+        public bool ShotWasCalled => shotWasCalled;
         public MatchOptions Options => options;
         /// <summary>Muda a cada troca de estado, mesmo para o mesmo estado (a IA usa para saber se a jogada dela ainda vale).</summary>
         public int StateVersion { get; private set; }
@@ -323,10 +330,30 @@ namespace FutebolDeBotao
             touchPending = false;
             period = Period.Regular;
             foreach (var list in shootoutKicks) list.Clear();
-            PlayerStats.BeginMatch();
             clock = options.DurationSeconds;
+            ConfigureTutorial();
+            if (tutorial != null)
+            {
+                // Tutorial: sem relógio e sem estatísticas; a lição monta a jogada.
+                tutorial.Begin();
+                return;
+            }
+            PlayerStats.BeginMatch();
             // Início: time sorteado dá a saída.
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
+        }
+
+        /// <summary>Partida do tutorial (aberta pelo Menu): liga o <see cref="TutorialDirector"/>; senão tira.</summary>
+        private void ConfigureTutorial()
+        {
+            if (!FutebolDeBotao.Tutorial.Active)
+            {
+                if (tutorial != null) Destroy(tutorial);
+                tutorial = null;
+                return;
+            }
+            if (tutorial == null) tutorial = gameObject.AddComponent<TutorialDirector>();
+            tutorial.Configure(this);
         }
 
         /// <summary>Contra a IA, o time de cima joga sozinho no nível do Menu; em 2 jogadores, ninguém.</summary>
@@ -341,7 +368,9 @@ namespace FutebolDeBotao
                 return;
             }
 
-            var difficulty = fromMenu || aiDifficulty == null ? AiDifficulty.Load(MatchSession.AiLevel) : aiDifficulty;
+            // No tutorial a IA é sempre a do Fácil.
+            var difficulty = FutebolDeBotao.Tutorial.Active ? AiDifficulty.Load(AiLevel.Easy)
+                : fromMenu || aiDifficulty == null ? AiDifficulty.Load(MatchSession.AiLevel) : aiDifficulty;
             if (ai == null) ai = gameObject.AddComponent<AiPlayer>();
             ai.Configure(this, TeamSide.Top, difficulty);
         }
@@ -461,7 +490,8 @@ namespace FutebolDeBotao
         }
 
         // GDD: o relógio corre só durante a mira.
-        private bool ClockRunning => State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick;
+        // No tutorial não tem relógio.
+        private bool ClockRunning => tutorial == null && State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick;
 
         private void Enter(MatchState state)
         {
@@ -484,13 +514,17 @@ namespace FutebolDeBotao
                 MatchState.End => endPauseSeconds,
                 _ => 0f
             };
+            // No tutorial ninguém tem pressa: sem timer de mira, de goleiro nem de batedor.
+            if (tutorial != null && state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick or MatchState.ShotCall
+                    or MatchState.PenaltySetup)
+                stateTimer = float.PositiveInfinity;
         }
 
         /// <summary>Liga a mira e o goleiro de quem age no estado atual (nada durante um aviso).</summary>
         private void ApplyControls()
         {
             var state = State;
-            bool holding = IsHolding || restoreControls;
+            bool holding = IsHolding || restoreControls || TutorialLocked;
             // Na vez da IA o ponteiro não mira.
             aim.InputEnabled = !holding && (state is MatchState.Aim or MatchState.ShotAim || state == MatchState.GoalKick && !goalKickPlacing) && !IsAi(Turn);
             aim.InputSide = Turn;
@@ -527,7 +561,7 @@ namespace FutebolDeBotao
             {
                 // Sem goleiro não existe "Vai chutar": entrou, é gol.
                 // Disponível quando a bola está no campo de ataque do time da vez; qualquer botão pode chutar.
-                return !IsHolding && State == MatchState.Aim && !aim.IsAiming && options.hasGoalkeeper &&
+                return !IsHolding && !TutorialLocked && State == MatchState.Aim && !aim.IsAiming && options.hasGoalkeeper &&
                        InAttackHalf(ball.Body.position, Turn);
             }
         }
@@ -535,7 +569,7 @@ namespace FutebolDeBotao
         /// <summary>"Pronto": encerra o ajuste do goleiro ou o posicionamento do batedor do pênalti.</summary>
         public void ConfirmReady()
         {
-            if (IsHolding) return;
+            if (IsHolding || TutorialLocked) return;
             if (State == MatchState.ShotCall) FinishShotCall();
             else if (State == MatchState.PenaltySetup) FinishPenaltySetup();
             else if (IsPlacingGoalKick) FinishGoalKickPlacement();
@@ -652,6 +686,15 @@ namespace FutebolDeBotao
                 RecordShootoutKick(false);
                 return;
             }
+            if (tutorial != null)
+            {
+                // Tutorial: a lição decide se acertou, continua ou repete.
+                if (TryKeeperZoneGoalKick()) return;
+                tutorial.OnPlayEnded(ball.LastTouchSide == null ? TutorialPlay.Missed
+                    : ball.LastTouchSide != Turn ? TutorialPlay.OpponentLast
+                    : TutorialPlay.Touched);
+                return;
+            }
             if (clock <= 0f) EndMatch();
             else if (TryKeeperZoneGoalKick()) return;
             else if (ball.LastTouchSide == null) PassTurn("Errou a bola.");
@@ -667,6 +710,13 @@ namespace FutebolDeBotao
             if (IsShootout) return false;
             var owner = KeeperBall.Owner(ball.Body.position, ball.Radius, keepers, options.hasGoalkeeper);
             if (owner == null) return false;
+            if (tutorial != null)
+            {
+                monitor.FreezeAll();
+                Enter(MatchState.Moving);
+                tutorial.OnPlayEnded(TutorialPlay.KeeperBall);
+                return true;
+            }
             message = "Bola do goleiro.";
             SetupGoalKick(owner.Value);
             Hold();
@@ -704,6 +754,11 @@ namespace FutebolDeBotao
 
         private void PassTurn(string reason)
         {
+            if (tutorial != null)
+            {
+                tutorial.OnPlayEnded(TutorialPlay.Missed);
+                return;
+            }
             // Na disputa de pênaltis, perder a vez (tempo de mira esgotado) é pênalti perdido.
             if (IsShootout)
             {
@@ -748,6 +803,11 @@ namespace FutebolDeBotao
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
+            if (tutorial != null)
+            {
+                tutorial.OnFoul(disc.Side);
+                return;
+            }
 
             bool far = Vector2.Distance(keeper.transform.position, shotBallStart) > options.farFoulDistance;
             message = $"Falta no goleiro do {TeamName(keeper.Side)}!";
@@ -767,6 +827,11 @@ namespace FutebolDeBotao
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
+            if (tutorial != null)
+            {
+                tutorial.OnFoul(offender.Side);
+                return;
+            }
 
             // Falta longe do lance (para afastar a bola, por exemplo) vale cartão para o jogador, não para o botão.
             bool far = Vector2.Distance(victimPosition, shotBallStart) > options.farFoulDistance;
@@ -1242,6 +1307,14 @@ namespace FutebolDeBotao
             var defending = pendingGoal.DefendingSide;
             pendingGoal = null;
 
+            if (tutorial != null)
+            {
+                // Sai do estado de gol (senão o gol seria resolvido de novo a cada quadro); a lição monta a próxima jogada.
+                Enter(MatchState.Moving);
+                tutorial.OnGoal(Opponent(defending), pendingGoalValid);
+                return;
+            }
+
             if (clock <= 0f)
             {
                 EndMatch();
@@ -1524,6 +1597,90 @@ namespace FutebolDeBotao
             if (bottomKicks == topKicks && bottomKicks >= ShootoutRounds && bottomGoals != topGoals)
                 return bottomGoals > topGoals ? TeamSide.Bottom : TeamSide.Top;
             return null;
+        }
+
+        // ---- Tutorial ----
+
+        /// <summary>Botões do time (inclusive os desligados), na ordem do nome.</summary>
+        public IReadOnlyList<Disc> TeamDiscs(TeamSide side) => discs[side];
+
+        /// <summary>
+        /// Tutorial: monta a jogada da lição. Botões nas posições dadas (os que faltarem, na formação), goleiros no centro,
+        /// a bola no lugar, a vez de <paramref name="turn"/> com os toques cheios e o placar zerado.
+        /// </summary>
+        public void TutorialSetup(TeamSide turn, Vector2 ballPosition, Vector2[] bottom, Vector2[] top)
+        {
+            EndShot();
+            monitor.StopWatching();
+            monitor.FreezeAll();
+            holdTimer = 0f;
+            restoreControls = false;
+            score[0] = score[1] = 0;
+            farFouls[0] = farFouls[1] = 0;
+            kickerHidden = keeperHidden = false;
+            penaltyKeeperFirst = false;
+            setupIsPenalty = false;
+            goalKickPlacing = false;
+            shotWasCalled = false;
+            pendingGoal = null;
+
+            foreach (var pair in discs)
+            {
+                var positions = pair.Key == TeamSide.Bottom ? bottom : top;
+                for (int i = 0; i < pair.Value.Count && i < options.discsPerTeam; i++)
+                {
+                    pair.Value[i].gameObject.SetActive(true);
+                    pair.Value[i].PlaceAt(positions != null && i < positions.Length ? positions[i] : FormationPosition(i, pair.Key));
+                }
+            }
+            foreach (var keeper in keepers)
+                if (keeper.isActiveAndEnabled) keeper.ResetToCenter();
+            ball.ResetTo(ballPosition);
+
+            GiveTurn(turn);
+            message = string.Empty;
+            Enter(MatchState.Aim);
+        }
+
+        /// <summary>Tutorial: segue a vez com os toques que sobraram.</summary>
+        public void TutorialContinue()
+        {
+            Enter(MatchState.Aim);
+        }
+
+        /// <summary>Tutorial: o time da vez avisa "Pro Gol!" (a IA, na lição de defender).</summary>
+        public void TutorialCallShot()
+        {
+            message = $"{TeamName(Turn)}: Pro Gol!";
+            BeginShotCall();
+        }
+
+        /// <summary>Tutorial: falta de <paramref name="offender"/> em <paramref name="victim"/>, tiro livre onde a vítima está.</summary>
+        public void TutorialFreeKick(Disc offender, Disc victim)
+        {
+            SetupFreeKick(offender, victim, victim.Body.position);
+            Noticed?.Invoke(MatchNotice.Foul);
+        }
+
+        /// <summary>Tutorial: pênalti para o time de <paramref name="victim"/>.</summary>
+        public void TutorialPenalty(Disc offender, Disc victim)
+        {
+            SetupPenalty(offender, victim);
+            Noticed?.Invoke(MatchNotice.Penalty);
+        }
+
+        /// <summary>Tutorial: mostra um aviso no meio do campo; com <paramref name="hold"/>, para o jogo enquanto ele aparece.</summary>
+        public void TutorialMessage(string text, bool hold)
+        {
+            message = text;
+            if (hold) Hold();
+        }
+
+        /// <summary>Tutorial: o balão travou ou destravou os controles.</summary>
+        public void TutorialRefreshControls()
+        {
+            aim.Cancel();
+            ApplyControls();
         }
 
         // ---- Fim ----

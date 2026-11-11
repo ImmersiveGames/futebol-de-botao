@@ -62,7 +62,12 @@ namespace FutebolDeBotao
         [Tooltip("Uma linha por opção, na ordem de MatchOptionKind.")]
         [SerializeField] private RectTransform[] optionRows = new RectTransform[0];
 
+        [Tooltip("Pergunta \"Quer aprender a jogar?\" no primeiro Jogar (Sim abre o tutorial).")]
+        [SerializeField] private GameObject tutorialAsk;
+
         private bool devicesShown;
+        /// <summary>O caminho dos Controles termina no tutorial (sem Opções nem Seleção de times).</summary>
+        private bool tutorialFlow;
 
         public void Configure(MatchOptions defaultOptions, RouteRequestTrigger match, GameObject modeRoot, GameObject optionsRoot,
             Text mode, Text[] values, RectTransform[] rows)
@@ -79,6 +84,7 @@ namespace FutebolDeBotao
         private void Start()
         {
             // Voltou de uma partida: as opções voltam a ser as da sessão; torneio que ficou no meio vira abandono.
+            Tutorial.Leave();
             MatchSession.LeaveTournament();
             MatchSession.TournamentSetup = false;
             Tournament.ResolveLeftover();
@@ -94,6 +100,7 @@ namespace FutebolDeBotao
         /// <summary>Partida única: contra a IA (nível nas Opções). Você joga com o time de baixo. Abre as Opções.</summary>
         public void PlayOnePlayer()
         {
+            tutorialFlow = false;
             MatchSession.VsAi = true;
             MatchSession.TournamentSetup = false;
             OpenDevices();
@@ -102,6 +109,7 @@ namespace FutebolDeBotao
         /// <summary>Torneio: com um em andamento, a tela dele pergunta se continua; senão monta um novo.</summary>
         public void PlayTournament()
         {
+            tutorialFlow = false;
             MatchSession.VsAi = true;
             if (Tournament.InProgress && tournament != null)
             {
@@ -165,6 +173,7 @@ namespace FutebolDeBotao
         /// <summary>2 jogadores: cada um no seu dispositivo ou revezando o mesmo. Abre os Controles ou as Opções.</summary>
         public void PlayTwoPlayers()
         {
+            tutorialFlow = false;
             MatchSession.VsAi = false;
             MatchSession.TournamentSetup = false;
             OpenDevices();
@@ -175,11 +184,45 @@ namespace FutebolDeBotao
         {
             devicesShown = devices != null && devices.Open();
             if (devicesShown) Show(devices.gameObject);
+            else if (tutorialFlow) StartTutorial();
             else ShowOptions();
         }
 
-        /// <summary>Os Controles terminaram: segue para as Opções.</summary>
-        public void ShowOptionsFromDevices() => ShowOptions();
+        /// <summary>Os Controles terminaram: segue para as Opções (ou abre o tutorial).</summary>
+        public void ShowOptionsFromDevices()
+        {
+            if (tutorialFlow) StartTutorial();
+            else ShowOptions();
+        }
+
+        /// <summary>
+        /// "Tutorial" no Jogar (ou "Sim" na pergunta): Controles, se houver mais de um dispositivo, e a partida do
+        /// tutorial na primeira lição que falta.
+        /// </summary>
+        public void PlayTutorial()
+        {
+            Tutorial.MarkAsked();
+            MatchSession.VsAi = true;
+            MatchSession.TournamentSetup = false;
+            tutorialFlow = true;
+            OpenDevices();
+        }
+
+        /// <summary>"Agora não" na pergunta do tutorial: não pergunta mais e mostra o Jogar.</summary>
+        public void SkipTutorialAsk()
+        {
+            Tutorial.MarkAsked();
+            Show(playPanel != null ? playPanel : modePanel);
+        }
+
+        public void SetTutorialAsk(GameObject panel) => tutorialAsk = panel;
+
+        private void StartTutorial()
+        {
+            tutorialFlow = false;
+            Tutorial.Prepare(Tutorial.FirstPending());
+            Play();
+        }
 
         /// <summary>"Voltar" nas Opções: volta aos Controles se eles apareceram, senão à escolha do modo.</summary>
         public void BackFromOptions()
@@ -217,6 +260,12 @@ namespace FutebolDeBotao
         public void ShowPlay()
         {
             MatchSession.TournamentSetup = false;
+            // Primeira vez: pergunta se quer aprender a jogar.
+            if (tutorialAsk != null && Tutorial.ShouldAsk)
+            {
+                Show(tutorialAsk);
+                return;
+            }
             Show(playPanel != null ? playPanel : modePanel);
         }
 
@@ -284,7 +333,7 @@ namespace FutebolDeBotao
             foreach (var other in new[] { modePanel, playPanel, optionsPanel, selection != null ? selection.gameObject : null,
                          devices != null ? devices.gameObject : null, stats != null ? stats.gameObject : null,
                          profile != null ? profile.gameObject : null, shop != null ? shop.gameObject : null,
-                         tournament != null ? tournament.gameObject : null })
+                         tournament != null ? tournament.gameObject : null, tutorialAsk })
                 if (other != null) other.SetActive(other == panel);
         }
 

@@ -74,12 +74,21 @@ namespace FutebolDeBotao
 
         public void BackToMenu()
         {
-            if (menuRoute != null) RunAfterResume(() =>
+            if (menuRoute == null) return;
+            void Leave()
             {
                 PlayerStats.Abandon();
                 MatchPlayers.ReleaseBeforeLeaving("sair para o menu");
                 menuRoute.RequestRoute();
-            });
+            }
+            // Sem pausa (Menu na tela de lição concluída do tutorial) vai direto.
+            if (busy) return;
+            if (Time.timeScale > 0f)
+            {
+                busy = true;
+                Leave();
+            }
+            else RunAfterResume(Leave);
         }
 
         private void RunAfterResume(Action action)

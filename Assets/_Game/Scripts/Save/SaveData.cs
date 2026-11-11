@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 6;
+        public const int CurrentVersion = 7;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -26,6 +26,19 @@ namespace FutebolDeBotao
         public List<string> unlocked = new();
         /// <summary>Torneio (versão 5): o em andamento, ou o último terminado (<see cref="TournamentRun.active"/> falso).</summary>
         public TournamentRun tournament = new();
+        /// <summary>Tutorial (versão 7): lições completas, se o Menu já perguntou e se o bônus já foi pago.</summary>
+        public TutorialData tutorial = new();
+
+        [Serializable]
+        public sealed class TutorialData
+        {
+            /// <summary>O Menu já perguntou "Quer aprender a jogar?" (respondido ou não).</summary>
+            public bool asked;
+            /// <summary>Ids das lições completas (<see cref="TutorialTexts.LessonId"/>).</summary>
+            public List<string> done = new();
+            /// <summary>Bônus de completar todas as lições já pago.</summary>
+            public bool bonusPaid;
+        }
 
         [Serializable]
         public sealed class SettingsData

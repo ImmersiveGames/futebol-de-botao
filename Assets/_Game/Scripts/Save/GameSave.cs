@@ -69,6 +69,12 @@ namespace FutebolDeBotao
             Write(reason);
         }
 
+        /// <summary>
+        /// Grava o save como está, sem juntar as escolhas da sessão (o tutorial usa: a partida dele troca os times da
+        /// sessão e isso não pode virar a última escolha do jogador).
+        /// </summary>
+        public static void WriteOnly(string reason) => Write(reason);
+
         /// <summary>Opções salvas por cima da cópia da sessão (chamado quando o MatchSession cria a cópia).</summary>
         public static void ApplyOptions(MatchOptions options)
         {
@@ -205,6 +211,8 @@ namespace FutebolDeBotao
             data.tournament ??= new SaveData.TournamentRun();
             data.tournament.slots ??= new System.Collections.Generic.List<int>();
             data.tournament.matches ??= new System.Collections.Generic.List<SaveData.TournamentMatch>();
+            data.tutorial ??= new SaveData.TutorialData();
+            data.tutorial.done ??= new System.Collections.Generic.List<string>();
             // Versão 4 passou a contar moedas ganhas e gastas: gastos pelo preço do que já foi comprado, ganhos = saldo + gastos.
             if (data.version < 4)
             {

@@ -214,6 +214,59 @@ namespace FutebolDeBotao
         public static bool OpenTournament { get; set; }
 
         private static MatchOptions tournamentOptions;
+        private static MatchOptions tutorialOptions;
+
+        /// <summary>
+        /// Opções fixas do tutorial: 3 botões, goleiro, faltas, 3 toques e ajuda de mira completa, com avisos mais curtos.
+        /// Não mexem nas opções da sessão.
+        /// </summary>
+        private static MatchOptions TutorialOptions(MatchOptions defaults)
+        {
+            if (tutorialOptions != null) return tutorialOptions;
+            tutorialOptions = defaults != null ? Object.Instantiate(defaults) : MatchOptions.CreateDefault();
+            tutorialOptions.name = "Opções do tutorial";
+            tutorialOptions.hideFlags = HideFlags.DontSave;
+            tutorialOptions.discsPerTeam = 3;
+            tutorialOptions.hasGoalkeeper = true;
+            tutorialOptions.fouls = true;
+            tutorialOptions.touchesPerTurn = 3;
+            tutorialOptions.aimAssist = AimAssistMode.Full;
+            tutorialOptions.extraTimePercent = 0;
+            tutorialOptions.penalties = false;
+            tutorialOptions.noticeHoldSeconds = Mathf.Min(tutorialOptions.noticeHoldSeconds, 2f);
+            return tutorialOptions;
+        }
+
+        // Escolhas da Seleção de times guardadas enquanto o tutorial usa a sessão (SaveSides/RestoreSides).
+        private static int[] savedTeamIndex, savedSecondary, savedScheme3, savedScheme5;
+        private static string[] savedDiscPattern, savedKeeperPattern;
+        private static bool[] savedAnyPattern;
+
+        /// <summary>Guarda times, segunda cor, esquemas e camisas dos dois lados (o tutorial troca e depois devolve).</summary>
+        public static void SaveSides()
+        {
+            savedTeamIndex = (int[])teamIndex.Clone();
+            savedSecondary = (int[])secondaryIndex.Clone();
+            savedScheme3 = (int[])scheme3.Clone();
+            savedScheme5 = (int[])scheme5.Clone();
+            savedDiscPattern = (string[])discPattern.Clone();
+            savedKeeperPattern = (string[])keeperPattern.Clone();
+            savedAnyPattern = (bool[])anyPattern.Clone();
+        }
+
+        /// <summary>Devolve o que o <see cref="SaveSides"/> guardou.</summary>
+        public static void RestoreSides()
+        {
+            if (savedTeamIndex == null) return;
+            savedTeamIndex.CopyTo(teamIndex, 0);
+            savedSecondary.CopyTo(secondaryIndex, 0);
+            savedScheme3.CopyTo(scheme3, 0);
+            savedScheme5.CopyTo(scheme5, 0);
+            savedDiscPattern.CopyTo(discPattern, 0);
+            savedKeeperPattern.CopyTo(keeperPattern, 0);
+            savedAnyPattern.CopyTo(anyPattern, 0);
+            savedTeamIndex = null;
+        }
 
         /// <summary>Partida do torneio com estas opções (o <see cref="Options"/> passa a devolvê-las).</summary>
         public static void UseTournamentOptions(MatchOptions matchOptions)
@@ -232,6 +285,7 @@ namespace FutebolDeBotao
         /// <summary>Opções da sessão; na primeira vez copia <paramref name="defaults"/> (ou o padrão do código).</summary>
         public static MatchOptions Options(MatchOptions defaults)
         {
+            if (Tutorial.Active) return TutorialOptions(defaults);
             if (InTournamentMatch && tournamentOptions != null) return tournamentOptions;
             if (options != null) return options;
             options = defaults != null ? Object.Instantiate(defaults) : MatchOptions.CreateDefault();
@@ -250,6 +304,8 @@ namespace FutebolDeBotao
         {
             options = null;
             tournamentOptions = null;
+            tutorialOptions = null;
+            savedTeamIndex = null;
             InTournamentMatch = false;
             TournamentSetup = false;
             OpenTournament = false;
