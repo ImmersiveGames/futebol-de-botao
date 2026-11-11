@@ -694,6 +694,8 @@ namespace FutebolDeBotao.Editor
             var shadow = go.AddComponent<Shadow>();
             shadow.effectColor = TextShadowColor;
             shadow.effectDistance = TextShadowDistance;
+            // Escrito em português: no jogo aparece no idioma escolhido (os que o código troca ficam por conta dele).
+            go.AddComponent<LocalizedText>();
             return text;
         }
 

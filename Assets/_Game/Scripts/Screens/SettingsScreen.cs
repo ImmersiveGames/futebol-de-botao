@@ -7,7 +7,8 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tela Configurações (Menu e pausa): Volume geral, Música e Efeitos de 0% a 100% (<see cref="GameVolume"/>). Monta a UI
+    /// Tela Configurações (Menu e pausa): Idioma (<see cref="Txt"/>) e Volume geral, Música e Efeitos de 0% a 100%
+    /// (<see cref="GameVolume"/>). Monta a UI
     /// sozinha num Canvas próprio por cima de tudo, com o fundo escurecido; enquanto aberta, os outros menus não respondem ao
     /// teclado/controle. Mudar um volume vale na hora (o clique das setas já sai no volume novo); Voltar grava e fecha.
     /// </summary>
@@ -30,7 +31,7 @@ namespace FutebolDeBotao
         private Action onClose;
         private bool fromPause;
         private Font font;
-        private Text masterLabel, musicLabel, effectsLabel;
+        private Text languageLabel, masterLabel, musicLabel, effectsLabel;
 
         /// <summary>Abre a tela (se já estiver aberta, nada muda). <paramref name="followPauser"/>: só quem pausou navega.</summary>
         public static void Open(bool followPauser = false, Action closed = null)
@@ -68,6 +69,16 @@ namespace FutebolDeBotao
             if (open == this) open = null;
         }
 
+        /// <summary>Automático, depois os idiomas com tradução (dá a volta).</summary>
+        private void ChangeLanguage(int step)
+        {
+            var options = new List<string> { string.Empty };
+            options.AddRange(Txt.Available());
+            int index = Mathf.Max(0, options.IndexOf(Txt.Choice));
+            Txt.Choice = options[((index + step) % options.Count + options.Count) % options.Count];
+            Refresh();
+        }
+
         private void ChangeMaster(int step)
         {
             GameVolume.Master = Mathf.Clamp(GameVolume.Master + step, 0, GameVolume.MaxLevel);
@@ -88,6 +99,7 @@ namespace FutebolDeBotao
 
         private void Refresh()
         {
+            languageLabel.text = string.IsNullOrEmpty(Txt.Choice) ? Txt.Get("Automático") : Txt.NativeName(Txt.Choice);
             masterLabel.text = GameVolume.Percent(GameVolume.Master);
             musicLabel.text = GameVolume.Percent(GameVolume.Music);
             effectsLabel.text = GameVolume.Percent(GameVolume.Effects);
@@ -113,7 +125,7 @@ namespace FutebolDeBotao
             dim.rectTransform.anchorMax = Vector2.one;
             dim.color = DimColor;
 
-            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 560f));
+            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 650f));
             var background = panel.gameObject.AddComponent<Image>();
             var panelSprite = ButtonArt.Find(ButtonSkin.HudPanelName);
             if (panelSprite != null)
@@ -123,11 +135,13 @@ namespace FutebolDeBotao
             }
             else background.color = PanelColor;
 
-            CreateText(panel, "Título", "Configurações", 48, FontStyle.Bold, Color.white, new Vector2(0f, 200f), new Vector2(600f, 80f));
-            var master = CreateArrowRow(panel, "Volume geral", 80f, ChangeMaster, out masterLabel);
-            var music = CreateArrowRow(panel, "Música", -10f, ChangeMusic, out musicLabel);
-            var effects = CreateArrowRow(panel, "Efeitos", -100f, ChangeEffects, out effectsLabel);
-            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -205f), new Vector2(300f, 80f), Close, ButtonStyle.Red);
+            LocalizedText.Attach(CreateText(panel, "Título", "Configurações", 48, FontStyle.Bold, Color.white, new Vector2(0f, 245f), new Vector2(600f, 80f)));
+            var language = CreateArrowRow(panel, "Idioma", 130f, ChangeLanguage, out languageLabel);
+            var master = CreateArrowRow(panel, "Volume geral", 40f, ChangeMaster, out masterLabel);
+            var music = CreateArrowRow(panel, "Música", -50f, ChangeMusic, out musicLabel);
+            var effects = CreateArrowRow(panel, "Efeitos", -140f, ChangeEffects, out effectsLabel);
+            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -250f), new Vector2(300f, 80f), Close, ButtonStyle.Red);
+            LocalizedText.Attach(back.GetComponentInChildren<Text>());
             var backEntry = back.gameObject.AddComponent<MenuEntry>();
             backEntry.Configure(back);
 
@@ -140,7 +154,7 @@ namespace FutebolDeBotao
             }
             var navigator = gameObject.AddComponent<MenuNavigator>();
             if (followPauser) navigator.FollowPauser();
-            navigator.Configure(new[] { master, music, effects, backEntry }, back);
+            navigator.Configure(new[] { language, master, music, effects, backEntry }, back);
             Refresh();
         }
 
@@ -150,6 +164,7 @@ namespace FutebolDeBotao
             var line = CreateRect(parent, label, Vector2.zero, Vector2.zero);
             var caption = CreateText(line, "Rótulo", label, 30, FontStyle.Bold, LabelColor, new Vector2(LabelX, y), new Vector2(LabelWidth, 70f));
             caption.alignment = TextAnchor.MiddleLeft;
+            LocalizedText.Attach(caption);
             float leftX = ValueX - ValueWidth * 0.5f + ArrowSize * 0.5f;
             float rightX = ValueX + ValueWidth * 0.5f - ArrowSize * 0.5f;
             var previous = CreateButton(line, "Anterior", "<", new Vector2(leftX, y), Vector2.one * ArrowSize, () => change(-1));

@@ -322,9 +322,6 @@ namespace FutebolDeBotao
         public void ShowOptions()
         {
             Show(optionsPanel);
-            if (modeLabel != null)
-                modeLabel.text = MatchSession.TournamentSetup ? "Torneio"
-                    : MatchSession.VsAi == true ? "Partida única" : "Dois jogadores";
             LayoutRows();
             Refresh();
         }
@@ -423,8 +420,15 @@ namespace FutebolDeBotao
             Refresh();
         }
 
+        private void OnEnable() => Txt.Changed += Refresh;
+
+        private void OnDisable() => Txt.Changed -= Refresh;
+
         private void Refresh()
         {
+            if (modeLabel != null)
+                modeLabel.text = Txt.Get(MatchSession.TournamentSetup ? "Torneio"
+                    : MatchSession.VsAi == true ? "Partida única" : "Dois jogadores");
             var options = MatchSession.Options(defaults);
             for (int i = 0; i < valueLabels.Length; i++)
                 if (valueLabels[i] != null) valueLabels[i].text = Value(options, (MatchOptionKind)i);
@@ -450,26 +454,26 @@ namespace FutebolDeBotao
         public static string Value(MatchOptions options, MatchOptionKind kind) => kind switch
         {
             MatchOptionKind.Duration => $"{options.durationMinutes} min",
-            MatchOptionKind.Difficulty => AiDifficulty.DisplayName(MatchSession.AiLevel),
+            MatchOptionKind.Difficulty => Txt.Get(AiDifficulty.DisplayName(MatchSession.AiLevel)),
             MatchOptionKind.Discs => options.discsPerTeam.ToString(),
             MatchOptionKind.Goalkeeper => OnOff(options.hasGoalkeeper),
             MatchOptionKind.Touches => options.touchesPerTurn.ToString(),
-            MatchOptionKind.GoalAfterWall => options.goalAfterWallIsValid ? "Válido" : "Anulado",
-            MatchOptionKind.AimAssist => options.aimAssist switch
+            MatchOptionKind.GoalAfterWall => Txt.Get(options.goalAfterWallIsValid ? "Válido" : "Anulado"),
+            MatchOptionKind.AimAssist => Txt.Get(options.aimAssist switch
             {
                 AimAssistMode.Full => "Completa",
                 AimAssistMode.Short => "Curta",
                 _ => "Desligada"
-            },
+            }),
             MatchOptionKind.Fouls => OnOff(options.fouls),
-            MatchOptionKind.ExtraTime => options.extraTimePercent > 0 ? $"{options.extraTimePercent}%" : "Desligado",
+            MatchOptionKind.ExtraTime => options.extraTimePercent > 0 ? $"{options.extraTimePercent}%" : Txt.Get("Desligado"),
             MatchOptionKind.Penalties => OnOff(options.penalties),
             MatchOptionKind.Music => GameVolume.Percent(GameVolume.Music),
             MatchOptionKind.TournamentSize => TournamentConfig.Find(MatchSession.TournamentId).TeamCount.ToString(),
             _ => string.Empty
         };
 
-        public static string OnOff(bool value) => value ? "Ligado" : "Desligado";
+        public static string OnOff(bool value) => Txt.Get(value ? "Ligado" : "Desligado");
 
         private static int Wrap(int value, int count) => ((value % count) + count) % count;
     }

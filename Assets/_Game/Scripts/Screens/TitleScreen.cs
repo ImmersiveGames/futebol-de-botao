@@ -27,7 +27,7 @@ namespace FutebolDeBotao
 
         private void Start()
         {
-            if (prompt != null) prompt.text = PromptText;
+            if (prompt != null) prompt.text = Txt.Get(PromptText);
         }
 
         private void Update()

@@ -40,7 +40,7 @@ namespace FutebolDeBotao
             if (restart != null) restart.gameObject.SetActive(false);
             var menu = transform.Find("Painel/Menu");
             var label = menu != null ? menu.GetComponentInChildren<Text>(true) : null;
-            if (label != null) label.text = "Abandonar torneio";
+            if (label != null) label.text = Txt.Get("Abandonar torneio");
         }
 
         public void OpenSettings() => SettingsScreen.Open(true);

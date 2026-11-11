@@ -73,6 +73,8 @@ namespace FutebolDeBotao
             public int masterVolume = GameVolume.MaxLevel;
             public int musicVolume = GameVolume.MaxLevel;
             public int effectsVolume = GameVolume.MaxLevel;
+            /// <summary>Idioma escolhido nas Configurações ("pt", "en", "es"); vazio = Automático (o do aparelho).</summary>
+            public string language = "";
             public int aiLevel = (int)AiLevel.Medium;
             /// <summary>Tamanho de torneio escolhido por último (id do asset em Resources/Torneios).</summary>
             public string tournamentId;
