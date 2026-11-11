@@ -14,7 +14,7 @@ namespace FutebolDeBotao
     public sealed class ProfileScreen : MonoBehaviour
     {
         private const float NameY = 320f;
-        private const float UniformTabY = 160f;
+        private const float UniformTabY = 130f;
         private static readonly Vector2 UniformTabSize = new(240f, 64f);
         private const float RowTop = -110f;
         private const float TabY = 405f;
@@ -326,7 +326,10 @@ namespace FutebolDeBotao
         private MenuEntry CreateField(Transform parent, string label, string placeholder, float y, int limit, bool upper, out InputField field)
         {
             var line = CreateRect(parent, label, Vector2.zero, Vector2.zero);
-            CreateRowLabel(line, label, y);
+            // Rótulo encostado na caixa de texto (alinhado à direita, logo antes dela).
+            var caption = CreateRowLabel(line, label, y);
+            caption.alignment = TextAnchor.MiddleRight;
+            caption.rectTransform.anchoredPosition = new Vector2(ValueX - ValueWidth * 0.5f - 20f - LabelWidth * 0.5f, y);
 
             var box = CreateRect(line, "Campo", new Vector2(ValueX, y), new Vector2(ValueWidth, 76f));
             var background = box.gameObject.AddComponent<Image>();
