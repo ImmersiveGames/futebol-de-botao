@@ -301,6 +301,7 @@ namespace FutebolDeBotao
                 tabs[i] = CreateButton(tabRow, TabNames[i], TabNames[i], new Vector2(x, 0f), TabSize, () => ShowTab(index));
                 var label = tabs[i].GetComponentInChildren<Text>();
                 label.fontSize = i == LastTab ? 19 : 24;
+                TextFit.Shrink(label);
                 label.lineSpacing = 0.85f;
                 tabAreas[i] = (RectTransform)tabs[i].transform;
             }
@@ -427,6 +428,7 @@ namespace FutebolDeBotao
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
             text.gameObject.AddComponent<Shadow>().effectColor = ShadowColor;
+            TextFit.Shrink(text);
             return text;
         }
 

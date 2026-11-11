@@ -578,6 +578,7 @@ namespace FutebolDeBotao
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
             text.gameObject.AddComponent<Shadow>().effectColor = ShadowColor;
+            TextFit.Shrink(text);
             return text;
         }
 

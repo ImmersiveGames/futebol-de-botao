@@ -696,6 +696,7 @@ namespace FutebolDeBotao.Editor
             shadow.effectDistance = TextShadowDistance;
             // Escrito em português: no jogo aparece no idioma escolhido (os que o código troca ficam por conta dele).
             go.AddComponent<LocalizedText>();
+            TextFit.Shrink(text);
             return text;
         }
 

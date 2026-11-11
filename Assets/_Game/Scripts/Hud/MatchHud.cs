@@ -638,6 +638,7 @@ namespace FutebolDeBotao
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
+            TextFit.Shrink(text);
             return text;
         }
 

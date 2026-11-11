@@ -312,6 +312,7 @@ namespace FutebolDeBotao
             entry.Image = (Image)card.targetGraphic;
             entry.Label = card.GetComponentInChildren<Text>();
             entry.Label.fontSize = 24;
+            TextFit.Shrink(entry.Label);
             // Com a arte, o ícone troca o nome; com dois controles ou mais, um número pequeno no canto separa um do outro.
             if (ButtonSkin.SetIcon(card, IconSize, DeviceChoice.Icons(entry.Device)))
             {
@@ -352,6 +353,7 @@ namespace FutebolDeBotao
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.raycastTarget = false;
+            TextFit.Shrink(text);
             return text;
         }
 
