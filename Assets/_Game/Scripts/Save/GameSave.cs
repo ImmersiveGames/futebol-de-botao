@@ -110,7 +110,6 @@ namespace FutebolDeBotao
 
         private static void Capture()
         {
-            Data.settings.music = MusicSetting.Enabled;
             Data.settings.aiLevel = (int)MatchSession.AiLevel;
             Data.settings.tournamentId = MatchSession.TournamentId;
 
@@ -253,6 +252,8 @@ namespace FutebolDeBotao
                 finance.fromTutorial = Math.Min(tutorial, Math.Max(0, finance.earned));
                 finance.fromMatches = Math.Max(0, finance.earned - finance.fromTutorial);
             }
+            // Versão 10 trocou a Música Ligado/Desligado pelos volumes: música desligada = volume da música no 0.
+            if (data.version < 10 && !data.settings.music) data.settings.musicVolume = 0;
             data.version = SaveData.CurrentVersion;
             return data;
         }

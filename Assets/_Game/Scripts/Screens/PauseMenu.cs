@@ -12,7 +12,7 @@ namespace FutebolDeBotao
     /// Botões da tela de pausa. Quem mostra e esconde a tela é o UnityPauseSurfaceAdapter do framework;
     /// este componente fica fora do painel escondido para as corrotinas não pararem.
     /// Reiniciar e Menu primeiro tiram a pausa e só depois fazem o pedido, para o jogo não voltar congelado.
-    /// O botão Música liga e desliga a música na hora (a mesma opção das Opções da partida).
+    /// O botão Configurações abre a tela de volumes por cima da pausa (só quem pausou navega).
     /// Reiniciar e Menu contam a partida como abandonada nas estatísticas. No torneio, Reiniciar some e sair abandona o torneio.
     /// </summary>
     public sealed class PauseMenu : MonoBehaviour
@@ -22,21 +22,18 @@ namespace FutebolDeBotao
         [SerializeField] private PauseRequestTrigger pauseTrigger;
         [SerializeField] private ActivityRestartTrigger restartTrigger;
         [SerializeField] private RouteRequestTrigger menuRoute;
-        [SerializeField] private Text musicLabel;
 
         private bool busy;
 
-        public void Configure(PauseRequestTrigger pause, ActivityRestartTrigger restart, RouteRequestTrigger menu, Text music)
+        public void Configure(PauseRequestTrigger pause, ActivityRestartTrigger restart, RouteRequestTrigger menu)
         {
             pauseTrigger = pause;
             restartTrigger = restart;
             menuRoute = menu;
-            musicLabel = music;
         }
 
         private void Start()
         {
-            RefreshMusic();
             // Torneio: não dá para reiniciar a partida, e sair dela abandona o torneio.
             if (!MatchSession.InTournamentMatch) return;
             var restart = transform.Find("Painel/Reiniciar");
@@ -46,16 +43,7 @@ namespace FutebolDeBotao
             if (label != null) label.text = "Abandonar torneio";
         }
 
-        public void ToggleMusic()
-        {
-            MusicSetting.Enabled = !MusicSetting.Enabled;
-            RefreshMusic();
-        }
-
-        private void RefreshMusic()
-        {
-            if (musicLabel != null) musicLabel.text = $"Música: {MenuScreen.OnOff(MusicSetting.Enabled)}";
-        }
+        public void OpenSettings() => SettingsScreen.Open(true);
 
         public void Resume()
         {

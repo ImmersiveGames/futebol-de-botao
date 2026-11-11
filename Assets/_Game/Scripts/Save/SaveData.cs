@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 9;
+        public const int CurrentVersion = 10;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -67,7 +67,12 @@ namespace FutebolDeBotao
         [Serializable]
         public sealed class SettingsData
         {
+            /// <summary>Música Ligado/Desligado (até a versão 9); agora vale <see cref="musicVolume"/>.</summary>
             public bool music = true;
+            /// <summary>Volumes da tela Configurações (versão 10), de 0 a <see cref="GameVolume.MaxLevel"/>.</summary>
+            public int masterVolume = GameVolume.MaxLevel;
+            public int musicVolume = GameVolume.MaxLevel;
+            public int effectsVolume = GameVolume.MaxLevel;
             public int aiLevel = (int)AiLevel.Medium;
             /// <summary>Tamanho de torneio escolhido por último (id do asset em Resources/Torneios).</summary>
             public string tournamentId;
