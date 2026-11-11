@@ -155,6 +155,10 @@ namespace FutebolDeBotao
             if (cached != null) return cached;
             var list = new List<TableTheme>(Resources.LoadAll<TableTheme>(ResourceFolder));
             list.Sort((a, b) => string.CompareOrdinal(a.id, b.id));
+            // Id repetido: a loja e a escolha da mesa confundem as duas (comprar uma libera a outra).
+            for (int i = 1; i < list.Count; i++)
+                if (list[i].id == list[i - 1].id)
+                    Debug.LogWarning($"[Mesas] '{list[i - 1].name}' e '{list[i].name}' têm o mesmo id '{list[i].id}'. Cada mesa precisa de um id próprio.");
             cached = list.ToArray();
             return cached;
         }
