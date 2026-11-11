@@ -29,7 +29,7 @@ namespace FutebolDeBotao
     {
         private enum Goal
         {
-            Info,
+            None,
             Hit,
             Far,
             ThreeTouches,
@@ -43,7 +43,10 @@ namespace FutebolDeBotao
         private sealed class Step
         {
             public Goal Goal;
-            public Func<TutorialInputKind, string> Text;
+            /// <summary>Instrução curta na faixa de cima, enquanto joga.</summary>
+            public Func<TutorialInputKind, string> Short;
+            /// <summary>Explicação no pop-up ao entrar no passo (nula = sem pop-up).</summary>
+            public Func<TutorialInputKind, string> Popup;
             /// <summary>Monta a jogada do passo; nulo = segue com a mesa como está.</summary>
             public Action Setup;
         }
@@ -52,7 +55,8 @@ namespace FutebolDeBotao
         private List<Step>[] lessons;
         private List<Step> steps;
         private int current;
-        private bool waitingContinue;
+        private bool popupOpen;
+        private int unlockFrame = -1;
         private bool completed;
 
         public void Configure(MatchController matchController)
@@ -73,11 +77,19 @@ namespace FutebolDeBotao
         /// <summary>"Lição 2 de 6: Vez e toques".</summary>
         public string Header => TutorialTexts.Header(Lesson);
 
-        /// <summary>Instrução do passo atual.</summary>
-        public string Instruction => steps != null && current >= 0 && current < steps.Count ? steps[current].Text(Input) : string.Empty;
+        /// <summary>Instrução curta do passo atual (faixa de cima).</summary>
+        public string Instruction => HasStep ? steps[current].Short(Input) : string.Empty;
 
-        /// <summary>O balão está explicando: o botão de ação vira "Continuar".</summary>
-        public bool WaitingContinue => waitingContinue && !completed;
+        /// <summary>Explicação do pop-up aberto.</summary>
+        public string PopupText => HasStep && steps[current].Popup != null ? steps[current].Popup(Input) : string.Empty;
+
+        /// <summary>O pop-up de explicação está aberto (fecha no Continuar).</summary>
+        public bool WaitingContinue => popupOpen && !completed;
+
+        /// <summary>O pop-up fechou neste quadro: o mesmo E/A não vale como Pronto na partida.</summary>
+        public bool UnlockedThisFrame => unlockFrame == Time.frameCount;
+
+        private bool HasStep => steps != null && current >= 0 && current < steps.Count;
 
         /// <summary>A lição terminou: a tela de lição concluída está aberta.</summary>
         public bool Completed => completed;
@@ -87,7 +99,7 @@ namespace FutebolDeBotao
         public int BonusEarned { get; private set; }
 
         /// <summary>Ninguém joga: explicando ou com a lição concluída na tela.</summary>
-        public bool LocksControls => waitingContinue || completed;
+        public bool LocksControls => popupOpen || completed;
 
         // ---- Começo e navegação ----
 
@@ -100,14 +112,16 @@ namespace FutebolDeBotao
             steps = lessons[Tutorial.Lesson];
             completed = false;
             CoinsEarned = BonusEarned = 0;
-            EnterStep(0, null);
+            EnterStep(0, null, true);
         }
 
-        /// <summary>"Continuar" no balão que explica.</summary>
+        /// <summary>"Continuar" no pop-up de explicação: fecha e libera a jogada.</summary>
         public void Continue()
         {
             if (!WaitingContinue) return;
-            EnterStep(current + 1, null);
+            popupOpen = false;
+            unlockFrame = Time.frameCount;
+            match.TutorialRefreshControls();
         }
 
         /// <summary>"Pular": vai para a próxima lição sem completar esta (na última, volta ao Menu).</summary>
@@ -135,7 +149,7 @@ namespace FutebolDeBotao
             else Debug.LogWarning("[Tutorial] Sem PauseMenu na cena para voltar ao Menu.");
         }
 
-        private void EnterStep(int index, string feedback)
+        private void EnterStep(int index, string feedback, bool showPopup)
         {
             if (index >= steps.Count)
             {
@@ -144,8 +158,9 @@ namespace FutebolDeBotao
             }
             current = index;
             var step = steps[index];
-            // Trava antes de montar a jogada, para os controles já nascerem travados no passo que explica.
-            waitingContinue = step.Goal == Goal.Info;
+            // Trava antes de montar a jogada, para os controles já nascerem travados com o pop-up aberto.
+            // Repetindo o passo, a explicação não aparece de novo.
+            popupOpen = showPopup && step.Popup != null;
             step.Setup?.Invoke();
             match.TutorialRefreshControls();
             if (!string.IsNullOrEmpty(feedback)) match.TutorialMessage(feedback, true);
@@ -156,21 +171,21 @@ namespace FutebolDeBotao
         {
             int index = current;
             while (index > 0 && steps[index].Setup == null) index--;
-            EnterStep(index, feedback);
+            EnterStep(index, feedback, false);
         }
 
-        private void Succeed(string feedback) => EnterStep(current + 1, feedback);
+        private void Succeed(string feedback) => EnterStep(current + 1, feedback, true);
 
         private void CompleteLesson(string feedback)
         {
             completed = true;
-            waitingContinue = false;
+            popupOpen = false;
             (CoinsEarned, BonusEarned) = Tutorial.Complete(Lesson);
             match.TutorialMessage(feedback ?? string.Empty, false);
             match.TutorialRefreshControls();
         }
 
-        private Goal CurrentGoal => steps != null && current >= 0 && current < steps.Count ? steps[current].Goal : Goal.Info;
+        private Goal CurrentGoal => HasStep ? steps[current].Goal : Goal.None;
 
         // ---- Avisos da partida ----
 
@@ -295,7 +310,7 @@ namespace FutebolDeBotao
             if (match == null || Time.timeScale <= 0f) return;
             DetectInput();
 
-            // Teclado e controle: E/A no balão que explica é o Continuar; na lição concluída, a Próxima lição.
+            // Teclado e controle: E/A no pop-up é o Continuar; na lição concluída, a Próxima lição.
             var input = MatchInput.For(TeamSide.Bottom);
             if (completed && input.SelectPressedThisFrame)
             {
@@ -310,7 +325,7 @@ namespace FutebolDeBotao
 
             // Tiro livre: depois do Pronto (a vez começa normal), o passo seguinte é o chute.
             if (!completed && CurrentGoal == Goal.FreeKickPlace && match.State == MatchState.Aim && match.Turn == TeamSide.Bottom)
-                EnterStep(current + 1, null);
+                EnterStep(current + 1, null, true);
         }
 
         private static TutorialInputKind DefaultInput()
@@ -394,38 +409,37 @@ namespace FutebolDeBotao
             match.TutorialPenalty(match.TeamDiscs(TeamSide.Top)[0], match.TeamDiscs(TeamSide.Bottom)[0]);
         }
 
-        private static Step Info(string text, Action setup = null) => new() { Goal = Goal.Info, Text = _ => text, Setup = setup };
+        private static Step Do(Goal goal, Func<TutorialInputKind, string> popup, string shortText, Action setup) =>
+            new() { Goal = goal, Popup = popup, Short = _ => shortText, Setup = setup };
 
-        private static Step Do(Goal goal, Func<TutorialInputKind, string> text, Action setup) =>
-            new() { Goal = goal, Text = text, Setup = setup };
+        private static Func<TutorialInputKind, string> Text(string text) => _ => text;
 
-        private static Step Do(Goal goal, string text, Action setup) => Do(goal, _ => text, setup);
+        /// <summary>Explicação da regra e, embaixo, como fazer no aparelho do jogador.</summary>
+        private static Func<TutorialInputKind, string> Explain(string rule, Func<TutorialInputKind, string> how) =>
+            input => rule + "\n\n" + how(input);
 
         private List<Step>[] BuildLessons() => new[]
         {
             // 1. Peteleco: escolher o botão, puxar e soltar; depois com força até o campo do adversário.
             new List<Step>
             {
-                Do(Goal.Hit, TutorialTexts.Hit, HitScene),
-                Do(Goal.Far, TutorialTexts.Far, HitScene)
+                Do(Goal.Hit, TutorialTexts.Hit, TutorialTexts.ShortHit, HitScene),
+                Do(Goal.Far, TutorialTexts.Far, TutorialTexts.ShortFar, HitScene)
             },
             // 2. Vez e toques: até 3 toques seguidos enquanto o time toca na bola.
             new List<Step>
             {
-                Info(TutorialTexts.TouchesInfo, TouchesScene),
-                Do(Goal.ThreeTouches, TutorialTexts.ThreeTouches, TouchesScene)
+                Do(Goal.ThreeTouches, Text(TutorialTexts.TouchesInfo + "\n\n" + TutorialTexts.ThreeTouches), TutorialTexts.ShortTouches, TouchesScene)
             },
             // 3. Pro Gol!: avisar e fazer o gol (o goleiro é o da IA no Fácil).
             new List<Step>
             {
-                Info(TutorialTexts.ShotInfo, ShotScene),
-                Do(Goal.Score, TutorialTexts.Score, ShotScene)
+                Do(Goal.Score, Explain(TutorialTexts.ShotInfo, TutorialTexts.Score), TutorialTexts.ShortScore, ShotScene)
             },
             // 4. Defender: a IA avisa o Pro Gol! e o jogador arruma o goleiro.
             new List<Step>
             {
-                Info(TutorialTexts.DefendInfo, () => DefendScene(TeamSide.Bottom)),
-                Do(Goal.Defend, TutorialTexts.Defend, () =>
+                Do(Goal.Defend, Explain(TutorialTexts.DefendInfo, TutorialTexts.Defend), TutorialTexts.ShortDefend, () =>
                 {
                     DefendScene(TeamSide.Top);
                     match.TutorialCallShot();
@@ -434,15 +448,13 @@ namespace FutebolDeBotao
             // 5. Falta e tiro livre: o adversário fez falta; posicionar o batedor e chutar.
             new List<Step>
             {
-                Info(TutorialTexts.FoulInfo, FoulScene),
-                Do(Goal.FreeKickPlace, TutorialTexts.FreeKickPlace, FreeKick),
-                Do(Goal.FreeKickShot, TutorialTexts.FreeKickShot, null)
+                Do(Goal.FreeKickPlace, Explain(TutorialTexts.FoulInfo, TutorialTexts.FreeKickPlace), TutorialTexts.ShortFreeKickPlace, FreeKick),
+                Do(Goal.FreeKickShot, null, TutorialTexts.ShortFreeKickShot, null)
             },
             // 6. Pênalti escondido: o goleiro da IA escolhe primeiro; o jogador escolhe o lado e chuta.
             new List<Step>
             {
-                Info(TutorialTexts.PenaltyInfo, PenaltyScene),
-                Do(Goal.Penalty, TutorialTexts.Penalty, Penalty)
+                Do(Goal.Penalty, Explain(TutorialTexts.PenaltyInfo, TutorialTexts.Penalty), TutorialTexts.ShortPenalty, Penalty)
             }
         };
     }

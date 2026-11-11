@@ -228,7 +228,8 @@ namespace FutebolDeBotao
             if (match.Tutorial != null)
             {
                 if (match.Tutorial.Completed) return null;
-                if (match.Tutorial.WaitingContinue) return TutorialTexts.Continue;
+                // O pop-up de explicação tem o próprio Continuar.
+                if (match.Tutorial.WaitingContinue) return null;
             }
             if (match.CanCallShot && match.Turn == side) return ShotCallLabel;
             if (match.CanConfirmReady && match.ActingSide == side) return "Pronto";

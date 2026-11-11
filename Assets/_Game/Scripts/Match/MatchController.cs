@@ -427,6 +427,10 @@ namespace FutebolDeBotao
             if (ClockRunning) clock = Mathf.Max(0f, clock - Time.deltaTime);
             stateTimer -= Time.deltaTime;
 
+            // Tutorial com o pop-up aberto (ou fechado neste quadro, pelo mesmo E/A): ninguém posiciona nem confirma.
+            if (tutorial != null && (TutorialLocked || tutorial.UnlockedThisFrame) && State is not (MatchState.Goal or MatchState.End))
+                return;
+
             switch (State)
             {
                 case MatchState.Aim:

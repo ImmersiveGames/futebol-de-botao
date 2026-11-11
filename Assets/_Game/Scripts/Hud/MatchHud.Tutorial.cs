@@ -4,9 +4,9 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tutorial no HUD: o balão da lição (nome da lição, instrução e Pular) no lugar das informações de cima no celular,
-    /// ou no canto de cima à direita no PC; e a tela de lição concluída (moedas, Próxima lição, Repetir e Menu).
-    /// O Continuar dos passos que explicam é o botão de ação de sempre.
+    /// Tutorial no HUD: o balão da lição (nome da lição pequeno, instrução curta e grande, e Pular) no lugar das
+    /// informações de cima no celular, ou no canto de cima à direita no PC; o pop-up de explicação no meio da tela
+    /// (com Continuar); e a tela de lição concluída (moedas, Próxima lição, Repetir e Menu).
     /// </summary>
     public sealed partial class MatchHud
     {
@@ -44,8 +44,8 @@ namespace FutebolDeBotao
             tutorialStrip = new TutorialBalloon
             {
                 Root = strip.gameObject,
-                Header = CreateText(strip.transform, "Lição", 24, FontStyle.Bold, new Vector2(textX, 50f), new Vector2(textWidth, 34f)),
-                Instruction = CreateText(strip.transform, "Instrução", 24, FontStyle.Normal, new Vector2(textX, -14f), new Vector2(textWidth, 92f))
+                Header = CreateText(strip.transform, "Lição", 22, FontStyle.Bold, new Vector2(textX, 48f), new Vector2(textWidth, 32f)),
+                Instruction = CreateText(strip.transform, "Instrução", 40, FontStyle.Bold, new Vector2(textX, -14f), new Vector2(textWidth, 92f))
             };
             FitInBox(tutorialStrip.Header);
             FitInBox(tutorialStrip.Instruction);
@@ -73,8 +73,8 @@ namespace FutebolDeBotao
             tutorialPc = new TutorialBalloon
             {
                 Root = pc,
-                Header = CreateText(panel, "Lição", 22, FontStyle.Bold, new Vector2(0f, 112f), new Vector2(280f, 50f)),
-                Instruction = CreateText(panel, "Instrução", 20, FontStyle.Normal, new Vector2(0f, 6f), new Vector2(280f, 150f))
+                Header = CreateText(panel, "Lição", 20, FontStyle.Bold, new Vector2(0f, 112f), new Vector2(280f, 50f)),
+                Instruction = CreateText(panel, "Instrução", 32, FontStyle.Bold, new Vector2(0f, 6f), new Vector2(280f, 150f))
             };
             FitInBox(tutorialPc.Header);
             FitInBox(tutorialPc.Instruction);
@@ -83,6 +83,46 @@ namespace FutebolDeBotao
             pc.SetActive(false);
 
             BuildTutorialDone();
+            BuildTutorialPopup();
+        }
+
+        private GameObject tutorialPopupRoot;
+        private CanvasScaler tutorialPopupScaler;
+        private Text tutorialPopupTitle;
+        private Text tutorialPopupBody;
+
+        /// <summary>Pop-up de explicação: por cima da mesa, com o fundo escurecido e o Continuar.</summary>
+        private void BuildTutorialPopup()
+        {
+            tutorialPopupRoot = new GameObject("Explicação do tutorial", typeof(RectTransform));
+            tutorialPopupRoot.transform.SetParent(transform, false);
+            var canvas = tutorialPopupRoot.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 30;
+            tutorialPopupScaler = tutorialPopupRoot.AddComponent<CanvasScaler>();
+            tutorialPopupScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            tutorialPopupScaler.referenceResolution = new Vector2(720f, 720f);
+            tutorialPopupRoot.AddComponent<GraphicRaycaster>();
+
+            var dim = CreatePanel(tutorialPopupRoot.transform, new Color(0f, 0f, 0f, 0.45f));
+            dim.raycastTarget = true;
+
+            var panel = CreateFramedPanel(tutorialPopupRoot.transform, 1f).rectTransform;
+            panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
+            panel.pivot = new Vector2(0.5f, 0.5f);
+            panel.sizeDelta = new Vector2(640f, 620f);
+            panel.anchoredPosition = Vector2.zero;
+            if (panelSprite == null) panel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.85f);
+
+            tutorialPopupTitle = CreateText(panel, "Lição", 36, FontStyle.Bold, new Vector2(0f, 250f), new Vector2(580f, 60f));
+            tutorialPopupTitle.color = TutorialHeaderColor;
+            FitInBox(tutorialPopupTitle);
+            tutorialPopupBody = CreateText(panel, "Explicação", 34, FontStyle.Normal, new Vector2(0f, 20f), new Vector2(580f, 380f));
+            FitInBox(tutorialPopupBody);
+            var ok = CreateButton(panel, "Continuar", TutorialTexts.Continue, 32, new Vector2(0f, -240f), new Vector2(400f, 90f),
+                out _, ButtonStyle.Yellow);
+            ok.onClick.AddListener(() => match.Tutorial?.Continue());
+            tutorialPopupRoot.SetActive(false);
         }
 
         /// <summary>Lição concluída: por cima de tudo, com o fundo escurecido.</summary>
@@ -135,7 +175,15 @@ namespace FutebolDeBotao
             tutorialStrip.Root.SetActive(on && portrait && !done);
             tutorialPc.Root.SetActive(on && !portrait && !done);
             tutorialDoneRoot.SetActive(done);
+            bool popup = on && !done && tutorial.WaitingContinue;
+            tutorialPopupRoot.SetActive(popup);
             if (!on) return;
+            if (popup)
+            {
+                tutorialPopupScaler.matchWidthOrHeight = portrait ? 0f : 1f;
+                tutorialPopupTitle.text = tutorial.Header;
+                tutorialPopupBody.text = tutorial.PopupText;
+            }
 
             var balloon = portrait ? tutorialStrip : tutorialPc;
             balloon.Header.text = tutorial.Header;

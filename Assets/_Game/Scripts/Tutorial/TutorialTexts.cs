@@ -52,6 +52,17 @@ namespace FutebolDeBotao
         public const string AskNo = "Agora não";
         public const string MenuButton = "Tutorial";
 
+        // ---- Instruções curtas (faixa de cima, enquanto joga) ----
+
+        public const string ShortHit = "Acerte a bola";
+        public const string ShortFar = "Leve a bola ao campo do adversário";
+        public const string ShortTouches = "3 toques seguidos sem errar";
+        public const string ShortScore = "Pro Gol! e faça o gol";
+        public const string ShortDefend = "Arrume o goleiro e dê Pronto";
+        public const string ShortFreeKickPlace = "Escolha de onde bater e dê Pronto";
+        public const string ShortFreeKickShot = "Chute! Só o batedor joga";
+        public const string ShortPenalty = "Escolha o lado, Pronto e chute";
+
         // ---- Lição 1: Peteleco ----
 
         public static string Hit(TutorialInputKind input) => input switch
@@ -134,7 +145,6 @@ namespace FutebolDeBotao
             _ => "O adversário fez falta em você! Arraste em volta da bola para escolher de onde bater e aperte Pronto."
         };
 
-        public const string FreeKickShot = "Agora chute! No tiro livre só o batedor joga. No campo do adversário dá até para avisar Pro Gol!.";
         public const string FreeKickDone = "Boa cobrança!";
         public const string FreeKickMissed = "Errou a bola. Vamos repetir a falta.";
 
