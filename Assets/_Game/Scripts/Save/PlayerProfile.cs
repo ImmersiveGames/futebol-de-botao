@@ -32,6 +32,7 @@ namespace FutebolDeBotao
                 {
                     team = TeamData.Create(data.teamName, data.abbreviation, data.primary, data.secondary);
                     team.hideFlags = HideFlags.DontSave;
+                    team.FromPlayer = true;
                 }
                 else team.Set(data.teamName, data.abbreviation, data.primary, data.secondary);
                 team.SetShirts(data.discPatternId, data.keeperPatternId);

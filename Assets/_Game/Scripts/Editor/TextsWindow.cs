@@ -21,7 +21,7 @@ namespace FutebolDeBotao.Editor
         }
 
         private static readonly string[] FilterNames = { "Todos", "Falta inglês", "Falta espanhol", "Longos" };
-        private static readonly string[] TabNames = { "Textos", "Itens" };
+        private static readonly string[] TabNames = { "Textos", "Itens", "Times" };
 
         /// <summary>Tradução com mais que isso do tamanho do português (e 4 letras a mais) aparece como longa.</summary>
         private const float LongRatio = 1.3f;
@@ -34,6 +34,7 @@ namespace FutebolDeBotao.Editor
         private string search = string.Empty;
         private Vector2 scroll;
         private List<(string group, string name, Object asset)> items;
+        private List<(string group, string name, Object asset)> teams;
 
         private GUIStyle areaStyle;
         private GUIStyle longStyle;
@@ -50,6 +51,7 @@ namespace FutebolDeBotao.Editor
             foreach (var entry in table.textos)
                 if (entry != null && !string.IsNullOrEmpty(entry.id)) byId[entry.id] = entry;
             items = null;
+            teams = null;
             dirty = false;
         }
 
@@ -62,7 +64,8 @@ namespace FutebolDeBotao.Editor
             DrawToolbar();
             EditorGUILayout.Space(4f);
             if (tab == 0) DrawTexts();
-            else DrawItems();
+            else if (tab == 1) DrawNames(items ??= CollectItems(), () => items = null);
+            else DrawNames(teams ??= CollectTeams(), () => teams = null);
         }
 
         // ---- Barra de cima ----
@@ -71,7 +74,7 @@ namespace FutebolDeBotao.Editor
         {
             using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
-                int newTab = GUILayout.Toolbar(tab, TabNames, EditorStyles.toolbarButton, GUILayout.Width(160f));
+                int newTab = GUILayout.Toolbar(tab, TabNames, EditorStyles.toolbarButton, GUILayout.Width(240f));
                 if (newTab != tab)
                 {
                     tab = newTab;
@@ -183,13 +186,13 @@ namespace FutebolDeBotao.Editor
 
         // ---- Aba Itens ----
 
-        private void DrawItems()
+        /// <summary>Aba de nomes de assets (Itens ou Times): o português é o nome no asset; inglês e espanhol vão para o json.</summary>
+        private void DrawNames(List<(string group, string name, Object asset)> names, System.Action refresh)
         {
-            items ??= CollectItems();
             DrawHeader();
             scroll = EditorGUILayout.BeginScrollView(scroll);
             string group = null;
-            foreach (var (itemGroup, name, asset) in items)
+            foreach (var (itemGroup, name, asset) in names)
             {
                 byId.TryGetValue(name, out var entry);
                 if (!Matches(name, entry)) continue;
@@ -218,7 +221,23 @@ namespace FutebolDeBotao.Editor
                 }
             }
             EditorGUILayout.EndScrollView();
-            if (GUILayout.Button("Procurar os assets de novo")) items = null;
+            if (GUILayout.Button("Procurar os assets de novo")) refresh();
+        }
+
+        /// <summary>Times do catálogo e os outros assets de time em Resources/Times.</summary>
+        private static List<(string, string, Object)> CollectTeams()
+        {
+            var list = new List<(string, string, Object)>();
+            var seen = new HashSet<TeamData>();
+            var catalog = TeamCatalog.Load();
+            for (int i = 0; i < catalog.TeamCount; i++)
+            {
+                var team = catalog.Team(i);
+                if (team != null && seen.Add(team) && !string.IsNullOrEmpty(team.NameId)) list.Add(("Catálogo", team.NameId, team));
+            }
+            foreach (var team in Resources.LoadAll<TeamData>("Times"))
+                if (team != null && seen.Add(team) && !string.IsNullOrEmpty(team.NameId)) list.Add(("Fora do catálogo", team.NameId, team));
+            return list;
         }
 
         private static List<(string, string, Object)> CollectItems()

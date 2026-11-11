@@ -68,7 +68,12 @@ namespace FutebolDeBotao
         [SerializeField, HideInInspector] private Color reserveColor = Color.white;
         [SerializeField, HideInInspector] private int reserveReplaces;
 
-        public string TeamName => teamName;
+        /// <summary>Nome no idioma em uso (o Meu time, escrito pelo jogador, não é traduzido).</summary>
+        public string TeamName => FromPlayer ? teamName : Txt.Get(teamName);
+        /// <summary>O nome como está no asset (o id em português dos textos).</summary>
+        public string NameId => teamName;
+        /// <summary>Time montado do perfil (Meu time): o nome é do jogador.</summary>
+        public bool FromPlayer { get; set; }
         public string Abbreviation => abbreviation;
         /// <summary>Cores do Uniforme 1.</summary>
         public Color PrimaryColor => primaryColor;
