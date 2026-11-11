@@ -13,7 +13,7 @@ namespace FutebolDeBotao.Editor
     /// </summary>
     internal static class TextsTool
     {
-        private const string FilePath = "Assets/_Game/Resources/Idiomas/textos.json";
+        internal const string FilePath = "Assets/_Game/Resources/Idiomas/textos.json";
 
         [MenuItem("Futebol de Botão/Idiomas/Gravar textos que faltam")]
         private static void SaveMissing()
@@ -41,7 +41,7 @@ namespace FutebolDeBotao.Editor
             Txt.Reload();
         }
 
-        private static Txt.Table Read()
+        internal static Txt.Table Read()
         {
             if (!File.Exists(FilePath)) return new Txt.Table();
             var table = JsonUtility.FromJson<Txt.Table>(File.ReadAllText(FilePath));
@@ -51,7 +51,7 @@ namespace FutebolDeBotao.Editor
         }
 
         /// <summary>Uma entrada por linha, para ler e editar à mão.</summary>
-        private static void Write(Txt.Table table)
+        internal static void Write(Txt.Table table)
         {
             var builder = new StringBuilder();
             builder.Append("{ \"textos\": [\n");

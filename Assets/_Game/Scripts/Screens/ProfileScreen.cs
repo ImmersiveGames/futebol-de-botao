@@ -217,13 +217,13 @@ namespace FutebolDeBotao
             var table = home.Table;
             var felt = home.Felt;
             var ball = home.Ball;
-            tableLabel.text = table != null ? table.displayName : "-";
-            feltLabel.text = felt != null ? felt.displayName : "-";
-            ballLabel.text = ball != null ? ball.displayName : "-";
+            tableLabel.text = table != null ? Txt.Get(table.displayName) : "-";
+            feltLabel.text = felt != null ? Txt.Get(felt.displayName) : "-";
+            ballLabel.text = ball != null ? Txt.Get(ball.displayName) : "-";
             // Cor da trave só nas mesas de placas (a clássica tem os gols da folha do campo).
             bool goals = table != null && table.HasBoards && table.AllowedGoalColors(felt).Count > 0;
             goalRow.SetActive(goals);
-            goalLabel.text = goals ? table.Goal(home.GoalColor)?.name ?? "-" : string.Empty;
+            goalLabel.text = goals ? Txt.Get(table.Goal(home.GoalColor)?.name ?? "-") : string.Empty;
             tablePreview.Paint(home);
         }
 
@@ -271,8 +271,8 @@ namespace FutebolDeBotao
             var keeper = ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, uniform.keeperPatternId);
             discRow.SetActive(disc != null);
             keeperRow.SetActive(keeper != null);
-            discLabel.text = disc != null ? disc.displayName : string.Empty;
-            keeperLabel.text = keeper != null ? keeper.displayName : string.Empty;
+            discLabel.text = disc != null ? Txt.Get(disc.displayName) : string.Empty;
+            keeperLabel.text = keeper != null ? Txt.Get(keeper.displayName) : string.Empty;
             PaintPiece(discLayers, disc, false, uniform.primary, uniform.secondary);
             PaintPiece(keeperLayers, keeper, true, uniform.primary, uniform.secondary);
         }
@@ -280,7 +280,7 @@ namespace FutebolDeBotao
         private static void PaintSwatch(Image swatch, Text label, Color color, string colorName)
         {
             swatch.color = color;
-            label.text = colorName;
+            label.text = Txt.Get(colorName);
             // Nome escuro em cor clara, claro em cor escura.
             float light = 0.299f * color.r + 0.587f * color.g + 0.114f * color.b;
             label.color = light > 0.6f ? new Color(0.1f, 0.1f, 0.1f) : Color.white;

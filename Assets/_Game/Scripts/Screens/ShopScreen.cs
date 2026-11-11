@@ -132,7 +132,7 @@ namespace FutebolDeBotao
                         var shirt = pattern;
                         items.Add(new Item
                         {
-                            Name = shirt.displayName, Key = shirt.ShopKey, Price = shirt.price, Unlocked = shirt.Unlocked,
+                            Name = Txt.Get(shirt.displayName), Key = shirt.ShopKey, Price = shirt.price, Unlocked = shirt.Unlocked,
                             Preview = area => PreviewShirt(area, shirt)
                         });
                     }
@@ -144,7 +144,7 @@ namespace FutebolDeBotao
                         var ball = theme;
                         items.Add(new Item
                         {
-                            Name = ball.displayName, Key = ball.ShopKey, Price = ball.price, Unlocked = ball.Unlocked,
+                            Name = Txt.Get(ball.displayName), Key = ball.ShopKey, Price = ball.price, Unlocked = ball.Unlocked,
                             Preview = area => PreviewBall(area, ball)
                         });
                     }
@@ -155,7 +155,7 @@ namespace FutebolDeBotao
                         var table = theme;
                         items.Add(new Item
                         {
-                            Name = table.displayName, Key = table.ShopKey, Price = table.price, Unlocked = table.Unlocked,
+                            Name = Txt.Get(table.displayName), Key = table.ShopKey, Price = table.price, Unlocked = table.Unlocked,
                             Preview = area => PreviewTable(area, table)
                         });
                     }
@@ -166,7 +166,7 @@ namespace FutebolDeBotao
                         var felt = theme;
                         items.Add(new Item
                         {
-                            Name = felt.displayName, Key = felt.ShopKey, Price = felt.price, Unlocked = felt.Unlocked,
+                            Name = Txt.Get(felt.displayName), Key = felt.ShopKey, Price = felt.price, Unlocked = felt.Unlocked,
                             Preview = area => PreviewFelt(area, felt)
                         });
                     }

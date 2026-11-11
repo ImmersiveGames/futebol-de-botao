@@ -133,7 +133,7 @@ namespace FutebolDeBotao
             var run = Tournament.Run;
             var config = Tournament.Config;
             rounds = Tournament.Rounds;
-            titleText.text = config.displayName;
+            titleText.text = Txt.Get(config.displayName);
 
             var next = Tournament.PlayerMatch();
             string level = Txt.Get(AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1)));
@@ -285,7 +285,7 @@ namespace FutebolDeBotao
             ShowPage(endPage);
             var run = Tournament.Run;
             var config = Tournament.Config;
-            endName.text = config.displayName;
+            endName.text = Txt.Get(config.displayName);
             endPosition.text = Tournament.PositionText(run);
 
             var sprite = run.abandoned ? null : config.TrophyFor(run.position);
