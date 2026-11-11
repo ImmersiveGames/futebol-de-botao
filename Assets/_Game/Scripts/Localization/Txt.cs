@@ -104,6 +104,21 @@ namespace FutebolDeBotao
             return string.IsNullOrEmpty(text) ? id : text;
         }
 
+        /// <summary>
+        /// O id (texto em português) de um texto já traduzido para o idioma em uso; se não achar, o próprio texto.
+        /// Para <see cref="LocalizedText"/> posto num texto que o código já escreveu com <see cref="Get"/>.
+        /// </summary>
+        public static string IdOf(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            Load();
+            if (entries.ContainsKey(text)) return text;
+            string language = Language;
+            foreach (var entry in entries.Values)
+                if (entry.Get(language) == text) return entry.id;
+            return text;
+        }
+
         /// <summary>Frase com números ou nomes: <c>Txt.Format("Faltam {0} toques", 2)</c>.</summary>
         public static string Format(string id, params object[] args)
         {

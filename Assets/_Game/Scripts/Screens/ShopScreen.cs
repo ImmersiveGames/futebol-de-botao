@@ -100,7 +100,7 @@ namespace FutebolDeBotao
         private void RefreshCoins()
         {
             shownCoins = Shop.Coins;
-            coinsLabel.text = $"Moedas: {shownCoins}";
+            coinsLabel.text = Txt.Format("Moedas: {0}", shownCoins);
         }
 
         private void Back()
@@ -188,7 +188,7 @@ namespace FutebolDeBotao
 
             if (items.Count == 0)
             {
-                var empty = CreateText(content, "Vazio", "Nada à venda aqui ainda.", 30, FontStyle.Normal, Color.white, Vector2.zero, new Vector2(width, 200f));
+                var empty = CreateText(content, "Vazio", Txt.Get("Nada à venda aqui ainda."), 30, FontStyle.Normal, Color.white, Vector2.zero, new Vector2(width, 200f));
                 PlaceCard(empty.rectTransform, 0f, 0f, width, 200f);
                 height = 200f;
             }
@@ -209,11 +209,11 @@ namespace FutebolDeBotao
                 CreateText(card, "Nome", item.Name, 28, FontStyle.Bold, Color.white, new Vector2(0f, -40f), new Vector2(cardWidth - 16f, 40f));
 
                 if (item.Unlocked)
-                    CreateText(card, "Já é seu", "Já é seu", 28, FontStyle.Bold, OwnedColor, new Vector2(0f, -105f), new Vector2(cardWidth - 16f, 60f));
+                    CreateText(card, "Já é seu", Txt.Get("Já é seu"), 28, FontStyle.Bold, OwnedColor, new Vector2(0f, -105f), new Vector2(cardWidth - 16f, 60f));
                 else
                 {
                     bool affordable = Shop.Coins >= item.Price;
-                    var buy = CreateButton(card, "Comprar", $"{item.Price} moedas", new Vector2(0f, -105f), new Vector2(cardWidth - 50f, 64f),
+                    var buy = CreateButton(card, "Comprar", Txt.Format("{0} moedas", item.Price), new Vector2(0f, -105f), new Vector2(cardWidth - 50f, 64f),
                         () => AskBuy(item), affordable ? ButtonStyle.Yellow : ButtonStyle.Gray);
                     buy.interactable = affordable;
                     var entry = Entry(buy);
@@ -304,7 +304,7 @@ namespace FutebolDeBotao
         private void AskBuy(Item item)
         {
             pending = item;
-            question.text = $"Comprar {item.Name} por {item.Price} moedas?";
+            question.text = Txt.Format("Comprar {0} por {1} moedas?", item.Name, item.Price);
             navigator.enabled = false;
             dialog.SetActive(true);
         }
@@ -335,7 +335,7 @@ namespace FutebolDeBotao
             font = GameFont.Get();
             var root = (RectTransform)transform;
 
-            CreateText(root, "Título", "Loja", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f));
+            LocalizedText.Attach(CreateText(root, "Título", "Loja", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f)));
             coinsLabel = CreateText(root, "Moedas", "Moedas: 0", 34, FontStyle.Bold, CoinColor, new Vector2(0f, 478f), new Vector2(680f, 60f));
 
             var tabRow = CreateRect(root, "Abas", new Vector2(0f, TabY), new Vector2(TabSpacing * TabNames.Length, TabSize.y));
@@ -346,6 +346,7 @@ namespace FutebolDeBotao
                 float x = (i - (TabNames.Length - 1) * 0.5f) * TabSpacing;
                 tabs[i] = CreateButton(tabRow, TabNames[i], TabNames[i], new Vector2(x, 0f), TabSize, () => ShowTab(index));
                 tabs[i].GetComponentInChildren<Text>().fontSize = 24;
+                LocalizedText.Attach(tabs[i].GetComponentInChildren<Text>());
                 tabAreas[i] = (RectTransform)tabs[i].transform;
             }
             var previousTab = CreateHiddenButton(tabRow, "Aba anterior", () => ShowTab(tab - 1));
@@ -381,6 +382,7 @@ namespace FutebolDeBotao
 
             backButton = CreateButton(root, "Voltar", "Voltar", new Vector2(0f, -510f), new Vector2(260f, 80f), Back, ButtonStyle.Red);
             backEntry = Entry(backButton);
+            LocalizedText.Attach(backButton.GetComponentInChildren<Text>());
 
             navigator = gameObject.AddComponent<MenuNavigator>();
             navigator.Configure(new[] { tabEntry, backEntry }, backButton);
@@ -408,6 +410,8 @@ namespace FutebolDeBotao
             var buy = CreateButton(box.transform, "Comprar", "Comprar", new Vector2(-140f, -100f), new Vector2(240f, 80f), ConfirmBuy, ButtonStyle.Yellow);
             var cancel = CreateButton(box.transform, "Cancelar", "Cancelar", new Vector2(140f, -100f), new Vector2(240f, 80f), CloseDialog, ButtonStyle.Red);
 
+            LocalizedText.Attach(buy.GetComponentInChildren<Text>());
+            LocalizedText.Attach(cancel.GetComponentInChildren<Text>());
             dialog = dim.gameObject;
             dialog.SetActive(false);
             var dialogNavigator = dialog.AddComponent<MenuNavigator>();

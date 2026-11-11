@@ -349,8 +349,8 @@ namespace FutebolDeBotao
             }
             if (run.prize > 0)
             {
-                string place = run.position == 1 ? "campeão" : $"{run.position}º lugar";
-                Finance.Earn(FinanceSource.Tournament, $"Prêmio do torneio ({place})", run.prize);
+                string text = run.position == 1 ? Txt.Get("Prêmio do torneio (campeão)") : Txt.Format("Prêmio do torneio ({0}º lugar)", run.position);
+                Finance.Earn(FinanceSource.Tournament, text, run.prize);
             }
         }
 

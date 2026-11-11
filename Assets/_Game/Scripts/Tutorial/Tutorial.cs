@@ -100,8 +100,8 @@ namespace FutebolDeBotao
                 Data.bonusPaid = true;
                 bonus = CompleteBonus;
             }
-            Finance.Earn(FinanceSource.Tutorial, $"Tutorial: lição {lesson + 1}", coins);
-            Finance.Earn(FinanceSource.Tutorial, "Tutorial completo (bônus)", bonus);
+            Finance.Earn(FinanceSource.Tutorial, Txt.Format("Tutorial: lição {0}", lesson + 1), coins);
+            Finance.Earn(FinanceSource.Tutorial, Txt.Get("Tutorial completo (bônus)"), bonus);
             GameSave.WriteOnly("lição do tutorial");
             return (coins, bonus);
         }

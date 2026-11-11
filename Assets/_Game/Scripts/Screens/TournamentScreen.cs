@@ -136,17 +136,17 @@ namespace FutebolDeBotao
             titleText.text = config.displayName;
 
             var next = Tournament.PlayerMatch();
-            string level = AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1));
+            string level = Txt.Get(AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1)));
             if (next != null)
             {
                 int opponent = next.home == Tournament.Player ? next.away : next.home;
-                string where = next.home == Tournament.Player ? "em casa" : "fora";
-                string round = next.third ? "Disputa de 3º lugar" : Tournament.RoundName(next.round, rounds);
-                statusText.text = $"{level} · {round}: contra {Tournament.TeamName(opponent)} ({where})";
+                string round = next.third ? Txt.Get("Disputa de 3º lugar") : Tournament.RoundName(next.round, rounds);
+                string id = next.home == Tournament.Player ? "{0} · {1}: contra {2} (em casa)" : "{0} · {1}: contra {2} (fora)";
+                statusText.text = Txt.Format(id, level, round, Tournament.TeamName(opponent));
             }
             else statusText.text = $"{level} · {Tournament.PositionText(run)}";
 
-            actionLabel.text = next != null ? "Jogar" : "Resultado";
+            actionLabel.text = Txt.Get(next != null ? "Jogar" : "Resultado");
             actionButton.onClick.RemoveAllListeners();
             actionButton.onClick.AddListener(next != null ? (UnityAction)Play : ShowEnd);
 
@@ -189,7 +189,7 @@ namespace FutebolDeBotao
             var matches = Tournament.MatchesOf(tab);
             if (matches.Count == 0)
             {
-                var empty = CreateText(content, "Vazio", "Os jogos desta fase saem quando a fase anterior terminar.", 30,
+                var empty = CreateText(content, "Vazio", Txt.Get("Os jogos desta fase saem quando a fase anterior terminar."), 30,
                     FontStyle.Normal, Color.white, Vector2.zero, new Vector2(width - 40f, 200f));
                 PlaceTop(empty.rectTransform, 0f, 200f);
                 y = 200f;
@@ -200,7 +200,7 @@ namespace FutebolDeBotao
             {
                 if (finalRound)
                 {
-                    var label = CreateText(content, "Nome do jogo", match.third ? "Disputa de 3º lugar" : "Final", 30,
+                    var label = CreateText(content, "Nome do jogo", Txt.Get(match.third ? "Disputa de 3º lugar" : "Final"), 30,
                         FontStyle.Bold, HighlightColor, Vector2.zero, Vector2.zero);
                     label.alignment = TextAnchor.LowerLeft;
                     PlaceTop(label.rectTransform, y, LabelHeight);
@@ -294,9 +294,9 @@ namespace FutebolDeBotao
             endTrophy.sprite = sprite;
             endTrophy.enabled = sprite != null;
 
-            var lines = new List<string> { $"Moedas das partidas: +{run.matchCoins}" };
-            if (run.prize > 0) lines.Add($"Prêmio: +{run.prize}");
-            lines.Add($"Saldo: {Shop.Coins}");
+            var lines = new List<string> { Txt.Format("Moedas das partidas: +{0}", run.matchCoins) };
+            if (run.prize > 0) lines.Add(Txt.Format("Prêmio: +{0}", run.prize));
+            lines.Add(Txt.Format("Saldo: {0}", Shop.Coins));
             endCoins.text = string.Join("\n", lines);
         }
 
@@ -362,13 +362,14 @@ namespace FutebolDeBotao
             var page = CreateRect(root, "Torneio em andamento", Vector2.zero, Vector2.zero);
             Stretch(page, Vector2.zero, Vector2.one, 0f);
             askPage = page.gameObject;
-            CreateText(page, "Título", "Torneio em andamento", 52, FontStyle.Bold, Color.white, new Vector2(0f, 300f), new Vector2(680f, 90f));
-            CreateText(page, "Pergunta", "Continuar o torneio guardado ou começar outro?\nComeçar outro abandona o guardado.", 30,
-                FontStyle.Normal, Color.white, new Vector2(0f, 170f), new Vector2(640f, 140f));
+            LocalizedText.Attach(CreateText(page, "Título", "Torneio em andamento", 52, FontStyle.Bold, Color.white, new Vector2(0f, 300f), new Vector2(680f, 90f)));
+            LocalizedText.Attach(CreateText(page, "Pergunta", "Continuar o torneio guardado ou começar outro?\nComeçar outro abandona o guardado.", 30,
+                FontStyle.Normal, Color.white, new Vector2(0f, 170f), new Vector2(640f, 140f)));
             var go = CreateButton(page, "Continuar", "Continuar", new Vector2(0f, -40f), new Vector2(420f, 90f), Continue, ButtonStyle.Yellow);
             var fresh = CreateButton(page, "Novo torneio", "Novo torneio", new Vector2(0f, -150f), new Vector2(420f, 90f), NewTournament);
             var back = CreateButton(page, "Voltar", "Voltar", new Vector2(0f, -260f), new Vector2(420f, 90f), () => menu.ShowPlay(), ButtonStyle.Red);
             var navigator = page.gameObject.AddComponent<MenuNavigator>();
+            foreach (var b in new[] { go, fresh, back }) LocalizedText.Attach(b.GetComponentInChildren<Text>());
             navigator.Configure(new[] { Entry(go), Entry(fresh), Entry(back) }, back);
         }
 
@@ -417,6 +418,7 @@ namespace FutebolDeBotao
             var back = CreateButton(page, "Voltar", "Voltar", new Vector2(-160f, -500f), new Vector2(280f, 80f), Back, ButtonStyle.Red);
             actionButton = CreateButton(page, "Jogar", "Jogar", new Vector2(160f, -500f), new Vector2(280f, 80f), Play, ButtonStyle.Yellow);
             actionLabel = actionButton.GetComponentInChildren<Text>();
+            LocalizedText.Attach(back.GetComponentInChildren<Text>());
 
             bracketNavigator = page.gameObject.AddComponent<MenuNavigator>();
             bracketNavigator.Configure(new[] { tabEntry, Entry(back), Entry(actionButton) }, back, 2);
@@ -428,7 +430,7 @@ namespace FutebolDeBotao
             Stretch(page, Vector2.zero, Vector2.one, 0f);
             endPage = page.gameObject;
 
-            CreateText(page, "Título", "Fim do torneio", 56, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 100f));
+            LocalizedText.Attach(CreateText(page, "Título", "Fim do torneio", 56, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 100f)));
             endName = CreateText(page, "Torneio", "-", 34, FontStyle.Normal, Color.white, new Vector2(0f, 440f), new Vector2(680f, 60f));
             var trophy = CreateRect(page, "Troféu", new Vector2(0f, 200f), new Vector2(320f, 320f));
             endTrophy = trophy.gameObject.AddComponent<Image>();
@@ -440,6 +442,8 @@ namespace FutebolDeBotao
             var bracket = CreateButton(page, "Ver chave", "Ver chave", new Vector2(0f, -390f), new Vector2(420f, 90f), ShowBracket);
             var toMenu = CreateButton(page, "Menu", "Menu", new Vector2(0f, -500f), new Vector2(420f, 90f), Back, ButtonStyle.Yellow);
             var navigator = page.gameObject.AddComponent<MenuNavigator>();
+            LocalizedText.Attach(bracket.GetComponentInChildren<Text>());
+            LocalizedText.Attach(toMenu.GetComponentInChildren<Text>());
             navigator.Configure(new[] { Entry(bracket), Entry(toMenu) }, toMenu, 1);
         }
 

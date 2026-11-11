@@ -69,10 +69,11 @@ namespace FutebolDeBotao
         /// <summary>"Vitória no Médio", "Torneio: empate no Pro"...</summary>
         public static string MatchText(int level, int outcome, bool tournament, bool walkover)
         {
+            // Escrito no idioma em uso na hora (o extrato guarda o texto pronto).
             string result = outcome > 0 ? "Vitória" : outcome == 0 ? "Empate" : "Derrota";
             if (walkover && outcome != 0) result += " por W.O.";
-            string levelName = AiDifficulty.DisplayName((AiLevel)level);
-            return tournament ? $"Torneio: {result.ToLowerInvariant()} no {levelName}" : $"{result} no {levelName}";
+            string id = tournament ? $"Torneio: {result.ToLowerInvariant()} no {{0}}" : $"{result} no {{0}}";
+            return Txt.Format(id, Txt.Get(AiDifficulty.DisplayName((AiLevel)level)));
         }
 
         /// <summary>"Loja: Camisa Listrada" a partir da chave do item (camisa:, bola:, mesa:, feltro:).</summary>
@@ -88,7 +89,7 @@ namespace FutebolDeBotao
                 "feltro" => "Feltro",
                 _ => string.Empty
             };
-            return string.IsNullOrEmpty(category) ? $"Loja: {itemName}" : $"Loja: {category} {itemName}";
+            return string.IsNullOrEmpty(category) ? Txt.Format("Loja: {0}", itemName) : Txt.Format("Loja: {0} {1}", Txt.Get(category), itemName);
         }
     }
 }

@@ -110,15 +110,15 @@ namespace FutebolDeBotao
             if (tab == LastTab)
             {
                 if (stats.hasLast) AddLast(rows, stats.last);
-                else empty = "Termine uma partida contra a IA para ver aqui.";
+                else empty = Txt.Get("Termine uma partida contra a IA para ver aqui.");
             }
             else
             {
                 var level = tab == 0 ? stats.total : stats.levels[tab - 1];
                 if (level.Played > 0) AddLevel(rows, level);
                 else empty = tab == 0
-                    ? "Jogue contra a IA para ver suas estatísticas."
-                    : $"Jogue contra a IA no nível {TabNames[tab]} para ver suas estatísticas.";
+                    ? Txt.Get("Jogue contra a IA para ver suas estatísticas.")
+                    : Txt.Format("Jogue contra a IA no nível {0} para ver suas estatísticas.", Txt.Get(TabNames[tab]));
             }
 
             float width = ListSize.x - 2f * ListPadding;
@@ -145,7 +145,7 @@ namespace FutebolDeBotao
                     band.raycastTarget = false;
                 }
 
-                var name = CreateText(row, "Nome", label, header ? 32 : 26, header ? FontStyle.Bold : FontStyle.Normal,
+                var name = CreateText(row, "Nome", Txt.Get(label), header ? 32 : 26, header ? FontStyle.Bold : FontStyle.Normal,
                     header ? HeaderColor : Color.white, Vector2.zero, Vector2.zero);
                 name.alignment = header ? TextAnchor.LowerLeft : TextAnchor.MiddleLeft;
                 Stretch(name.rectTransform, new Vector2(0f, 0f), new Vector2(header ? 1f : 0.62f, 1f), 12f);
@@ -217,12 +217,13 @@ namespace FutebolDeBotao
             string result = last.playerScore > last.aiScore ? "Vitória"
                 : last.playerScore < last.aiScore ? "Derrota" : "Empate";
             if (last.walkover) result += " por W.O.";
+            result = Txt.Get(result);
             if (last.hasPenalties)
-                result = (last.playerPenalties > last.aiPenalties ? "Vitória" : "Derrota") +
-                         $" nos pênaltis ({last.playerPenalties} x {last.aiPenalties})";
+                result = Txt.Format(last.playerPenalties > last.aiPenalties ? "Vitória nos pênaltis ({0} x {1})" : "Derrota nos pênaltis ({0} x {1})",
+                    last.playerPenalties, last.aiPenalties);
 
             rows.Add(("Partida", null));
-            rows.Add(("Nível", AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(last.level, 0, AiDifficulty.LevelCount - 1))));
+            rows.Add(("Nível", Txt.Get(AiDifficulty.DisplayName((AiLevel)Mathf.Clamp(last.level, 0, AiDifficulty.LevelCount - 1)))));
             rows.Add(("Placar (você x IA)", $"{last.playerScore} x {last.aiScore}"));
             rows.Add(("Resultado", result));
 
@@ -289,7 +290,7 @@ namespace FutebolDeBotao
             font = GameFont.Get();
             var root = (RectTransform)transform;
 
-            CreateText(root, "Título", "Estatísticas", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f));
+            LocalizedText.Attach(CreateText(root, "Título", "Estatísticas", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f)));
 
             var tabRow = CreateRect(root, "Abas", new Vector2(0f, TabY), new Vector2(TabSpacing * TabNames.Length, TabSize.y));
             var tabAreas = new RectTransform[TabNames.Length];
@@ -364,8 +365,8 @@ namespace FutebolDeBotao
             }
             else box.color = PanelColor;
 
-            CreateText(box.transform, "Pergunta", "Apagar todas as estatísticas?\nNão dá para desfazer.", 34, FontStyle.Bold, Color.white,
-                new Vector2(0f, 70f), new Vector2(560f, 160f));
+            LocalizedText.Attach(CreateText(box.transform, "Pergunta", "Apagar todas as estatísticas?\nNão dá para desfazer.", 34, FontStyle.Bold, Color.white,
+                new Vector2(0f, 70f), new Vector2(560f, 160f)));
             var erase = CreateButton(box.transform, "Apagar", "Apagar", new Vector2(-140f, -100f), new Vector2(240f, 80f), ConfirmReset, ButtonStyle.Red);
             var cancel = CreateButton(box.transform, "Cancelar", "Cancelar", new Vector2(140f, -100f), new Vector2(240f, 80f), CloseDialog);
 
@@ -439,6 +440,7 @@ namespace FutebolDeBotao
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             button.onClick.AddListener(action);
             var text = CreateText(rect, "Texto", label, 30, FontStyle.Bold, ButtonSkin.TextColor(style), Vector2.zero, size);
+            LocalizedText.Attach(text);
             Destroy(text.GetComponent<Shadow>());
             Stretch(text.rectTransform, Vector2.zero, Vector2.one, 0f);
             ButtonSkin.Apply(button, style);

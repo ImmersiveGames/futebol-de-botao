@@ -134,7 +134,7 @@ namespace FutebolDeBotao
         private void RefreshFinance()
         {
             var data = Finance.Data;
-            balanceLabel.text = $"{PlayerProfile.Coins} moedas";
+            balanceLabel.text = Txt.Format("{0} moedas", PlayerProfile.Coins);
             earnedLabel.text = $"+{data.earned}";
             spentLabel.text = $"-{data.spent}";
             matchesLabel.text = $"+{data.fromMatches}";
@@ -147,7 +147,7 @@ namespace FutebolDeBotao
             int count = entries != null ? entries.Count : 0;
             if (count == 0)
             {
-                var empty = CreateText(statementContent, "Vazio", "Nenhuma movimentação ainda. Jogue partidas, torneios ou o tutorial para ganhar moedas.",
+                var empty = CreateText(statementContent, "Vazio", Txt.Get("Nenhuma movimentação ainda. Jogue partidas, torneios ou o tutorial para ganhar moedas."),
                     26, FontStyle.Normal, LabelColor, new Vector2(0f, -60f), new Vector2(width - 40f, 120f));
                 empty.rectTransform.anchorMin = empty.rectTransform.anchorMax = new Vector2(0.5f, 1f);
             }
@@ -307,7 +307,7 @@ namespace FutebolDeBotao
             font = GameFont.Get();
             var root = (RectTransform)transform;
 
-            CreateText(root, "Título", "Meu time", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f));
+            LocalizedText.Attach(CreateText(root, "Título", "Meu time", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f)));
 
             // Abas: Time | Mesa (a escolhida fica apertada).
             // Abas: Time | Mesa | Financeiro (a escolhida fica apertada; no teclado/controle, esquerda/direita trocam).
@@ -385,7 +385,7 @@ namespace FutebolDeBotao
             var page = CreateRect(root, "Aba Financeiro", Vector2.zero, Vector2.zero);
             tabPages[FinanceTab] = page.gameObject;
 
-            CreateText(page, "Rótulo do saldo", "Saldo", 28, FontStyle.Bold, LabelColor, new Vector2(0f, 345f), new Vector2(600f, 40f));
+            LocalizedText.Attach(CreateText(page, "Rótulo do saldo", "Saldo", 28, FontStyle.Bold, LabelColor, new Vector2(0f, 345f), new Vector2(600f, 40f)));
             balanceLabel = CreateText(page, "Saldo", string.Empty, 56, FontStyle.Bold, CoinColor, new Vector2(0f, 290f), new Vector2(680f, 70f));
 
             earnedLabel = SummaryRow(page, "Ganho total", 215f, false, EarnColor);
@@ -396,6 +396,7 @@ namespace FutebolDeBotao
 
             var header = CreateText(page, "Extrato", "Extrato", 32, FontStyle.Bold, CoinColor, new Vector2(LabelX, 0f), new Vector2(LabelWidth, 44f));
             header.alignment = TextAnchor.MiddleLeft;
+            LocalizedText.Attach(header);
 
             // Lista com rolagem (arrastar ou roda do mouse).
             float centerX = (LabelX - LabelWidth * 0.5f + ValueX + ValueWidth * 0.5f) * 0.5f;
@@ -423,6 +424,7 @@ namespace FutebolDeBotao
             var caption = CreateText(parent, "Rótulo", label, indent ? 24 : 28, indent ? FontStyle.Normal : FontStyle.Bold, LabelColor,
                 new Vector2(LabelX + (indent ? 40f : 0f), y), new Vector2(LabelWidth, 40f));
             caption.alignment = TextAnchor.MiddleLeft;
+            LocalizedText.Attach(caption);
             var value = CreateText(parent, "Valor", string.Empty, indent ? 24 : 28, FontStyle.Bold, color,
                 new Vector2(ValueX + ValueWidth * 0.5f - 100f, y), new Vector2(200f, 40f));
             value.alignment = TextAnchor.MiddleRight;
@@ -452,6 +454,7 @@ namespace FutebolDeBotao
         {
             var text = CreateText(parent, "Rótulo", label, 28, FontStyle.Bold, LabelColor, new Vector2(LabelX, y), new Vector2(LabelWidth, 70f));
             text.alignment = TextAnchor.MiddleLeft;
+            LocalizedText.Attach(text);
             return text;
         }
 
@@ -477,6 +480,7 @@ namespace FutebolDeBotao
             Stretch(text.rectTransform, 16f);
             var hint = CreateText(box, "Dica", placeholder, 26, FontStyle.Italic, new Color(1f, 1f, 1f, 0.4f), Vector2.zero, Vector2.zero);
             Stretch(hint.rectTransform, 16f);
+            LocalizedText.Attach(hint);
 
             field = box.gameObject.AddComponent<InputField>();
             field.targetGraphic = background;
@@ -587,6 +591,7 @@ namespace FutebolDeBotao
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             button.onClick.AddListener(action);
             var text = CreateText(rect, "Texto", label, 30, FontStyle.Bold, ButtonSkin.TextColor(style), Vector2.zero, size);
+            LocalizedText.Attach(text);
             Destroy(text.GetComponent<Shadow>());
             text.rectTransform.anchorMin = Vector2.zero;
             text.rectTransform.anchorMax = Vector2.one;

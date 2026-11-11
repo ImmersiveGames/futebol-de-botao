@@ -21,7 +21,7 @@ namespace FutebolDeBotao
         {
             if (target == null) return null;
             if (!target.TryGetComponent(out LocalizedText localized)) localized = target.gameObject.AddComponent<LocalizedText>();
-            localized.key = target.text;
+            localized.key = Txt.IdOf(target.text);
             localized.text = target;
             localized.applied = target.text;
             localized.Apply();
