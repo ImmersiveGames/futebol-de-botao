@@ -17,7 +17,7 @@ namespace FutebolDeBotao
         private const float UniformTabY = 130f;
         private static readonly Vector2 UniformTabSize = new(240f, 64f);
         private const float RowTop = -110f;
-        private const float TabY = 405f;
+        private const float TabY = 445f;
         private static readonly Vector2 TabSize = new(200f, 70f);
         private const float TabGap = 20f;
         private const int TeamTab = 0, TableTab = 1, FinanceTab = 2;
