@@ -44,7 +44,7 @@ namespace FutebolDeBotao
         private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel, reserveLabel, reserveSlotLabel;
         private GameObject reserveSlotRow;
         private GameObject discRow, keeperRow;
-        private Image[] discLayers, keeperLayers, reserveLayers;
+        private Image[] discLayers, keeperLayers, reserveLayers, reserveKeeperLayers;
         private GameObject teamTab, tableTab;
         private Button teamTabButton, tableTabButton;
         private MenuEntry[] teamEntries, tableEntries;
@@ -222,16 +222,18 @@ namespace FutebolDeBotao
             PaintPiece(discLayers, disc, false);
             PaintPiece(keeperLayers, keeper, true);
 
-            // Com reserva: botão, goleiro e botão reserva lado a lado; sem reserva, só os dois.
+            // Com reserva: botão e goleiro, depois botão e goleiro com a cor reserva; sem reserva, só os dois.
             bool showReserve = hasReserve && disc != null;
-            Place(discLayers, showReserve ? -160f : -110f);
-            Place(keeperLayers, showReserve ? 0f : 110f);
+            Place(discLayers, showReserve ? -240f : -110f);
+            Place(keeperLayers, showReserve ? -80f : 110f);
             reserveLayers[0].transform.parent.gameObject.SetActive(showReserve);
+            reserveKeeperLayers[0].transform.parent.gameObject.SetActive(showReserve && keeper != null);
             if (showReserve)
             {
                 var reservePrimary = reserveReplacesSecondary ? primary : reserve;
                 var reserveSecondary = reserveReplacesSecondary ? reserve : secondary;
                 PaintPiece(reserveLayers, disc, false, reservePrimary, reserveSecondary);
+                PaintPiece(reserveKeeperLayers, keeper, true, reservePrimary, reserveSecondary);
             }
         }
 
@@ -286,9 +288,11 @@ namespace FutebolDeBotao
             discLayers = CreatePiece(preview, "Botão", new Vector2(-110f, 0f), false);
             keeperLayers = CreatePiece(preview, "Goleiro", new Vector2(110f, 0f), true);
             // Botão com a cor reserva (só com reserva escolhida): à direita, com o nome embaixo.
-            reserveLayers = CreatePiece(preview, "Botão reserva", new Vector2(160f, 0f), false);
+            reserveLayers = CreatePiece(preview, "Botão reserva", new Vector2(80f, 0f), false);
+            reserveKeeperLayers = CreatePiece(preview, "Goleiro reserva", new Vector2(240f, 0f), true);
+            // Uma legenda só, embaixo do botão e do goleiro reserva (no meio dos dois).
             CreateText(reserveLayers[0].transform.parent, "Legenda", "Reserva", 22, FontStyle.Bold, LabelColor,
-                new Vector2(0f, -PreviewSize * 0.5f + 4f), new Vector2(PreviewSize, 30f));
+                new Vector2(80f, -PreviewSize * 0.5f + 4f), new Vector2(PreviewSize * 2f, 30f));
 
             var nameEntry = CreateField(teamPage, "Nome", "Nome do time", 0, PlayerProfile.NameLength, false, out nameField);
             var abbreviationEntry = CreateField(teamPage, "Sigla", "Sigla (3 letras)", 1, PlayerProfile.AbbreviationLength, true, out abbreviationField);
