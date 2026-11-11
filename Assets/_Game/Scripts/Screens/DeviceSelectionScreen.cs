@@ -84,9 +84,9 @@ namespace FutebolDeBotao
             lastDevices.Clear();
             Rebuild();
             openFrame = Time.frameCount;
-            instructions.text = TwoPlayers
+            instructions.text = Txt.Get(TwoPlayers
                 ? "Cada um no seu dispositivo: esquerda para o Jogador 1, direita para o Jogador 2. E/A confirma, Q/B desfaz."
-                : "No dispositivo com que vai jogar: esquerda para o Jogador 1 e E/A confirma. Q/B volta.";
+                : "No dispositivo com que vai jogar: esquerda para o Jogador 1 e E/A confirma. Q/B volta.");
             secondHeader.gameObject.SetActive(TwoPlayers);
             status.text = string.Empty;
             return true;
@@ -202,8 +202,8 @@ namespace FutebolDeBotao
             if (Occupant(-confirmed.Position) == null)
             {
                 confirmed.AskedShared = true;
-                string other = confirmed.Position < 0 ? "Jogador 2" : "Jogador 1";
-                status.text = $"{other}: escolha um dispositivo, ou confirme de novo para os dois jogarem neste, revezando.";
+                string other = Txt.Get(confirmed.Position < 0 ? "Jogador 2" : "Jogador 1");
+                status.text = Txt.Format("{0}: escolha um dispositivo, ou confirme de novo para os dois jogarem neste, revezando.", other);
             }
         }
 
@@ -288,18 +288,20 @@ namespace FutebolDeBotao
             font = GameFont.Get();
             var root = (RectTransform)transform;
 
-            CreateText(root, "Título", "Controles", 52, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 90f));
+            LocalizedText.Attach(CreateText(root, "Título", "Controles", 52, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 90f)));
             instructions = CreateText(root, "Instruções", string.Empty, 24, FontStyle.Normal, Color.white, new Vector2(0f, 420f), new Vector2(660f, 110f));
-            CreateText(root, "Jogador 1", "Jogador 1", 30, FontStyle.Bold, Color.white, new Vector2(-ColumnX, 330f), new Vector2(220f, 50f));
-            CreateText(root, "Dispositivos", "Dispositivos", 24, FontStyle.Normal, Color.white, new Vector2(0f, 330f), new Vector2(220f, 50f));
+            LocalizedText.Attach(CreateText(root, "Jogador 1", "Jogador 1", 30, FontStyle.Bold, Color.white, new Vector2(-ColumnX, 330f), new Vector2(220f, 50f)));
+            LocalizedText.Attach(CreateText(root, "Dispositivos", "Dispositivos", 24, FontStyle.Normal, Color.white, new Vector2(0f, 330f), new Vector2(220f, 50f)));
             secondHeader = CreateText(root, "Jogador 2", "Jogador 2", 30, FontStyle.Bold, Color.white, new Vector2(ColumnX, 330f), new Vector2(220f, 50f));
+            LocalizedText.Attach(secondHeader);
             status = CreateText(root, "Aviso", string.Empty, 26, FontStyle.Bold, new Color(1f, 0.85f, 0.25f), new Vector2(0f, -330f), new Vector2(660f, 110f));
 
             cards = CreateRect(root, "Dispositivos", Vector2.zero, Vector2.zero);
-            CreateButton(root, "Voltar", "Voltar", new Vector2(0f, -450f), new Vector2(240f, 70f), () =>
+            var back = CreateButton(root, "Voltar", "Voltar", new Vector2(0f, -450f), new Vector2(240f, 70f), () =>
             {
                 if (menu != null) menu.ShowPlay();
             }, ButtonStyle.Red);
+            LocalizedText.Attach(back.GetComponentInChildren<Text>());
         }
 
         private void BuildCard(Entry entry, string label)

@@ -105,27 +105,27 @@ namespace FutebolDeBotao
         /// <summary>Nome da fase pela distância até a final: Final, Semifinal, Quartas de final, Oitavas de final...</summary>
         public static string RoundName(int round, int rounds)
         {
-            return (rounds - 1 - round) switch
+            return Txt.Get((rounds - 1 - round) switch
             {
                 0 => "Final",
                 1 => "Semifinal",
                 2 => "Quartas de final",
                 3 => "Oitavas de final",
                 _ => "Primeira fase"
-            };
+            });
         }
 
         /// <summary>Nome curto para a aba.</summary>
         public static string TabName(int round, int rounds)
         {
-            return (rounds - 1 - round) switch
+            return Txt.Get((rounds - 1 - round) switch
             {
                 0 => "Final",
                 1 => "Semi",
                 2 => "Quartas",
                 3 => "Oitavas",
                 _ => "1ª fase"
-            };
+            });
         }
 
         public static TeamData TeamOf(int team) => team == Player ? PlayerProfile.Team : TeamCatalog.Load().Team(team);
@@ -135,16 +135,21 @@ namespace FutebolDeBotao
         /// <summary>Como o jogador terminou: Campeão, Vice, 3º lugar, Eliminado nas quartas de final, Abandonou...</summary>
         public static string PositionText(SaveData.TournamentRun run)
         {
-            if (run.abandoned) return "Abandonou o torneio";
-            if (run.position == 1) return "Campeão!";
-            if (run.position == 2) return "Vice-campeão";
-            if (run.position > 2) return $"{run.position}º lugar";
+            if (run.abandoned) return Txt.Get("Abandonou o torneio");
+            if (run.position == 1) return Txt.Get("Campeão!");
+            if (run.position == 2) return Txt.Get("Vice-campeão");
+            if (run.position == 3) return Txt.Get("3º lugar");
+            if (run.position > 3) return Txt.Format("{0}º lugar", run.position);
             if (run.eliminatedRound >= 0)
-            {
-                string round = RoundName(run.eliminatedRound, Rounds).ToLowerInvariant();
-                return (round.StartsWith("primeira") ? "Eliminado na " : "Eliminado nas ") + round;
-            }
-            return "Em andamento";
+                return Txt.Get((Rounds - 1 - run.eliminatedRound) switch
+                {
+                    0 => "Eliminado na final",
+                    1 => "Eliminado na semifinal",
+                    2 => "Eliminado nas quartas de final",
+                    3 => "Eliminado nas oitavas de final",
+                    _ => "Eliminado na primeira fase"
+                });
+            return Txt.Get("Em andamento");
         }
 
         // ---- Partida do jogador ----

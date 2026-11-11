@@ -308,7 +308,7 @@ namespace FutebolDeBotao
             // Pronto marcado: o botão fica verde (já confirmou); desmarcado volta ao amarelo de ação.
             if (!ButtonSkin.Apply(view.Ready, ready ? ButtonStyle.Green : ButtonStyle.Yellow))
                 ((Image)view.Ready.targetGraphic).color = ready ? ReadyColor : ButtonColor;
-            view.Ready.GetComponentInChildren<Text>().text = ready ? "Pronto!" : "Pronto";
+            view.Ready.GetComponentInChildren<Text>().text = Txt.Get(ready ? "Pronto!" : "Pronto");
         }
 
         /// <summary>Q/B de um jogador com cursor próprio: desmarca o Pronto; sem Pronto, o Jogador 1 volta às Opções.</summary>
@@ -388,11 +388,11 @@ namespace FutebolDeBotao
                 // Uniforme: o lado da IA escolhe sozinho (a linha some).
                 bool auto = MatchSession.IsAutoUniform(side);
                 foreach (var part in view.UniformRow) SetActive(part, !auto);
-                view.UniformLabel.text = $"Uniforme {MatchSession.Uniform(side) + 1}";
+                view.UniformLabel.text = Txt.Format("Uniforme {0}", MatchSession.Uniform(side) + 1);
                 view.Name.text = team.TeamName;
                 view.Abbreviation.text = team.Abbreviation;
                 view.Scheme.text = scheme != null ? scheme.DisplayName : "-";
-                view.Style.text = scheme != null ? scheme.Style : string.Empty;
+                view.Style.text = scheme != null ? Txt.Get(scheme.Style) : string.Empty;
             }
         }
 
@@ -765,6 +765,7 @@ namespace FutebolDeBotao
             float x = StripX;
             var schemeTitle = FieldLabel(CreateText(controls, "Esquema", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.9f), new Vector2(1.4f, 0.26f)), true);
             schemeTitle.text = "Esquema";
+            LocalizedText.Attach(schemeTitle);
             view.Scheme = FieldLabel(CreateText(controls, "Nome do esquema", 32, FontStyle.Bold, Color.white, new Vector2(x, BlockY + 0.5f), new Vector2(1.4f, 0.44f)), false);
             view.Style = FieldLabel(CreateText(controls, "Estilo", 18, FontStyle.Normal, SoftText, new Vector2(x, BlockY + 0.13f), new Vector2(1.4f, 0.26f)), true);
             var previousScheme = CreateButton(controls, "Esquema anterior", "<", new Vector2(x - 0.42f, BlockY - 0.7f), Vector2.one * 0.56f, () => ChangeScheme(side, -1));
@@ -917,6 +918,7 @@ namespace FutebolDeBotao
             button.onClick.AddListener(action);
             var text = CreateText(image.rectTransform, "Texto", 26, FontStyle.Bold, ButtonTextColor, Vector2.zero, size);
             text.text = label;
+            LocalizedText.Attach(text);
             Stretch(text.rectTransform);
             ButtonSkin.Apply(button, style);
             return button;

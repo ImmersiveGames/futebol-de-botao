@@ -100,11 +100,11 @@ namespace FutebolDeBotao
                         if (other is Gamepad) number++;
                         if (other == device) break;
                     }
-                    return $"Controle {number}";
+                    return Txt.Format("Controle {0}", number);
                 case Touchscreen:
-                    return "Toque";
+                    return Txt.Get("Toque");
                 default:
-                    return "Teclado e mouse";
+                    return Txt.Get("Teclado e mouse");
             }
         }
     }

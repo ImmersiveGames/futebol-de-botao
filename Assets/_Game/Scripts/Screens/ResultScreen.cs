@@ -55,16 +55,16 @@ namespace FutebolDeBotao
             var result = MatchSession.LastResult;
             if (result == null)
             {
-                CreateText(root, "Sem partida", "Sem partida", 40, FontStyle.Bold, Color.white, new Vector2(0f, ScoreY), new Vector2(680f, 90f));
+                CreateText(root, "Sem partida", Txt.Get("Sem partida"), 40, FontStyle.Bold, Color.white, new Vector2(0f, ScoreY), new Vector2(680f, 90f));
                 return;
             }
 
             BuildScore(root, result.Value);
             if (MatchSession.VsAi == true && PlayerStats.NewRecord > 0)
-                CreateText(root, "Recorde", $"Novo recorde de sequência: {PlayerStats.NewRecord} vitórias!", 30, FontStyle.Bold,
+                CreateText(root, "Recorde", Txt.Format("Novo recorde de sequência: {0} vitórias!", PlayerStats.NewRecord), 30, FontStyle.Bold,
                     HighlightColor, new Vector2(0f, RecordY), new Vector2(680f, 44f));
             if (MatchSession.VsAi == true && PlayerStats.CoinsEarned > 0)
-                CreateText(root, "Moedas", $"+{PlayerStats.CoinsEarned} moedas (saldo: {Shop.Coins})", 30, FontStyle.Bold,
+                CreateText(root, "Moedas", Txt.Format("+{0} moedas (saldo: {1})", PlayerStats.CoinsEarned, Shop.Coins), 30, FontStyle.Bold,
                     HighlightColor, new Vector2(0f, CoinsY), new Vector2(680f, 44f));
             var numbers = MatchSession.LastMatchNumbers;
             if (numbers != null && numbers.Length == 2) BuildTable(root, numbers[0], numbers[1]);
@@ -78,16 +78,16 @@ namespace FutebolDeBotao
             {
                 var button = root.Find(objectName);
                 var text = button != null ? button.GetComponentInChildren<Text>() : null;
-                if (text != null) text.text = label;
+                if (text != null) text.text = Txt.Get(label);
             }
 
             var run = Tournament.Run;
             string status;
             var next = Tournament.PlayerMatch();
             if (next != null)
-                status = "Torneio: próximo jogo na " +
-                         (next.third ? "disputa de 3º lugar" : Tournament.RoundName(next.round, Tournament.Rounds).ToLowerInvariant());
-            else status = "Torneio: " + Tournament.PositionText(run);
+                status = Txt.Format("Torneio: próximo jogo na {0}",
+                    next.third ? Txt.Get("disputa de 3º lugar") : Tournament.RoundName(next.round, Tournament.Rounds).ToLowerInvariant());
+            else status = Txt.Format("Torneio: {0}", Tournament.PositionText(run));
             CreateText(root, "Torneio", status, 30, FontStyle.Bold, HighlightColor, new Vector2(0f, TournamentY), new Vector2(680f, 50f));
         }
 
@@ -201,7 +201,7 @@ namespace FutebolDeBotao
                 }
                 float valueX = (inner - ValueWidth) * 0.5f;
                 CreateText(row, "Baixo", left, 28, FontStyle.Bold, Color.white, new Vector2(-valueX, 0f), new Vector2(ValueWidth, RowHeight));
-                CreateText(row, "Nome", label, 24, FontStyle.Normal, Color.white, Vector2.zero, new Vector2(inner - 2f * ValueWidth, RowHeight));
+                CreateText(row, "Nome", Txt.Get(label), 24, FontStyle.Normal, Color.white, Vector2.zero, new Vector2(inner - 2f * ValueWidth, RowHeight));
                 CreateText(row, "Cima", right, 28, FontStyle.Bold, Color.white, new Vector2(valueX, 0f), new Vector2(ValueWidth, RowHeight));
             }
         }

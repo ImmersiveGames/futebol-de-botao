@@ -176,7 +176,7 @@ namespace FutebolDeBotao
             if (view.Clock != null)
             {
                 // Prorrogação: relógio em amarelo; na disputa de pênaltis, "Pên." no lugar do tempo.
-                view.Clock.text = match.IsShootout ? "Pên." : ClockText(match.ClockSeconds);
+                view.Clock.text = match.IsShootout ? Txt.Get("Pên.") : ClockText(match.ClockSeconds);
                 view.Clock.color = match.IsExtraTime || match.IsShootout ? ExtraTimeColor : Color.white;
             }
 
@@ -194,12 +194,12 @@ namespace FutebolDeBotao
             }
             if (view.Turn == null) return;
 
-            view.Turn.text = !active ? (match.IsShootout && state == MatchState.Goal ? "Pênaltis" : StateText(state))
+            view.Turn.text = !active ? (match.IsShootout && state == MatchState.Goal ? Txt.Get("Pênaltis") : StateText(state))
                 : match.IsAi(acting) ? ThinkingText()
-                : !mine ? $"Vez do {MatchController.TeamName(acting)}"
-                : state == MatchState.ShotCall ? "Ajuste o goleiro"
-                : state == MatchState.PenaltySetup ? "Posicione o batedor"
-                : state == MatchState.GoalKick ? (match.IsPlacingGoalKick ? "Posicione a bola" : "Tiro de meta")
+                : !mine ? Txt.Format("Vez do {0}", MatchController.TeamName(acting))
+                : state == MatchState.ShotCall ? Txt.Get("Ajuste o goleiro")
+                : state == MatchState.PenaltySetup ? Txt.Get("Posicione o batedor")
+                : state == MatchState.GoalKick ? Txt.Get(match.IsPlacingGoalKick ? "Posicione a bola" : "Tiro de meta")
                 : TouchesText(match.TouchesLeft);
             view.Turn.color = TeamColor(active ? acting : side);
 
@@ -232,7 +232,7 @@ namespace FutebolDeBotao
                 if (match.Tutorial.WaitingContinue) return null;
             }
             if (match.CanCallShot && match.Turn == side) return ShotCallLabel;
-            if (match.CanConfirmReady && match.ActingSide == side) return "Pronto";
+            if (match.CanConfirmReady && match.ActingSide == side) return Txt.Get("Pronto");
             return null;
         }
 
@@ -307,15 +307,15 @@ namespace FutebolDeBotao
         }
 
         /// <summary>"IA pensando" com reticências andando, enquanto a IA age.</summary>
-        private static string ThinkingText() => "IA pensando" + new string('.', 1 + (int)(Time.unscaledTime * 2f) % 3);
+        private static string ThinkingText() => Txt.Get("IA pensando") + new string('.', 1 + (int)(Time.unscaledTime * 2f) % 3);
 
-        private static string TouchesText(int touches) => touches == 1 ? "Sua vez: 1 toque" : $"Sua vez: {touches} toques";
+        private static string TouchesText(int touches) => touches == 1 ? Txt.Get("Sua vez: 1 toque") : Txt.Format("Sua vez: {0} toques", touches);
 
         private static string StateText(MatchState state) => state switch
         {
-            MatchState.Moving => "Bola rolando",
-            MatchState.Goal => "Gol!",
-            MatchState.End => "Fim de jogo",
+            MatchState.Moving => Txt.Get("Bola rolando"),
+            MatchState.Goal => Txt.Get("Gol!"),
+            MatchState.End => Txt.Get("Fim de jogo"),
             _ => string.Empty
         };
 
@@ -467,7 +467,7 @@ namespace FutebolDeBotao
             // Na metade oposta à de quem bate agora: o de baixo bate no gol de cima, o placar fica embaixo.
             float y = match.Turn == TeamSide.Bottom ? -ShootoutBoardY : ShootoutBoardY;
             shootoutRoot.transform.GetChild(0).position = new Vector3(0f, y, 0f);
-            shootoutTitle.text = match.IsSuddenDeath ? "Morte súbita" : "Pênaltis";
+            shootoutTitle.text = Txt.Get(match.IsSuddenDeath ? "Morte súbita" : "Pênaltis");
 
             // Morte súbita: quando as 5 casas enchem, elas zeram e voltam a encher (o total continua somando).
             int rounds = Mathf.Max(match.ShootoutKicks(TeamSide.Bottom).Count, match.ShootoutKicks(TeamSide.Top).Count);
@@ -568,9 +568,9 @@ namespace FutebolDeBotao
             view.Pause.onClick.AddListener(match.RequestPause);
             var tips = CreateTopText(panel, "Dicas", 17, -520f, 190f);
             tips.alignment = TextAnchor.UpperLeft;
-            tips.text = "Mouse: arraste do botão para trás e solte\n" +
-                        "Teclado: A/D escolhe o botão, E seleciona, A/D gira, W/S força, Espaço chuta, Q volta, C Pro Gol!\n" +
-                        "Controle: analógico/D-pad escolhe, A seleciona, analógico mira, analógico dir. força, X chuta, B volta, LB/RB Pro Gol!";
+            tips.text = Txt.Get("Mouse: arraste do botão para trás e solte") + "\n" +
+                        Txt.Get("Teclado: A/D escolhe o botão, E seleciona, A/D gira, W/S força, Espaço chuta, Q volta, C Pro Gol!") + "\n" +
+                        Txt.Get("Controle: analógico/D-pad escolhe, A seleciona, analógico mira, analógico dir. força, X chuta, B volta, LB/RB Pro Gol!");
             pcPanel = view;
         }
 
@@ -696,6 +696,7 @@ namespace FutebolDeBotao
 
             labelText = CreateText(go.transform, "Texto", size, FontStyle.Bold, Vector2.zero, box);
             labelText.text = label;
+            LocalizedText.Attach(labelText);
             labelText.color = ButtonTextColor;
             if (icon != null) ButtonSkin.SetIcon(button, Mathf.Min(64f, box.y * 0.8f), icon);
             ButtonSkin.Apply(button, style);
