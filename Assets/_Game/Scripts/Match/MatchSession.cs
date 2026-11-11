@@ -163,6 +163,16 @@ namespace FutebolDeBotao
         public static void SetUniform(TeamSide side, int uniform) =>
             uniformIndex[(int)side] = Mathf.Clamp(uniform, 0, TeamData.UniformCount - 1);
 
+        /// <summary>
+        /// O jogador escolheu o uniforme do lado da IA nas setas: vale o escolhido (a IA para de escolher sozinha até
+        /// trocar de time).
+        /// </summary>
+        public static void ChooseUniform(TeamSide side, int uniform)
+        {
+            SetUniform(side, uniform);
+            autoUniform[(int)side] = false;
+        }
+
         /// <summary>O lado da IA escolhe o uniforme sozinho.</summary>
         public static bool IsAutoUniform(TeamSide side) => autoUniform[(int)side];
 

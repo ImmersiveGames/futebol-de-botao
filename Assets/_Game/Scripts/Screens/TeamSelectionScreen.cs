@@ -221,8 +221,8 @@ namespace FutebolDeBotao
         /// <summary>Troca entre o Uniforme 1 e o 2 do time.</summary>
         public void ChangeUniform(TeamSide side, int step)
         {
-            if (MatchSession.IsAutoUniform(side)) return;
-            MatchSession.SetUniform(side, Wrap(MatchSession.UniformChoice(side) + step, TeamData.UniformCount));
+            // No lado da IA, a primeira troca parte do uniforme que ela escolheu e passa a valer o do jogador.
+            MatchSession.ChooseUniform(side, Wrap(MatchSession.Uniform(side) + step, TeamData.UniformCount));
             Refresh();
         }
 
@@ -385,9 +385,7 @@ namespace FutebolDeBotao
                 PaintPiece(view.Keeper, MatchSession.KeeperPattern(side), primary, secondary, true);
                 if (view.Keeper.Layers == null) view.Keeper.Body.color = Color.Lerp(primary, Color.black, 0.25f);
 
-                // Uniforme: o lado da IA escolhe sozinho (a linha some).
-                bool auto = MatchSession.IsAutoUniform(side);
-                foreach (var part in view.UniformRow) SetActive(part, !auto);
+                // Uniforme: o lado da IA começa com o que ela escolhe sozinha; as setas trocam também nele.
                 view.UniformLabel.text = Txt.Format("Uniforme {0}", MatchSession.Uniform(side) + 1);
                 view.Name.text = team.TeamName;
                 view.Abbreviation.text = team.Abbreviation;

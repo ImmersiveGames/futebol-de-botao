@@ -67,7 +67,7 @@ namespace FutebolDeBotao.Editor
         private static readonly (string suffix, string name)[] GoalColorNames = { ("White", "Branca"), ("Red", "Vermelha"), ("Yellow", "Amarela") };
 
         // Camisas: células de 32x32, uma coluna por camada e uma linha por padrão (as colunas do goleiro têm outra ordem).
-        private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Base_Botao_32-Sheet.png";
+        private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Botoes_Base_Sheet.png";
         private const string KeeperSheetPath = "Assets/_Game/Art/Botoes/Goal_Keeper_sheet.png";
         private const string ShirtPatternsFolder = "Assets/_Game/Resources/PadroesCamisa";
         private const string BallsFolder = "Assets/_Game/Resources/Bolas";
