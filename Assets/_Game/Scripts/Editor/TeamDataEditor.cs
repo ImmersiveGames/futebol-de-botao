@@ -5,8 +5,8 @@ using UnityEngine;
 namespace FutebolDeBotao.Editor
 {
     /// <summary>
-    /// Inspector do time: os campos de sempre e a prévia do botão e do goleiro com as cores e as camisas escolhidas
-    /// (em "Sortear", mostra o primeiro padrão como exemplo) e, com cor reserva, outra linha com ela.
+    /// Inspector do time: os campos de sempre e a prévia do botão e do goleiro de cada uniforme, com as cores e as camisas
+    /// escolhidas (em "Sortear", mostra o primeiro padrão como exemplo).
     /// </summary>
     [CustomEditor(typeof(TeamData))]
     public sealed class TeamDataEditor : UnityEditor.Editor
@@ -20,22 +20,21 @@ namespace FutebolDeBotao.Editor
             var team = (TeamData)target;
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Prévia", EditorStyles.boldLabel);
-            var disc = Pick(ShirtPattern.Kind.Botao, team.DiscPatternId, out bool discRandom);
-            var keeper = Pick(ShirtPattern.Kind.Goleiro, team.KeeperPatternId, out bool keeperRandom);
-            if (disc == null && keeper == null)
+            bool anyRandom = false;
+            for (int i = 0; i < TeamData.UniformCount; i++)
             {
-                EditorGUILayout.HelpBox("Nenhum padrão de camisa em Resources/PadroesCamisa.", MessageType.Info);
-                return;
+                var disc = Pick(ShirtPattern.Kind.Botao, team.DiscPatternOf(i), out bool discRandom);
+                var keeper = Pick(ShirtPattern.Kind.Goleiro, team.KeeperPatternOf(i), out bool keeperRandom);
+                if (disc == null && keeper == null)
+                {
+                    EditorGUILayout.HelpBox("Nenhum padrão de camisa em Resources/PadroesCamisa.", MessageType.Info);
+                    return;
+                }
+                anyRandom |= discRandom || keeperRandom;
+                EditorGUILayout.LabelField($"Uniforme {i + 1}", EditorStyles.miniBoldLabel);
+                DrawRow(disc, keeper, team.PrimaryOf(i), team.SecondaryOf(i));
             }
-
-            DrawRow(disc, keeper, team.PrimaryColor, team.SecondaryColor);
-            if (team.HasReserve)
-            {
-                EditorGUILayout.LabelField("Com a cor reserva", EditorStyles.miniBoldLabel);
-                DrawRow(disc, keeper, team.PrimaryFor(true),
-                    team.ReserveReplacesSecondary(true) ? team.ReserveColor : team.SecondaryColor);
-            }
-            if (discRandom || keeperRandom)
+            if (anyRandom)
                 EditorGUILayout.HelpBox("Em \"Sortear\" a prévia mostra o primeiro padrão; no jogo a IA sorteia um a cada partida.",
                     MessageType.None);
         }
@@ -61,6 +60,31 @@ namespace FutebolDeBotao.Editor
             if (chosen != null) return chosen;
             var all = ShirtPattern.Of(kind, false);
             return all.Count > 0 ? all[0] : null;
+        }
+    }
+
+    /// <summary>
+    /// Times antigos (com a cor reserva, sem Uniforme 2): ao abrir o editor, todos ganham o Uniforme 2 (a reserva, ou as
+    /// cores invertidas) e são gravados, para o asset convertido ir para o git.
+    /// </summary>
+    internal static class TeamUniformConverter
+    {
+        [InitializeOnLoadMethod]
+        private static void Schedule() => EditorApplication.delayCall += ConvertAll;
+
+        private static void ConvertAll()
+        {
+            int converted = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:TeamData"))
+            {
+                var team = AssetDatabase.LoadAssetAtPath<TeamData>(AssetDatabase.GUIDToAssetPath(guid));
+                if (team == null || !team.EnsureUniform2()) continue;
+                EditorUtility.SetDirty(team);
+                converted++;
+            }
+            if (converted == 0) return;
+            AssetDatabase.SaveAssets();
+            Debug.Log($"Times convertidos para Uniforme 1 e 2: {converted}.");
         }
     }
 

@@ -72,7 +72,6 @@ namespace FutebolDeBotao
             MatchSession.UseProfile(TeamSide.Bottom);
             var catalog = TeamCatalog.Load();
             MatchSession.SetTeamIndex(TeamSide.Top, Random.Range(0, Mathf.Max(1, catalog.TeamCount)));
-            MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             MatchSession.UseTeamShirts(TeamSide.Top);
             MatchSession.PrepareVenues();
         }

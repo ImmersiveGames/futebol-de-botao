@@ -101,14 +101,8 @@ namespace FutebolDeBotao
                 var choices = Data.players[i];
                 // O Jogador 1 pode estar com o Meu time (-1).
                 MatchSession.SetTeamIndex(side, Mathf.Max(side == TeamSide.Bottom ? MatchSession.ProfileTeam : 0, choices.team));
-                MatchSession.SetSecondaryIndex(side, Mathf.Max(0, choices.secondary));
-                // Save antigo (sem id): converte pela linha da folha de onde o padrão veio.
-                MatchSession.SetDiscPattern(side, !string.IsNullOrEmpty(choices.discPatternId)
-                    ? choices.discPatternId
-                    : ShirtPattern.FromLegacyRow(ShirtPattern.Kind.Botao, Mathf.Max(0, choices.discPattern)));
-                MatchSession.SetKeeperPattern(side, !string.IsNullOrEmpty(choices.keeperPatternId)
-                    ? choices.keeperPatternId
-                    : ShirtPattern.FromLegacyRow(ShirtPattern.Kind.Goleiro, Mathf.Max(0, choices.keeperPattern)));
+                // As camisas vêm do uniforme do time (versão 8); o save guarda só qual uniforme.
+                MatchSession.SetUniform(side, choices.uniform);
                 MatchSession.SetSchemeIndex(side, 3, Mathf.Max(0, choices.scheme3));
                 MatchSession.SetSchemeIndex(side, 5, Mathf.Max(0, choices.scheme5));
             }
@@ -143,9 +137,7 @@ namespace FutebolDeBotao
                 var side = (TeamSide)i;
                 var choices = Data.players[i];
                 choices.team = MatchSession.TeamIndex(side);
-                choices.secondary = MatchSession.SecondaryIndex(side);
-                choices.discPatternId = MatchSession.DiscPatternId(side);
-                choices.keeperPatternId = MatchSession.KeeperPatternId(side);
+                choices.uniform = MatchSession.UniformChoice(side);
                 choices.scheme3 = MatchSession.SchemeIndex(side, 3);
                 choices.scheme5 = MatchSession.SchemeIndex(side, 5);
             }
@@ -211,6 +203,26 @@ namespace FutebolDeBotao
             data.tournament ??= new SaveData.TournamentRun();
             data.tournament.slots ??= new System.Collections.Generic.List<int>();
             data.tournament.matches ??= new System.Collections.Generic.List<SaveData.TournamentMatch>();
+            // Versão 8 trocou a cor reserva pelo Uniforme 2: a reserva vira o Uniforme 2; sem reserva, as cores invertidas.
+            if (data.version < 8)
+            {
+                var profile = data.profile;
+                profile.discPatternId2 = profile.discPatternId;
+                profile.keeperPatternId2 = profile.keeperPatternId;
+                if (profile.hasReserve && profile.reserve.a > 0f)
+                {
+                    profile.primary2 = profile.reserveReplacesSecondary ? profile.primary : profile.reserve;
+                    profile.secondary2 = profile.reserveReplacesSecondary ? profile.reserve : profile.secondary;
+                }
+                else
+                {
+                    profile.primary2 = profile.secondary;
+                    profile.secondary2 = profile.primary;
+                }
+                profile.hasReserve = false;
+            }
+            if (data.profile.primary2.a <= 0f) data.profile.primary2 = data.profile.secondary;
+            if (data.profile.secondary2.a <= 0f) data.profile.secondary2 = data.profile.primary;
             data.tutorial ??= new SaveData.TutorialData();
             data.tutorial.done ??= new System.Collections.Generic.List<string>();
             // Versão 4 passou a contar moedas ganhas e gastas: gastos pelo preço do que já foi comprado, ganhos = saldo + gastos.

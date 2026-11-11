@@ -5,15 +5,18 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tela Meu time (do Menu), em duas abas. Time: nome do time, sigla de 3 letras, cor principal e segunda cor (da lista
-    /// Cores do time; podem ser iguais), camisa do botão e do goleiro (só as liberadas), com o botão e o goleiro pintados em
-    /// cima. Mesa: a mesa de casa (mesa, feltro, cor das traves que o feltro aceita e bola, só os liberados), com a mesa
+    /// Tela Meu time (do Menu), em duas abas. Time: nome do time e sigla de 3 letras em cima e, embaixo, as abas Uniforme 1
+    /// e Uniforme 2, cada uma com o botão e o goleiro pintados e as opções dela: cor principal e segunda cor (da lista Cores
+    /// do time; podem ser iguais), camisa do botão e do goleiro (só as liberadas). Mesa: a mesa de casa (mesa, feltro, cor das traves que o feltro aceita e bola, só os liberados), com a mesa
     /// montada em cima. "Salvar" grava as duas abas e volta ao Menu; "Voltar" volta sem gravar. Tocar no nome ou na sigla
     /// abre o teclado (no celular, o do aparelho); no teclado/controle, Confirmar começa a digitar. Monta a UI sozinha.
     /// </summary>
     public sealed class ProfileScreen : MonoBehaviour
     {
-        private const float RowTop = 140f;
+        private const float NameY = 320f;
+        private const float UniformTabY = 160f;
+        private static readonly Vector2 UniformTabSize = new(240f, 64f);
+        private const float RowTop = -110f;
         private const float TabY = 405f;
         private static readonly Vector2 TabSize = new(240f, 70f);
         private const float TableRowTop = -120f;
@@ -26,7 +29,7 @@ namespace FutebolDeBotao
         private const float ValueX = 150f;
         private const float ValueWidth = 360f;
         private const float ArrowSize = 70f;
-        private const float PreviewY = 285f;
+        private const float PreviewY = 25f;
         private const float PreviewSize = 150f;
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
@@ -40,13 +43,13 @@ namespace FutebolDeBotao
         private Font font;
         private bool built;
         private InputField nameField, abbreviationField;
-        private Image primarySwatch, secondarySwatch, reserveSwatch;
-        private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel, reserveLabel, reserveSlotLabel;
-        private GameObject reserveSlotRow;
+        private Image primarySwatch, secondarySwatch;
+        private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel;
         private GameObject discRow, keeperRow;
-        private Image[] discLayers, keeperLayers, reserveLayers, reserveKeeperLayers;
+        private Image[] discLayers, keeperLayers;
         private GameObject teamTab, tableTab;
         private Button teamTabButton, tableTabButton;
+        private Button[] uniformTabButtons;
         private MenuEntry[] teamEntries, tableEntries;
         private MenuEntry tabsEntry, backEntry, saveEntry;
         private MenuNavigator navigator;
@@ -56,10 +59,11 @@ namespace FutebolDeBotao
         private bool showingTable;
         private VenueSetup home;
 
-        // Escolhas ainda não salvas.
-        private Color primary, secondary, reserve;
-        private bool hasReserve, reserveReplacesSecondary;
-        private string discId, keeperId;
+        // Escolhas ainda não salvas: os dois uniformes e qual aba está aberta.
+        private readonly TeamUniform[] uniforms = new TeamUniform[TeamData.UniformCount];
+        private int uniformTab;
+
+        private TeamUniform Current => uniforms[uniformTab];
 
         public void Configure(MenuScreen menuScreen, Sprite[] tableArt)
         {
@@ -74,13 +78,15 @@ namespace FutebolDeBotao
             var data = PlayerProfile.Data;
             nameField.text = data.teamName;
             abbreviationField.text = data.abbreviation;
-            primary = data.primary;
-            secondary = data.secondary;
-            hasReserve = data.hasReserve;
-            reserve = data.reserve;
-            reserveReplacesSecondary = data.reserveReplacesSecondary;
-            discId = PlayerProfile.DiscPattern?.id ?? data.discPatternId;
-            keeperId = PlayerProfile.KeeperPattern?.id ?? data.keeperPatternId;
+            for (int i = 0; i < uniforms.Length; i++)
+            {
+                var saved = PlayerProfile.Uniform(i);
+                // Camisa que não está mais liberada: mostra (e salva) a primeira liberada.
+                uniforms[i] = new TeamUniform(saved.primary, saved.secondary,
+                    ShirtPattern.Resolve(ShirtPattern.Kind.Botao, saved.discPatternId)?.id ?? saved.discPatternId,
+                    ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, saved.keeperPatternId)?.id ?? saved.keeperPatternId);
+            }
+            uniformTab = 0;
             coinsLabel.text = $"Moedas: {PlayerProfile.Coins}";
             home = Venue.Home();
             ShowTab(false);
@@ -89,8 +95,7 @@ namespace FutebolDeBotao
 
         private void Save()
         {
-            PlayerProfile.Save(nameField.text, abbreviationField.text, primary, secondary, discId, keeperId,
-                hasReserve, reserve, reserveReplacesSecondary);
+            PlayerProfile.Save(nameField.text, abbreviationField.text, uniforms[0], uniforms[1]);
             PlayerProfile.SaveHome(home);
             Back();
         }
@@ -159,82 +164,49 @@ namespace FutebolDeBotao
             if (menu != null) menu.ShowMode();
         }
 
+        private void ShowUniform(int index)
+        {
+            uniformTab = Mathf.Clamp(index, 0, uniforms.Length - 1);
+            Refresh();
+        }
+
         private void ChangePrimary(int step)
         {
-            primary = TeamColorPalette.Load().Step(primary, step);
+            Current.primary = TeamColorPalette.Load().Step(Current.primary, step);
             Refresh();
         }
 
         private void ChangeSecondary(int step)
         {
-            secondary = TeamColorPalette.Load().Step(secondary, step);
-            Refresh();
-        }
-
-        /// <summary>Cor reserva: "Nenhuma" e depois as cores da lista (dá a volta passando pelo "Nenhuma").</summary>
-        private void ChangeReserve(int step)
-        {
-            var palette = TeamColorPalette.Load();
-            int count = palette.Count;
-            if (count == 0) return;
-            // Posição 0 = Nenhuma; a cor i da lista fica na i + 1.
-            int position = hasReserve ? Mathf.Max(0, palette.IndexOf(reserve)) + 1 : 0;
-            position = ((position + step) % (count + 1) + count + 1) % (count + 1);
-            hasReserve = position > 0;
-            if (hasReserve) reserve = palette[position - 1].color;
-            Refresh();
-        }
-
-        private void ChangeReserveSlot(int step)
-        {
-            reserveReplacesSecondary = !reserveReplacesSecondary;
+            Current.secondary = TeamColorPalette.Load().Step(Current.secondary, step);
             Refresh();
         }
 
         private void ChangeShirt(bool keeper, int step)
         {
-            if (keeper) keeperId = ShirtPattern.Step(ShirtPattern.Kind.Goleiro, keeperId, step);
-            else discId = ShirtPattern.Step(ShirtPattern.Kind.Botao, discId, step);
+            if (keeper) Current.keeperPatternId = ShirtPattern.Step(ShirtPattern.Kind.Goleiro, Current.keeperPatternId, step);
+            else Current.discPatternId = ShirtPattern.Step(ShirtPattern.Kind.Botao, Current.discPatternId, step);
             Refresh();
         }
 
         private void Refresh()
         {
-            var palette = TeamColorPalette.Load();
-            PaintSwatch(primarySwatch, primaryLabel, primary, palette.NameOf(primary));
-            PaintSwatch(secondarySwatch, secondaryLabel, secondary, palette.NameOf(secondary));
-            if (hasReserve) PaintSwatch(reserveSwatch, reserveLabel, reserve, palette.NameOf(reserve));
-            else
-            {
-                reserveSwatch.color = new Color(0f, 0f, 0f, 0.35f);
-                reserveLabel.text = "Nenhuma";
-                reserveLabel.color = Color.white;
-            }
-            reserveSlotRow.SetActive(hasReserve);
-            reserveSlotLabel.text = reserveReplacesSecondary ? "Segunda cor" : "Cor principal";
+            for (int i = 0; i < uniformTabButtons.Length; i++)
+                ButtonSkin.SetHeld(uniformTabButtons[i], ButtonStyle.Green, i == uniformTab);
 
-            var disc = ShirtPattern.Resolve(ShirtPattern.Kind.Botao, discId);
-            var keeper = ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, keeperId);
+            var uniform = Current;
+            var palette = TeamColorPalette.Load();
+            PaintSwatch(primarySwatch, primaryLabel, uniform.primary, palette.NameOf(uniform.primary));
+            PaintSwatch(secondarySwatch, secondaryLabel, uniform.secondary, palette.NameOf(uniform.secondary));
+
+            var disc = ShirtPattern.Resolve(ShirtPattern.Kind.Botao, uniform.discPatternId);
+            var keeper = ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, uniform.keeperPatternId);
             discRow.SetActive(disc != null);
             keeperRow.SetActive(keeper != null);
             discLabel.text = disc != null ? disc.displayName : string.Empty;
             keeperLabel.text = keeper != null ? keeper.displayName : string.Empty;
-            PaintPiece(discLayers, disc, false);
-            PaintPiece(keeperLayers, keeper, true);
-
-            // Com reserva: botão e goleiro, depois botão e goleiro com a cor reserva; sem reserva, só os dois.
-            bool showReserve = hasReserve && disc != null;
-            Place(discLayers, showReserve ? -240f : -110f);
-            Place(keeperLayers, showReserve ? -80f : 110f);
-            reserveLayers[0].transform.parent.gameObject.SetActive(showReserve);
-            reserveKeeperLayers[0].transform.parent.gameObject.SetActive(showReserve && keeper != null);
-            if (showReserve)
-            {
-                var reservePrimary = reserveReplacesSecondary ? primary : reserve;
-                var reserveSecondary = reserveReplacesSecondary ? reserve : secondary;
-                PaintPiece(reserveLayers, disc, false, reservePrimary, reserveSecondary);
-                PaintPiece(reserveKeeperLayers, keeper, true, reservePrimary, reserveSecondary);
-            }
+            PaintPiece(discLayers, disc, false, uniform.primary, uniform.secondary);
+            PaintPiece(keeperLayers, keeper, true, uniform.primary, uniform.secondary);
         }
 
         private static void PaintSwatch(Image swatch, Text label, Color color, string colorName)
@@ -245,11 +217,6 @@ namespace FutebolDeBotao
             float light = 0.299f * color.r + 0.587f * color.g + 0.114f * color.b;
             label.color = light > 0.6f ? new Color(0.1f, 0.1f, 0.1f) : Color.white;
         }
-
-        private static void Place(Image[] layers, float x) =>
-            ((RectTransform)layers[0].transform.parent).anchoredPosition = new Vector2(x, 0f);
-
-        private void PaintPiece(Image[] layers, ShirtPattern pattern, bool keeper) => PaintPiece(layers, pattern, keeper, primary, secondary);
 
         private static void PaintPiece(Image[] layers, ShirtPattern pattern, bool keeper, Color primary, Color secondary)
         {
@@ -281,28 +248,35 @@ namespace FutebolDeBotao
             tabsEntry = CreateRect(root, "Item das abas", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             tabsEntry.Configure(null, teamTabButton, tableTabButton, (RectTransform)teamTabButton.transform, (RectTransform)tableTabButton.transform);
 
-            // Aba Time. Prévia: o botão e o goleiro pintados, direto sobre o fundo da tela.
+            // Aba Time: nome e sigla em cima; embaixo as abas Uniforme 1 | Uniforme 2, a prévia e as opções do uniforme.
             var teamPage = CreateRect(root, "Aba Time", Vector2.zero, Vector2.zero);
             teamTab = teamPage.gameObject;
+            var nameEntry = CreateField(teamPage, "Nome", "Nome do time", NameY, PlayerProfile.NameLength, false, out nameField);
+            var abbreviationEntry = CreateField(teamPage, "Sigla", "Sigla (3 letras)", NameY - RowSpacing, PlayerProfile.AbbreviationLength, true,
+                out abbreviationField);
+
+            uniformTabButtons = new Button[TeamData.UniformCount];
+            for (int i = 0; i < uniformTabButtons.Length; i++)
+            {
+                int index = i;
+                float x = (i - (uniformTabButtons.Length - 1) * 0.5f) * (UniformTabSize.x + 20f);
+                uniformTabButtons[i] = CreateButton(teamPage, $"Aba Uniforme {i + 1}", $"Uniforme {i + 1}", new Vector2(x, UniformTabY),
+                    UniformTabSize, () => ShowUniform(index));
+            }
+            var uniformTabsEntry = CreateRect(teamPage, "Item dos uniformes", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
+            uniformTabsEntry.Configure(null, uniformTabButtons[0], uniformTabButtons[1],
+                (RectTransform)uniformTabButtons[0].transform, (RectTransform)uniformTabButtons[1].transform);
+
+            // Prévia: o botão e o goleiro do uniforme aberto, direto sobre o fundo da tela.
             var preview = CreateRect(teamPage, "Prévia", new Vector2(0f, PreviewY), new Vector2(460f, 200f));
             discLayers = CreatePiece(preview, "Botão", new Vector2(-110f, 0f), false);
             keeperLayers = CreatePiece(preview, "Goleiro", new Vector2(110f, 0f), true);
-            // Botão com a cor reserva (só com reserva escolhida): à direita, com o nome embaixo.
-            reserveLayers = CreatePiece(preview, "Botão reserva", new Vector2(80f, 0f), false);
-            reserveKeeperLayers = CreatePiece(preview, "Goleiro reserva", new Vector2(240f, 0f), true);
-            // Uma legenda só, embaixo do botão e do goleiro reserva (no meio dos dois).
-            CreateText(reserveLayers[0].transform.parent, "Legenda", "Reserva", 22, FontStyle.Bold, LabelColor,
-                new Vector2(80f, -PreviewSize * 0.5f + 4f), new Vector2(PreviewSize * 2f, 30f));
 
-            var nameEntry = CreateField(teamPage, "Nome", "Nome do time", 0, PlayerProfile.NameLength, false, out nameField);
-            var abbreviationEntry = CreateField(teamPage, "Sigla", "Sigla (3 letras)", 1, PlayerProfile.AbbreviationLength, true, out abbreviationField);
-            var primaryEntry = CreateArrowRow(teamPage, "Cor principal", RowY(2), ChangePrimary, true, out primaryLabel, out primarySwatch, out _);
-            var secondaryEntry = CreateArrowRow(teamPage, "Segunda cor", RowY(3), ChangeSecondary, true, out secondaryLabel, out secondarySwatch, out _);
-            var discEntry = CreateArrowRow(teamPage, "Camisa do botão", RowY(4), step => ChangeShirt(false, step), false, out discLabel, out _, out discRow);
-            var keeperEntry = CreateArrowRow(teamPage, "Camisa do goleiro", RowY(5), step => ChangeShirt(true, step), false, out keeperLabel, out _, out keeperRow);
-            var reserveEntry = CreateArrowRow(teamPage, "Cor reserva", RowY(6), ChangeReserve, true, out reserveLabel, out reserveSwatch, out _);
-            var reserveSlotEntry = CreateArrowRow(teamPage, "Reserva troca", RowY(7), ChangeReserveSlot, false, out reserveSlotLabel, out _, out reserveSlotRow);
-            teamEntries = new[] { nameEntry, abbreviationEntry, primaryEntry, secondaryEntry, discEntry, keeperEntry, reserveEntry, reserveSlotEntry };
+            var primaryEntry = CreateArrowRow(teamPage, "Cor principal", RowY(0), ChangePrimary, true, out primaryLabel, out primarySwatch, out _);
+            var secondaryEntry = CreateArrowRow(teamPage, "Segunda cor", RowY(1), ChangeSecondary, true, out secondaryLabel, out secondarySwatch, out _);
+            var discEntry = CreateArrowRow(teamPage, "Camisa do botão", RowY(2), step => ChangeShirt(false, step), false, out discLabel, out _, out discRow);
+            var keeperEntry = CreateArrowRow(teamPage, "Camisa do goleiro", RowY(3), step => ChangeShirt(true, step), false, out keeperLabel, out _, out keeperRow);
+            teamEntries = new[] { nameEntry, abbreviationEntry, uniformTabsEntry, primaryEntry, secondaryEntry, discEntry, keeperEntry };
 
             // Aba Mesa: a mesa de casa montada e as setas de cada parte.
             var tablePage = CreateRect(root, "Aba Mesa", Vector2.zero, Vector2.zero);
@@ -349,9 +323,8 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Linha com um campo de texto; Confirmar (teclado/controle) começa a digitar.</summary>
-        private MenuEntry CreateField(Transform parent, string label, string placeholder, int row, int limit, bool upper, out InputField field)
+        private MenuEntry CreateField(Transform parent, string label, string placeholder, float y, int limit, bool upper, out InputField field)
         {
-            float y = RowY(row);
             var line = CreateRect(parent, label, Vector2.zero, Vector2.zero);
             CreateRowLabel(line, label, y);
 

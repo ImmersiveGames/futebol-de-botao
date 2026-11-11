@@ -2,82 +2,138 @@ using UnityEngine;
 
 namespace FutebolDeBotao
 {
-    /// <summary>Um time: nome, abreviação do placar, cores dos botões e escudo.</summary>
+    /// <summary>
+    /// Um uniforme do time: cor principal (corpo do botão), segunda cor (padrão da camisa e anel) e os padrões de camisa
+    /// do botão e do goleiro (vazio: sorteado quando a IA joga).
+    /// </summary>
+    [System.Serializable]
+    public sealed class TeamUniform
+    {
+        public Color primary = Color.white;
+        public Color secondary = Color.black;
+        [ShirtPatternId(ShirtPattern.Kind.Botao)] public string discPatternId = "";
+        [ShirtPatternId(ShirtPattern.Kind.Goleiro)] public string keeperPatternId = "";
+
+        public TeamUniform() { }
+
+        public TeamUniform(Color primary, Color secondary, string discPatternId, string keeperPatternId)
+        {
+            this.primary = primary;
+            this.secondary = secondary;
+            this.discPatternId = discPatternId ?? "";
+            this.keeperPatternId = keeperPatternId ?? "";
+        }
+    }
+
+    /// <summary>
+    /// Um time: nome, abreviação do placar, escudo e dois uniformes. O Uniforme 1 é o de sempre; o 2 entra quando as
+    /// cores ficam parecidas com as do adversário (a IA escolhe sozinha; o jogador escolhe na Seleção de times).
+    /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Time", fileName = "Time")]
     public sealed class TeamData : ScriptableObject
     {
-        /// <summary>Qual cor a cor reserva substitui.</summary>
-        public enum ReserveSlot { Principal, SegundaCor }
-
         /// <summary>Cores principais mais perto que isto (soma das diferenças de R, G e B): times parecidos.</summary>
         public const float ClashDistance = 0.35f;
+
+        /// <summary>Quantos uniformes cada time tem.</summary>
+        public const int UniformCount = 2;
 
         [SerializeField] private string teamName = "Time";
         [Tooltip("3 letras, usadas no placar.")]
         [SerializeField] private string abbreviation = "TIM";
-        [Tooltip("Cor do botão.")]
-        [SerializeField] private Color primaryColor = Color.white;
-        [Tooltip("Cor do anel do botão (diferencia times de cores parecidas).")]
-        [SerializeField] private Color secondaryColor = Color.black;
         [Tooltip("Escudo. Vazio: a tela mostra um círculo nas cores do time.")]
         [SerializeField] private Sprite crest;
-        [Header("Cor reserva (cores parecidas com o adversário)")]
-        [Tooltip("O time tem cor reserva. Com as cores principais parecidas, o visitante joga com ela (sem reserva no visitante, o mandante).")]
-        [SerializeField] private bool hasReserve;
-        [SerializeField] private Color reserveColor = Color.white;
-        [Tooltip("A cor que a reserva substitui.")]
-        [SerializeField] private ReserveSlot reserveReplaces = ReserveSlot.Principal;
-        [Header("Camisas (time da IA)")]
-        [Tooltip("Padrão dos botões quando a IA joga com este time. Sortear: um diferente a cada partida.")]
+
+        // Uniforme 1: os campos antigos (os nomes ficam para os assets não perderem as cores).
+        [Header("Uniforme 1")]
+        [Tooltip("Cor do botão.")]
+        [SerializeField] private Color primaryColor = Color.white;
+        [Tooltip("Cor do padrão da camisa e do anel.")]
+        [SerializeField] private Color secondaryColor = Color.black;
+        [Tooltip("Padrão dos botões. Sortear: quando a IA joga, um diferente a cada partida.")]
         [ShirtPatternId(ShirtPattern.Kind.Botao)]
         [SerializeField] private string discPatternId = "";
-        [Tooltip("Padrão do goleiro quando a IA joga com este time. Sortear: um diferente a cada partida.")]
+        [Tooltip("Padrão do goleiro. Sortear: quando a IA joga, um diferente a cada partida.")]
         [ShirtPatternId(ShirtPattern.Kind.Goleiro)]
         [SerializeField] private string keeperPatternId = "";
 
+        [Header("Uniforme 2")]
+        [Tooltip("Usado quando as cores ficam parecidas com as do adversário.")]
+        [SerializeField] private TeamUniform uniform2 = new();
+        [Tooltip("O Uniforme 2 já foi preenchido (assets antigos são convertidos da cor reserva ou com as cores invertidas).")]
+        [SerializeField, HideInInspector] private bool uniform2Set;
+
+        // Cor reserva (versão antiga): só para converter os assets no Uniforme 2.
+        [SerializeField, HideInInspector] private bool hasReserve;
+        [SerializeField, HideInInspector] private Color reserveColor = Color.white;
+        [SerializeField, HideInInspector] private int reserveReplaces;
+
         public string TeamName => teamName;
         public string Abbreviation => abbreviation;
+        /// <summary>Cores do Uniforme 1.</summary>
         public Color PrimaryColor => primaryColor;
         public Color SecondaryColor => secondaryColor;
         public Sprite Crest => crest;
-        public bool HasReserve => hasReserve;
-        public Color ReserveColor => reserveColor;
-        public ReserveSlot ReserveReplaces => reserveReplaces;
+        /// <summary>Padrões do Uniforme 1.</summary>
+        public string DiscPatternId => discPatternId;
+        public string KeeperPatternId => keeperPatternId;
 
-        /// <summary>Cor principal com ou sem a reserva.</summary>
-        public Color PrimaryFor(bool reserve) => reserve && hasReserve && reserveReplaces == ReserveSlot.Principal ? reserveColor : primaryColor;
-
-        /// <summary>A segunda cor é trocada pela reserva (com <paramref name="reserve"/>).</summary>
-        public bool ReserveReplacesSecondary(bool reserve) => reserve && hasReserve && reserveReplaces == ReserveSlot.SegundaCor;
-
-        public void SetReserve(bool has, Color color, ReserveSlot replaces)
+        /// <summary>Uniforme 1 (0) ou 2 (1).</summary>
+        public TeamUniform Uniform(int index)
         {
-            hasReserve = has;
-            reserveColor = color;
-            reserveReplaces = replaces;
+            if (index <= 0) return new TeamUniform(primaryColor, secondaryColor, discPatternId, keeperPatternId);
+            EnsureUniform2();
+            return uniform2;
         }
 
-        /// <summary>As cores principais dos dois times são parecidas.</summary>
-        public static bool Clash(TeamData a, TeamData b)
-        {
-            if (a == null || b == null) return false;
-            Color x = a.primaryColor, y = b.primaryColor;
-            return Mathf.Abs(x.r - y.r) + Mathf.Abs(x.g - y.g) + Mathf.Abs(x.b - y.b) < ClashDistance;
-        }
+        public Color PrimaryOf(int uniform) => uniform <= 0 ? primaryColor : Uniform(1).primary;
+
+        public Color SecondaryOf(int uniform) => uniform <= 0 ? secondaryColor : Uniform(1).secondary;
+
+        public string DiscPatternOf(int uniform) => uniform <= 0 ? discPatternId : Uniform(1).discPatternId;
+
+        public string KeeperPatternOf(int uniform) => uniform <= 0 ? keeperPatternId : Uniform(1).keeperPatternId;
 
         /// <summary>
-        /// O time joga de reserva contra o adversário? Só com as cores principais parecidas: o visitante, se tiver reserva;
-        /// senão o mandante, se ele tiver.
+        /// Asset antigo (sem Uniforme 2): a cor reserva vira o Uniforme 2; sem reserva, as cores invertidas. As camisas
+        /// são as do Uniforme 1. Devolve true se mudou (o editor grava o asset).
         /// </summary>
-        public static bool WearsReserve(TeamData team, TeamData opponent, bool visitor)
+        public bool EnsureUniform2()
         {
-            if (team == null || !team.hasReserve || !Clash(team, opponent)) return false;
-            return visitor || !opponent.hasReserve;
+            if (uniform2Set) return false;
+            uniform2Set = true;
+            if (hasReserve)
+                uniform2 = reserveReplaces == 1
+                    ? new TeamUniform(primaryColor, reserveColor, discPatternId, keeperPatternId)
+                    : new TeamUniform(reserveColor, secondaryColor, discPatternId, keeperPatternId);
+            else uniform2 = new TeamUniform(secondaryColor, primaryColor, discPatternId, keeperPatternId);
+            hasReserve = false;
+            return true;
         }
-        /// <summary>Id do padrão dos botões do time (vazio: sorteado).</summary>
-        public string DiscPatternId => discPatternId;
-        /// <summary>Id do padrão do goleiro do time (vazio: sorteado).</summary>
-        public string KeeperPatternId => keeperPatternId;
+
+        /// <summary>Cores parecidas (soma das diferenças de R, G e B menor que <see cref="ClashDistance"/>).</summary>
+        public static bool Clash(Color x, Color y) =>
+            Mathf.Abs(x.r - y.r) + Mathf.Abs(x.g - y.g) + Mathf.Abs(x.b - y.b) < ClashDistance;
+
+        /// <summary>
+        /// Uniforme que o time (da IA) veste contra um adversário de cor principal <paramref name="opponentPrimary"/>:
+        /// o 1, a não ser que fique parecido e o 2 não.
+        /// </summary>
+        public int AutoUniform(Color opponentPrimary) =>
+            Clash(PrimaryOf(0), opponentPrimary) && !Clash(PrimaryOf(1), opponentPrimary) ? 1 : 0;
+
+        /// <summary>Uniforme 2 completo (Meu time).</summary>
+        public void SetUniform2(TeamUniform uniform)
+        {
+            uniform2 = uniform ?? new TeamUniform();
+            uniform2Set = true;
+        }
+
+        public void SetShirts(string discPattern, string keeperPattern)
+        {
+            discPatternId = discPattern ?? "";
+            keeperPatternId = keeperPattern ?? "";
+        }
 
         /// <summary>Cor para escrever o nome do time sobre fundo escuro (time preto usa a cor do anel).</summary>
         public Color TextColor

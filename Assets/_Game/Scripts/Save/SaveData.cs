@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 7;
+        public const int CurrentVersion = 8;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -79,6 +79,8 @@ namespace FutebolDeBotao
             public string keeperPatternId;
             public int scheme3;
             public int scheme5;
+            /// <summary>Uniforme escolhido na Seleção de times (versão 8): 0 = Uniforme 1, 1 = Uniforme 2.</summary>
+            public int uniform;
         }
 
         /// <summary>O time do jogador (tela Meu time). As cores são guardadas em si, não a posição na lista de cores.</summary>
@@ -91,7 +93,12 @@ namespace FutebolDeBotao
             public UnityEngine.Color secondary = PlayerProfile.DefaultSecondary;
             public string discPatternId;
             public string keeperPatternId;
-            /// <summary>Cor reserva do Meu time (cores parecidas com o adversário) e se ela troca a segunda cor.</summary>
+            /// <summary>Uniforme 2 do Meu time (versão 8): cores e camisas; os campos de cima são o Uniforme 1.</summary>
+            public UnityEngine.Color primary2 = PlayerProfile.DefaultSecondary;
+            public UnityEngine.Color secondary2 = PlayerProfile.DefaultPrimary;
+            public string discPatternId2;
+            public string keeperPatternId2;
+            /// <summary>Cor reserva (versão 3 a 7): convertida no Uniforme 2 ao abrir um save antigo.</summary>
             public bool hasReserve;
             public UnityEngine.Color reserve = UnityEngine.Color.white;
             public bool reserveReplacesSecondary;

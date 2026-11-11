@@ -7,9 +7,9 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Seleção de times, no Menu, depois das Opções da partida: o campo desenhado com os dois times nos esquemas escolhidos.
-    /// Em cada metade, à esquerda, as setas do time lado a lado com o nome e a abreviação à direita e, embaixo, as da segunda
-    /// cor e as da camisa;
-    /// à direita, as setas do esquema; as setas da camisa do goleiro ficam uma de cada lado dele.
+    /// Em cada metade, à esquerda, as setas do time lado a lado com o nome e a abreviação à direita e, embaixo, as do
+    /// uniforme (1 ou 2; as camisas vêm do uniforme; no lado da IA ela escolhe sozinha e a linha some);
+    /// à direita, as setas do esquema.
     /// A metade de cima fica girada 180° para o Jogador 2 (base da versão de celular, 2 jogadores na mesma tela); contra a IA,
     /// as opções dela ficam em pé, como as do jogador.
     /// Contra a IA, ela sorteia time e esquema ao abrir a tela. A UI é montada no Awake.
@@ -82,6 +82,9 @@ namespace FutebolDeBotao
             public MenuEntry TeamItem;
             public MenuEntry SchemeItem;
             public MenuEntry SecondaryItem;
+            /// <summary>"Uniforme 1" ou "Uniforme 2" na linha do uniforme.</summary>
+            public Text UniformLabel;
+            public GameObject[] UniformRow;
             public MenuEntry ShirtItem;
             public MenuEntry KeeperItem;
             public RectTransform Root;
@@ -161,16 +164,9 @@ namespace FutebolDeBotao
                 }
                 MatchSession.SetTeamIndex(TeamSide.Top, pick);
                 MatchSession.SetSchemeIndex(TeamSide.Top, discs, Random.Range(0, catalog.SchemeCount(discs)));
-                if (hasShirts) MatchSession.UseTeamShirts(TeamSide.Top);
-                MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
+                MatchSession.UseTeamShirts(TeamSide.Top);
             }
             if (!tournament) EnsureDifferentTeams();
-            // Camisa guardada que não está (mais) liberada: fica com a primeira liberada.
-            foreach (var side in new[] { TeamSide.Bottom, TeamSide.Top })
-            {
-                MatchSession.SetDiscPattern(side, MatchSession.DiscPatternId(side));
-                MatchSession.SetKeeperPattern(side, MatchSession.KeeperPatternId(side));
-            }
             // Partida nova: mesa de casa do jogador e a do visitante sorteada; começa em casa.
             if (!tournament) MatchSession.PrepareVenues();
             foreach (var pair in halves)
@@ -215,19 +211,18 @@ namespace FutebolDeBotao
             else
             {
                 MatchSession.SetTeamIndex(side, index);
-                MatchSession.SetSecondaryIndex(side, 0);
-                // Time da IA trocado nas setas: vem com as camisas dele.
-                if (MatchSession.VsAi == true && side == TeamSide.Top && ShirtPattern.Any(ShirtPattern.Kind.Botao))
-                    MatchSession.UseTeamShirts(side);
+                // Time da IA trocado nas setas: vem com as camisas dele e escolhe o uniforme sozinho.
+                if (MatchSession.VsAi == true && side == TeamSide.Top) MatchSession.UseTeamShirts(side);
+                else MatchSession.UsePlayerTeam(side);
             }
             Refresh();
         }
 
-        /// <summary>Próxima segunda cor do time (a primeira é a do próprio time).</summary>
-        public void ChangeSecondary(TeamSide side, int step)
+        /// <summary>Troca entre o Uniforme 1 e o 2 do time.</summary>
+        public void ChangeUniform(TeamSide side, int step)
         {
-            int count = TeamCatalog.Load().SecondaryOptions(MatchSession.Team(side)).Length;
-            MatchSession.SetSecondaryIndex(side, Wrap(MatchSession.SecondaryIndex(side) + step, count));
+            if (MatchSession.IsAutoUniform(side)) return;
+            MatchSession.SetUniform(side, Wrap(MatchSession.UniformChoice(side) + step, TeamData.UniformCount));
             Refresh();
         }
 
@@ -240,22 +235,12 @@ namespace FutebolDeBotao
             Refresh();
         }
 
-        /// <summary>Próxima camisa dos botões (ou do goleiro) do time.</summary>
-        public void ChangeShirt(TeamSide side, bool keeper, int step)
-        {
-            // Só os padrões liberados, na ordem dos assets (ShirtPattern).
-            if (keeper) MatchSession.SetKeeperPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Goleiro, MatchSession.KeeperPatternId(side), step));
-            else MatchSession.SetDiscPattern(side, ShirtPattern.Step(ShirtPattern.Kind.Botao, MatchSession.DiscPatternId(side), step));
-            Refresh();
-        }
-
         /// <summary>Em casa (mesa do jogador) ou Visitante (a sorteada): troca mesa, feltro, traves e bola.</summary>
         public void SetAway(bool away)
         {
             if (MatchSession.InTournamentMatch) return;
             MatchSession.SetAway(away);
             PaintVenue();
-            // Quem é visitante decide quem joga de reserva.
             Refresh();
         }
 
@@ -342,11 +327,7 @@ namespace FutebolDeBotao
             if (bottom >= 0) bottom = Wrap(bottom, catalog.TeamCount);
             int top = Wrap(MatchSession.TeamIndex(TeamSide.Top), catalog.TeamCount);
             MatchSession.SetTeamIndex(TeamSide.Bottom, bottom);
-            if (top == bottom)
-            {
-                top = Wrap(top + 1, catalog.TeamCount);
-                MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
-            }
+            if (top == bottom) top = Wrap(top + 1, catalog.TeamCount);
             MatchSession.SetTeamIndex(TeamSide.Top, top);
         }
 
@@ -391,7 +372,8 @@ namespace FutebolDeBotao
                 }
 
                 view.Keeper.Root.gameObject.SetActive(options.hasGoalkeeper);
-                SetActive(view.KeeperArrows.gameObject, options.hasGoalkeeper && hasShirts);
+                // As camisas vêm do uniforme: sem setas no goleiro.
+                SetActive(view.KeeperArrows.gameObject, false);
                 SetActive(bigGoals, !boardsTable && options.hasGoalkeeper);
                 SetActive(bigPoles, !boardsTable && options.hasGoalkeeper);
                 SetActive(smallGoals, !boardsTable && !options.hasGoalkeeper);
@@ -403,6 +385,10 @@ namespace FutebolDeBotao
                 PaintPiece(view.Keeper, MatchSession.KeeperPattern(side), primary, secondary, true);
                 if (view.Keeper.Layers == null) view.Keeper.Body.color = Color.Lerp(primary, Color.black, 0.25f);
 
+                // Uniforme: o lado da IA escolhe sozinho (a linha some).
+                bool auto = MatchSession.IsAutoUniform(side);
+                foreach (var part in view.UniformRow) SetActive(part, !auto);
+                view.UniformLabel.text = $"Uniforme {MatchSession.Uniform(side) + 1}";
                 view.Name.text = team.TeamName;
                 view.Abbreviation.text = team.Abbreviation;
                 view.Scheme.text = scheme != null ? scheme.DisplayName : "-";
@@ -788,31 +774,34 @@ namespace FutebolDeBotao
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
 
             // Segunda cor: embaixo do time, no mesmo formato.
-            var previousSecondary = CreateButton(controls, "Cor 2 anterior", "<", new Vector2(RowArrowX[0], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, -1));
-            var nextSecondary = CreateButton(controls, "Próxima cor 2", ">", new Vector2(RowArrowX[1], SecondaryY), Vector2.one * RowArrowSize, () => ChangeSecondary(side, 1));
-            var secondaryTitle = FieldLabel(CreateRowLabel(controls, "Cor 2", 20, FontStyle.Bold, Color.white, SecondaryY, 0.32f), false);
-            secondaryTitle.text = "Cor 2";
+            var previousSecondary = CreateButton(controls, "Uniforme anterior", "<", new Vector2(RowArrowX[0], SecondaryY), Vector2.one * RowArrowSize, () => ChangeUniform(side, -1));
+            var nextSecondary = CreateButton(controls, "Próximo uniforme", ">", new Vector2(RowArrowX[1], SecondaryY), Vector2.one * RowArrowSize, () => ChangeUniform(side, 1));
+            var secondaryTitle = FieldLabel(CreateRowLabel(controls, "Uniforme", 20, FontStyle.Bold, Color.white, SecondaryY, 0.32f), false);
+            secondaryTitle.text = "Uniforme 1";
+            view.UniformLabel = secondaryTitle;
             view.SecondaryItem = CreateRect(controls, "Item da cor 2", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SecondaryItem.Configure(null, previousSecondary, nextSecondary, secondaryTitle.rectTransform,
                 (RectTransform)previousSecondary.transform, (RectTransform)nextSecondary.transform);
+            view.UniformRow = new[] { view.SecondaryItem.gameObject, previousSecondary.gameObject, nextSecondary.gameObject, secondaryTitle.gameObject };
 
             // Camisa dos botões: embaixo da segunda cor, no mesmo formato.
-            var previousShirt = CreateButton(controls, "Camisa anterior", "<", new Vector2(RowArrowX[0], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, -1));
-            var nextShirt = CreateButton(controls, "Próxima camisa", ">", new Vector2(RowArrowX[1], ShirtY), Vector2.one * RowArrowSize, () => ChangeShirt(side, false, 1));
+            // As camisas agora vêm do uniforme: a linha fica escondida (o navegador pula itens desligados).
+            var previousShirt = CreateButton(controls, "Camisa anterior", "<", new Vector2(RowArrowX[0], ShirtY), Vector2.one * RowArrowSize, () => { });
+            var nextShirt = CreateButton(controls, "Próxima camisa", ">", new Vector2(RowArrowX[1], ShirtY), Vector2.one * RowArrowSize, () => { });
             var shirtTitle = FieldLabel(CreateRowLabel(controls, "Camisa", 20, FontStyle.Bold, Color.white, ShirtY, 0.32f), false);
             shirtTitle.text = "Camisa";
             view.ShirtItem = CreateRect(controls, "Item da camisa", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.ShirtItem.Configure(null, previousShirt, nextShirt, shirtTitle.rectTransform,
                 (RectTransform)previousShirt.transform, (RectTransform)nextShirt.transform);
-            view.ShirtItem.gameObject.SetActive(hasShirts);
-            SetActive(shirtTitle.gameObject, hasShirts);
-            SetActive(previousShirt.gameObject, hasShirts);
-            SetActive(nextShirt.gameObject, hasShirts);
+            view.ShirtItem.gameObject.SetActive(false);
+            SetActive(shirtTitle.gameObject, false);
+            SetActive(previousShirt.gameObject, false);
+            SetActive(nextShirt.gameObject, false);
 
             // Camisa do goleiro: uma seta de cada lado dele (somem sem goleiro).
             view.KeeperArrows = CreateRect(controls, "Setas do goleiro", keeperPosition * Unit, Vector2.zero);
-            var previousKeeper = CreateButton(view.KeeperArrows, "Goleiro anterior", "<", new Vector2(-KeeperArrowX, 0f), Vector2.one * 0.45f, () => ChangeShirt(side, true, -1));
-            var nextKeeper = CreateButton(view.KeeperArrows, "Próximo goleiro", ">", new Vector2(KeeperArrowX, 0f), Vector2.one * 0.45f, () => ChangeShirt(side, true, 1));
+            var previousKeeper = CreateButton(view.KeeperArrows, "Goleiro anterior", "<", new Vector2(-KeeperArrowX, 0f), Vector2.one * 0.45f, () => { });
+            var nextKeeper = CreateButton(view.KeeperArrows, "Próximo goleiro", ">", new Vector2(KeeperArrowX, 0f), Vector2.one * 0.45f, () => { });
             view.KeeperItem = view.KeeperArrows.gameObject.AddComponent<MenuEntry>();
             view.KeeperItem.Configure(null, previousKeeper, nextKeeper, view.Keeper.Root,
                 (RectTransform)previousKeeper.transform, (RectTransform)nextKeeper.transform);

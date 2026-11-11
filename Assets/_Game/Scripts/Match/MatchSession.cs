@@ -103,11 +103,15 @@ namespace FutebolDeBotao
         private static readonly int[] teamIndex = { 0, 1 };
         private static readonly int[] scheme5 = { 0, 0 };
         private static readonly int[] scheme3 = { 0, 0 };
+        // Padrões sorteados para o lado da IA quando o uniforme do time está em "Sortear".
         private static readonly string[] discPattern = { null, null };
         private static readonly string[] keeperPattern = { null, null };
         /// <summary>Lado da IA com as camisas do time: vale qualquer padrão, mesmo travado na loja do jogador.</summary>
         private static readonly bool[] anyPattern = { false, false };
-        private static readonly int[] secondaryIndex = { 0, 0 };
+        /// <summary>Uniforme escolhido por lado (0 = Uniforme 1, 1 = Uniforme 2).</summary>
+        private static readonly int[] uniformIndex = { 0, 0 };
+        /// <summary>Lado da IA: o uniforme é escolhido sozinho, o que não fica parecido com o do adversário.</summary>
+        private static readonly bool[] autoUniform = { false, false };
 
         /// <summary>Índice de time que quer dizer "Meu time" (<see cref="PlayerProfile"/>), só do Jogador 1.</summary>
         public const int ProfileTeam = -1;
@@ -122,76 +126,86 @@ namespace FutebolDeBotao
         public static void UseProfile(TeamSide side)
         {
             teamIndex[(int)side] = ProfileTeam;
-            secondaryIndex[(int)side] = 0;
-            discPattern[(int)side] = PlayerProfile.Data.discPatternId;
-            keeperPattern[(int)side] = PlayerProfile.Data.keeperPatternId;
+            discPattern[(int)side] = keeperPattern[(int)side] = null;
             anyPattern[(int)side] = false;
+            autoUniform[(int)side] = false;
+        }
+
+        /// <summary>Time do catálogo escolhido por um jogador: uniforme 1, camisas do uniforme (as liberadas).</summary>
+        public static void UsePlayerTeam(TeamSide side)
+        {
+            uniformIndex[(int)side] = 0;
+            discPattern[(int)side] = keeperPattern[(int)side] = null;
+            anyPattern[(int)side] = false;
+            autoUniform[(int)side] = false;
         }
 
         /// <summary>
-        /// Camisas do time do catálogo no lado da IA: as escolhidas no asset do time (mesmo travadas na loja) ou
-        /// sorteadas quando o time está em "Sortear".
+        /// Lado da IA: o uniforme é escolhido sozinho (o que não fica parecido com o adversário) e as camisas são as do
+        /// uniforme no asset do time (mesmo travadas na loja); em "Sortear", sorteadas uma vez aqui.
         /// </summary>
         public static void UseTeamShirts(TeamSide side)
         {
-            var team = Team(side);
             anyPattern[(int)side] = true;
-            discPattern[(int)side] = ShirtPattern.FindOf(ShirtPattern.Kind.Botao, team.DiscPatternId)?.id
-                                     ?? ShirtPattern.RandomId(ShirtPattern.Kind.Botao);
-            keeperPattern[(int)side] = ShirtPattern.FindOf(ShirtPattern.Kind.Goleiro, team.KeeperPatternId)?.id
-                                       ?? ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro);
+            autoUniform[(int)side] = true;
+            uniformIndex[(int)side] = 0;
+            discPattern[(int)side] = ShirtPattern.RandomId(ShirtPattern.Kind.Botao);
+            keeperPattern[(int)side] = ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro);
         }
 
         public static int TeamIndex(TeamSide side) => teamIndex[(int)side];
 
         public static void SetTeamIndex(TeamSide side, int index) => teamIndex[(int)side] = index;
 
-        /// <summary>Segunda cor escolhida (0 = a do próprio time), entre as <see cref="TeamCatalog.SecondaryOptions"/>.</summary>
-        public static int SecondaryIndex(TeamSide side) => secondaryIndex[(int)side];
+        /// <summary>Uniforme escolhido pelo jogador do lado (0 ou 1); no lado da IA, o último calculado não vale.</summary>
+        public static int UniformChoice(TeamSide side) => uniformIndex[(int)side];
 
-        public static void SetSecondaryIndex(TeamSide side, int index) => secondaryIndex[(int)side] = index;
+        public static void SetUniform(TeamSide side, int uniform) =>
+            uniformIndex[(int)side] = Mathf.Clamp(uniform, 0, TeamData.UniformCount - 1);
 
-        /// <summary>Lado visitante: o do jogador quando ele joga fora (Visitante); senão o de cima.</summary>
-        public static TeamSide VisitorSide => Away ? TeamSide.Bottom : TeamSide.Top;
+        /// <summary>O lado da IA escolhe o uniforme sozinho.</summary>
+        public static bool IsAutoUniform(TeamSide side) => autoUniform[(int)side];
 
-        /// <summary>O lado joga com a cor reserva (cores principais parecidas com as do adversário).</summary>
-        public static bool WearsReserve(TeamSide side)
+        /// <summary>
+        /// Uniforme que o lado veste na partida: o escolhido; no lado da IA, o que não fica parecido com o do adversário.
+        /// </summary>
+        public static int Uniform(TeamSide side)
         {
-            var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
-            return TeamData.WearsReserve(Team(side), Team(other), side == VisitorSide);
+            int index = (int)side;
+            if (!autoUniform[index]) return uniformIndex[index];
+            int other = 1 - index;
+            var opponentPrimary = Team((TeamSide)other).PrimaryOf(uniformIndex[other]);
+            return Team(side).AutoUniform(opponentPrimary);
         }
 
-        /// <summary>Cor principal do lado na partida (a reserva, quando ela troca a principal).</summary>
-        public static Color PrimaryColor(TeamSide side) => Team(side).PrimaryFor(WearsReserve(side));
+        /// <summary>Cor principal do lado na partida (do uniforme que ele veste).</summary>
+        public static Color PrimaryColor(TeamSide side) => Team(side).PrimaryOf(Uniform(side));
 
-        /// <summary>Segunda cor do lado (padrão da camisa e anel), já com a escolha da Seleção de times e a reserva.</summary>
-        public static Color SecondaryColor(TeamSide side)
+        /// <summary>Segunda cor do lado (padrão da camisa e anel), do uniforme que ele veste.</summary>
+        public static Color SecondaryColor(TeamSide side) => Team(side).SecondaryOf(Uniform(side));
+
+        /// <summary>
+        /// Padrão da camisa dos botões do lado, do uniforme que ele veste. Jogador: o do uniforme, se liberado (senão o
+        /// primeiro liberado). IA: o do uniforme mesmo travado; em "Sortear", o sorteado.
+        /// </summary>
+        public static ShirtPattern DiscPattern(TeamSide side)
         {
-            var team = Team(side);
-            if (team.ReserveReplacesSecondary(WearsReserve(side))) return team.ReserveColor;
-            var options = TeamCatalog.Load().SecondaryOptions(Team(side));
-            int count = options.Length;
-            return options[((secondaryIndex[(int)side] % count) + count) % count];
+            string id = Team(side).DiscPatternOf(Uniform(side));
+            if (!anyPattern[(int)side]) return ShirtPattern.Resolve(ShirtPattern.Kind.Botao, id);
+            return ShirtPattern.FindOf(ShirtPattern.Kind.Botao, id)
+                   ?? ShirtPattern.FindOf(ShirtPattern.Kind.Botao, discPattern[(int)side])
+                   ?? ShirtPattern.Resolve(ShirtPattern.Kind.Botao, null);
         }
 
-        /// <summary>Padrão da camisa dos botões do lado (o escolhido, se liberado; senão o primeiro liberado).</summary>
-        public static ShirtPattern DiscPattern(TeamSide side) =>
-            (anyPattern[(int)side] ? ShirtPattern.FindOf(ShirtPattern.Kind.Botao, discPattern[(int)side]) : null)
-            ?? ShirtPattern.Resolve(ShirtPattern.Kind.Botao, discPattern[(int)side]);
-
-        /// <summary>Id do padrão dos botões escolhido (pode estar vazio ou travado; <see cref="DiscPattern"/> resolve).</summary>
-        public static string DiscPatternId(TeamSide side) => DiscPattern(side)?.id ?? discPattern[(int)side];
-
-        public static void SetDiscPattern(TeamSide side, string patternId) => discPattern[(int)side] = patternId;
-
-        /// <summary>Padrão da camisa do goleiro do lado (o escolhido, se liberado; senão o primeiro liberado).</summary>
-        public static ShirtPattern KeeperPattern(TeamSide side) =>
-            (anyPattern[(int)side] ? ShirtPattern.FindOf(ShirtPattern.Kind.Goleiro, keeperPattern[(int)side]) : null)
-            ?? ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, keeperPattern[(int)side]);
-
-        public static string KeeperPatternId(TeamSide side) => KeeperPattern(side)?.id ?? keeperPattern[(int)side];
-
-        public static void SetKeeperPattern(TeamSide side, string patternId) => keeperPattern[(int)side] = patternId;
+        /// <summary>Padrão da camisa do goleiro do lado (mesmas regras de <see cref="DiscPattern"/>).</summary>
+        public static ShirtPattern KeeperPattern(TeamSide side)
+        {
+            string id = Team(side).KeeperPatternOf(Uniform(side));
+            if (!anyPattern[(int)side]) return ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, id);
+            return ShirtPattern.FindOf(ShirtPattern.Kind.Goleiro, id)
+                   ?? ShirtPattern.FindOf(ShirtPattern.Kind.Goleiro, keeperPattern[(int)side])
+                   ?? ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, null);
+        }
 
         /// <summary>Índice do esquema do lado <paramref name="side"/> para 3 ou 5 botões.</summary>
         public static int SchemeIndex(TeamSide side, int discs) => (discs == 3 ? scheme3 : scheme5)[(int)side];
@@ -238,15 +252,16 @@ namespace FutebolDeBotao
         }
 
         // Escolhas da Seleção de times guardadas enquanto o tutorial usa a sessão (SaveSides/RestoreSides).
-        private static int[] savedTeamIndex, savedSecondary, savedScheme3, savedScheme5;
+        private static int[] savedTeamIndex, savedUniform, savedScheme3, savedScheme5;
         private static string[] savedDiscPattern, savedKeeperPattern;
-        private static bool[] savedAnyPattern;
+        private static bool[] savedAnyPattern, savedAutoUniform;
 
         /// <summary>Guarda times, segunda cor, esquemas e camisas dos dois lados (o tutorial troca e depois devolve).</summary>
         public static void SaveSides()
         {
             savedTeamIndex = (int[])teamIndex.Clone();
-            savedSecondary = (int[])secondaryIndex.Clone();
+            savedUniform = (int[])uniformIndex.Clone();
+            savedAutoUniform = (bool[])autoUniform.Clone();
             savedScheme3 = (int[])scheme3.Clone();
             savedScheme5 = (int[])scheme5.Clone();
             savedDiscPattern = (string[])discPattern.Clone();
@@ -259,7 +274,8 @@ namespace FutebolDeBotao
         {
             if (savedTeamIndex == null) return;
             savedTeamIndex.CopyTo(teamIndex, 0);
-            savedSecondary.CopyTo(secondaryIndex, 0);
+            savedUniform.CopyTo(uniformIndex, 0);
+            savedAutoUniform.CopyTo(autoUniform, 0);
             savedScheme3.CopyTo(scheme3, 0);
             savedScheme5.CopyTo(scheme5, 0);
             savedDiscPattern.CopyTo(discPattern, 0);
@@ -327,7 +343,8 @@ namespace FutebolDeBotao
             discPattern[0] = discPattern[1] = null;
             keeperPattern[0] = keeperPattern[1] = null;
             anyPattern[0] = anyPattern[1] = false;
-            secondaryIndex[0] = secondaryIndex[1] = 0;
+            uniformIndex[0] = uniformIndex[1] = 0;
+            autoUniform[0] = autoUniform[1] = false;
         }
     }
 }

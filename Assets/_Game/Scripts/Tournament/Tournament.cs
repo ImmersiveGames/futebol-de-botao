@@ -181,9 +181,8 @@ namespace FutebolDeBotao
             int opponent = match.home == Player ? match.away : match.home;
             MatchSession.UseProfile(TeamSide.Bottom);
             MatchSession.SetTeamIndex(TeamSide.Top, opponent);
-            MatchSession.SetSecondaryIndex(TeamSide.Top, 0);
             MatchSession.SetSchemeIndex(TeamSide.Top, options.discsPerTeam, Random.Range(0, catalog.SchemeCount(options.discsPerTeam)));
-            if (ShirtPattern.Any(ShirtPattern.Kind.Botao)) MatchSession.UseTeamShirts(TeamSide.Top);
+            MatchSession.UseTeamShirts(TeamSide.Top);
 
             MatchSession.PrepareVenues();
             MatchSession.SetAway(match.home != Player);

@@ -34,32 +34,35 @@ namespace FutebolDeBotao
                     team.hideFlags = HideFlags.DontSave;
                 }
                 else team.Set(data.teamName, data.abbreviation, data.primary, data.secondary);
-                team.SetReserve(data.hasReserve, data.reserve,
-                    data.reserveReplacesSecondary ? TeamData.ReserveSlot.SegundaCor : TeamData.ReserveSlot.Principal);
+                team.SetShirts(data.discPatternId, data.keeperPatternId);
+                team.SetUniform2(Uniform(1));
                 return team;
             }
         }
 
-        public static ShirtPattern DiscPattern => ShirtPattern.Resolve(ShirtPattern.Kind.Botao, Data.discPatternId);
-
-        public static ShirtPattern KeeperPattern => ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, Data.keeperPatternId);
-
-        /// <summary>Grava o Meu time (nome e sigla já limpos; vazios voltam ao padrão).</summary>
-        public static void Save(string teamName, string abbreviation, Color primary, Color secondary, string discPatternId, string keeperPatternId,
-            bool hasReserve, Color reserve, bool reserveReplacesSecondary)
+        /// <summary>Uniforme 1 (0) ou 2 (1) do Meu time, como está no save.</summary>
+        public static TeamUniform Uniform(int index)
         {
             var data = Data;
-            data.hasReserve = hasReserve;
-            data.reserve = reserve;
-            data.reserveReplacesSecondary = reserveReplacesSecondary;
+            return index <= 0
+                ? new TeamUniform(data.primary, data.secondary, data.discPatternId, data.keeperPatternId)
+                : new TeamUniform(data.primary2, data.secondary2, data.discPatternId2, data.keeperPatternId2);
+        }
+
+        /// <summary>Grava o Meu time (nome e sigla já limpos; vazios voltam ao padrão) com os dois uniformes.</summary>
+        public static void Save(string teamName, string abbreviation, TeamUniform first, TeamUniform second)
+        {
+            var data = Data;
             data.teamName = CleanName(teamName);
             data.abbreviation = CleanAbbreviation(abbreviation);
-            data.primary = primary;
-            data.secondary = secondary;
-            data.discPatternId = discPatternId;
-            data.keeperPatternId = keeperPatternId;
-            // Quem está com o Meu time na sessão já sai com as camisas novas.
-            if (MatchSession.TeamIndex(TeamSide.Bottom) == MatchSession.ProfileTeam) MatchSession.UseProfile(TeamSide.Bottom);
+            data.primary = first.primary;
+            data.secondary = first.secondary;
+            data.discPatternId = first.discPatternId;
+            data.keeperPatternId = first.keeperPatternId;
+            data.primary2 = second.primary;
+            data.secondary2 = second.secondary;
+            data.discPatternId2 = second.discPatternId;
+            data.keeperPatternId2 = second.keeperPatternId;
             GameSave.Save("meu time");
         }
 
