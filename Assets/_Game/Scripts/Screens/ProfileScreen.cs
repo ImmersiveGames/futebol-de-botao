@@ -13,14 +13,10 @@ namespace FutebolDeBotao
     /// </summary>
     public sealed class ProfileScreen : MonoBehaviour
     {
-        private const float NameY = 330f;
-        // Moldura do uniforme: as abas encostadas no topo (como abas de pasta), a prévia e as linhas dentro.
-        private const float UniformPanelTop = 140f;
-        private const float UniformPanelBottom = -372f;
-        private const float UniformPanelWidth = 710f;
+        private const float NameY = 320f;
+        private const float UniformTabY = 160f;
         private static readonly Vector2 UniformTabSize = new(240f, 64f);
-        private const float RowTop = -100f;
-        private const float UniformRowSpacing = 76f;
+        private const float RowTop = -110f;
         private const float TabY = 405f;
         private static readonly Vector2 TabSize = new(240f, 70f);
         private const float TableRowTop = -120f;
@@ -28,13 +24,13 @@ namespace FutebolDeBotao
         private const float TablePreviewY = 150f;
         private const float TablePreviewTile = 32f;
         private const float RowSpacing = 80f;
-        private const float LabelX = -190f;
+        private const float LabelX = -200f;
         private const float LabelWidth = 280f;
         private const float ValueX = 150f;
         private const float ValueWidth = 360f;
         private const float ArrowSize = 70f;
-        private const float PreviewY = 40f;
-        private const float PreviewSize = 170f;
+        private const float PreviewY = 25f;
+        private const float PreviewSize = 150f;
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
         private static readonly Color CoinColor = new(1f, 0.85f, 0.25f);
@@ -259,25 +255,12 @@ namespace FutebolDeBotao
             var abbreviationEntry = CreateField(teamPage, "Sigla", "Sigla (3 letras)", NameY - RowSpacing, PlayerProfile.AbbreviationLength, true,
                 out abbreviationField);
 
-            var frame = CreateRect(teamPage, "Moldura do uniforme",
-                new Vector2(-5f, (UniformPanelTop + UniformPanelBottom) * 0.5f),
-                new Vector2(UniformPanelWidth, UniformPanelTop - UniformPanelBottom)).gameObject.AddComponent<Image>();
-            frame.raycastTarget = false;
-            var frameSprite = ButtonArt.Find(ButtonSkin.HudPanelName);
-            if (frameSprite != null)
-            {
-                frame.sprite = frameSprite;
-                frame.type = Image.Type.Sliced;
-            }
-            else frame.color = PanelColor;
-
             uniformTabButtons = new Button[TeamData.UniformCount];
             for (int i = 0; i < uniformTabButtons.Length; i++)
             {
                 int index = i;
                 float x = (i - (uniformTabButtons.Length - 1) * 0.5f) * (UniformTabSize.x + 20f);
-                uniformTabButtons[i] = CreateButton(teamPage, $"Aba Uniforme {i + 1}", $"Uniforme {i + 1}",
-                    new Vector2(x, UniformPanelTop + UniformTabSize.y * 0.5f - 6f),
+                uniformTabButtons[i] = CreateButton(teamPage, $"Aba Uniforme {i + 1}", $"Uniforme {i + 1}", new Vector2(x, UniformTabY),
                     UniformTabSize, () => ShowUniform(index));
             }
             var uniformTabsEntry = CreateRect(teamPage, "Item dos uniformes", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
@@ -286,13 +269,13 @@ namespace FutebolDeBotao
 
             // Prévia: o botão e o goleiro do uniforme aberto, direto sobre o fundo da tela.
             var preview = CreateRect(teamPage, "Prévia", new Vector2(0f, PreviewY), new Vector2(460f, 200f));
-            discLayers = CreatePiece(preview, "Botão", new Vector2(-95f, 0f), false);
-            keeperLayers = CreatePiece(preview, "Goleiro", new Vector2(95f, 0f), true);
+            discLayers = CreatePiece(preview, "Botão", new Vector2(-110f, 0f), false);
+            keeperLayers = CreatePiece(preview, "Goleiro", new Vector2(110f, 0f), true);
 
-            var primaryEntry = CreateArrowRow(teamPage, "Cor principal", UniformRowY(0), ChangePrimary, true, out primaryLabel, out primarySwatch, out _);
-            var secondaryEntry = CreateArrowRow(teamPage, "Segunda cor", UniformRowY(1), ChangeSecondary, true, out secondaryLabel, out secondarySwatch, out _);
-            var discEntry = CreateArrowRow(teamPage, "Camisa do botão", UniformRowY(2), step => ChangeShirt(false, step), false, out discLabel, out _, out discRow);
-            var keeperEntry = CreateArrowRow(teamPage, "Camisa do goleiro", UniformRowY(3), step => ChangeShirt(true, step), false, out keeperLabel, out _, out keeperRow);
+            var primaryEntry = CreateArrowRow(teamPage, "Cor principal", RowY(0), ChangePrimary, true, out primaryLabel, out primarySwatch, out _);
+            var secondaryEntry = CreateArrowRow(teamPage, "Segunda cor", RowY(1), ChangeSecondary, true, out secondaryLabel, out secondarySwatch, out _);
+            var discEntry = CreateArrowRow(teamPage, "Camisa do botão", RowY(2), step => ChangeShirt(false, step), false, out discLabel, out _, out discRow);
+            var keeperEntry = CreateArrowRow(teamPage, "Camisa do goleiro", RowY(3), step => ChangeShirt(true, step), false, out keeperLabel, out _, out keeperRow);
             teamEntries = new[] { nameEntry, abbreviationEntry, uniformTabsEntry, primaryEntry, secondaryEntry, discEntry, keeperEntry };
 
             // Aba Mesa: a mesa de casa montada e as setas de cada parte.
@@ -328,7 +311,7 @@ namespace FutebolDeBotao
             return layers;
         }
 
-        private static float UniformRowY(int row) => RowTop - row * UniformRowSpacing;
+        private static float RowY(int row) => RowTop - row * RowSpacing;
 
         private static float TableRowY(int row) => TableRowTop - row * TableRowSpacing;
 
