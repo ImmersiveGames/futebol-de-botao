@@ -113,12 +113,13 @@ namespace FutebolDeBotao
 
         private void Play(AudioSfxCueAsset cue)
         {
-            if (cue == null || !TryGetHost()) return;
+            if (cue == null || GameVolume.EffectsMuted || !TryGetHost()) return;
             float now = Time.unscaledTime;
             if (lastPlayed.TryGetValue(cue, out float last) && now - last < minRepeatSeconds) return;
             lastPlayed[cue] = now;
 
             var result = host.PlaySfx(cue);
+            GameVolume.ApplyToEffect(result);
             if (!result.Succeeded) Debug.LogWarning($"[Som] '{cue.name}' não tocou: {result.Status}.");
         }
 

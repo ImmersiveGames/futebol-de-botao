@@ -32,10 +32,11 @@ namespace FutebolDeBotao
 
         private void Play(AudioSfxCueAsset cue)
         {
-            if (cue == null) return;
+            if (cue == null || GameVolume.EffectsMuted) return;
             if (host == null) host = FindAnyObjectByType<AudioRuntimeHost>();
             if (host == null) return;
             var result = host.PlaySfx(cue);
+            GameVolume.ApplyToEffect(result);
             if (!result.Succeeded) Debug.LogWarning($"[Som] '{cue.name}' não tocou: {result.Status}.");
         }
     }

@@ -240,16 +240,18 @@ namespace FutebolDeBotao.Editor
             var menu = canvas.gameObject.AddComponent<MenuScreen>();
 
             // Primeira tela do Menu: o título, o ícone e o logo da Immersive como na Abertura e, embaixo, Jogar, Meu time,
-            // Loja, Estatísticas e Sair.
+            // Loja, Estatísticas, Configurações e Sair.
             var modePanel = CreateGroup(canvas, "Como jogar");
             CreateText(modePanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
-            var play = CreateButton(modePanel, "Jogar", "Jogar", new Vector2(0f, -110f), new Vector2(420f, 90f), menu.ShowPlay, ButtonStyle.Yellow);
-            var profileButton = CreateButton(modePanel, "Meu time", "Meu time", new Vector2(0f, -210f), new Vector2(420f, 90f), menu.ShowProfile, ButtonStyle.Green);
-            var shopButton = CreateButton(modePanel, "Loja", "Loja", new Vector2(0f, -310f), new Vector2(420f, 90f), menu.ShowShop, ButtonStyle.Green);
-            var statsButton = CreateButton(modePanel, "Estatísticas", "Estatísticas", new Vector2(0f, -410f), new Vector2(420f, 90f), menu.ShowStats, ButtonStyle.Green);
-            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -510f), new Vector2(420f, 90f), menu.QuitApp, ButtonStyle.Red);
+            var menuButton = new Vector2(420f, 80f);
+            var play = CreateButton(modePanel, "Jogar", "Jogar", new Vector2(0f, -100f), menuButton, menu.ShowPlay, ButtonStyle.Yellow);
+            var profileButton = CreateButton(modePanel, "Meu time", "Meu time", new Vector2(0f, -190f), menuButton, menu.ShowProfile, ButtonStyle.Green);
+            var shopButton = CreateButton(modePanel, "Loja", "Loja", new Vector2(0f, -280f), menuButton, menu.ShowShop, ButtonStyle.Green);
+            var statsButton = CreateButton(modePanel, "Estatísticas", "Estatísticas", new Vector2(0f, -370f), menuButton, menu.ShowStats, ButtonStyle.Green);
+            var settingsButton = CreateButton(modePanel, "Configurações", "Configurações", new Vector2(0f, -460f), menuButton, menu.ShowSettings, ButtonStyle.Green);
+            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -550f), menuButton, menu.QuitApp, ButtonStyle.Red);
             quit.gameObject.AddComponent<HideOnWeb>();
-            AddNavigator(modePanel, null, Item(play), Item(profileButton), Item(shopButton), Item(statsButton), Item(quit));
+            AddNavigator(modePanel, null, Item(play), Item(profileButton), Item(shopButton), Item(statsButton), Item(settingsButton), Item(quit));
             CreateStudioLogo(modePanel);
             CreateGameLogo(modePanel);
 
@@ -466,10 +468,10 @@ namespace FutebolDeBotao.Editor
             var group = panel.gameObject.AddComponent<CanvasGroup>();
             CreateText(panel.transform, "Título", "Pausa", 64, new Vector2(0f, 260f), new Vector2(600f, 110f), FontStyle.Bold);
             var resume = CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 120f), new Vector2(420f, 90f), pauseMenu.Resume, ButtonStyle.Yellow);
-            var music = CreateButton(panel.transform, "Música", "Música: Ligado", new Vector2(0f, 0f), new Vector2(420f, 90f), pauseMenu.ToggleMusic);
+            var music = CreateButton(panel.transform, "Configurações", "Configurações", new Vector2(0f, 0f), new Vector2(420f, 90f), pauseMenu.OpenSettings);
             var restartButton = CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -120f), new Vector2(420f, 90f), pauseMenu.Restart, ButtonStyle.Red);
             var menuButton = CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -240f), new Vector2(420f, 90f), pauseMenu.BackToMenu, ButtonStyle.Red);
-            pauseMenu.Configure(pause, restart, toMenu, music.GetComponentInChildren<Text>());
+            pauseMenu.Configure(pause, restart, toMenu);
             // Quem pausou mexe no menu (Esc/Start do próprio dispositivo, ou o mouse/toque dele).
             var pauseNavigator = panel.gameObject.AddComponent<MenuNavigator>();
             pauseNavigator.Configure(new[] { Item(resume), Item(music), Item(restartButton), Item(menuButton) }, resume);
