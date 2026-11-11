@@ -240,6 +240,19 @@ namespace FutebolDeBotao
                 stats.itemsBought = bought;
                 stats.coinsEarned = data.profile.coins + spent;
             }
+            data.finance ??= new SaveData.FinanceData();
+            data.finance.entries ??= new System.Collections.Generic.List<SaveData.FinanceEntry>();
+            // Versão 9 criou o Financeiro: os totais vêm das estatísticas; do ganho, o tutorial é exato (lições e bônus) e
+            // o resto vai para Partidas (antes não se separava partida de torneio). O extrato começa vazio.
+            if (data.version < 9)
+            {
+                var finance = data.finance;
+                finance.earned = stats.coinsEarned;
+                finance.spent = stats.coinsSpent;
+                int tutorial = data.tutorial.done.Count * Tutorial.LessonReward + (data.tutorial.bonusPaid ? Tutorial.CompleteBonus : 0);
+                finance.fromTutorial = Math.Min(tutorial, Math.Max(0, finance.earned));
+                finance.fromMatches = Math.Max(0, finance.earned - finance.fromTutorial);
+            }
             data.version = SaveData.CurrentVersion;
             return data;
         }

@@ -321,7 +321,7 @@ namespace FutebolDeBotao
         {
             var item = pending;
             CloseDialog();
-            if (item != null && Shop.Buy(item.Key, item.Price)) FillList();
+            if (item != null && Shop.Buy(item.Key, item.Price, item.Name)) FillList();
         }
 
         // ---- UI ----

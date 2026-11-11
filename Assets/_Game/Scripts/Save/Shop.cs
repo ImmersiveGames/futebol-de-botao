@@ -28,12 +28,11 @@ namespace FutebolDeBotao
         /// <summary>Soma moedas (sem gravar; quem chama grava).</summary>
         public static void AddCoins(int amount) => PlayerProfile.Data.coins = System.Math.Max(0, PlayerProfile.Data.coins + amount);
 
-        /// <summary>Compra o item: tira as moedas, marca como comprado e grava. Falso se já tem ou não dá.</summary>
-        public static bool Buy(string key, int price)
+        /// <summary>Compra o item: tira as moedas (no extrato), marca como comprado e grava. Falso se já tem ou não dá.</summary>
+        public static bool Buy(string key, int price, string itemName)
         {
             if (Owns(key) || Coins < price) return false;
-            AddCoins(-price);
-            GameSave.Data.stats.coinsSpent += price;
+            Finance.Spend(Finance.ShopText(key, itemName), price);
             GameSave.Data.stats.itemsBought++;
             GameSave.Data.unlocked ??= new System.Collections.Generic.List<string>();
             GameSave.Data.unlocked.Add(key);

@@ -344,8 +344,8 @@ namespace FutebolDeBotao
             }
             if (run.prize > 0)
             {
-                stats.coinsEarned += run.prize;
-                Shop.AddCoins(run.prize);
+                string place = run.position == 1 ? "campeão" : $"{run.position}º lugar";
+                Finance.Earn(FinanceSource.Tournament, $"Prêmio do torneio ({place})", run.prize);
             }
         }
 

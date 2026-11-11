@@ -5,10 +5,10 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tela Meu time (do Menu), em duas abas. Time: nome do time e sigla de 3 letras em cima e, embaixo, as abas Uniforme 1
+    /// Tela Meu time (do Menu), em três abas. Time: nome do time e sigla de 3 letras em cima e, embaixo, as abas Uniforme 1
     /// e Uniforme 2, cada uma com o botão e o goleiro pintados e as opções dela: cor principal e segunda cor (da lista Cores
-    /// do time; podem ser iguais), camisa do botão e do goleiro (só as liberadas). Mesa: a mesa de casa (mesa, feltro, cor das traves que o feltro aceita e bola, só os liberados), com a mesa
-    /// montada em cima. "Salvar" grava as duas abas e volta ao Menu; "Voltar" volta sem gravar. Tocar no nome ou na sigla
+    /// do time; podem ser iguais), camisa do botão e do goleiro (só as liberadas). Financeiro: saldo, ganhos e gastos e o extrato (<see cref="Finance"/>). Mesa: a mesa de casa (mesa, feltro, cor das traves que o feltro aceita e bola, só os liberados), com a mesa
+    /// montada em cima. "Salvar" grava Time e Mesa e volta ao Menu; "Voltar" volta sem gravar. Tocar no nome ou na sigla
     /// abre o teclado (no celular, o do aparelho); no teclado/controle, Confirmar começa a digitar. Monta a UI sozinha.
     /// </summary>
     public sealed class ProfileScreen : MonoBehaviour
@@ -18,7 +18,16 @@ namespace FutebolDeBotao
         private static readonly Vector2 UniformTabSize = new(240f, 64f);
         private const float RowTop = -110f;
         private const float TabY = 405f;
-        private static readonly Vector2 TabSize = new(240f, 70f);
+        private static readonly Vector2 TabSize = new(200f, 70f);
+        private const float TabGap = 20f;
+        private const int TeamTab = 0, TableTab = 1, FinanceTab = 2;
+        private static readonly string[] TabNames = { "Time", "Mesa", "Financeiro" };
+        private const float FinanceListTop = -10f;
+        private const float FinanceListBottom = -455f;
+        private const float FinanceRowHeight = 46f;
+        private static readonly Color EarnColor = new(0.45f, 0.9f, 0.45f);
+        private static readonly Color SpendColor = new(1f, 0.45f, 0.4f);
+        private static readonly Color StripeColor = new(1f, 1f, 1f, 0.06f);
         private const float TableRowTop = -120f;
         private const float TableRowSpacing = 90f;
         private const float TablePreviewY = 150f;
@@ -44,11 +53,14 @@ namespace FutebolDeBotao
         private bool built;
         private InputField nameField, abbreviationField;
         private Image primarySwatch, secondarySwatch;
-        private Text primaryLabel, secondaryLabel, discLabel, keeperLabel, coinsLabel;
+        private Text primaryLabel, secondaryLabel, discLabel, keeperLabel;
         private GameObject discRow, keeperRow;
         private Image[] discLayers, keeperLayers;
-        private GameObject teamTab, tableTab;
-        private Button teamTabButton, tableTabButton;
+        private GameObject[] tabPages;
+        private Button[] tabButtons;
+        private Text balanceLabel, earnedLabel, spentLabel, matchesLabel, tournamentsLabel, tutorialLabel;
+        private RectTransform statementContent;
+        private ScrollRect statementScroll;
         private Button[] uniformTabButtons;
         private MenuEntry[] teamEntries, tableEntries;
         private MenuEntry tabsEntry, backEntry, saveEntry;
@@ -56,7 +68,7 @@ namespace FutebolDeBotao
         private TablePreview tablePreview;
         private Text tableLabel, feltLabel, goalLabel, ballLabel;
         private GameObject goalRow;
-        private bool showingTable;
+        private int tab;
         private VenueSetup home;
 
         // Escolhas ainda não salvas: os dois uniformes e qual aba está aberta.
@@ -87,9 +99,8 @@ namespace FutebolDeBotao
                     ShirtPattern.Resolve(ShirtPattern.Kind.Goleiro, saved.keeperPatternId)?.id ?? saved.keeperPatternId);
             }
             uniformTab = 0;
-            coinsLabel.text = $"Moedas: {PlayerProfile.Coins}";
             home = Venue.Home();
-            ShowTab(false);
+            ShowTab(TeamTab);
             Refresh();
         }
 
@@ -100,20 +111,77 @@ namespace FutebolDeBotao
             Back();
         }
 
-        /// <summary>Aba Time ou Mesa: o botão da aba fica apertado e o cursor passa pelas linhas dela.</summary>
-        private void ShowTab(bool table)
+        /// <summary>Aba Time, Mesa ou Financeiro: o botão da aba fica apertado e o cursor passa pelas linhas dela.</summary>
+        private void ShowTab(int index)
         {
-            showingTable = table;
-            teamTab.SetActive(!table);
-            tableTab.SetActive(table);
-            ButtonSkin.SetHeld(teamTabButton, ButtonStyle.Green, !table);
-            ButtonSkin.SetHeld(tableTabButton, ButtonStyle.Green, table);
+            tab = (index % TabNames.Length + TabNames.Length) % TabNames.Length;
+            for (int i = 0; i < tabPages.Length; i++)
+            {
+                tabPages[i].SetActive(i == tab);
+                ButtonSkin.SetHeld(tabButtons[i], ButtonStyle.Green, i == tab);
+            }
             var items = new System.Collections.Generic.List<MenuEntry> { tabsEntry };
-            items.AddRange(table ? tableEntries : teamEntries);
+            if (tab == TeamTab) items.AddRange(teamEntries);
+            else if (tab == TableTab) items.AddRange(tableEntries);
             items.Add(backEntry);
             items.Add(saveEntry);
             navigator.Configure(items.ToArray(), (Button)backEntry.GetComponent<Button>(), 0);
-            if (table) RefreshTable();
+            if (tab == TableTab) RefreshTable();
+            if (tab == FinanceTab) RefreshFinance();
+        }
+
+        /// <summary>Saldo, totais, ganho por origem e o extrato (o mais novo em cima).</summary>
+        private void RefreshFinance()
+        {
+            var data = Finance.Data;
+            balanceLabel.text = $"{PlayerProfile.Coins} moedas";
+            earnedLabel.text = $"+{data.earned}";
+            spentLabel.text = $"-{data.spent}";
+            matchesLabel.text = $"+{data.fromMatches}";
+            tournamentsLabel.text = $"+{data.fromTournaments}";
+            tutorialLabel.text = $"+{data.fromTutorial}";
+
+            for (int i = statementContent.childCount - 1; i >= 0; i--) Destroy(statementContent.GetChild(i).gameObject);
+            var entries = data.entries;
+            float width = StatementWidth;
+            int count = entries != null ? entries.Count : 0;
+            if (count == 0)
+            {
+                var empty = CreateText(statementContent, "Vazio", "Nenhuma movimentação ainda. Jogue partidas, torneios ou o tutorial para ganhar moedas.",
+                    26, FontStyle.Normal, LabelColor, new Vector2(0f, -60f), new Vector2(width - 40f, 120f));
+                empty.rectTransform.anchorMin = empty.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+            }
+            for (int i = 0; i < count; i++)
+            {
+                var entry = entries[count - 1 - i];
+                var row = CreateRect(statementContent, "Movimentação", Vector2.zero, new Vector2(width, FinanceRowHeight));
+                row.anchorMin = row.anchorMax = new Vector2(0.5f, 1f);
+                row.anchoredPosition = new Vector2(0f, -FinanceRowHeight * (i + 0.5f));
+                if (i % 2 == 1)
+                {
+                    var band = row.gameObject.AddComponent<Image>();
+                    band.color = StripeColor;
+                    band.raycastTarget = false;
+                }
+                // Data (80) | descrição | valor (110), com 10 de margem nas pontas.
+                var date = CreateText(row, "Data", Finance.ShortDate(entry.date), 22, FontStyle.Normal, LabelColor,
+                    new Vector2(-width * 0.5f + 50f, 0f), new Vector2(80f, FinanceRowHeight));
+                date.alignment = TextAnchor.MiddleLeft;
+                float textWidth = width - 220f;
+                var text = CreateText(row, "Descrição", entry.text, 24, FontStyle.Normal, Color.white,
+                    new Vector2(-width * 0.5f + 95f + textWidth * 0.5f, 0f), new Vector2(textWidth, FinanceRowHeight));
+                text.alignment = TextAnchor.MiddleLeft;
+                text.horizontalOverflow = HorizontalWrapMode.Wrap;
+                text.resizeTextMaxSize = 24;
+                text.resizeTextMinSize = 16;
+                text.resizeTextForBestFit = true;
+                var amount = CreateText(row, "Valor", entry.amount > 0 ? $"+{entry.amount}" : entry.amount.ToString(), 24, FontStyle.Bold,
+                    entry.amount > 0 ? EarnColor : SpendColor, new Vector2(width * 0.5f - 65f, 0f), new Vector2(110f, FinanceRowHeight));
+                amount.alignment = TextAnchor.MiddleRight;
+            }
+            statementContent.sizeDelta = new Vector2(0f, Mathf.Max(count, 1) * FinanceRowHeight + 10f);
+            statementContent.anchoredPosition = Vector2.zero;
+            statementScroll.velocity = Vector2.zero;
         }
 
         private void ChangeTable(int step)
@@ -240,17 +308,27 @@ namespace FutebolDeBotao
             var root = (RectTransform)transform;
 
             CreateText(root, "Título", "Meu time", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f));
-            coinsLabel = CreateText(root, "Moedas", "Moedas: 0", 34, FontStyle.Bold, CoinColor, new Vector2(0f, 475f), new Vector2(680f, 60f));
 
             // Abas: Time | Mesa (a escolhida fica apertada).
-            teamTabButton = CreateButton(root, "Aba Time", "Time", new Vector2(-130f, TabY), TabSize, () => ShowTab(false));
-            tableTabButton = CreateButton(root, "Aba Mesa", "Mesa", new Vector2(130f, TabY), TabSize, () => ShowTab(true));
-            tabsEntry = CreateRect(root, "Item das abas", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
-            tabsEntry.Configure(null, teamTabButton, tableTabButton, (RectTransform)teamTabButton.transform, (RectTransform)tableTabButton.transform);
+            // Abas: Time | Mesa | Financeiro (a escolhida fica apertada; no teclado/controle, esquerda/direita trocam).
+            tabButtons = new Button[TabNames.Length];
+            var tabAreas = new RectTransform[TabNames.Length];
+            for (int i = 0; i < TabNames.Length; i++)
+            {
+                int index = i;
+                float x = (i - (TabNames.Length - 1) * 0.5f) * (TabSize.x + TabGap);
+                tabButtons[i] = CreateButton(root, $"Aba {TabNames[i]}", TabNames[i], new Vector2(x, TabY), TabSize, () => ShowTab(index));
+                tabAreas[i] = (RectTransform)tabButtons[i].transform;
+            }
+            var tabsItem = CreateRect(root, "Item das abas", Vector2.zero, Vector2.zero);
+            tabsEntry = tabsItem.gameObject.AddComponent<MenuEntry>();
+            tabsEntry.Configure(null, CreateHiddenButton(tabsItem, "Aba anterior", () => ShowTab(tab - 1)),
+                CreateHiddenButton(tabsItem, "Próxima aba", () => ShowTab(tab + 1)), tabAreas);
 
             // Aba Time: nome e sigla em cima; embaixo as abas Uniforme 1 | Uniforme 2, a prévia e as opções do uniforme.
             var teamPage = CreateRect(root, "Aba Time", Vector2.zero, Vector2.zero);
-            teamTab = teamPage.gameObject;
+            tabPages = new GameObject[TabNames.Length];
+            tabPages[TeamTab] = teamPage.gameObject;
             var nameEntry = CreateField(teamPage, "Nome", "Nome do time", NameY, PlayerProfile.NameLength, false, out nameField);
             var abbreviationEntry = CreateField(teamPage, "Sigla", "Sigla (3 letras)", NameY - RowSpacing, PlayerProfile.AbbreviationLength, true,
                 out abbreviationField);
@@ -280,7 +358,7 @@ namespace FutebolDeBotao
 
             // Aba Mesa: a mesa de casa montada e as setas de cada parte.
             var tablePage = CreateRect(root, "Aba Mesa", Vector2.zero, Vector2.zero);
-            tableTab = tablePage.gameObject;
+            tabPages[TableTab] = tablePage.gameObject;
             tablePreview = new TablePreview(tablePage, new Vector2(0f, TablePreviewY), TablePreviewTile, tableSprites);
             var tableEntry = CreateArrowRow(tablePage, "Mesa", TableRowY(0), ChangeTable, false, out tableLabel, out _, out _);
             var feltEntry = CreateArrowRow(tablePage, "Feltro", TableRowY(1), ChangeFelt, false, out feltLabel, out _, out _);
@@ -288,12 +366,67 @@ namespace FutebolDeBotao
             var ballEntry = CreateArrowRow(tablePage, "Bola", TableRowY(3), ChangeBall, false, out ballLabel, out _, out _);
             tableEntries = new[] { tableEntry, feltEntry, goalEntry, ballEntry };
 
+            BuildFinance(root);
+
             var back = CreateButton(root, "Voltar", "Voltar", new Vector2(-180f, -510f), new Vector2(260f, 80f), Back, ButtonStyle.Red);
             var save = CreateButton(root, "Salvar", "Salvar", new Vector2(150f, -510f), new Vector2(300f, 80f), Save, ButtonStyle.Yellow);
             backEntry = Entry(back);
             saveEntry = Entry(save);
 
             navigator = gameObject.AddComponent<MenuNavigator>();
+        }
+
+        /// <summary>Largura do extrato: a mesma das linhas da aba Time (do rótulo até a seta da direita).</summary>
+        private const float StatementWidth = ValueX + ValueWidth * 0.5f - (LabelX - LabelWidth * 0.5f) + 20f;
+
+        /// <summary>Aba Financeiro: saldo grande, resumo (ganhos por origem e gastos) e o extrato com rolagem.</summary>
+        private void BuildFinance(RectTransform root)
+        {
+            var page = CreateRect(root, "Aba Financeiro", Vector2.zero, Vector2.zero);
+            tabPages[FinanceTab] = page.gameObject;
+
+            CreateText(page, "Rótulo do saldo", "Saldo", 28, FontStyle.Bold, LabelColor, new Vector2(0f, 345f), new Vector2(600f, 40f));
+            balanceLabel = CreateText(page, "Saldo", string.Empty, 56, FontStyle.Bold, CoinColor, new Vector2(0f, 290f), new Vector2(680f, 70f));
+
+            earnedLabel = SummaryRow(page, "Ganho total", 215f, false, EarnColor);
+            matchesLabel = SummaryRow(page, "Partidas", 175f, true, Color.white);
+            tournamentsLabel = SummaryRow(page, "Torneios", 135f, true, Color.white);
+            tutorialLabel = SummaryRow(page, "Tutorial", 95f, true, Color.white);
+            spentLabel = SummaryRow(page, "Gasto total (loja)", 50f, false, SpendColor);
+
+            var header = CreateText(page, "Extrato", "Extrato", 32, FontStyle.Bold, CoinColor, new Vector2(LabelX, 0f), new Vector2(LabelWidth, 44f));
+            header.alignment = TextAnchor.MiddleLeft;
+
+            // Lista com rolagem (arrastar ou roda do mouse).
+            float centerX = (LabelX - LabelWidth * 0.5f + ValueX + ValueWidth * 0.5f) * 0.5f;
+            float height = FinanceListTop - FinanceListBottom - 25f;
+            var viewport = CreateRect(page, "Lista", new Vector2(centerX, FinanceListTop - 25f - height * 0.5f),
+                new Vector2(StatementWidth, height));
+            var hit = viewport.gameObject.AddComponent<Image>();
+            hit.color = new Color(0f, 0f, 0f, 0.25f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            statementContent = CreateRect(viewport, "Conteúdo", Vector2.zero, Vector2.zero);
+            statementContent.anchorMin = new Vector2(0f, 1f);
+            statementContent.anchorMax = new Vector2(1f, 1f);
+            statementContent.pivot = new Vector2(0.5f, 1f);
+            statementScroll = viewport.gameObject.AddComponent<ScrollRect>();
+            statementScroll.content = statementContent;
+            statementScroll.viewport = viewport;
+            statementScroll.horizontal = false;
+            statementScroll.movementType = ScrollRect.MovementType.Clamped;
+            statementScroll.scrollSensitivity = 30f;
+        }
+
+        /// <summary>Linha do resumo: rótulo à esquerda (recuado nas origens) e valor à direita.</summary>
+        private Text SummaryRow(Transform parent, string label, float y, bool indent, Color color)
+        {
+            var caption = CreateText(parent, "Rótulo", label, indent ? 24 : 28, indent ? FontStyle.Normal : FontStyle.Bold, LabelColor,
+                new Vector2(LabelX + (indent ? 40f : 0f), y), new Vector2(LabelWidth, 40f));
+            caption.alignment = TextAnchor.MiddleLeft;
+            var value = CreateText(parent, "Valor", string.Empty, indent ? 24 : 28, FontStyle.Bold, color,
+                new Vector2(ValueX + ValueWidth * 0.5f - 100f, y), new Vector2(200f, 40f));
+            value.alignment = TextAnchor.MiddleRight;
+            return value;
         }
 
         private Image[] CreatePiece(Transform parent, string objectName, Vector2 position, bool keeper)

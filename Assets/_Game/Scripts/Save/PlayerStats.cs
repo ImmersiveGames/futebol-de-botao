@@ -100,7 +100,6 @@ namespace FutebolDeBotao
             int coins = Shop.RewardFor(level, outcome);
             Data.levels[level].coins += coins;
             Data.total.coins += coins;
-            Data.coinsEarned += coins;
 
             var last = new SaveData.LastMatchData
             {
@@ -117,7 +116,9 @@ namespace FutebolDeBotao
             Data.last = last;
             Data.hasLast = true;
             CoinsEarned = coins;
-            Shop.AddCoins(CoinsEarned);
+            bool tournament = MatchSession.InTournamentMatch;
+            Finance.Earn(tournament ? FinanceSource.Tournament : FinanceSource.Match,
+                Finance.MatchText(level, outcome, tournament, walkover), coins);
             GameSave.Save("fim da partida");
         }
 

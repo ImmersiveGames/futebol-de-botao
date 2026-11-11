@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 8;
+        public const int CurrentVersion = 9;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -28,6 +28,30 @@ namespace FutebolDeBotao
         public TournamentRun tournament = new();
         /// <summary>Tutorial (versão 7): lições completas, se o Menu já perguntou e se o bônus já foi pago.</summary>
         public TutorialData tutorial = new();
+        /// <summary>Financeiro (versão 9): totais de moedas, ganho por origem e o extrato (aba Financeiro do Meu time).</summary>
+        public FinanceData finance = new();
+
+        [Serializable]
+        public sealed class FinanceData
+        {
+            public int earned;
+            public int spent;
+            public int fromMatches;
+            public int fromTournaments;
+            public int fromTutorial;
+            /// <summary>Últimas movimentações, da mais antiga para a mais nova.</summary>
+            public List<FinanceEntry> entries = new();
+        }
+
+        [Serializable]
+        public sealed class FinanceEntry
+        {
+            /// <summary>"yyyy-MM-dd HH:mm".</summary>
+            public string date;
+            public string text;
+            /// <summary>Positivo = ganhou; negativo = gastou.</summary>
+            public int amount;
+        }
 
         [Serializable]
         public sealed class TutorialData
@@ -122,7 +146,7 @@ namespace FutebolDeBotao
             /// <summary>Já houve uma partida terminada (a aba Última partida).</summary>
             public bool hasLast;
             public LastMatchData last = new();
-            /// <summary>Moedas ganhas em partidas (versão 4; as do menu de teste não contam).</summary>
+            /// <summary>Moedas ganhas e gastas (versões 4 a 8; agora em <see cref="FinanceData"/>).</summary>
             public int coinsEarned;
             public int coinsSpent;
             public int itemsBought;
