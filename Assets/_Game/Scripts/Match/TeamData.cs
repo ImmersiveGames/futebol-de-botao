@@ -111,31 +111,9 @@ namespace FutebolDeBotao
             return true;
         }
 
-        /// <summary>
-        /// Cores parecidas no campo: quase iguais (soma das diferenças de R, G e B menor que <see cref="ClashDistance"/>);
-        /// duas cores vivas do mesmo tom (ex.: vermelho e salmão); ou duas sem cor (branco, cinza, preto) de brilho perto.
-        /// </summary>
-        public static bool Clash(Color x, Color y)
-        {
-            if (Mathf.Abs(x.r - y.r) + Mathf.Abs(x.g - y.g) + Mathf.Abs(x.b - y.b) < ClashDistance) return true;
-            Color.RGBToHSV(x, out float hueX, out float saturationX, out float valueX);
-            Color.RGBToHSV(y, out float hueY, out float saturationY, out float valueY);
-            bool vividX = saturationX >= NeutralSaturation && valueX >= DarkValue;
-            bool vividY = saturationY >= NeutralSaturation && valueY >= DarkValue;
-            if (vividX != vividY) return false;
-            if (!vividX) return Mathf.Abs(valueX - valueY) < NeutralValueGap;
-            float hueGap = Mathf.Abs(hueX - hueY);
-            hueGap = Mathf.Min(hueGap, 1f - hueGap);
-            return hueGap < SameHue && Mathf.Abs(valueX - valueY) < VividValueGap;
-        }
-
-        // Limites do Clash: abaixo desta saturação (ou deste brilho) a cor conta como sem cor; tons a menos de ~25° na
-        // roda de cores são o mesmo tom.
-        private const float NeutralSaturation = 0.25f;
-        private const float DarkValue = 0.2f;
-        private const float NeutralValueGap = 0.3f;
-        private const float SameHue = 0.07f;
-        private const float VividValueGap = 0.45f;
+        /// <summary>Cores parecidas (soma das diferenças de R, G e B menor que <see cref="ClashDistance"/>).</summary>
+        public static bool Clash(Color x, Color y) =>
+            Mathf.Abs(x.r - y.r) + Mathf.Abs(x.g - y.g) + Mathf.Abs(x.b - y.b) < ClashDistance;
 
         /// <summary>
         /// Uniforme que o time (da IA) veste contra um adversário de cor principal <paramref name="opponentPrimary"/>:
