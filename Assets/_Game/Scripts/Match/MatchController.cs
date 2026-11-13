@@ -1697,6 +1697,13 @@ namespace FutebolDeBotao
             clock = 0f;
         }
 
+        /// <summary>Menu de teste: W.O. para o jogador de baixo (+3 gols, a IA fica com 0) e a partida acaba na hora.</summary>
+        public void DebugWalkover()
+        {
+            if (State is MatchState.Waiting or MatchState.End) return;
+            Walkover(TeamSide.Top);
+        }
+
         /// <summary>Menu de teste: iguala o placar (o time com menos gols fica com os do outro).</summary>
         public void DebugTieScore()
         {
