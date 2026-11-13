@@ -8,7 +8,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Tela Configurações (Menu e pausa): Idioma (<see cref="Txt"/>) e Volume geral, Música e Efeitos de 0% a 100%
-    /// (<see cref="GameVolume"/>). Monta a UI
+    /// (<see cref="GameVolume"/>), mais o botão da política de privacidade (abre o site). Monta a UI
     /// sozinha num Canvas próprio por cima de tudo, com o fundo escurecido; enquanto aberta, os outros menus não respondem ao
     /// teclado/controle. Mudar um volume vale na hora (o clique das setas já sai no volume novo); Voltar grava e fecha.
     /// </summary>
@@ -24,6 +24,9 @@ namespace FutebolDeBotao
         private const float ValueX = 150f;
         private const float ValueWidth = 300f;
         private const float ArrowSize = 70f;
+
+        /// <summary>Página da política de privacidade no site da Immersive.</summary>
+        public const string PrivacyPolicyUrl = "https://immersivegames.com.br/politica-de-privacidade-progol.html";
 
         private static SettingsScreen open;
 
@@ -125,7 +128,7 @@ namespace FutebolDeBotao
             dim.rectTransform.anchorMax = Vector2.one;
             dim.color = DimColor;
 
-            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 650f));
+            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f));
             var background = panel.gameObject.AddComponent<Image>();
             var panelSprite = ButtonArt.Find(ButtonSkin.HudPanelName);
             if (panelSprite != null)
@@ -135,12 +138,17 @@ namespace FutebolDeBotao
             }
             else background.color = PanelColor;
 
-            LocalizedText.Attach(CreateText(panel, "Título", "Configurações", 48, FontStyle.Bold, Color.white, new Vector2(0f, 245f), new Vector2(600f, 80f)));
+            LocalizedText.Attach(CreateText(panel, "Título", "Configurações", 48, FontStyle.Bold, Color.white, new Vector2(0f, 305f), new Vector2(600f, 80f)));
             var language = CreateArrowRow(panel, "Idioma", 130f, ChangeLanguage, out languageLabel);
             var master = CreateArrowRow(panel, "Volume geral", 40f, ChangeMaster, out masterLabel);
             var music = CreateArrowRow(panel, "Música", -50f, ChangeMusic, out musicLabel);
             var effects = CreateArrowRow(panel, "Efeitos", -140f, ChangeEffects, out effectsLabel);
-            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -250f), new Vector2(300f, 80f), Close, ButtonStyle.Red);
+            var privacy = CreateButton(panel, "Política de privacidade", "Política de privacidade", new Vector2(0f, -235f),
+                new Vector2(460f, 70f), () => Application.OpenURL(PrivacyPolicyUrl), ButtonStyle.Brown);
+            LocalizedText.Attach(privacy.GetComponentInChildren<Text>());
+            var privacyEntry = privacy.gameObject.AddComponent<MenuEntry>();
+            privacyEntry.Configure(privacy);
+            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -320f), new Vector2(300f, 80f), Close, ButtonStyle.Red);
             LocalizedText.Attach(back.GetComponentInChildren<Text>());
             var backEntry = back.gameObject.AddComponent<MenuEntry>();
             backEntry.Configure(back);
@@ -154,7 +162,7 @@ namespace FutebolDeBotao
             }
             var navigator = gameObject.AddComponent<MenuNavigator>();
             if (followPauser) navigator.FollowPauser();
-            navigator.Configure(new[] { language, master, music, effects, backEntry }, back);
+            navigator.Configure(new[] { language, master, music, effects, privacyEntry, backEntry }, back);
             Refresh();
         }
 
