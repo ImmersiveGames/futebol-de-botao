@@ -106,15 +106,23 @@ namespace FutebolDeBotao
             removeAdsButton.gameObject.SetActive(shown);
             ((RectTransform)backButton.transform).anchoredPosition = new Vector2(shown ? -180f : 0f, -510f);
             if (!shown) return false;
-            string price = Purchases.RemoveAdsPrice;
-            removeAdsButton.GetComponentInChildren<Text>().text = string.IsNullOrEmpty(price)
-                ? Txt.Get("Remover anúncios")
-                : Txt.Format("Remover anúncios ({0})", price);
+            // O preço fica no pop-up (no botão não cabia numa linha).
+            removeAdsButton.GetComponentInChildren<Text>().text = Txt.Get("Remover anúncios");
             removeAdsButton.interactable = Purchases.Ready && !purchasing;
             return true;
         }
 
+        /// <summary>"Remover anúncios": o pop-up explica e mostra o preço; Comprar abre a compra da loja.</summary>
         private void BuyRemoveAds()
+        {
+            string price = Purchases.RemoveAdsPrice;
+            string message = (string.IsNullOrEmpty(price) ? string.Empty : Txt.Format("Compra única de {0}.", price) + " ")
+                             + Txt.Get("Tira para sempre os anúncios entre as partidas.") + "\n\n"
+                             + Txt.Get("Os anúncios com prêmio (dobrar moedas, patrocínio) continuam, só quando você quiser.");
+            MessageDialog.Open(Txt.Get("Remover anúncios"), message, Txt.Get("Comprar"), StartPurchase, Txt.Get("Agora não"));
+        }
+
+        private void StartPurchase()
         {
             purchasing = true;
             removeAdsButton.interactable = false;
