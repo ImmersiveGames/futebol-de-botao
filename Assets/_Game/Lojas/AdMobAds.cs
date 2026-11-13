@@ -15,10 +15,12 @@ using UnityEngine;
 /// </summary>
 public sealed class AdMobAds : IAdsProvider
 {
-    // IDs DE TESTE do Google. Trocar pelos blocos de anúncio da conta do AdMob antes de publicar.
-    private const string InterstitialId = "ca-app-pub-3940256099942544/1033173712";
-    private const string RewardedId = "ca-app-pub-3940256099942544/5224354917";
-    private const string BannerId = "ca-app-pub-3940256099942544/9214589741";
+    // Blocos da conta do AdMob (app ca-app-pub-2932577535753512~3654005556, que vai nas configurações do plugin).
+    // Development Build usa os IDs DE TESTE do Google: clicar nos próprios anúncios reais pode bloquear a conta.
+    private static readonly bool UseTestIds = Debug.isDebugBuild;
+    private static string InterstitialId => UseTestIds ? "ca-app-pub-3940256099942544/1033173712" : "ca-app-pub-2932577535753512/1957780509";
+    private static string RewardedId => UseTestIds ? "ca-app-pub-3940256099942544/5224354917" : "ca-app-pub-2932577535753512/1574637124";
+    private static string BannerId => UseTestIds ? "ca-app-pub-3940256099942544/9214589741" : "ca-app-pub-2932577535753512/9916161570";
 
     private AgeGroup group;
     private bool started;
