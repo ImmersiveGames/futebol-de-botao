@@ -16,8 +16,14 @@ using UnityEngine;
 public sealed class AdMobAds : IAdsProvider
 {
     // Blocos da conta do AdMob (app ca-app-pub-2932577535753512~3654005556, que vai nas configurações do plugin).
-    // Development Build usa os IDs DE TESTE do Google: clicar nos próprios anúncios reais pode bloquear a conta.
+    // Por enquanto (teste interno) SEMPRE os IDs DE TESTE do Google: clicar em anúncio real de teste pode bloquear a conta.
+    // Para PRODUÇÃO: Player Settings > Scripting Define Symbols (Android) adicionar PROGOL_ADS_REAIS
+    // (Development Build continua no teste mesmo assim).
+#if PROGOL_ADS_REAIS
     private static readonly bool UseTestIds = Debug.isDebugBuild;
+#else
+    private static readonly bool UseTestIds = true;
+#endif
     private static string InterstitialId => UseTestIds ? "ca-app-pub-3940256099942544/1033173712" : "ca-app-pub-2932577535753512/1957780509";
     private static string RewardedId => UseTestIds ? "ca-app-pub-3940256099942544/5224354917" : "ca-app-pub-2932577535753512/1574637124";
     private static string BannerId => UseTestIds ? "ca-app-pub-3940256099942544/9214589741" : "ca-app-pub-2932577535753512/9916161570";
