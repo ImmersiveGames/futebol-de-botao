@@ -304,8 +304,15 @@ namespace FutebolDeBotao
             doublePrize.interactable = true;
         }
 
-        /// <summary>"Dobrar prêmio": anúncio com prêmio; assistindo, paga de novo e atualiza a tela.</summary>
+        /// <summary>"Dobrar": o pop-up explica; Assistir mostra o anúncio com prêmio e, assistindo, paga o prêmio de novo.</summary>
         private void DoublePrize()
+        {
+            MessageDialog.Open(Txt.Get("Dobrar prêmio"),
+                Txt.Format("Assista a um anúncio e ganhe mais {0} moedas, o dobro do prêmio do torneio.", Tournament.Run.prize),
+                Txt.Get("Assistir"), WatchDoublePrize, Txt.Get("Agora não"));
+        }
+
+        private void WatchDoublePrize()
         {
             doublePrize.interactable = false;
             Ads.ShowRewarded(rewarded =>
@@ -454,7 +461,7 @@ namespace FutebolDeBotao
             endTrophy.raycastTarget = false;
             endPosition = CreateText(page, "Colocação", "-", 56, FontStyle.Bold, HighlightColor, new Vector2(0f, -20f), new Vector2(680f, 100f));
             endCoins = CreateText(page, "Moedas", "-", 32, FontStyle.Normal, Color.white, new Vector2(0f, -160f), new Vector2(680f, 150f));
-            doublePrize = CreateButton(page, "Dobrar prêmio", "Dobrar prêmio", new Vector2(0f, -285f), new Vector2(420f, 70f), DoublePrize,
+            doublePrize = CreateButton(page, "Dobrar prêmio", "Dobrar", new Vector2(0f, -285f), new Vector2(420f, 70f), DoublePrize,
                 ButtonStyle.Yellow);
             LocalizedText.Attach(doublePrize.GetComponentInChildren<Text>());
 
