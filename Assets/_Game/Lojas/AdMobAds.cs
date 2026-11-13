@@ -2,6 +2,7 @@
 using System;
 using FutebolDeBotao;
 using GoogleMobileAds.Api;
+using GoogleMobileAds.Common;
 using GoogleMobileAds.Ump.Api;
 using UnityEngine;
 
@@ -46,11 +47,12 @@ public sealed class AdMobAds : IAdsProvider
     public void Initialize(AgeGroup ageGroup)
     {
         group = ageGroup;
-        MobileAds.RaiseAdEventsOnUnityMainThread = true;
+        // Os eventos do SDK chegam fora da thread do Unity: tudo passa por Main().
+        MobileAdsEventExecutor.Initialize();
         MobileAds.SetRequestConfiguration(new RequestConfiguration
         {
-            TagForChildDirectedTreatment = group == AgeGroup.Child ? TagForChildDirectedTreatment.True : TagForChildDirectedTreatment.Unspecified,
-            TagForUnderAgeOfConsent = group != AgeGroup.Adult ? TagForUnderAgeOfConsent.True : TagForUnderAgeOfConsent.Unspecified,
+            AgeRestrictedTreatment = group == AgeGroup.Child ? AgeRestrictedTreatment.Child
+                : group == AgeGroup.Teen ? AgeRestrictedTreatment.Teen : AgeRestrictedTreatment.Unspecified,
             MaxAdContentRating = group == AgeGroup.Child ? MaxAdContentRating.G : MaxAdContentRating.PG
         });
 
@@ -60,27 +62,31 @@ public sealed class AdMobAds : IAdsProvider
             return;
         }
         // Adulto: o formulário de consentimento aparece só onde a lei pede (Europa, Reino Unido...).
-        ConsentInformation.Update(new ConsentRequestParameters { TagForUnderAgeOfConsent = false }, error =>
+        ConsentInformation.Update(new ConsentRequestParameters { TagForUnderAgeOfConsent = false }, error => Main(() =>
         {
             if (error != null) Debug.LogWarning($"[Anúncios] Consentimento: {error.Message}");
-            ConsentForm.LoadAndShowConsentFormIfRequired(formError =>
+            ConsentForm.LoadAndShowConsentFormIfRequired(formError => Main(() =>
             {
                 if (formError != null) Debug.LogWarning($"[Anúncios] Formulário de consentimento: {formError.Message}");
                 if (ConsentInformation.CanRequestAds()) Start();
-            });
-        });
+            }));
+        }));
+    }
+
+    /// <summary>Roda na thread do Unity (no próximo Update).</summary>
+    private static void Main(Action action) => MobileAdsEventExecutor.ExecuteInUpdate(action);
     }
 
     private void Start()
     {
         if (started) return;
         started = true;
-        MobileAds.Initialize(_ =>
+        MobileAds.Initialize(_ => Main(() =>
         {
             LoadInterstitial();
             LoadRewarded();
             if (bannerWanted) ShowBanner();
-        });
+        }));
     }
 
     private AdRequest Request()
@@ -95,7 +101,7 @@ public sealed class AdMobAds : IAdsProvider
     {
         if (!started || loadingInterstitial || interstitial != null) return;
         loadingInterstitial = true;
-        InterstitialAd.Load(InterstitialId, Request(), (ad, error) =>
+        InterstitialAd.Load(InterstitialId, Request(), (ad, error) => Main(() =>
         {
             loadingInterstitial = false;
             if (error != null || ad == null)
@@ -104,14 +110,14 @@ public sealed class AdMobAds : IAdsProvider
                 return;
             }
             interstitial = ad;
-        });
+        }));
     }
 
     private void LoadRewarded()
     {
         if (!started || loadingRewarded || rewarded != null) return;
         loadingRewarded = true;
-        RewardedAd.Load(RewardedId, Request(), (ad, error) =>
+        RewardedAd.Load(RewardedId, Request(), (ad, error) => Main(() =>
         {
             loadingRewarded = false;
             if (error != null || ad == null)
@@ -120,7 +126,7 @@ public sealed class AdMobAds : IAdsProvider
                 return;
             }
             rewarded = ad;
-        });
+        }));
     }
 
     /// <summary>Banner adaptativo na largura da tela, no topo; criado uma vez e só mostrado/escondido depois.</summary>
@@ -132,8 +138,8 @@ public sealed class AdMobAds : IAdsProvider
         {
             var size = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
             banner = new BannerView(BannerId, size, AdPosition.Top);
-            banner.OnBannerAdLoaded += () => bannerLoaded = true;
-            banner.OnBannerAdLoadFailed += error => Debug.LogWarning($"[Anúncios] Banner não carregou: {error?.GetMessage()}");
+            banner.OnBannerAdLoaded += () => Main(() => bannerLoaded = true);
+            banner.OnBannerAdLoadFailed += error => Main(() => Debug.LogWarning($"[Anúncios] Banner não carregou: {error?.GetMessage()}"));
             banner.LoadAd(Request());
         }
         banner.Show();
@@ -166,8 +172,8 @@ public sealed class AdMobAds : IAdsProvider
             LoadInterstitial();
             closed?.Invoke();
         }
-        ad.OnAdFullScreenContentClosed += Finish;
-        ad.OnAdFullScreenContentFailed += _ => Finish();
+        ad.OnAdFullScreenContentClosed += () => Main(Finish);
+        ad.OnAdFullScreenContentFailed += _ => Main(Finish);
         ad.Show();
     }
 
@@ -191,8 +197,9 @@ public sealed class AdMobAds : IAdsProvider
             LoadRewarded();
             done?.Invoke(earned);
         }
-        ad.OnAdFullScreenContentClosed += Finish;
-        ad.OnAdFullScreenContentFailed += _ => Finish();
+        ad.OnAdFullScreenContentClosed += () => Main(Finish);
+        ad.OnAdFullScreenContentFailed += _ => Main(Finish);
+        // O prêmio pode chegar antes ou junto do fechar: marca na hora (só um bool) para o Finish já ver.
         ad.Show(_ => earned = true);
     }
 }
