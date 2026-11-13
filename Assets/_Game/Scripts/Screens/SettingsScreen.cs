@@ -148,7 +148,7 @@ namespace FutebolDeBotao
             LocalizedText.Attach(privacy.GetComponentInChildren<Text>());
             var privacyEntry = privacy.gameObject.AddComponent<MenuEntry>();
             privacyEntry.Configure(privacy);
-            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -320f), new Vector2(300f, 80f), Close, ButtonStyle.Red);
+            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -320f), new Vector2(460f, 70f), Close, ButtonStyle.Red);
             LocalizedText.Attach(back.GetComponentInChildren<Text>());
             var backEntry = back.gameObject.AddComponent<MenuEntry>();
             backEntry.Configure(back);
