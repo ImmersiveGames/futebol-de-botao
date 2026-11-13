@@ -68,6 +68,18 @@ namespace FutebolDeBotao
 
         public void FollowPauser() => followPauser = true;
 
+        /// <summary>Põe um item no começo da lista (montado depois, em tempo de execução); o cursor continua onde estava.</summary>
+        public void Prepend(MenuEntry entry)
+        {
+            if (entry == null) return;
+            var list = new MenuEntry[items.Length + 1];
+            list[0] = entry;
+            System.Array.Copy(items, 0, list, 1, items.Length);
+            items = list;
+            startIndex++;
+            index++;
+        }
+
         /// <summary>Põe o cursor no item (por exemplo, no Pronto clicado com o mouse).</summary>
         public void Select(MenuEntry entry)
         {

@@ -8,7 +8,9 @@ namespace FutebolDeBotao
     {
         Match,
         Tournament,
-        Tutorial
+        Tutorial,
+        /// <summary>Patrocínio vendido na aba Financeiro (anúncio com prêmio).</summary>
+        Sponsor
     }
 
     /// <summary>
@@ -34,6 +36,7 @@ namespace FutebolDeBotao
             {
                 case FinanceSource.Tournament: data.fromTournaments += amount; break;
                 case FinanceSource.Tutorial: data.fromTutorial += amount; break;
+                case FinanceSource.Sponsor: data.fromSponsors += amount; break;
                 default: data.fromMatches += amount; break;
             }
             Add(description, amount);

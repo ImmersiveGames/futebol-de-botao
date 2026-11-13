@@ -241,6 +241,7 @@ namespace FutebolDeBotao
             }
             data.finance ??= new SaveData.FinanceData();
             data.finance.entries ??= new System.Collections.Generic.List<SaveData.FinanceEntry>();
+            data.ads ??= new SaveData.AdsData();
             // Versão 9 criou o Financeiro: os totais vêm das estatísticas; do ganho, o tutorial é exato (lições e bônus) e
             // o resto vai para Partidas (antes não se separava partida de torneio). O extrato começa vazio.
             if (data.version < 9)

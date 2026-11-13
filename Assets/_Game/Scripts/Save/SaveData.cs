@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 10;
+        public const int CurrentVersion = 11;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -30,6 +30,22 @@ namespace FutebolDeBotao
         public TutorialData tutorial = new();
         /// <summary>Financeiro (versão 9): totais de moedas, ganho por origem e o extrato (aba Financeiro do Meu time).</summary>
         public FinanceData finance = new();
+        /// <summary>Anúncios (versão 11): ano de nascimento da tela de idade, compra "remover anúncios" e patrocínios do dia.</summary>
+        public AdsData ads = new();
+
+        [Serializable]
+        public sealed class AdsData
+        {
+            /// <summary>Ano de nascimento escolhido na tela de idade; 0 = ainda não respondeu.</summary>
+            public int birthYear;
+            /// <summary>Comprou "remover anúncios" (some o anúncio entre partidas; os com prêmio continuam).</summary>
+            public bool adsRemoved;
+            /// <summary>Saídas do Resultado desde o último anúncio entre partidas.</summary>
+            public int matchesSinceInterstitial;
+            /// <summary>Dia ("yyyy-MM-dd") e quantos patrocínios já foram vendidos nele.</summary>
+            public string sponsorDay;
+            public int sponsorsToday;
+        }
 
         [Serializable]
         public sealed class FinanceData
@@ -39,6 +55,8 @@ namespace FutebolDeBotao
             public int fromMatches;
             public int fromTournaments;
             public int fromTutorial;
+            /// <summary>Patrocínios (anúncio com prêmio na aba Financeiro), versão 11.</summary>
+            public int fromSponsors;
             /// <summary>Últimas movimentações, da mais antiga para a mais nova.</summary>
             public List<FinanceEntry> entries = new();
         }
@@ -273,6 +291,8 @@ namespace FutebolDeBotao
             public bool abandoned;
             public int matchCoins;
             public int prize;
+            /// <summary>O prêmio foi dobrado com o anúncio (versão 11); <see cref="prize"/> continua o valor de uma vez.</summary>
+            public bool prizeDoubled;
         }
 
         /// <summary>Um jogo da chave. O mandante é o de cima (<see cref="home"/>).</summary>

@@ -41,6 +41,11 @@ namespace FutebolDeBotao
         [SerializeField] private RouteRequestTrigger menuRoute;
 
         private Font font;
+        private Text coinsLabel;
+        private Button doubleButton;
+        /// <summary>Assistiu a um anúncio com prêmio nesta tela: não leva o anúncio entre partidas ao sair.</summary>
+        private bool watchedReward;
+        private bool leaving;
 
         public void Configure(RouteRequestTrigger match, RouteRequestTrigger menu)
         {
@@ -63,9 +68,7 @@ namespace FutebolDeBotao
             if (MatchSession.VsAi == true && PlayerStats.NewRecord > 0)
                 CreateText(root, "Recorde", Txt.Format("Novo recorde de sequência: {0} vitórias!", PlayerStats.NewRecord), 30, FontStyle.Bold,
                     HighlightColor, new Vector2(0f, RecordY), new Vector2(680f, 44f));
-            if (MatchSession.VsAi == true && PlayerStats.CoinsEarned > 0)
-                CreateText(root, "Moedas", Txt.Format("+{0} moedas (saldo: {1})", PlayerStats.CoinsEarned, Shop.Coins), 30, FontStyle.Bold,
-                    HighlightColor, new Vector2(0f, CoinsY), new Vector2(680f, 44f));
+            if (MatchSession.VsAi == true && PlayerStats.CoinsEarned > 0) BuildCoins(root);
             var numbers = MatchSession.LastMatchNumbers;
             if (numbers != null && numbers.Length == 2) BuildTable(root, numbers[0], numbers[1]);
             if (MatchSession.InTournamentMatch) BuildTournament(root);
@@ -91,7 +94,53 @@ namespace FutebolDeBotao
             CreateText(root, "Torneio", status, 30, FontStyle.Bold, HighlightColor, new Vector2(0f, TournamentY), new Vector2(680f, 50f));
         }
 
+        /// <summary>Moedas ganhas e, com anúncio disponível, "Dobrar moedas" ao lado (some depois de usar).</summary>
+        private void BuildCoins(RectTransform root)
+        {
+            bool canDouble = Ads.RewardedAvailable && !PlayerStats.CoinsDoubled;
+            coinsLabel = CreateText(root, "Moedas", string.Empty, 30, FontStyle.Bold, HighlightColor,
+                new Vector2(canDouble ? -115f : 0f, CoinsY), new Vector2(canDouble ? 440f : 680f, 44f));
+            RefreshCoins();
+            if (!canDouble) return;
+            doubleButton = OverlayUi.CreateButton(root, "Dobrar moedas", "Dobrar moedas", new Vector2(225f, CoinsY), new Vector2(230f, 62f),
+                DoubleCoins, ButtonStyle.Yellow);
+            LocalizedText.Attach(OverlayUi.Label(doubleButton));
+            // Entra no começo da lista do teclado/controle.
+            var navigator = GetComponent<MenuNavigator>();
+            if (navigator != null) navigator.Prepend(OverlayUi.Entry(doubleButton));
+        }
+
+        private void RefreshCoins()
+        {
+            if (coinsLabel != null) coinsLabel.text = Txt.Format("+{0} moedas (saldo: {1})", PlayerStats.CoinsEarned, Shop.Coins);
+        }
+
+        private void DoubleCoins()
+        {
+            doubleButton.interactable = false;
+            Ads.ShowRewarded(rewarded =>
+            {
+                if (this == null) return;
+                if (!rewarded)
+                {
+                    doubleButton.interactable = true;
+                    return;
+                }
+                watchedReward = true;
+                PlayerStats.DoubleCoins();
+                RefreshCoins();
+                doubleButton.gameObject.SetActive(false);
+            });
+        }
+
         public void PlayAgain()
+        {
+            if (leaving) return;
+            leaving = true;
+            Ads.AfterMatch(PlayAgainNow, watchedReward);
+        }
+
+        private void PlayAgainNow()
         {
             // Torneio: "Avançar" volta ao Menu já na chave (ou no fim do torneio).
             if (MatchSession.InTournamentMatch)
@@ -106,7 +155,12 @@ namespace FutebolDeBotao
 
         public void BackToMenu()
         {
-            if (menuRoute != null) menuRoute.RequestRoute();
+            if (leaving) return;
+            leaving = true;
+            Ads.AfterMatch(() =>
+            {
+                if (menuRoute != null) menuRoute.RequestRoute();
+            }, watchedReward);
         }
 
         // ---- Placar ----

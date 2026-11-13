@@ -354,6 +354,23 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>Pode dobrar o prêmio do torneio terminado com um anúncio (uma vez).</summary>
+        public static bool CanDoublePrize => Run.exists && !Run.active && !Run.abandoned && Run.prize > 0 && !Run.prizeDoubled;
+
+        /// <summary>"Dobrar prêmio" no fim do torneio (assistiu ao anúncio): paga o prêmio de novo e grava.</summary>
+        public static void DoublePrize()
+        {
+            if (!CanDoublePrize) return;
+            var run = Run;
+            run.prizeDoubled = true;
+            var stats = GameSave.Data.stats;
+            int level = Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1);
+            stats.total.coins += run.prize;
+            stats.levels[level].coins += run.prize;
+            Finance.Earn(FinanceSource.Tournament, Txt.Get("Prêmio em dobro (anúncio)"), run.prize);
+            GameSave.WriteOnly("prêmio em dobro");
+        }
+
         // ---- Sorteio ----
 
         private static void Simulate(SaveData.TournamentMatch match)

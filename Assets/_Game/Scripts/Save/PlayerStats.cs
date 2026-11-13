@@ -19,11 +19,35 @@ namespace FutebolDeBotao
         /// <summary>Moedas que a última partida pagou (para a tela de Resultado); 0 = nenhuma.</summary>
         public static int CoinsEarned { get; private set; }
 
+        /// <summary>As moedas da última partida já foram dobradas com o anúncio (só uma vez por partida).</summary>
+        public static bool CoinsDoubled { get; private set; }
+
+        /// <summary>
+        /// "Dobrar moedas" no Resultado (o jogador assistiu ao anúncio): paga de novo o que a partida pagou, no
+        /// Financeiro (partida ou torneio), nas estatísticas e nas moedas das partidas do torneio. Grava.
+        /// </summary>
+        public static void DoubleCoins()
+        {
+            int coins = CoinsEarned;
+            if (coins <= 0 || CoinsDoubled) return;
+            CoinsDoubled = true;
+            int level = Data.hasLast ? UnityEngine.Mathf.Clamp(Data.last.level, 0, AiDifficulty.LevelCount - 1) : 0;
+            Data.levels[level].coins += coins;
+            Data.total.coins += coins;
+            if (Data.hasLast) Data.last.coins += coins;
+            CoinsEarned += coins;
+            bool tournament = MatchSession.InTournamentMatch;
+            if (tournament && Tournament.Run != null) Tournament.Run.matchCoins += coins;
+            Finance.Earn(tournament ? FinanceSource.Tournament : FinanceSource.Match, Txt.Get("Moedas em dobro (anúncio)"), coins);
+            GameSave.WriteOnly("moedas em dobro");
+        }
+
         /// <summary>Começo de uma partida (também no Reiniciar e no Jogar de novo). Só conta contra a IA, vindo do Menu.</summary>
         public static void BeginMatch()
         {
             NewRecord = 0;
             CoinsEarned = 0;
+            CoinsDoubled = false;
             if (MatchSession.VsAi != true) return;
             CountLeftover();
             Data.inProgressLevel = (int)MatchSession.AiLevel;

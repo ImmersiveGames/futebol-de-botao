@@ -54,6 +54,7 @@ namespace FutebolDeBotao
         private Text actionLabel;
         private MenuNavigator bracketNavigator;
         private Text endName, endPosition, endCoins;
+        private Button doublePrize;
         private Image endTrophy;
 
         public void Configure(MenuScreen menuScreen) => menu = menuScreen;
@@ -295,9 +296,24 @@ namespace FutebolDeBotao
             endTrophy.enabled = sprite != null;
 
             var lines = new List<string> { Txt.Format("Moedas das partidas: +{0}", run.matchCoins) };
-            if (run.prize > 0) lines.Add(Txt.Format("Prêmio: +{0}", run.prize));
+            if (run.prize > 0) lines.Add(run.prizeDoubled ? Txt.Format("Prêmio em dobro: +{0}", run.prize * 2) : Txt.Format("Prêmio: +{0}", run.prize));
             lines.Add(Txt.Format("Saldo: {0}", Shop.Coins));
             endCoins.text = string.Join("\n", lines);
+            bool canDouble = Ads.RewardedAvailable && Tournament.CanDoublePrize;
+            doublePrize.gameObject.SetActive(canDouble);
+            doublePrize.interactable = true;
+        }
+
+        /// <summary>"Dobrar prêmio": anúncio com prêmio; assistindo, paga de novo e atualiza a tela.</summary>
+        private void DoublePrize()
+        {
+            doublePrize.interactable = false;
+            Ads.ShowRewarded(rewarded =>
+            {
+                if (this == null) return;
+                if (rewarded) Tournament.DoublePrize();
+                ShowEnd();
+            });
         }
 
         private static readonly Dictionary<int, Sprite> placeholders = new();
@@ -437,14 +453,17 @@ namespace FutebolDeBotao
             endTrophy.preserveAspect = true;
             endTrophy.raycastTarget = false;
             endPosition = CreateText(page, "Colocação", "-", 56, FontStyle.Bold, HighlightColor, new Vector2(0f, -20f), new Vector2(680f, 100f));
-            endCoins = CreateText(page, "Moedas", "-", 32, FontStyle.Normal, Color.white, new Vector2(0f, -180f), new Vector2(680f, 170f));
+            endCoins = CreateText(page, "Moedas", "-", 32, FontStyle.Normal, Color.white, new Vector2(0f, -160f), new Vector2(680f, 150f));
+            doublePrize = CreateButton(page, "Dobrar prêmio", "Dobrar prêmio", new Vector2(0f, -285f), new Vector2(420f, 70f), DoublePrize,
+                ButtonStyle.Yellow);
+            LocalizedText.Attach(doublePrize.GetComponentInChildren<Text>());
 
             var bracket = CreateButton(page, "Ver chave", "Ver chave", new Vector2(0f, -390f), new Vector2(420f, 90f), ShowBracket);
             var toMenu = CreateButton(page, "Menu", "Menu", new Vector2(0f, -500f), new Vector2(420f, 90f), Back, ButtonStyle.Yellow);
             var navigator = page.gameObject.AddComponent<MenuNavigator>();
             LocalizedText.Attach(bracket.GetComponentInChildren<Text>());
             LocalizedText.Attach(toMenu.GetComponentInChildren<Text>());
-            navigator.Configure(new[] { Entry(bracket), Entry(toMenu) }, toMenu, 1);
+            navigator.Configure(new[] { Entry(doublePrize), Entry(bracket), Entry(toMenu) }, toMenu, 2);
         }
 
         private static MenuEntry Entry(Button button)

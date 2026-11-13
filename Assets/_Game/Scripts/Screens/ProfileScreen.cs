@@ -58,7 +58,9 @@ namespace FutebolDeBotao
         private Image[] discLayers, keeperLayers;
         private GameObject[] tabPages;
         private Button[] tabButtons;
-        private Text balanceLabel, earnedLabel, spentLabel, matchesLabel, tournamentsLabel, tutorialLabel;
+        private Text balanceLabel, earnedLabel, spentLabel, matchesLabel, tournamentsLabel, tutorialLabel, sponsorsLabel;
+        private Button sponsorButton;
+        private MenuEntry sponsorEntry;
         private RectTransform statementContent;
         private ScrollRect statementScroll;
         private Button[] uniformTabButtons;
@@ -123,6 +125,7 @@ namespace FutebolDeBotao
             var items = new System.Collections.Generic.List<MenuEntry> { tabsEntry };
             if (tab == TeamTab) items.AddRange(teamEntries);
             else if (tab == TableTab) items.AddRange(tableEntries);
+            else if (tab == FinanceTab && sponsorButton.gameObject.activeSelf) items.Add(sponsorEntry);
             items.Add(backEntry);
             items.Add(saveEntry);
             navigator.Configure(items.ToArray(), (Button)backEntry.GetComponent<Button>(), 0);
@@ -140,6 +143,8 @@ namespace FutebolDeBotao
             matchesLabel.text = $"+{data.fromMatches}";
             tournamentsLabel.text = $"+{data.fromTournaments}";
             tutorialLabel.text = $"+{data.fromTutorial}";
+            sponsorsLabel.text = $"+{data.fromSponsors}";
+            RefreshSponsor();
 
             for (int i = statementContent.childCount - 1; i >= 0; i--) Destroy(statementContent.GetChild(i).gameObject);
             var entries = data.entries;
@@ -388,15 +393,22 @@ namespace FutebolDeBotao
             LocalizedText.Attach(CreateText(page, "Rótulo do saldo", "Saldo", 28, FontStyle.Bold, LabelColor, new Vector2(0f, 345f), new Vector2(600f, 40f)));
             balanceLabel = CreateText(page, "Saldo", string.Empty, 56, FontStyle.Bold, CoinColor, new Vector2(0f, 290f), new Vector2(680f, 70f));
 
-            earnedLabel = SummaryRow(page, "Ganho total", 215f, false, EarnColor);
-            matchesLabel = SummaryRow(page, "Partidas", 175f, true, Color.white);
-            tournamentsLabel = SummaryRow(page, "Torneios", 135f, true, Color.white);
-            tutorialLabel = SummaryRow(page, "Tutorial", 95f, true, Color.white);
-            spentLabel = SummaryRow(page, "Gasto total (loja)", 50f, false, SpendColor);
+            earnedLabel = SummaryRow(page, "Ganho total", 228f, false, EarnColor);
+            matchesLabel = SummaryRow(page, "Partidas", 193f, true, Color.white);
+            tournamentsLabel = SummaryRow(page, "Torneios", 160f, true, Color.white);
+            tutorialLabel = SummaryRow(page, "Tutorial", 127f, true, Color.white);
+            sponsorsLabel = SummaryRow(page, "Patrocínios", 94f, true, Color.white);
+            spentLabel = SummaryRow(page, "Gasto total (loja)", 52f, false, SpendColor);
 
             var header = CreateText(page, "Extrato", "Extrato", 32, FontStyle.Bold, CoinColor, new Vector2(LabelX, 0f), new Vector2(LabelWidth, 44f));
             header.alignment = TextAnchor.MiddleLeft;
             LocalizedText.Attach(header);
+
+            // Patrocínio: na linha do "Extrato", à direita (só onde há anúncios).
+            float rightEdge = ValueX + ValueWidth * 0.5f;
+            sponsorButton = CreateButton(page, "Vender patrocínio", string.Empty, new Vector2(rightEdge - 170f, 2f), new Vector2(340f, 56f),
+                SellSponsor, ButtonStyle.Yellow);
+            sponsorEntry = Entry(sponsorButton);
 
             // Lista com rolagem (arrastar ou roda do mouse).
             float centerX = (LabelX - LabelWidth * 0.5f + ValueX + ValueWidth * 0.5f) * 0.5f;
@@ -416,6 +428,31 @@ namespace FutebolDeBotao
             statementScroll.horizontal = false;
             statementScroll.movementType = ScrollRect.MovementType.Clamped;
             statementScroll.scrollSensitivity = 30f;
+        }
+
+        /// <summary>Botão do patrocínio: quantos faltam hoje; esgotado fica cinza até amanhã.</summary>
+        private void RefreshSponsor()
+        {
+            bool shown = Ads.RewardedAvailable;
+            if (sponsorButton.gameObject.activeSelf != shown)
+            {
+                sponsorButton.gameObject.SetActive(shown);
+                if (tab == FinanceTab) ShowTab(FinanceTab);
+            }
+            int left = Sponsorship.RemainingToday;
+            sponsorButton.interactable = left > 0;
+            sponsorButton.GetComponentInChildren<Text>().text = left > 0
+                ? Txt.Format("Vender patrocínio (+{0}) {1}/{2}", Sponsorship.Reward, left, Sponsorship.PerDay)
+                : Txt.Get("Patrocínios de hoje vendidos");
+        }
+
+        private void SellSponsor()
+        {
+            sponsorButton.interactable = false;
+            Sponsorship.Sell(_ =>
+            {
+                if (this != null && isActiveAndEnabled) RefreshFinance();
+            });
         }
 
         /// <summary>Linha do resumo: rótulo à esquerda (recuado nas origens) e valor à direita.</summary>
