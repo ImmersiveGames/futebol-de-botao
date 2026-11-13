@@ -406,9 +406,10 @@ namespace FutebolDeBotao
 
             // Patrocínio: na linha do "Extrato", à direita (só onde há anúncios).
             float rightEdge = ValueX + ValueWidth * 0.5f;
-            sponsorButton = CreateButton(page, "Vender patrocínio", string.Empty, new Vector2(rightEdge - 170f, 2f), new Vector2(340f, 56f),
+            sponsorButton = CreateButton(page, "Patrocínio", "Patrocínio", new Vector2(rightEdge - 120f, -4f), new Vector2(240f, 56f),
                 SellSponsor, ButtonStyle.Yellow);
             sponsorEntry = Entry(sponsorButton);
+            LocalizedText.Attach(sponsorButton.GetComponentInChildren<Text>());
 
             // Lista com rolagem (arrastar ou roda do mouse).
             float centerX = (LabelX - LabelWidth * 0.5f + ValueX + ValueWidth * 0.5f) * 0.5f;
@@ -430,7 +431,7 @@ namespace FutebolDeBotao
             statementScroll.scrollSensitivity = 30f;
         }
 
-        /// <summary>Botão do patrocínio: quantos faltam hoje; esgotado fica cinza até amanhã.</summary>
+        /// <summary>Botão do patrocínio: aparece onde há anúncio com prêmio; o pop-up diz quantos faltam hoje.</summary>
         private void RefreshSponsor()
         {
             bool shown = Ads.RewardedAvailable;
@@ -439,14 +440,25 @@ namespace FutebolDeBotao
                 sponsorButton.gameObject.SetActive(shown);
                 if (tab == FinanceTab) ShowTab(FinanceTab);
             }
-            int left = Sponsorship.RemainingToday;
-            sponsorButton.interactable = left > 0;
-            sponsorButton.GetComponentInChildren<Text>().text = left > 0
-                ? Txt.Format("Vender patrocínio (+{0}) {1}/{2}", Sponsorship.Reward, left, Sponsorship.PerDay)
-                : Txt.Get("Patrocínios de hoje vendidos");
+            sponsorButton.interactable = true;
         }
 
+        /// <summary>"Patrocínio": o pop-up explica e, se o jogador topar, mostra o anúncio com prêmio.</summary>
         private void SellSponsor()
+        {
+            int left = Sponsorship.RemainingToday;
+            if (left <= 0)
+            {
+                MessageDialog.Open(Txt.Get("Patrocínio"), Txt.Get("Os patrocinadores de hoje já fecharam negócio. Volte amanhã para vender mais!"),
+                    Txt.Get("OK"), null);
+                return;
+            }
+            string message = Txt.Format("Um patrocinador quer estampar a marca dele no seu time! Assista a um anúncio e ganhe {0} moedas.", Sponsorship.Reward)
+                             + "\n\n" + Txt.Format("Até {0} patrocínios por dia. Hoje ainda dá: {1}.", Sponsorship.PerDay, left);
+            MessageDialog.Open(Txt.Get("Patrocínio"), message, Txt.Get("Assistir"), Watch, Txt.Get("Agora não"));
+        }
+
+        private void Watch()
         {
             sponsorButton.interactable = false;
             Sponsorship.Sell(_ =>
