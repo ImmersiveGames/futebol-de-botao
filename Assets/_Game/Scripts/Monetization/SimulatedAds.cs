@@ -33,11 +33,17 @@ namespace FutebolDeBotao
         {
             if (banner != null) banner.SetActive(false);
         }
+
+        public float BannerHeightPixels =>
+            banner != null && banner.activeSelf ? SimulatedBanner.HeightDp * Screen.width / SimulatedBanner.WidthDp + Ads.TopInsetPixels : 0f;
     }
 
     /// <summary>O banner de teste: Canvas próprio que acompanha a largura da tela, preso no topo da área segura.</summary>
     internal static class SimulatedBanner
     {
+        public const float WidthDp = 360f;
+        public const float HeightDp = 50f;
+
         public static GameObject Create()
         {
             var go = new GameObject("Banner de teste", typeof(RectTransform));
@@ -47,7 +53,7 @@ namespace FutebolDeBotao
             canvas.sortingOrder = 800;
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(360f, 640f);
+            scaler.referenceResolution = new Vector2(WidthDp, 640f);
             scaler.matchWidthOrHeight = 0f;
             var root = (RectTransform)go.transform;
             var safe = OverlayUi.CreateRect(root, "Área segura", Vector2.zero, Vector2.zero);
@@ -59,7 +65,7 @@ namespace FutebolDeBotao
             bar.anchorMin = new Vector2(0f, 1f);
             bar.anchorMax = Vector2.one;
             bar.pivot = new Vector2(0.5f, 1f);
-            bar.sizeDelta = new Vector2(0f, 50f);
+            bar.sizeDelta = new Vector2(0f, HeightDp);
             var image = bar.gameObject.AddComponent<Image>();
             image.color = new Color(0.55f, 0.55f, 0.55f);
             image.raycastTarget = true;

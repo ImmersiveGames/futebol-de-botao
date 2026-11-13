@@ -99,6 +99,7 @@ namespace FutebolDeBotao
             // Primeira abertura (onde há anúncios): pergunta o ano de nascimento, por cima do Menu.
             AgeScreen.Open();
             Ads.ShowBanner(this);
+            BannerSpace.Attach(this);
         }
 
         private void OnDestroy() => Ads.HideBanner(this);

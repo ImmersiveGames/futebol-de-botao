@@ -114,6 +114,12 @@ namespace FutebolDeBotao
             provider.ShowBanner();
         }
 
+        /// <summary>Quanto do topo da tela o banner ocupa, em pixels (0 sem banner). Para o <see cref="BannerSpace"/>.</summary>
+        public static float BannerHeightPixels => provider != null && BannerWanted && !Removed ? provider.BannerHeightPixels : 0f;
+
+        /// <summary>Espaço do topo que a área segura não usa (furo da câmera); o banner fica abaixo dele.</summary>
+        public static float TopInsetPixels => Mathf.Max(0f, Screen.height - Screen.safeArea.yMax);
+
         /// <summary>A tela que pediu o banner fechou (entrou na partida, por exemplo).</summary>
         public static void HideBanner(object owner)
         {

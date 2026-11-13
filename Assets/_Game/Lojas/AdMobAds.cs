@@ -27,6 +27,10 @@ public sealed class AdMobAds : IAdsProvider
     private RewardedAd rewarded;
     private BannerView banner;
     private bool bannerWanted;
+    private bool bannerLoaded;
+    private bool bannerShown;
+
+    public float BannerHeightPixels => banner != null && bannerLoaded && bannerShown ? banner.GetHeightInPixels() + Ads.TopInsetPixels : 0f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Register() => Ads.Factory = () => new AdMobAds();
@@ -120,15 +124,18 @@ public sealed class AdMobAds : IAdsProvider
         {
             var size = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
             banner = new BannerView(BannerId, size, AdPosition.Top);
+            banner.OnBannerAdLoaded += () => bannerLoaded = true;
             banner.OnBannerAdLoadFailed += error => Debug.LogWarning($"[Anúncios] Banner não carregou: {error?.GetMessage()}");
             banner.LoadAd(Request());
         }
         banner.Show();
+        bannerShown = true;
     }
 
     public void HideBanner()
     {
         bannerWanted = false;
+        bannerShown = false;
         banner?.Hide();
     }
 

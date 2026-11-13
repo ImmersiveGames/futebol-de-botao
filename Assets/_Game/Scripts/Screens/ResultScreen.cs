@@ -75,6 +75,7 @@ namespace FutebolDeBotao
             var numbers = MatchSession.LastMatchNumbers;
             if (numbers != null && numbers.Length == 2) BuildTable(root, numbers[0], numbers[1]);
             if (MatchSession.InTournamentMatch) BuildTournament(root);
+            BannerSpace.Attach(this);
         }
 
         /// <summary>Torneio: Avançar e Sair no lugar de Jogar de novo e Menu, e a situação do jogador.</summary>
@@ -105,7 +106,7 @@ namespace FutebolDeBotao
                 new Vector2(canDouble ? -115f : 0f, CoinsY), new Vector2(canDouble ? 440f : 680f, 44f));
             RefreshCoins();
             if (!canDouble) return;
-            doubleButton = OverlayUi.CreateButton(root, "Dobrar moedas", "Dobrar moedas", new Vector2(225f, CoinsY), new Vector2(230f, 62f),
+            doubleButton = OverlayUi.CreateButton(root, "Dobrar moedas", "Dobrar", new Vector2(225f, CoinsY), new Vector2(230f, 62f),
                 DoubleCoins, ButtonStyle.Yellow);
             LocalizedText.Attach(OverlayUi.Label(doubleButton));
             // Entra no começo da lista do teclado/controle.
@@ -118,7 +119,15 @@ namespace FutebolDeBotao
             if (coinsLabel != null) coinsLabel.text = Txt.Format("+{0} moedas (saldo: {1})", PlayerStats.CoinsEarned, Shop.Coins);
         }
 
+        /// <summary>"Dobrar": o pop-up explica; Assistir mostra o anúncio com prêmio.</summary>
         private void DoubleCoins()
+        {
+            MessageDialog.Open(Txt.Get("Dobrar moedas"),
+                Txt.Format("Assista a um anúncio e ganhe mais {0} moedas, o dobro do que esta partida pagou.", PlayerStats.CoinsEarned),
+                Txt.Get("Assistir"), WatchDouble, Txt.Get("Agora não"));
+        }
+
+        private void WatchDouble()
         {
             doubleButton.interactable = false;
             Ads.ShowRewarded(rewarded =>

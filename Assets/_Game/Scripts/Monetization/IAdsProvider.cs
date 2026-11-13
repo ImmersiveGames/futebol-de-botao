@@ -18,5 +18,8 @@ namespace FutebolDeBotao
         void ShowBanner();
 
         void HideBanner();
+
+        /// <summary>Altura do banner à mostra em pixels da tela, contando do topo (0 = sem banner).</summary>
+        float BannerHeightPixels { get; }
     }
 }
