@@ -13,6 +13,12 @@ namespace FutebolDeBotao
 
         void Connect();
 
+        /// <summary>Por que ainda não está pronta (vazio quando está tudo bem). Mostrado no pop-up para diagnóstico.</summary>
+        string Status { get; }
+
+        /// <summary>Tenta de novo: reconecta ou pede os produtos outra vez.</summary>
+        void Retry();
+
         /// <summary>Abre a compra; <paramref name="done"/> diz se comprou (a entrega vem por <see cref="Purchases.Grant"/>).</summary>
         void Buy(string productId, Action<bool> done);
 

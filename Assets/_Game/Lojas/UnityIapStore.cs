@@ -16,6 +16,10 @@ public sealed class UnityIapStore : IStoreProvider
     private Action<bool> buying;
 
     public bool Ready { get; private set; }
+    public string Status { get; private set; } = "conectando";
+
+    private bool connected;
+    private bool connecting;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Boot()
@@ -32,6 +36,11 @@ public sealed class UnityIapStore : IStoreProvider
 
     public async void Connect()
     {
+        if (store != null)
+        {
+            await ConnectStore();
+            return;
+        }
         try
         {
             store = UnityIAPServices.StoreController();
@@ -44,29 +53,75 @@ public sealed class UnityIapStore : IStoreProvider
             store.OnStoreDisconnected += failure =>
             {
                 Ready = false;
+                connected = false;
+                Status = $"loja desconectada: {failure.Message}";
                 Debug.LogWarning($"[Compras] Loja desconectada: {failure.Message}");
             };
             store.OnProductsFetched += _ =>
             {
-                Ready = true;
+                // O Play devolve o produto mesmo quando ele não está liberado: só fica pronto se dá para comprar.
+                var product = store.GetProductById(Purchases.RemoveAdsId);
+                Ready = product != null && product.availableToPurchase;
+                Status = Ready ? string.Empty : $"o produto {Purchases.RemoveAdsId} não veio da loja (ativo no Console? app instalado pelo Play? conta testadora?)";
+                if (!Ready) Debug.LogWarning($"[Compras] {Status}");
                 store.FetchPurchases();
             };
-            store.OnProductsFetchFailed += failure => Debug.LogWarning($"[Compras] Produtos não vieram: {failure.FailureReason}");
+            store.OnProductsFetchFailed += failure =>
+            {
+                Status = $"produtos não vieram: {failure.FailureReason}";
+                Debug.LogWarning($"[Compras] Produtos não vieram: {failure.FailureReason}");
+            };
             store.OnPurchasesFetched += orders =>
             {
                 foreach (var order in orders.ConfirmedOrders) Grant(order.CartOrdered);
             };
             store.OnPurchasesFetchFailed += failure => Debug.LogWarning($"[Compras] Compras não vieram: {failure.Message}");
+        }
+        catch (Exception exception)
+        {
+            Status = $"não consegui abrir a loja: {exception.Message}";
+            Debug.LogWarning($"[Compras] Não consegui abrir a loja: {exception.Message}");
+            return;
+        }
+        await ConnectStore();
+    }
+
+    private async System.Threading.Tasks.Task ConnectStore()
+    {
+        if (connecting) return;
+        connecting = true;
+        Status = "conectando";
+        try
+        {
             await store.Connect();
         }
         catch (Exception exception)
         {
+            Status = $"não consegui conectar: {exception.Message}";
             Debug.LogWarning($"[Compras] Não consegui conectar: {exception.Message}");
         }
+        finally
+        {
+            connecting = false;
+        }
+    }
+
+    public void Retry()
+    {
+        if (Ready || connecting) return;
+        if (store == null || !connected) Connect();
+        else FetchProducts();
     }
 
     private void OnStoreConnected()
     {
+        connected = true;
+        FetchProducts();
+    }
+
+    private void FetchProducts()
+    {
+        Status = "pedindo os produtos";
         store.FetchProducts(new List<ProductDefinition> { new(Purchases.RemoveAdsId, ProductType.NonConsumable) });
     }
 

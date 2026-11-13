@@ -36,6 +36,23 @@ namespace FutebolDeBotao
         /// <summary>Tem loja (mesmo que ainda conectando): os botões aparecem.</summary>
         public static bool Supported => provider != null;
 
+        /// <summary>Motivo da loja não estar pronta (diagnóstico).</summary>
+        public static string Status => provider != null ? provider.Status : "sem loja";
+
+        /// <summary>Loja não pronta: tenta conectar/pedir os produtos de novo.</summary>
+        public static void Retry()
+        {
+            if (provider == null || provider.Ready) return;
+            try
+            {
+                provider.Retry();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"[Compras] Nova tentativa falhou: {exception.Message}");
+            }
+        }
+
         public static string RemoveAdsPrice => provider != null ? provider.Price(RemoveAdsId) : string.Empty;
 
         public static void BuyRemoveAds(Action<bool> done)

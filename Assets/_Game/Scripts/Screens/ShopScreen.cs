@@ -69,6 +69,7 @@ namespace FutebolDeBotao
         {
             Build();
             CloseDialog();
+            Purchases.Retry();
             ShowTab(0);
         }
 
@@ -77,7 +78,6 @@ namespace FutebolDeBotao
             if (!built) return;
             if (shownCoins != Shop.Coins) RefreshCoins();
             // A loja termina de conectar depois de abrir a tela: o preço e o botão aparecem quando ela estiver pronta.
-            if (removeAdsButton.gameObject.activeSelf && !removeAdsButton.interactable && !purchasing && Purchases.Ready && !dialog.activeSelf) FillList();
             if (dialog.activeSelf) return;
 
             foreach (var gamepad in Gamepad.all)
@@ -108,13 +108,21 @@ namespace FutebolDeBotao
             if (!shown) return false;
             // O preço fica no pop-up (no botão não cabia numa linha).
             removeAdsButton.GetComponentInChildren<Text>().text = Txt.Get("Remover anúncios");
-            removeAdsButton.interactable = Purchases.Ready && !purchasing;
+            // Fica clicável mesmo com a loja fora: o pop-up conta o motivo e deixa tentar de novo.
+            removeAdsButton.interactable = !purchasing;
             return true;
         }
 
         /// <summary>"Remover anúncios": o pop-up explica e mostra o preço; Comprar abre a compra da loja.</summary>
         private void BuyRemoveAds()
         {
+            if (!Purchases.Ready)
+            {
+                string reason = Txt.Get("A loja do Google Play ainda não respondeu. Tente de novo daqui a pouco.");
+                if (!string.IsNullOrEmpty(Purchases.Status)) reason += "\n\n(" + Purchases.Status + ")";
+                MessageDialog.Open(Txt.Get("Loja indisponível"), reason, Txt.Get("Tentar de novo"), Purchases.Retry, Txt.Get("Voltar"));
+                return;
+            }
             string price = Purchases.RemoveAdsPrice;
             string message = (string.IsNullOrEmpty(price) ? string.Empty : Txt.Format("Compra única de {0}.", price) + " ")
                              + Txt.Get("Tira para sempre os anúncios entre as partidas.") + "\n\n"
