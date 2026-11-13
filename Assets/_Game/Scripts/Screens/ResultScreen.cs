@@ -53,8 +53,11 @@ namespace FutebolDeBotao
             menuRoute = menu;
         }
 
+        private void OnDestroy() => Ads.HideBanner(this);
+
         private void Start()
         {
+            Ads.ShowBanner(this);
             font = GameFont.Get();
             var root = (RectTransform)transform;
             var result = MatchSession.LastResult;

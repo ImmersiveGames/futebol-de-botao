@@ -20,6 +20,9 @@ namespace FutebolDeBotao
         /// <summary>Cria o provedor de verdade (o AdMob registra aqui antes da primeira cena).</summary>
         public static Func<IAdsProvider> Factory;
         private static bool showing;
+        /// <summary>Telas abertas que querem o banner (Menu, Resultado). Na troca de cena as duas podem existir juntas.</summary>
+        private static readonly System.Collections.Generic.HashSet<object> bannerOwners = new();
+        private static bool BannerWanted => bannerOwners.Count > 0;
 
         /// <summary>Lugar com anúncios: Android (e o editor, para testar). No navegador (itch) não há.</summary>
         public static bool Supported => Application.isEditor || Application.platform == RuntimePlatform.Android;
@@ -34,6 +37,7 @@ namespace FutebolDeBotao
         {
             provider = null;
             showing = false;
+            bannerOwners.Clear();
             Initialize();
         }
 
@@ -43,6 +47,8 @@ namespace FutebolDeBotao
             if (provider != null || !Supported || !AgeGate.Answered) return;
             provider = Create();
             provider?.Initialize(AgeGate.Group);
+            // O Menu pediu o banner antes da tela de idade ser respondida.
+            if (BannerWanted && !Removed) provider?.ShowBanner();
         }
 
         private static IAdsProvider Create()
@@ -99,11 +105,28 @@ namespace FutebolDeBotao
             });
         }
 
+        /// <summary>Banner no topo (Menu e Resultado). Quem comprou "remover anúncios" não vê.</summary>
+        public static void ShowBanner(object owner)
+        {
+            if (owner == null) return;
+            bannerOwners.Add(owner);
+            if (provider == null || Removed) return;
+            provider.ShowBanner();
+        }
+
+        /// <summary>A tela que pediu o banner fechou (entrou na partida, por exemplo).</summary>
+        public static void HideBanner(object owner)
+        {
+            bannerOwners.Remove(owner);
+            if (!BannerWanted) provider?.HideBanner();
+        }
+
         /// <summary>Comprou "remover anúncios" (ou a loja do Google devolveu a compra ao reinstalar).</summary>
         public static void MarkRemoved()
         {
             if (Removed) return;
             GameSave.Data.ads.adsRemoved = true;
+            provider?.HideBanner();
             GameSave.WriteOnly("remover anúncios");
         }
     }

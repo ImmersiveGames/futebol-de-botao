@@ -18,12 +18,15 @@ public sealed class AdMobAds : IAdsProvider
     // IDs DE TESTE do Google. Trocar pelos blocos de anúncio da conta do AdMob antes de publicar.
     private const string InterstitialId = "ca-app-pub-3940256099942544/1033173712";
     private const string RewardedId = "ca-app-pub-3940256099942544/5224354917";
+    private const string BannerId = "ca-app-pub-3940256099942544/9214589741";
 
     private AgeGroup group;
     private bool started;
     private bool loadingInterstitial, loadingRewarded;
     private InterstitialAd interstitial;
     private RewardedAd rewarded;
+    private BannerView banner;
+    private bool bannerWanted;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Register() => Ads.Factory = () => new AdMobAds();
@@ -64,6 +67,7 @@ public sealed class AdMobAds : IAdsProvider
         {
             LoadInterstitial();
             LoadRewarded();
+            if (bannerWanted) ShowBanner();
         });
     }
 
@@ -105,6 +109,27 @@ public sealed class AdMobAds : IAdsProvider
             }
             rewarded = ad;
         });
+    }
+
+    /// <summary>Banner adaptativo na largura da tela, no topo; criado uma vez e só mostrado/escondido depois.</summary>
+    public void ShowBanner()
+    {
+        bannerWanted = true;
+        if (!started) return;
+        if (banner == null)
+        {
+            var size = AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
+            banner = new BannerView(BannerId, size, AdPosition.Top);
+            banner.OnBannerAdLoadFailed += error => Debug.LogWarning($"[Anúncios] Banner não carregou: {error?.GetMessage()}");
+            banner.LoadAd(Request());
+        }
+        banner.Show();
+    }
+
+    public void HideBanner()
+    {
+        bannerWanted = false;
+        banner?.Hide();
     }
 
     public void ShowInterstitial(Action closed)

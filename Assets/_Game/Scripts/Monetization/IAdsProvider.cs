@@ -13,5 +13,10 @@ namespace FutebolDeBotao
 
         /// <summary>Anúncio com prêmio; <paramref name="done"/> diz se o jogador ganhou o prêmio (assistiu até o fim).</summary>
         void ShowRewarded(Action<bool> done);
+
+        /// <summary>Banner no topo da tela (menus e Resultado); pede um novo se ainda não tem.</summary>
+        void ShowBanner();
+
+        void HideBanner();
     }
 }

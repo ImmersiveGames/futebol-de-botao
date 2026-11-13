@@ -19,6 +19,56 @@ namespace FutebolDeBotao
         public void ShowInterstitial(Action closed) => SimulatedAdScreen.Open(false, _ => closed?.Invoke());
 
         public void ShowRewarded(Action<bool> done) => SimulatedAdScreen.Open(true, done);
+
+        private GameObject banner;
+
+        /// <summary>Faixa cinza "Banner de teste" no topo, do tamanho de um banner de 50 dp num celular de 360 dp de largura.</summary>
+        public void ShowBanner()
+        {
+            if (banner == null) banner = SimulatedBanner.Create();
+            banner.SetActive(true);
+        }
+
+        public void HideBanner()
+        {
+            if (banner != null) banner.SetActive(false);
+        }
+    }
+
+    /// <summary>O banner de teste: Canvas próprio que acompanha a largura da tela, preso no topo da área segura.</summary>
+    internal static class SimulatedBanner
+    {
+        public static GameObject Create()
+        {
+            var go = new GameObject("Banner de teste", typeof(RectTransform));
+            UnityEngine.Object.DontDestroyOnLoad(go);
+            var canvas = go.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 800;
+            var scaler = go.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(360f, 640f);
+            scaler.matchWidthOrHeight = 0f;
+            var root = (RectTransform)go.transform;
+            var safe = OverlayUi.CreateRect(root, "Área segura", Vector2.zero, Vector2.zero);
+            var area = Screen.safeArea;
+            safe.anchorMin = new Vector2(area.xMin / Screen.width, area.yMin / Screen.height);
+            safe.anchorMax = new Vector2(area.xMax / Screen.width, area.yMax / Screen.height);
+            safe.offsetMin = safe.offsetMax = Vector2.zero;
+            var bar = OverlayUi.CreateRect(safe, "Faixa", Vector2.zero, Vector2.zero);
+            bar.anchorMin = new Vector2(0f, 1f);
+            bar.anchorMax = Vector2.one;
+            bar.pivot = new Vector2(0.5f, 1f);
+            bar.sizeDelta = new Vector2(0f, 50f);
+            var image = bar.gameObject.AddComponent<Image>();
+            image.color = new Color(0.55f, 0.55f, 0.55f);
+            image.raycastTarget = true;
+            var text = OverlayUi.CreateText(bar, "Texto", "Banner de teste", 16, FontStyle.Bold, Color.white, Vector2.zero, Vector2.zero);
+            text.rectTransform.anchorMin = Vector2.zero;
+            text.rectTransform.anchorMax = Vector2.one;
+            text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
+            return go;
+        }
     }
 
     /// <summary>A tela do anúncio de teste.</summary>

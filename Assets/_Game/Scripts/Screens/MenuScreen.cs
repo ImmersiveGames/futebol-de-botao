@@ -98,7 +98,10 @@ namespace FutebolDeBotao
             Refresh();
             // Primeira abertura (onde há anúncios): pergunta o ano de nascimento, por cima do Menu.
             AgeScreen.Open();
+            Ads.ShowBanner(this);
         }
+
+        private void OnDestroy() => Ads.HideBanner(this);
 
         /// <summary>Partida única: contra a IA (nível nas Opções). Você joga com o time de baixo. Abre as Opções.</summary>
         public void PlayOnePlayer()
