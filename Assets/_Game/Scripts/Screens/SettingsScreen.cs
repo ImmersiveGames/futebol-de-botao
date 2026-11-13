@@ -154,7 +154,7 @@ namespace FutebolDeBotao
             backEntry.Configure(back);
 
             // Os outros menus param enquanto esta tela está aberta (senão a mesma tecla mexe nos dois).
-            foreach (var other in FindObjectsByType<MenuNavigator>(FindObjectsSortMode.None))
+            foreach (var other in FindObjectsByType<MenuNavigator>())
             {
                 if (!other.enabled) continue;
                 other.enabled = false;
