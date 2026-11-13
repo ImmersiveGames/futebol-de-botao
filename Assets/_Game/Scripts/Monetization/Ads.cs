@@ -8,13 +8,17 @@ namespace FutebolDeBotao
     /// <see cref="SimulatedAds"/>). Começam depois da tela de idade, que decide como são pedidos (<see cref="AgeGate"/>).
     /// Entre partidas: um a cada <see cref="InterstitialEvery"/> saídas do Resultado, e nenhum para quem comprou
     /// "remover anúncios". Com prêmio (dobrar moedas, dobrar prêmio, patrocínio): sempre que o jogador pedir.
-    /// Com o símbolo PROGOL_ADMOB (o pacote do AdMob instalado), o build usa o <see cref="AdMobAds"/>.
+    /// O AdMob (Assets/_Game/Lojas/AdMobAds.cs, com o símbolo PROGOL_ADMOB) se registra em <see cref="Factory"/>;
+    /// fora do editor, ele é quem mostra os anúncios.
     /// </summary>
     public static class Ads
     {
         public const int InterstitialEvery = 2;
 
         private static IAdsProvider provider;
+
+        /// <summary>Cria o provedor de verdade (o AdMob registra aqui antes da primeira cena).</summary>
+        public static Func<IAdsProvider> Factory;
         private static bool showing;
 
         /// <summary>Lugar com anúncios: Android (e o editor, para testar). No navegador (itch) não há.</summary>
@@ -43,12 +47,9 @@ namespace FutebolDeBotao
 
         private static IAdsProvider Create()
         {
-#if PROGOL_ADMOB && !UNITY_EDITOR
-            return new AdMobAds();
-#else
+            if (Factory != null && !Application.isEditor) return Factory();
             // Sem o AdMob: anúncio de teste só no editor e em build de desenvolvimento; no build final, nenhum.
             return Application.isEditor || Debug.isDebugBuild ? new SimulatedAds() : null;
-#endif
         }
 
         /// <summary>

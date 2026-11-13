@@ -35,6 +35,7 @@ namespace FutebolDeBotao
         private bool fromPause;
         private Font font;
         private Text languageLabel, masterLabel, musicLabel, effectsLabel;
+        private Button restoreButton;
 
         /// <summary>Abre a tela (se já estiver aberta, nada muda). <paramref name="followPauser"/>: só quem pausou navega.</summary>
         public static void Open(bool followPauser = false, Action closed = null)
@@ -100,6 +101,20 @@ namespace FutebolDeBotao
             Refresh();
         }
 
+        /// <summary>"Restaurar compras": pede à loja as compras já feitas e diz no próprio botão como foi.</summary>
+        private void RestorePurchases()
+        {
+            restoreButton.interactable = false;
+            var label = restoreButton.GetComponentInChildren<Text>();
+            label.text = Txt.Get("Restaurando...");
+            Purchases.Restore(ok =>
+            {
+                if (this == null) return;
+                restoreButton.interactable = true;
+                label.text = Txt.Get(ok ? "Compras restauradas" : "Não deu para restaurar");
+            });
+        }
+
         private void Refresh()
         {
             languageLabel.text = string.IsNullOrEmpty(Txt.Choice) ? Txt.Get("Automático") : Txt.NativeName(Txt.Choice);
@@ -128,7 +143,10 @@ namespace FutebolDeBotao
             dim.rectTransform.anchorMax = Vector2.one;
             dim.color = DimColor;
 
-            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f));
+            // Com loja (Android/editor) entra "Restaurar compras": o painel cresce e o resto sobe.
+            bool restoreShown = Purchases.Supported;
+            float lift = restoreShown ? 45f : 0f;
+            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, restoreShown ? 860f : 770f));
             var background = panel.gameObject.AddComponent<Image>();
             var panelSprite = ButtonArt.Find(ButtonSkin.HudPanelName);
             if (panelSprite != null)
@@ -138,17 +156,26 @@ namespace FutebolDeBotao
             }
             else background.color = PanelColor;
 
-            LocalizedText.Attach(CreateText(panel, "Título", "Configurações", 48, FontStyle.Bold, Color.white, new Vector2(0f, 305f), new Vector2(600f, 80f)));
-            var language = CreateArrowRow(panel, "Idioma", 130f, ChangeLanguage, out languageLabel);
-            var master = CreateArrowRow(panel, "Volume geral", 40f, ChangeMaster, out masterLabel);
-            var music = CreateArrowRow(panel, "Música", -50f, ChangeMusic, out musicLabel);
-            var effects = CreateArrowRow(panel, "Efeitos", -140f, ChangeEffects, out effectsLabel);
-            var privacy = CreateButton(panel, "Política de privacidade", "Política de privacidade", new Vector2(0f, -235f),
+            LocalizedText.Attach(CreateText(panel, "Título", "Configurações", 48, FontStyle.Bold, Color.white, new Vector2(0f, 305f + lift), new Vector2(600f, 80f)));
+            var language = CreateArrowRow(panel, "Idioma", 130f + lift, ChangeLanguage, out languageLabel);
+            var master = CreateArrowRow(panel, "Volume geral", 40f + lift, ChangeMaster, out masterLabel);
+            var music = CreateArrowRow(panel, "Música", -50f + lift, ChangeMusic, out musicLabel);
+            var effects = CreateArrowRow(panel, "Efeitos", -140f + lift, ChangeEffects, out effectsLabel);
+            var privacy = CreateButton(panel, "Política de privacidade", "Política de privacidade", new Vector2(0f, -235f + lift),
                 new Vector2(460f, 70f), () => Application.OpenURL(PrivacyPolicyUrl), ButtonStyle.Brown);
             LocalizedText.Attach(privacy.GetComponentInChildren<Text>());
             var privacyEntry = privacy.gameObject.AddComponent<MenuEntry>();
             privacyEntry.Configure(privacy);
-            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -320f), new Vector2(460f, 70f), Close, ButtonStyle.Red);
+            var entries = new List<MenuEntry> { language, master, music, effects, privacyEntry };
+            if (restoreShown)
+            {
+                restoreButton = CreateButton(panel, "Restaurar compras", Txt.Get("Restaurar compras"), new Vector2(0f, -275f), new Vector2(460f, 70f),
+                    RestorePurchases, ButtonStyle.Brown);
+                var restoreEntry = restoreButton.gameObject.AddComponent<MenuEntry>();
+                restoreEntry.Configure(restoreButton);
+                entries.Add(restoreEntry);
+            }
+            var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -320f - lift), new Vector2(460f, 70f), Close, ButtonStyle.Red);
             LocalizedText.Attach(back.GetComponentInChildren<Text>());
             var backEntry = back.gameObject.AddComponent<MenuEntry>();
             backEntry.Configure(back);
@@ -162,7 +189,8 @@ namespace FutebolDeBotao
             }
             var navigator = gameObject.AddComponent<MenuNavigator>();
             if (followPauser) navigator.FollowPauser();
-            navigator.Configure(new[] { language, master, music, effects, privacyEntry, backEntry }, back);
+            entries.Add(backEntry);
+            navigator.Configure(entries.ToArray(), back);
             Refresh();
         }
 

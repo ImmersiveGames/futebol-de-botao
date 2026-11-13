@@ -76,6 +76,8 @@ namespace FutebolDeBotao
         {
             if (!built) return;
             if (shownCoins != Shop.Coins) RefreshCoins();
+            // A loja termina de conectar depois de abrir a tela: o preço e o botão aparecem quando ela estiver pronta.
+            if (removeAdsButton.gameObject.activeSelf && !removeAdsButton.interactable && !purchasing && Purchases.Ready && !dialog.activeSelf) FillList();
             if (dialog.activeSelf) return;
 
             foreach (var gamepad in Gamepad.all)
@@ -95,6 +97,32 @@ namespace FutebolDeBotao
             if (top < y) y = top;
             else if (bottom > y + view) y = bottom - view;
             content.anchoredPosition = new Vector2(0f, Mathf.Clamp(y, 0f, overflow));
+        }
+
+        /// <summary>Mostra o botão de remover anúncios (e afasta o Voltar) se dá para comprar. Devolve se está à mostra.</summary>
+        private bool RefreshRemoveAds()
+        {
+            bool shown = Purchases.Supported && !Ads.Removed;
+            removeAdsButton.gameObject.SetActive(shown);
+            ((RectTransform)backButton.transform).anchoredPosition = new Vector2(shown ? -180f : 0f, -510f);
+            if (!shown) return false;
+            string price = Purchases.RemoveAdsPrice;
+            removeAdsButton.GetComponentInChildren<Text>().text = string.IsNullOrEmpty(price)
+                ? Txt.Get("Remover anúncios")
+                : Txt.Format("Remover anúncios ({0})", price);
+            removeAdsButton.interactable = Purchases.Ready && !purchasing;
+            return true;
+        }
+
+        private void BuyRemoveAds()
+        {
+            purchasing = true;
+            removeAdsButton.interactable = false;
+            Purchases.BuyRemoveAds(_ =>
+            {
+                purchasing = false;
+                if (this != null && built) FillList();
+            });
         }
 
         private void RefreshCoins()
@@ -224,6 +252,7 @@ namespace FutebolDeBotao
             }
 
             entries.Add(backEntry);
+            if (RefreshRemoveAds()) entries.Add(removeAdsEntry);
             navigator.Configure(entries.ToArray(), backButton);
 
             content.sizeDelta = new Vector2(0f, height + 10f);
@@ -327,6 +356,9 @@ namespace FutebolDeBotao
         // ---- UI ----
 
         private Button backButton;
+        private Button removeAdsButton;
+        private MenuEntry removeAdsEntry;
+        private bool purchasing;
 
         private void Build()
         {
@@ -384,6 +416,10 @@ namespace FutebolDeBotao
 
             backButton = CreateButton(root, "Voltar", "Voltar", new Vector2(0f, -510f), new Vector2(260f, 80f), Back, ButtonStyle.Red);
             backEntry = Entry(backButton);
+            // Remover anúncios (dinheiro de verdade): ao lado do Voltar, só onde há loja e enquanto não foi comprado.
+            removeAdsButton = CreateButton(root, "Remover anúncios", string.Empty, new Vector2(150f, -510f), new Vector2(320f, 80f), BuyRemoveAds,
+                ButtonStyle.Yellow);
+            removeAdsEntry = Entry(removeAdsButton);
             LocalizedText.Attach(backButton.GetComponentInChildren<Text>());
 
             navigator = gameObject.AddComponent<MenuNavigator>();
