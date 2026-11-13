@@ -75,7 +75,6 @@ public sealed class AdMobAds : IAdsProvider
 
     /// <summary>Roda na thread do Unity (no próximo Update).</summary>
     private static void Main(Action action) => MobileAdsEventExecutor.ExecuteInUpdate(action);
-    }
 
     private void Start()
     {
