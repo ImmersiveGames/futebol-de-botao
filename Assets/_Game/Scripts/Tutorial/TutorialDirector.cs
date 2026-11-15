@@ -127,6 +127,7 @@ namespace FutebolDeBotao
         /// <summary>"Pular": vai para a próxima lição sem completar esta (na última, volta ao Menu).</summary>
         public void Skip()
         {
+            GameAnalytics.Log("tutorial_skip", ("lesson", (long)(Lesson + 1)));
             if (IsLastLesson) GoToMenu();
             else StartLesson(Lesson + 1);
         }

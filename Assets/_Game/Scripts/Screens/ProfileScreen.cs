@@ -108,8 +108,19 @@ namespace FutebolDeBotao
 
         private void Save()
         {
+            var before = PlayerProfile.Data;
+            string uniformsBefore = JsonUtility.ToJson(PlayerProfile.Uniform(0)) + JsonUtility.ToJson(PlayerProfile.Uniform(1));
+            string tableBefore = $"{before.tableId}|{before.feltId}|{before.goalColorName}|{before.ballId}";
+            string nameBefore = before.teamName + "|" + before.abbreviation;
             PlayerProfile.Save(nameField.text, abbreviationField.text, uniforms[0], uniforms[1]);
             PlayerProfile.SaveHome(home);
+            var after = PlayerProfile.Data;
+            bool uniformChanged = uniformsBefore != JsonUtility.ToJson(PlayerProfile.Uniform(0)) + JsonUtility.ToJson(PlayerProfile.Uniform(1));
+            bool tableChanged = tableBefore != $"{after.tableId}|{after.feltId}|{after.goalColorName}|{after.ballId}";
+            bool nameChanged = nameBefore != after.teamName + "|" + after.abbreviation;
+            if (uniformChanged || tableChanged || nameChanged)
+                GameAnalytics.Log("profile_changed", ("uniform", uniformChanged ? "yes" : "no"),
+                    ("table", tableChanged ? "yes" : "no"), ("name", nameChanged ? "yes" : "no"));
             Back();
         }
 

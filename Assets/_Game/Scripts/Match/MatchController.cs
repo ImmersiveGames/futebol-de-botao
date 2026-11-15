@@ -81,6 +81,7 @@ namespace FutebolDeBotao
         private bool initialized;
         /// <summary>Partida (fora do tutorial) começou e ainda não terminou: sair agora conta como abandono no Analytics.</summary>
         private bool analyticsMatchOpen;
+        private float analyticsStartTime;
         private bool resultRequested;
         private float holdTimer;
         private bool restoreControls;
@@ -344,7 +345,8 @@ namespace FutebolDeBotao
                 return;
             }
             PlayerStats.BeginMatch();
-            GameAnalytics.MatchStart();
+            GameAnalytics.MatchStart(options);
+            analyticsStartTime = Time.realtimeSinceStartup;
             // Início: time sorteado dá a saída.
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
         }
@@ -1737,7 +1739,9 @@ namespace FutebolDeBotao
             PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
                 bottomPenalties, topPenalties);
             if (analyticsMatchOpen)
-                GameAnalytics.MatchEnd(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover, bottomPenalties, topPenalties);
+                GameAnalytics.MatchEnd(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover, bottomPenalties, topPenalties,
+                    period != Period.Regular, Time.realtimeSinceStartup - analyticsStartTime,
+                    numbers[(int)TeamSide.Bottom], numbers[(int)TeamSide.Top]);
             analyticsMatchOpen = false;
             if (MatchSession.InTournamentMatch)
                 Tournament.RecordPlayerMatch(Score(TeamSide.Bottom), Score(TeamSide.Top), bottomPenalties, topPenalties, walkover,

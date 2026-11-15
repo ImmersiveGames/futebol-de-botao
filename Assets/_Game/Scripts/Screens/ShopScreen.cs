@@ -61,6 +61,7 @@ namespace FutebolDeBotao
         private GameObject dialog;
         private Text question;
         private Item pending;
+        private bool boughtThisVisit;
 
         public void Configure(MenuScreen menuScreen) => menu = menuScreen;
 
@@ -69,6 +70,7 @@ namespace FutebolDeBotao
         {
             Build();
             CloseDialog();
+            boughtThisVisit = false;
             Purchases.Retry();
             ShowTab(0);
         }
@@ -149,6 +151,7 @@ namespace FutebolDeBotao
 
         private void Back()
         {
+            GameAnalytics.Log("shop_visit", ("bought", boughtThisVisit ? "yes" : "no"));
             if (menu != null) menu.ShowMode();
         }
 
@@ -366,7 +369,11 @@ namespace FutebolDeBotao
         {
             var item = pending;
             CloseDialog();
-            if (item != null && Shop.Buy(item.Key, item.Price, item.Name)) FillList();
+            if (item != null && Shop.Buy(item.Key, item.Price, item.Name))
+            {
+                boughtThisVisit = true;
+                FillList();
+            }
         }
 
         // ---- UI ----

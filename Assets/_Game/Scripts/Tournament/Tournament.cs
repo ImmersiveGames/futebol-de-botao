@@ -354,7 +354,9 @@ namespace FutebolDeBotao
             }
             GameAnalytics.Log("tournament_end", ("teams", (long)config.TeamCount),
                 ("level", ((AiLevel)level).ToString().ToLowerInvariant()),
-                ("position", (long)run.position), ("abandoned", run.abandoned ? "yes" : "no"));
+                ("position", (long)run.position), ("abandoned", run.abandoned ? "yes" : "no"),
+                // Fase em que caiu, contando da final: 0 = final, 1 = semifinal, 2 = quartas... (-1 = não foi eliminado).
+                ("eliminated_stage", (long)(run.eliminatedRound >= 0 ? Rounds - 1 - run.eliminatedRound : -1)));
         }
 
         /// <summary>Pode dobrar o prêmio do torneio terminado com um anúncio (uma vez).</summary>

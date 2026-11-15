@@ -82,6 +82,8 @@ namespace FutebolDeBotao
                 return;
             }
             showing = true;
+            GameAnalytics.InterstitialsThisSession++;
+            GameAnalytics.Log("interstitial_shown", ("session_count", (long)GameAnalytics.InterstitialsThisSession));
             provider.ShowInterstitial(() =>
             {
                 showing = false;

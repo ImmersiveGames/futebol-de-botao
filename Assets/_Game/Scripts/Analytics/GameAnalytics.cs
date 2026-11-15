@@ -35,17 +35,38 @@ namespace FutebolDeBotao
 
         public static string AiLevelName => MatchSession.VsAi == true ? MatchSession.AiLevel.ToString().ToLowerInvariant() : "-";
 
-        public static void MatchStart() => Log("match_start", ("mode", MatchMode), ("level", AiLevelName));
+        /// <summary>Começo da partida, com as opções escolhidas.</summary>
+        public static void MatchStart(MatchOptions options) => Log("match_start", ("mode", MatchMode), ("level", AiLevelName),
+            ("discs", (long)options.discsPerTeam), ("goalkeeper", YesNo(options.hasGoalkeeper)),
+            ("minutes", (long)options.durationMinutes), ("touches", (long)options.touchesPerTurn),
+            ("fouls", YesNo(options.fouls)), ("extra_time_pct", (long)options.extraTimePercent),
+            ("penalties_on", YesNo(options.PenaltiesEnabled)));
 
-        public static void MatchEnd(int bottom, int top, bool walkover, int bottomPenalties, int topPenalties)
+        /// <summary>Fim da partida. "Nós" = time de baixo (o jogador, ou o Jogador 1 no 2J).</summary>
+        public static void MatchEnd(int bottom, int top, bool walkover, int bottomPenalties, int topPenalties, bool extraTime,
+            float realSeconds, SaveData.MatchNumbers us, SaveData.MatchNumbers them)
         {
+            bool shootout = bottomPenalties >= 0 && topPenalties >= 0;
             int outcome = bottom.CompareTo(top);
-            if (outcome == 0 && bottomPenalties >= 0 && topPenalties >= 0) outcome = bottomPenalties.CompareTo(topPenalties);
+            if (outcome == 0 && shootout) outcome = bottomPenalties.CompareTo(topPenalties);
+            us ??= new SaveData.MatchNumbers();
+            them ??= new SaveData.MatchNumbers();
             Log("match_end", ("mode", MatchMode), ("level", AiLevelName),
                 ("result", outcome > 0 ? "win" : outcome < 0 ? "loss" : "draw"),
                 ("goals_for", (long)bottom), ("goals_against", (long)top),
-                ("penalties", bottomPenalties >= 0 ? "yes" : "no"), ("walkover", walkover ? "yes" : "no"));
+                ("extra_time", YesNo(extraTime)),
+                ("shootout", !shootout ? "no" : bottomPenalties > topPenalties ? "won" : "lost"),
+                ("walkover", YesNo(walkover)), ("real_seconds", (long)realSeconds),
+                ("progol_called", (long)us.shots), ("progol_scored", (long)us.shotGoals),
+                ("opp_progol_called", (long)them.shots), ("opp_progol_scored", (long)them.shotGoals),
+                ("fouls", (long)us.fouls), ("opp_fouls", (long)them.fouls),
+                ("cards", (long)(us.yellow + us.red)), ("opp_cards", (long)(them.yellow + them.red)));
         }
+
+        private static string YesNo(bool value) => value ? "yes" : "no";
+
+        /// <summary>Anúncios entre partidas mostrados nesta sessão (desde que o jogo abriu).</summary>
+        public static int InterstitialsThisSession;
 
         public static void MatchAbandon() => Log("match_abandon", ("mode", MatchMode), ("level", AiLevelName));
     }
