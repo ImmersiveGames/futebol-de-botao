@@ -34,7 +34,7 @@ Só aparecem nos relatórios os dados que chegarem DEPOIS do cadastro (não é r
 | Nome da métrica | Parâmetro do evento |
 |---|---|
 | Gols pró | goals_for |
-| Gols contra | goals_against |
+| Gols sofridos | goals_against |
 | Tempo real (s) | real_seconds |
 | Pro Gol! pedidos | progol_called |
 | Pro Gol! convertidos | progol_scored |
