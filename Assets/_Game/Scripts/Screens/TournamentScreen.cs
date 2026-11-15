@@ -320,7 +320,7 @@ namespace FutebolDeBotao
                 if (this == null) return;
                 if (rewarded) Tournament.DoublePrize();
                 ShowEnd();
-            });
+            }, "dobrar_torneio");
         }
 
         private static readonly Dictionary<int, Sprite> placeholders = new();

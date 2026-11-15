@@ -62,7 +62,11 @@ namespace FutebolDeBotao
                 done?.Invoke(false);
                 return;
             }
-            provider.Buy(RemoveAdsId, ok => OverlayUi.SafeInvoke(() => done?.Invoke(ok)));
+            provider.Buy(RemoveAdsId, ok => OverlayUi.SafeInvoke(() =>
+            {
+                if (ok) GameAnalytics.Log("remove_ads_purchase");
+                done?.Invoke(ok);
+            }));
         }
 
         public static void Restore(Action<bool> done)

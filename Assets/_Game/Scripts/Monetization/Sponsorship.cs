@@ -40,7 +40,7 @@ namespace FutebolDeBotao
                     GameSave.WriteOnly("patrocínio");
                 }
                 done?.Invoke(rewarded);
-            });
+            }, "patrocinio");
         }
     }
 }

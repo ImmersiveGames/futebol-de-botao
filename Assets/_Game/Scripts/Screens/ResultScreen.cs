@@ -142,7 +142,7 @@ namespace FutebolDeBotao
                 PlayerStats.DoubleCoins();
                 RefreshCoins();
                 doubleButton.gameObject.SetActive(false);
-            });
+            }, "dobrar");
         }
 
         public void PlayAgain()

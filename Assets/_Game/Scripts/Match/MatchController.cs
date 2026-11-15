@@ -79,6 +79,8 @@ namespace FutebolDeBotao
         private TeamSide touchSide;
         private string message = string.Empty;
         private bool initialized;
+        /// <summary>Partida (fora do tutorial) começou e ainda não terminou: sair agora conta como abandono no Analytics.</summary>
+        private bool analyticsMatchOpen;
         private bool resultRequested;
         private float holdTimer;
         private bool restoreControls;
@@ -199,6 +201,8 @@ namespace FutebolDeBotao
             if (!initialized) return;
             // Saiu antes do fim (menu ou reiniciar): partida abandonada. Terminada, já foi gravada e não conta de novo.
             PlayerStats.Abandon();
+            if (analyticsMatchOpen) GameAnalytics.MatchAbandon();
+            analyticsMatchOpen = false;
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
@@ -332,6 +336,7 @@ namespace FutebolDeBotao
             foreach (var list in shootoutKicks) list.Clear();
             clock = options.DurationSeconds;
             ConfigureTutorial();
+            analyticsMatchOpen = tutorial == null;
             if (tutorial != null)
             {
                 // Tutorial: sem relógio e sem estatísticas; a lição monta a jogada.
@@ -339,6 +344,7 @@ namespace FutebolDeBotao
                 return;
             }
             PlayerStats.BeginMatch();
+            GameAnalytics.MatchStart();
             // Início: time sorteado dá a saída.
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
         }
@@ -1730,6 +1736,9 @@ namespace FutebolDeBotao
             int topPenalties = IsShootout ? ShootoutGoals(TeamSide.Top) : -1;
             PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
                 bottomPenalties, topPenalties);
+            if (analyticsMatchOpen)
+                GameAnalytics.MatchEnd(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover, bottomPenalties, topPenalties);
+            analyticsMatchOpen = false;
             if (MatchSession.InTournamentMatch)
                 Tournament.RecordPlayerMatch(Score(TeamSide.Bottom), Score(TeamSide.Top), bottomPenalties, topPenalties, walkover,
                     PlayerStats.CoinsEarned);

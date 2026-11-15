@@ -352,6 +352,9 @@ namespace FutebolDeBotao
                 string text = run.position == 1 ? Txt.Get("Prêmio do torneio (campeão)") : Txt.Format("Prêmio do torneio ({0}º lugar)", run.position);
                 Finance.Earn(FinanceSource.Tournament, text, run.prize);
             }
+            GameAnalytics.Log("tournament_end", ("teams", (long)config.TeamCount),
+                ("level", ((AiLevel)level).ToString().ToLowerInvariant()),
+                ("position", (long)run.position), ("abandoned", run.abandoned ? "yes" : "no"));
         }
 
         /// <summary>Pode dobrar o prêmio do torneio terminado com um anúncio (uma vez).</summary>

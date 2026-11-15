@@ -90,7 +90,8 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Anúncio com prêmio; <paramref name="done"/> recebe verdadeiro se é para dar o prêmio.</summary>
-        public static void ShowRewarded(Action<bool> done)
+        /// <param name="placement">Onde foi pedido ("dobrar", "dobrar_torneio", "patrocinio"), para o Analytics.</param>
+        public static void ShowRewarded(Action<bool> done, string placement = "")
         {
             if (provider == null || showing)
             {
@@ -101,7 +102,11 @@ namespace FutebolDeBotao
             provider.ShowRewarded(rewarded =>
             {
                 showing = false;
-                OverlayUi.SafeInvoke(() => done?.Invoke(rewarded));
+                OverlayUi.SafeInvoke(() =>
+                {
+                    GameAnalytics.Log("rewarded_ad", ("placement", placement), ("completed", rewarded ? "yes" : "no"));
+                    done?.Invoke(rewarded);
+                });
             });
         }
 

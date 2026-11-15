@@ -37,6 +37,7 @@ namespace FutebolDeBotao
             GameSave.Data.unlocked ??= new System.Collections.Generic.List<string>();
             GameSave.Data.unlocked.Add(key);
             GameSave.Save("compra " + key);
+            GameAnalytics.Log("spend_virtual_currency", ("item_name", key), ("virtual_currency_name", "moedas"), ("value", (long)price));
             return true;
         }
 
