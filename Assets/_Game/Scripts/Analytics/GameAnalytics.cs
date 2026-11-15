@@ -40,7 +40,18 @@ namespace FutebolDeBotao
             ("discs", (long)options.discsPerTeam), ("goalkeeper", YesNo(options.hasGoalkeeper)),
             ("minutes", (long)options.durationMinutes), ("touches", (long)options.touchesPerTurn),
             ("fouls", YesNo(options.fouls)), ("extra_time_pct", (long)options.extraTimePercent),
-            ("penalties_on", YesNo(options.PenaltiesEnabled)));
+            ("penalties_on", YesNo(options.PenaltiesEnabled)), ("first_ai_match", YesNo(FirstAiMatch)));
+
+        /// <summary>Primeira partida contra a IA desta instalação (nada ganho, empatado, perdido ou abandonado ainda).</summary>
+        private static bool FirstAiMatch
+        {
+            get
+            {
+                if (MatchSession.VsAi != true) return false;
+                var total = GameSave.Data.stats?.total;
+                return total == null || total.wins + total.draws + total.losses + total.abandoned == 0;
+            }
+        }
 
         /// <summary>Fim da partida. "Nós" = time de baixo (o jogador, ou o Jogador 1 no 2J).</summary>
         public static void MatchEnd(int bottom, int top, bool walkover, int bottomPenalties, int topPenalties, bool extraTime,
@@ -68,6 +79,9 @@ namespace FutebolDeBotao
         /// <summary>Anúncios entre partidas mostrados nesta sessão (desde que o jogo abriu).</summary>
         public static int InterstitialsThisSession;
 
-        public static void MatchAbandon() => Log("match_abandon", ("mode", MatchMode), ("level", AiLevelName));
+        /// <summary>Saiu no meio: em que parte ("regular", "extra_time", "shootout"), em que minuto dela e com que placar.</summary>
+        public static void MatchAbandon(string period, int minute, int bottom, int top) => Log("match_abandon",
+            ("mode", MatchMode), ("level", AiLevelName), ("period", period), ("minute", (long)minute),
+            ("goals_for", (long)bottom), ("goals_against", (long)top));
     }
 }

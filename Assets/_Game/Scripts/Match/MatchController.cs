@@ -202,7 +202,7 @@ namespace FutebolDeBotao
             if (!initialized) return;
             // Saiu antes do fim (menu ou reiniciar): partida abandonada. Terminada, já foi gravada e não conta de novo.
             PlayerStats.Abandon();
-            if (analyticsMatchOpen) GameAnalytics.MatchAbandon();
+            if (analyticsMatchOpen) LogAbandon();
             analyticsMatchOpen = false;
             EndShot();
             monitor.StopWatching();
@@ -1746,6 +1746,15 @@ namespace FutebolDeBotao
             if (MatchSession.InTournamentMatch)
                 Tournament.RecordPlayerMatch(Score(TeamSide.Bottom), Score(TeamSide.Top), bottomPenalties, topPenalties, walkover,
                     PlayerStats.CoinsEarned);
+        }
+
+        /// <summary>Analytics do abandono: parte da partida, minuto jogado nela e placar.</summary>
+        private void LogAbandon()
+        {
+            float total = period == Period.ExtraTime ? options.ExtraTimeSeconds : options.DurationSeconds;
+            int minute = period == Period.Shootout ? 0 : Mathf.FloorToInt(Mathf.Max(0f, total - clock) / 60f);
+            string part = period == Period.ExtraTime ? "extra_time" : period == Period.Shootout ? "shootout" : "regular";
+            GameAnalytics.MatchAbandon(part, minute, Score(TeamSide.Bottom), Score(TeamSide.Top));
         }
 
         private void RequestResult()
