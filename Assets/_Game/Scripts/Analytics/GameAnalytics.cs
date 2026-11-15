@@ -39,7 +39,7 @@ namespace FutebolDeBotao
         public static void MatchStart(MatchOptions options) => Log("match_start", ("mode", MatchMode), ("level", AiLevelName),
             ("discs", (long)options.discsPerTeam), ("goalkeeper", YesNo(options.hasGoalkeeper)),
             ("minutes", (long)options.durationMinutes), ("touches", (long)options.touchesPerTurn),
-            ("fouls", YesNo(options.fouls)), ("extra_time_pct", (long)options.extraTimePercent),
+            ("fouls_on", YesNo(options.fouls)), ("extra_time_pct", (long)options.extraTimePercent),
             ("penalties_on", YesNo(options.PenaltiesEnabled)), ("first_ai_match", YesNo(FirstAiMatch)));
 
         /// <summary>Primeira partida contra a IA desta instalação (nada ganho, empatado, perdido ou abandonado ainda).</summary>
