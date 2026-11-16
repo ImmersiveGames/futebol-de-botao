@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using Immersive.Framework.GameFlow;
@@ -12,6 +13,10 @@ namespace FutebolDeBotao
     /// Contra a IA, avisa quando bateu o recorde de sequência de vitórias. "Jogar de novo" volta para a Partida e "Menu"
     /// para o Menu. No torneio, os botões viram "Avançar" (a chave, ou o fim do torneio) e "Sair" (Menu; o torneio fica
     /// guardado) e aparece como o jogador está no torneio. O título e os botões vêm do "Criar telas"; o placar e a tabela são montados aqui.
+    ///
+    /// Partida que pagou moedas (contra a IA): o Resultado tem só "Avançar", que troca para a página da Premiação na mesma
+    /// cena: as moedas grandes subindo, "Dobrar moedas" (anúncio com prêmio) em destaque e os botões de seguir. O anúncio
+    /// entre partidas (<see cref="Ads.AfterMatch"/>) vem ao sair da Premiação.
     /// </summary>
     public sealed class ResultScreen : MonoBehaviour
     {
@@ -20,7 +25,12 @@ namespace FutebolDeBotao
         private const float DiscSize = 160f;
         private const float NameY = 245f;
         private const float RecordY = 188f;
-        private const float CoinsY = 462f;
+        private const float PrizeAmountY = 300f;
+        private const float PrizeWordY = 185f;
+        private const float PrizeBalanceY = 120f;
+        private const float DoubleY = -60f;
+        private const float DoubleHintY = -160f;
+        private const float CountSeconds = 0.8f;
         private const float TournamentY = -345f;
         /// <summary>Gols da disputa de pênaltis, entre parênteses, embaixo de cada número do placar.</summary>
         private const float PenaltyX = 82f;
@@ -41,7 +51,19 @@ namespace FutebolDeBotao
         [SerializeField] private RouteRequestTrigger menuRoute;
 
         private Font font;
-        private Text coinsLabel;
+        private RectTransform resultPage;
+        private RectTransform prizePage;
+        private Text title;
+        private Button againButton;
+        private Button menuButton;
+        private MenuNavigator navigator;
+        /// <summary>O "Avançar" do Resultado abre a Premiação (ainda não aberta).</summary>
+        private bool prizeNext;
+        private Text prizeAmount;
+        private Text prizeBalance;
+        private Text doubleHint;
+        private int shownCoins;
+        private Coroutine counting;
         private Button doubleButton;
         /// <summary>Assistiu a um anúncio com prêmio nesta tela: não leva o anúncio entre partidas ao sair.</summary>
         private bool watchedReward;
@@ -60,6 +82,10 @@ namespace FutebolDeBotao
             Ads.ShowBanner(this);
             font = GameFont.Get();
             var root = (RectTransform)transform;
+            title = FindChild<Text>(root, "Título");
+            againButton = FindChild<Button>(root, "Jogar de novo");
+            menuButton = FindChild<Button>(root, "Menu");
+            navigator = GetComponent<MenuNavigator>();
             var result = MatchSession.LastResult;
             if (result == null)
             {
@@ -67,27 +93,66 @@ namespace FutebolDeBotao
                 return;
             }
 
-            BuildScore(root, result.Value);
+            // Páginas no primeiro nível do Canvas (o BannerSpace sobe as duas quando há banner).
+            resultPage = CreateRect(root, "Página Resultado", Vector2.zero, Vector2.zero);
+            BuildScore(resultPage, result.Value);
             if (MatchSession.VsAi == true && PlayerStats.NewRecord > 0)
-                CreateText(root, "Recorde", Txt.Format("Novo recorde de sequência: {0} vitórias!", PlayerStats.NewRecord), 30, FontStyle.Bold,
+                CreateText(resultPage, "Recorde", Txt.Format("Novo recorde de sequência: {0} vitórias!", PlayerStats.NewRecord), 30, FontStyle.Bold,
                     HighlightColor, new Vector2(0f, RecordY), new Vector2(680f, 44f));
-            if (MatchSession.VsAi == true && PlayerStats.CoinsEarned > 0) BuildCoins(root);
             var numbers = MatchSession.LastMatchNumbers;
-            if (numbers != null && numbers.Length == 2) BuildTable(root, numbers[0], numbers[1]);
-            if (MatchSession.InTournamentMatch) BuildTournament(root);
+            if (numbers != null && numbers.Length == 2) BuildTable(resultPage, numbers[0], numbers[1]);
+
+            prizeNext = MatchSession.VsAi == true && PlayerStats.CoinsEarned > 0;
+            if (prizeNext)
+            {
+                BuildPrize(root);
+                prizePage.gameObject.SetActive(false);
+                // Só "Avançar" embaixo; ele leva à Premiação.
+                SetLabel(againButton, "Avançar");
+                if (menuButton != null) menuButton.gameObject.SetActive(false);
+                SetNavigation(null, againButton);
+            }
+            else if (MatchSession.InTournamentMatch) PrepareTournamentButtons();
+            if (MatchSession.InTournamentMatch) BuildTournamentStatus(prizeNext ? prizePage : resultPage);
             BannerSpace.Attach(this);
         }
 
-        /// <summary>Torneio: Avançar e Sair no lugar de Jogar de novo e Menu, e a situação do jogador.</summary>
-        private void BuildTournament(RectTransform root)
+        private static T FindChild<T>(Transform root, string objectName) where T : Component
         {
-            foreach (var (objectName, label) in new[] { ("Jogar de novo", "Avançar"), ("Menu", "Sair") })
-            {
-                var button = root.Find(objectName);
-                var text = button != null ? button.GetComponentInChildren<Text>() : null;
-                if (text != null) text.text = Txt.Get(label);
-            }
+            var child = root.Find(objectName);
+            return child != null ? child.GetComponent<T>() : null;
+        }
 
+        private static void SetLabel(Button button, string label)
+        {
+            var text = OverlayUi.Label(button);
+            if (text != null) text.text = Txt.Get(label);
+        }
+
+        /// <summary>Teclado/controle: a lista de itens da página aberta (Voltar = Menu/Sair quando existe).</summary>
+        private void SetNavigation(Button first, Button second, Button back = null)
+        {
+            if (navigator == null) return;
+            var entries = new List<MenuEntry>();
+            foreach (var button in new[] { first, second, back })
+            {
+                if (button == null) continue;
+                if (!button.TryGetComponent<MenuEntry>(out var entry)) entry = OverlayUi.Entry(button);
+                entries.Add(entry);
+            }
+            navigator.Configure(entries.ToArray(), back, 0);
+        }
+
+        /// <summary>Torneio: Avançar e Sair no lugar de Jogar de novo e Menu.</summary>
+        private void PrepareTournamentButtons()
+        {
+            SetLabel(againButton, "Avançar");
+            SetLabel(menuButton, "Sair");
+        }
+
+        /// <summary>Torneio: como o jogador está (próximo jogo ou colocação final).</summary>
+        private void BuildTournamentStatus(RectTransform page)
+        {
             var run = Tournament.Run;
             string status;
             var next = Tournament.PlayerMatch();
@@ -95,40 +160,79 @@ namespace FutebolDeBotao
                 status = Txt.Format("Torneio: próximo jogo na {0}",
                     next.third ? Txt.Get("disputa de 3º lugar") : Tournament.RoundName(next.round, Tournament.Rounds).ToLowerInvariant());
             else status = Txt.Format("Torneio: {0}", Tournament.PositionText(run));
-            CreateText(root, "Torneio", status, 30, FontStyle.Bold, HighlightColor, new Vector2(0f, TournamentY), new Vector2(680f, 50f));
+            CreateText(page, "Torneio", status, 30, FontStyle.Bold, HighlightColor, new Vector2(0f, TournamentY), new Vector2(680f, 50f));
         }
 
-        /// <summary>Moedas ganhas e, com anúncio disponível, "Dobrar moedas" ao lado (some depois de usar).</summary>
-        private void BuildCoins(RectTransform root)
-        {
-            bool canDouble = Ads.RewardedAvailable && !PlayerStats.CoinsDoubled;
-            coinsLabel = CreateText(root, "Moedas", string.Empty, 30, FontStyle.Bold, HighlightColor,
-                new Vector2(canDouble ? -115f : 0f, CoinsY), new Vector2(canDouble ? 440f : 680f, 44f));
-            RefreshCoins();
-            if (!canDouble) return;
-            doubleButton = OverlayUi.CreateButton(root, "Dobrar moedas", "Dobrar", new Vector2(225f, CoinsY), new Vector2(230f, 62f),
-                DoubleCoins, ButtonStyle.Yellow);
-            LocalizedText.Attach(OverlayUi.Label(doubleButton));
-            // Entra no começo da lista do teclado/controle.
-            var navigator = GetComponent<MenuNavigator>();
-            if (navigator != null) navigator.Prepend(OverlayUi.Entry(doubleButton));
-        }
+        // ---- Premiação ----
 
-        private void RefreshCoins()
+        /// <summary>Página da Premiação: moedas grandes, saldo e, com anúncio disponível, "Dobrar moedas" em destaque.</summary>
+        private void BuildPrize(RectTransform root)
         {
-            if (coinsLabel != null) coinsLabel.text = Txt.Format("+{0} moedas (saldo: {1})", PlayerStats.CoinsEarned, Shop.Coins);
-        }
-
-        /// <summary>"Dobrar": o pop-up explica; Assistir mostra o anúncio com prêmio.</summary>
-        private void DoubleCoins()
-        {
-            MessageDialog.Open(Txt.Get("Dobrar moedas"),
+            prizePage = CreateRect(root, "Página Premiação", Vector2.zero, Vector2.zero);
+            prizeAmount = CreateText(prizePage, "Moedas", "+0", 120, FontStyle.Bold, HighlightColor, new Vector2(0f, PrizeAmountY), new Vector2(680f, 160f));
+            CreateText(prizePage, "Palavra moedas", Txt.Get("moedas"), 40, FontStyle.Bold, HighlightColor, new Vector2(0f, PrizeWordY), new Vector2(680f, 60f));
+            prizeBalance = CreateText(prizePage, "Saldo", string.Empty, 30, FontStyle.Normal, Color.white, new Vector2(0f, PrizeBalanceY), new Vector2(680f, 44f));
+            if (!Ads.RewardedAvailable || PlayerStats.CoinsDoubled) return;
+            doubleButton = OverlayUi.CreateButton(prizePage, "Dobrar moedas", "Dobrar moedas", new Vector2(0f, DoubleY), new Vector2(520f, 120f),
+                WatchDouble, ButtonStyle.Yellow);
+            var label = OverlayUi.Label(doubleButton);
+            if (label != null)
+            {
+                label.fontSize = 44;
+                label.resizeTextMaxSize = 44;
+                LocalizedText.Attach(label);
+            }
+            doubleHint = CreateText(prizePage, "Dobrar explicação",
                 Txt.Format("Assista a um anúncio e ganhe mais {0} moedas, o dobro do que esta partida pagou.", PlayerStats.CoinsEarned),
-                Txt.Get("Assistir"), WatchDouble, Txt.Get("Agora não"));
+                26, FontStyle.Normal, Color.white, new Vector2(0f, DoubleHintY), new Vector2(600f, 80f));
         }
 
+        /// <summary>"Avançar" do Resultado: troca para a Premiação com os botões de seguir.</summary>
+        private void ShowPrize()
+        {
+            prizeNext = false;
+            resultPage.gameObject.SetActive(false);
+            prizePage.gameObject.SetActive(true);
+            if (title != null) title.text = Txt.Get("Premiação");
+            if (menuButton != null) menuButton.gameObject.SetActive(true);
+            if (MatchSession.InTournamentMatch) PrepareTournamentButtons();
+            else SetLabel(againButton, "Jogar de novo");
+            // Com o Dobrar na tela, ele é o destaque (amarelo) e o seguir fica verde.
+            if (doubleButton != null && againButton != null) ButtonSkin.Apply(againButton, ButtonStyle.Green);
+            SetNavigation(doubleButton, againButton, menuButton);
+            CountTo(PlayerStats.CoinsEarned);
+        }
+
+        private void CountTo(int target)
+        {
+            if (counting != null) StopCoroutine(counting);
+            counting = StartCoroutine(Count(shownCoins, target));
+        }
+
+        private IEnumerator Count(int from, int to)
+        {
+            // O saldo já tem as moedas; mostra o de antes subindo junto com o número.
+            int balanceAtEnd = Shop.Coins;
+            for (float t = 0f; t < CountSeconds; t += Time.unscaledDeltaTime)
+            {
+                SetCoins(Mathf.RoundToInt(Mathf.Lerp(from, to, t / CountSeconds)), balanceAtEnd - to);
+                yield return null;
+            }
+            SetCoins(to, balanceAtEnd - to);
+            counting = null;
+        }
+
+        private void SetCoins(int coins, int balanceBefore)
+        {
+            shownCoins = coins;
+            if (prizeAmount != null) prizeAmount.text = $"+{coins}";
+            if (prizeBalance != null) prizeBalance.text = Txt.Format("Saldo: {0}", balanceBefore + coins);
+        }
+
+        /// <summary>"Dobrar moedas": o anúncio com prêmio; assistido, o número sobe até o dobro e o botão some.</summary>
         private void WatchDouble()
         {
+            if (leaving || doubleButton == null) return;
             doubleButton.interactable = false;
             Ads.ShowRewarded(rewarded =>
             {
@@ -140,14 +244,22 @@ namespace FutebolDeBotao
                 }
                 watchedReward = true;
                 PlayerStats.DoubleCoins();
-                RefreshCoins();
                 doubleButton.gameObject.SetActive(false);
+                if (doubleHint != null) doubleHint.gameObject.SetActive(false);
+                if (againButton != null) ButtonSkin.Apply(againButton, ButtonStyle.Yellow);
+                SetNavigation(null, againButton, menuButton);
+                CountTo(PlayerStats.CoinsEarned);
             }, "dobrar");
         }
 
         public void PlayAgain()
         {
             if (leaving) return;
+            if (prizeNext)
+            {
+                ShowPrize();
+                return;
+            }
             leaving = true;
             Ads.AfterMatch(PlayAgainNow, watchedReward);
         }
