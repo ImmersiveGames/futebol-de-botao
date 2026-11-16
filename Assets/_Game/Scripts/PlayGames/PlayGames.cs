@@ -62,7 +62,11 @@ namespace FutebolDeBotao
                 backend.SignIn(manual, ok => OverlayUi.SafeInvoke(() =>
                 {
                     Debug.Log($"[Play Games] Login {(ok ? "ok" : "não feito")}{(manual ? " (botão)" : string.Empty)}.");
-                    if (ok) StartSync();
+                    if (ok)
+                    {
+                        Achievements.ForgetSent();
+                        StartSync();
+                    }
                     done?.Invoke(ok);
                 }));
             }
@@ -81,6 +85,21 @@ namespace FutebolDeBotao
         public static void ShowLeaderboard()
         {
             if (SignedIn) Safe(() => backend.ShowLeaderboard(GPGSIds.leaderboard_weekly_points));
+        }
+
+        internal static void Unlock(string achievementId)
+        {
+            if (SignedIn) Safe(() => backend.Unlock(achievementId));
+        }
+
+        internal static void SetSteps(string achievementId, int steps)
+        {
+            if (SignedIn) Safe(() => backend.SetStepsAtLeast(achievementId, steps));
+        }
+
+        internal static void ReportScore(long score)
+        {
+            if (SignedIn) Safe(() => backend.ReportScore(GPGSIds.leaderboard_weekly_points, score));
         }
 
         /// <summary>O save do aparelho mudou: sobe para a nuvem na próxima janela.</summary>
@@ -140,6 +159,9 @@ namespace FutebolDeBotao
             state = SyncState.Ready;
             dirty = upload;
             if (upload) lastUpload = -999f;
+            // Com o save certo na mão: manda as conquistas que ele já merece e a pontuação da semana.
+            Achievements.Report();
+            WeeklyRanking.Report();
         }
 
         private static void Fail(string what)
@@ -147,6 +169,9 @@ namespace FutebolDeBotao
             Debug.LogWarning($"[Play Games] Save na nuvem indisponível ({what}); tento de novo depois.");
             state = SyncState.Failed;
             lastFailure = Time.unscaledTime;
+            // Sem a nuvem, as conquistas e a pontuação do aparelho sobem do mesmo jeito.
+            Achievements.Report();
+            WeeklyRanking.Report();
         }
 
         private static void Upload()

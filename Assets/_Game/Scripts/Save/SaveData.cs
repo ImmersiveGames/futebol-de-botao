@@ -32,8 +32,23 @@ namespace FutebolDeBotao
         public FinanceData finance = new();
         /// <summary>Anúncios (versão 11): ano de nascimento da tela de idade, compra "remover anúncios" e patrocínios do dia.</summary>
         public AdsData ads = new();
+        /// <summary>Conquistas do Play Games ganhas que não dá para tirar das estatísticas (goleada, virada...): IDs do Google.</summary>
+        public List<string> achievements = new();
+        /// <summary>Ranking semanal de torneios (Play Games): pontos de cada torneio da semana.</summary>
+        public WeeklyData weekly = new();
         /// <summary>Save na nuvem (Play Games): de qual envio veio e se mudou desde o último. Fica só no aparelho.</summary>
         public CloudData cloud = new();
+
+        [Serializable]
+        public sealed class WeeklyData
+        {
+            /// <summary>Domingo que abre a semana ("yyyy-MM-dd", horário do Pacífico, igual ao ranking do Google).</summary>
+            public string week;
+            /// <summary>Pontos de cada torneio terminado na semana.</summary>
+            public List<int> points = new();
+            /// <summary>O último torneio da semana foi título (o próximo título seguido vale bônus).</summary>
+            public bool lastTitle;
+        }
 
         [Serializable]
         public sealed class CloudData

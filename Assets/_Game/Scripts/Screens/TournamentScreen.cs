@@ -298,6 +298,7 @@ namespace FutebolDeBotao
             var lines = new List<string> { Txt.Format("Moedas das partidas: +{0}", run.matchCoins) };
             if (run.prize > 0) lines.Add(run.prizeDoubled ? Txt.Format("Prêmio em dobro: +{0}", run.prize * 2) : Txt.Format("Prêmio: +{0}", run.prize));
             lines.Add(Txt.Format("Saldo: {0}", Shop.Coins));
+            lines.Add(Txt.Format("Pontos da semana: {0} ({1} torneios)", WeeklyRanking.Points, WeeklyRanking.Tournaments));
             endCoins.text = string.Join("\n", lines);
             bool canDouble = Ads.RewardedAvailable && Tournament.CanDoublePrize;
             doublePrize.gameObject.SetActive(canDouble);

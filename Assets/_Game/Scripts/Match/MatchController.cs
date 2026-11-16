@@ -329,6 +329,7 @@ namespace FutebolDeBotao
             holdTimer = 0f;
             restoreControls = false;
             score[0] = score[1] = 0;
+            playerTrailed = false;
             farFouls[0] = farFouls[1] = 0;
             numbers[0] = new SaveData.MatchNumbers();
             numbers[1] = new SaveData.MatchNumbers();
@@ -1290,6 +1291,7 @@ namespace FutebolDeBotao
             if (pendingGoalValid)
             {
                 score[(int)scorer]++;
+                if (score[(int)TeamSide.Bottom] < score[(int)TeamSide.Top]) playerTrailed = true;
                 Count(scorer).goals++;
                 Count(goal.DefendingSide).conceded++;
                 if (ownGoal) Count(Turn).ownGoals++;
@@ -1629,6 +1631,7 @@ namespace FutebolDeBotao
             holdTimer = 0f;
             restoreControls = false;
             score[0] = score[1] = 0;
+            playerTrailed = false;
             farFouls[0] = farFouls[1] = 0;
             kickerHidden = keeperHidden = false;
             penaltyKeeperFirst = false;
@@ -1731,13 +1734,20 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Fim da partida: os números dos dois times vão para o pós-jogo; os do jogador (baixo), para o save.</summary>
+        /// <summary>O jogador (time de baixo) ficou atrás no placar em algum momento (conquista Virada).</summary>
+        private bool playerTrailed;
+
         private void RecordStats(bool walkover)
         {
             MatchSession.LastMatchNumbers = new[] { numbers[0], numbers[1] };
             int bottomPenalties = IsShootout ? ShootoutGoals(TeamSide.Bottom) : -1;
             int topPenalties = IsShootout ? ShootoutGoals(TeamSide.Top) : -1;
-            PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
+            bool counted = PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
                 bottomPenalties, topPenalties);
+            if (counted)
+                Achievements.MatchFinished(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
+                    IsShootout && Score(TeamSide.Bottom) == Score(TeamSide.Top) && bottomPenalties > topPenalties,
+                    period == Period.ExtraTime && Score(TeamSide.Bottom) > Score(TeamSide.Top), playerTrailed);
             if (analyticsMatchOpen)
                 GameAnalytics.MatchEnd(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover, bottomPenalties, topPenalties,
                     period != Period.Regular, Time.realtimeSinceStartup - analyticsStartTime,

@@ -121,6 +121,7 @@ namespace FutebolDeBotao
             if (uniformChanged || tableChanged || nameChanged)
                 GameAnalytics.Log("profile_changed", ("uniform", uniformChanged ? "yes" : "no"),
                     ("table", tableChanged ? "yes" : "no"), ("team_name", nameChanged ? "yes" : "no"));
+            Achievements.Report();
             Back();
         }
 

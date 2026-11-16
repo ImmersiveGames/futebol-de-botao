@@ -82,11 +82,11 @@ namespace FutebolDeBotao
         /// Fim da partida (também W.O.): resultado, sequência, números do jogador e a Última partida. Com disputa de
         /// pênaltis (<paramref name="playerPenalties"/> 0 ou mais), quem venceu a disputa venceu a partida.
         /// </summary>
-        public static void Finish(SaveData.MatchNumbers player, int playerScore, int aiScore, bool walkover,
+        public static bool Finish(SaveData.MatchNumbers player, int playerScore, int aiScore, bool walkover,
             int playerPenalties = -1, int aiPenalties = -1)
         {
             int level = Data.inProgressLevel;
-            if (level < 0 || level >= AiDifficulty.LevelCount) return;
+            if (level < 0 || level >= AiDifficulty.LevelCount) return false;
             Data.inProgressLevel = -1;
 
             bool shootout = playerPenalties >= 0 && aiPenalties >= 0;
@@ -144,6 +144,7 @@ namespace FutebolDeBotao
             Finance.Earn(tournament ? FinanceSource.Tournament : FinanceSource.Match,
                 Finance.MatchText(level, outcome, tournament, walkover), coins);
             GameSave.Save("fim da partida");
+            return true;
         }
 
         /// <summary>"Zerar estatísticas": apaga tudo (todos os níveis, recordes e a Última partida).</summary>

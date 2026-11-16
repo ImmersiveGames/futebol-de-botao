@@ -347,6 +347,19 @@ namespace FutebolDeBotao
                 else if (run.position == 3) s.tournamentThirds++;
                 s.coins += run.prize;
             }
+            // Ranking semanal e conquistas da copa.
+            var played = new List<(int, int)>();
+            foreach (var match in run.matches)
+            {
+                if (!match.played || !match.Has(Player)) continue;
+                bool home = match.home == Player;
+                played.Add(home ? (match.homeGoals, match.awayGoals) : (match.awayGoals, match.homeGoals));
+            }
+            int stageFromFinal = run.eliminatedRound >= 0 ? Rounds - 1 - run.eliminatedRound : -1;
+            WeeklyRanking.TournamentFinished(run.position, stageFromFinal, run.abandoned, level, config.TeamCount,
+                WeeklyRanking.GoalDifference(played));
+            if (!run.abandoned && run.position == 1) Achievements.TournamentWon(config.TeamCount);
+            else Achievements.Report();
             if (run.prize > 0)
             {
                 string text = run.position == 1 ? Txt.Get("Prêmio do torneio (campeão)") : Txt.Format("Prêmio do torneio ({0}º lugar)", run.position);
