@@ -32,6 +32,19 @@ namespace FutebolDeBotao
         public FinanceData finance = new();
         /// <summary>Anúncios (versão 11): ano de nascimento da tela de idade, compra "remover anúncios" e patrocínios do dia.</summary>
         public AdsData ads = new();
+        /// <summary>Save na nuvem (Play Games): de qual envio veio e se mudou desde o último. Fica só no aparelho.</summary>
+        public CloudData cloud = new();
+
+        [Serializable]
+        public sealed class CloudData
+        {
+            /// <summary>Identificador do último save enviado/recebido da nuvem; vazio = nunca sincronizou.</summary>
+            public string uploadId;
+            /// <summary>Quando esse save foi enviado (ticks UTC), para mostrar na pergunta de conflito.</summary>
+            public long savedAtTicks;
+            /// <summary>Resumo do conteúdo que vai para a nuvem no último envio/recebimento: diferente = mudou desde então.</summary>
+            public string syncedHash;
+        }
 
         [Serializable]
         public sealed class AdsData
