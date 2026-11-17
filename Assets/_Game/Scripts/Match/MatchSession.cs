@@ -142,15 +142,15 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// Lado da IA: o uniforme é escolhido sozinho (o que não fica parecido com o adversário) e as camisas são as do
-        /// uniforme no asset do time (mesmo travadas na loja); em "Sortear", sorteadas uma vez aqui.
+        /// uniforme no asset do time (mesmo travadas na loja); em "Sortear", sorteadas uma vez aqui entre todas (vitrine da loja).
         /// </summary>
         public static void UseTeamShirts(TeamSide side)
         {
             anyPattern[(int)side] = true;
             autoUniform[(int)side] = true;
             uniformIndex[(int)side] = 0;
-            discPattern[(int)side] = ShirtPattern.RandomId(ShirtPattern.Kind.Botao);
-            keeperPattern[(int)side] = ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro);
+            discPattern[(int)side] = ShirtPattern.RandomId(ShirtPattern.Kind.Botao, unlockedOnly: false);
+            keeperPattern[(int)side] = ShirtPattern.RandomId(ShirtPattern.Kind.Goleiro, unlockedOnly: false);
         }
 
         public static int TeamIndex(TeamSide side) => teamIndex[(int)side];

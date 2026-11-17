@@ -124,10 +124,10 @@ namespace FutebolDeBotao
             return list[((index + step) % count + count) % count].id;
         }
 
-        /// <summary>Um liberado qualquer (a IA sorteia o dela); nulo sem nenhum.</summary>
-        public static string RandomId(Kind kind)
+        /// <summary>Um padrão qualquer (liberado, ou qualquer um com <paramref name="unlockedOnly"/> falso); nulo sem nenhum.</summary>
+        public static string RandomId(Kind kind, bool unlockedOnly = true)
         {
-            var list = Of(kind);
+            var list = Of(kind, unlockedOnly);
             return list.Count > 0 ? list[Random.Range(0, list.Count)].id : null;
         }
 
