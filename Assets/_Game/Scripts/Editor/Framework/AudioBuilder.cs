@@ -41,6 +41,7 @@ namespace FutebolDeBotao.Editor
             ("apito", 0.7f),
             ("apito_final", 0.8f),
             ("gol", 1f),
+            ("fogos", 0.7f),
             ("cartao", 0.8f),
             ("clique", 0.6f)
         };
@@ -243,7 +244,8 @@ namespace FutebolDeBotao.Editor
                 LoadCue<AudioSfxCueAsset>("apito"),
                 LoadCue<AudioSfxCueAsset>("apito_final"),
                 LoadCue<AudioSfxCueAsset>("gol"),
-                LoadCue<AudioSfxCueAsset>("cartao"));
+                LoadCue<AudioSfxCueAsset>("cartao"),
+                LoadCue<AudioSfxCueAsset>("fogos"));
         }
 
         private static T LoadOrCreate<T>(string path) where T : ScriptableObject

@@ -25,6 +25,7 @@ namespace FutebolDeBotao
         [SerializeField] private AudioSfxCueAsset finalWhistle;
         [SerializeField] private AudioSfxCueAsset goal;
         [SerializeField] private AudioSfxCueAsset card;
+        [SerializeField] private AudioSfxCueAsset fireworks;
 
         [Tooltip("Batidas mais fracas que isto (velocidade relativa) não fazem som.")]
         [SerializeField, Min(0f)] private float minImpactSpeed = 0.4f;
@@ -40,7 +41,7 @@ namespace FutebolDeBotao
 
         public void Configure(MatchController matchController, AudioSfxCueAsset flickCue, AudioSfxCueAsset softCue,
             AudioSfxCueAsset hardCue, AudioSfxCueAsset wallCue, AudioSfxCueAsset whistleCue, AudioSfxCueAsset finalWhistleCue,
-            AudioSfxCueAsset goalCue, AudioSfxCueAsset cardCue)
+            AudioSfxCueAsset goalCue, AudioSfxCueAsset cardCue, AudioSfxCueAsset fireworksCue)
         {
             match = matchController;
             flick = flickCue;
@@ -51,6 +52,7 @@ namespace FutebolDeBotao
             finalWhistle = finalWhistleCue;
             goal = goalCue;
             card = cardCue;
+            fireworks = fireworksCue;
         }
 
         private void OnEnable()
@@ -64,6 +66,7 @@ namespace FutebolDeBotao
                 aim.BallKicked += OnBallKicked;
             }
             TableImpacts.Hit += OnImpact;
+            GoalFireworks.Launched += OnFireworkLaunched;
         }
 
         private void OnDisable()
@@ -75,7 +78,10 @@ namespace FutebolDeBotao
                 aim.BallKicked -= OnBallKicked;
             }
             TableImpacts.Hit -= OnImpact;
+            GoalFireworks.Launched -= OnFireworkLaunched;
         }
+
+        private void OnFireworkLaunched() => Play(fireworks);
 
         private void OnFlicked(Disc disc, Vector2 impulse) => Play(flick);
 

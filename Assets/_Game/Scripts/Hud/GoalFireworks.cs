@@ -26,6 +26,9 @@ namespace FutebolDeBotao
         private const float RepeatDelay = 0.55f;
         private const int SortingOrder = 96;
 
+        /// <summary>Um foguete saiu (o som de fogos toca aqui, em <see cref="MatchSounds"/>).</summary>
+        public static event System.Action Launched;
+
         private MatchController match;
         private System.Func<TeamSide, Vector3> messagePosition;
         private Sprite[] frames;
@@ -107,6 +110,7 @@ namespace FutebolDeBotao
             go.transform.SetParent(transform, false);
             go.transform.position = new Vector3(x * up, message.y + (BurstAboveMessage + raise) * up, 0f);
             go.transform.rotation = Quaternion.Euler(0f, 0f, flipped ? 180f : 0f);
+            Launched?.Invoke();
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = SortingOrder;
             renderer.color = color;

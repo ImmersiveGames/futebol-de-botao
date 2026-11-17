@@ -37,6 +37,7 @@ namespace FutebolDeBotao.Editor
             Write("apito_final", () => Concat(Whistle(0.35f), Silence(0.12f), Whistle(0.35f), Silence(0.12f), Whistle(0.9f)));
             Write("cartao", Card, 0.6f);
             Write("gol", Goal);
+            Write("fogos", Fireworks, 0.6f);
             Write("clique", Click, 0.5f);
             Write("musica_menu", () => Music(112f, MenuMelody, MenuBass), 0.6f);
             Write("musica_partida", () => Music(132f, MatchMelody, MatchBass), 0.55f);
@@ -132,6 +133,35 @@ namespace FutebolDeBotao.Editor
         }
 
         // Gol: torcida (ruído filtrado que cresce e some) com fanfarra chiptune.
+        // Fogos: assobio subindo (o foguete, 0,21 s = 3 quadros da animação), estouro e estalinhos sumindo.
+        private static List<float> Fireworks()
+        {
+            int rise = N(0.21f);
+            int total = rise + N(0.9f);
+            var s = new List<float>(new float[total]);
+            for (int i = 0; i < rise; i++)
+            {
+                float t = i / (float)Rate;
+                float f = 1200f + 9000f * t;
+                s[i] = 0.25f * (i / (float)rise) * Mathf.Sin(2f * Mathf.PI * f * t) + 0.08f * Noise();
+            }
+            // Estouro: ruído grave que cai rápido.
+            var boomNoise = new List<float>(total - rise);
+            for (int i = 0; i < total - rise; i++) boomNoise.Add(Noise());
+            var boom = LowPass(boomNoise, 0.25f);
+            int boomLength = N(0.35f);
+            for (int i = 0; i < boomLength; i++) s[rise + i] += 1.6f * Env(i, boomLength, 0.002f, 3f) * boom[i];
+            // Estalinhos espalhados, cada vez mais fracos.
+            for (int k = 0; k < 18; k++)
+            {
+                int start = rise + N(0.08f) + (int)(random.NextDouble() * N(0.75f));
+                int length = N(0.012f);
+                float amount = 0.7f * (1f - (start - rise) / (float)(total - rise));
+                for (int i = 0; i < length && start + i < total; i++) s[start + i] += amount * Env(i, length, 0.0005f, 2f) * Noise();
+            }
+            return s;
+        }
+
         private static List<float> Goal()
         {
             int total = N(2.2f);
