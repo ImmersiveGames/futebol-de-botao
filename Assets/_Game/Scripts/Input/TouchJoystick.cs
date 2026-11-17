@@ -11,9 +11,9 @@ namespace FutebolDeBotao
     public sealed class TouchJoystick : MonoBehaviour
     {
         private const int SortingOrder = 80;
-        private const int TextureSize = 64;
+        private const int TextureSize = 160;
         private const float KnobRadius = 0.32f;
-        private const float LineWidth = 0.05f;
+        private const float LineWidth = 0.035f;
         private static readonly Color BaseFill = new(1f, 1f, 1f, 0.08f);
         private static readonly Color BaseEdge = new(1f, 1f, 1f, 0.35f);
         private static readonly Color KnobColor = new(1f, 1f, 1f, 0.4f);
@@ -89,7 +89,7 @@ namespace FutebolDeBotao
         {
             if (ringSprite != null) return ringSprite;
             ringSprite = CircleSprite("Joystick (base)", (distance, radius) =>
-                distance > radius ? Color.clear : distance > radius - 2f ? BaseEdge : BaseFill);
+                distance > radius ? Color.clear : distance > radius - 1.5f ? BaseEdge : BaseFill);
             return ringSprite;
         }
 
