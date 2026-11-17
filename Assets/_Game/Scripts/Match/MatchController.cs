@@ -77,7 +77,17 @@ namespace FutebolDeBotao
         /// <summary>Peteleco em andamento ainda não contado como toque na bola ou toque errado.</summary>
         private bool touchPending;
         private TeamSide touchSide;
-        private string message = string.Empty;
+        private string messageText = string.Empty;
+        /// <summary>Mensagem do meio do campo; cada troca conta como aviso novo (mesmo texto repetido aparece de novo).</summary>
+        private string message
+        {
+            get => messageText;
+            set
+            {
+                messageText = value ?? string.Empty;
+                MessageVersion++;
+            }
+        }
         private bool initialized;
         /// <summary>Partida (fora do tutorial) começou e ainda não terminou: sair agora conta como abandono no Analytics.</summary>
         private bool analyticsMatchOpen;
@@ -100,7 +110,8 @@ namespace FutebolDeBotao
         public event System.Action<MatchNotice> Noticed;
 
         /// <summary>Última mensagem da partida (falta, gol, vez...). O HUD mostra quando ela muda.</summary>
-        public string Message => message;
+        public string Message => messageText;
+        public int MessageVersion { get; private set; }
         /// <summary>Segundos que restam no timer da etapa atual (mira, goleiro, pênalti).</summary>
         public float StateSecondsLeft => Mathf.Max(0f, stateTimer);
         /// <summary>Timer de mira correndo (Mira, Vai chutar ou Tiro de meta).</summary>
@@ -399,7 +410,7 @@ namespace FutebolDeBotao
             KeepOutOfCenterCircle(Opponent(side));
 
             GiveTurn(side);
-            message = Txt.Format("Saída do {0}.", TeamName(side));
+            message = Txt.Format("Saída do {0}", TeamName(side));
             Noticed?.Invoke(MatchNotice.KickOff);
             Enter(MatchState.Aim);
         }
@@ -444,16 +455,16 @@ namespace FutebolDeBotao
             {
                 case MatchState.Aim:
                     if (clock <= 0f) EndMatch();
-                    else if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
+                    else if (stateTimer <= 0f) PassTurn("Tempo esgotado!");
                     else if (!IsAi(Turn) && MatchInput.For(Turn).ShotCallPressedThisFrame) TryCallShot();
                     break;
 
                 case MatchState.ShotAim:
-                    if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
+                    if (stateTimer <= 0f) PassTurn("Tempo esgotado!");
                     break;
 
                 case MatchState.GoalKick:
-                    if (stateTimer <= 0f) PassTurn("Tempo de mira esgotado.");
+                    if (stateTimer <= 0f) PassTurn("Tempo esgotado!");
                     else if (goalKickPlacing && !IsAi(Turn))
                     {
                         UpdateGoalKickPlacement();
@@ -598,7 +609,7 @@ namespace FutebolDeBotao
         public void TryCallShot()
         {
             if (!CanCallShot) return;
-            message = Txt.Format("{0}: Pro Gol!", TeamName(Turn));
+            message = Txt.Get("Pro Gol!");
             BeginShotCall();
         }
 
@@ -614,7 +625,6 @@ namespace FutebolDeBotao
                 return;
             }
 
-            message += " " + Txt.Format("{0} ajusta o goleiro.", TeamName(Opponent(Turn)));
             Enter(MatchState.ShotCall);
         }
 
@@ -635,7 +645,7 @@ namespace FutebolDeBotao
 
         private void EnterShotAim()
         {
-            message = Txt.Format("{0}: chute!", TeamName(Turn));
+            message = Txt.Get("Chute!");
             Enter(MatchState.ShotAim);
         }
 
@@ -710,11 +720,13 @@ namespace FutebolDeBotao
             }
             if (clock <= 0f) EndMatch();
             else if (TryKeeperZoneGoalKick()) return;
-            else if (ball.LastTouchSide == null) PassTurn("Errou a bola.");
-            else if (ball.LastTouchSide != Turn) PassTurn(shotWasCalled ? "Chute defendido." : "Último toque do adversário.");
-            else if (shotWasCalled) PassTurn("Chute para fora.");
+            else if (ball.LastTouchSide == null) PassTurn("Errou!");
+            else if (ball.LastTouchSide != Turn)
+                // Sem toque sobrando a vez passaria de qualquer jeito: não precisa dizer que o adversário tocou por último.
+                PassTurn(shotWasCalled ? "Defendeu!" : touchesLeft > 0 ? "Posse do adversário!" : null);
+            else if (shotWasCalled) PassTurn("Pra fora!");
             else if (touchesLeft > 0) Enter(MatchState.Aim);
-            else PassTurn("Acabaram os toques.");
+            else PassTurn(null);
         }
 
         /// <summary>Bola do goleiro (parada na área em volta dele) vira tiro de meta para o time dele, não importa quem jogou.</summary>
@@ -730,7 +742,7 @@ namespace FutebolDeBotao
                 tutorial.OnPlayEnded(TutorialPlay.KeeperBall);
                 return true;
             }
-            message = Txt.Get("Bola do goleiro.");
+            message = string.Empty;
             SetupGoalKick(owner.Value);
             Hold();
             return true;
@@ -779,8 +791,7 @@ namespace FutebolDeBotao
                 return;
             }
             GiveTurn(Opponent(Turn));
-            string turnText = Txt.Format("Vez do {0}.", TeamName(Turn));
-            message = string.IsNullOrEmpty(reason) ? turnText : $"{Txt.Get(reason)} {turnText}";
+            message = string.IsNullOrEmpty(reason) ? Txt.Format("Vez do {0}", TeamName(Turn)) : Txt.Get(reason);
             Enter(MatchState.Aim);
         }
 
@@ -824,8 +835,8 @@ namespace FutebolDeBotao
             }
 
             bool far = Vector2.Distance(keeper.transform.position, shotBallStart) > options.farFoulDistance;
-            message = Txt.Format("Falta no goleiro do {0}!", TeamName(keeper.Side));
             SetupGoalKick(keeper.Side);
+            message = Txt.Get("Falta no goleiro!");
             Noticed?.Invoke(MatchNotice.Foul);
             if (far) GiveCard(disc);
             Hold();
@@ -868,7 +879,7 @@ namespace FutebolDeBotao
             if (count == 1)
             {
                 Noticed?.Invoke(MatchNotice.YellowCard);
-                message += " " + Txt.Format("Cartão amarelo para o {0}!", TeamName(side));
+                message += " " + Txt.Get("Cartão amarelo!");
                 return;
             }
 
@@ -879,7 +890,7 @@ namespace FutebolDeBotao
             Noticed?.Invoke(MatchNotice.RedCard);
             if (onField > 1)
             {
-                message += " " + Txt.Format("Cartão vermelho para o {0}: {1} expulso!", TeamName(side), offender.name);
+                message += " " + Txt.Get("Cartão vermelho!");
                 return;
             }
             Walkover(side);
@@ -894,7 +905,7 @@ namespace FutebolDeBotao
             EndShot();
             monitor.StopWatching();
             monitor.FreezeAll();
-            message = Txt.Format("W.O.! O {0} ficou sem botões. Vitória do {1}!", TeamName(loser), TeamName(winner));
+            message = "W.O.!";
             Noticed?.Invoke(MatchNotice.FinalWhistle);
             MatchSession.LastResult = new MatchResult(Score(TeamSide.Bottom), Score(TeamSide.Top), true);
             RecordStats(walkover: true);
@@ -933,7 +944,7 @@ namespace FutebolDeBotao
             setupIsPenalty = false;
             PlaceKickerNearest(victim, 0f);
 
-            message = Txt.Format("Falta do {0}! Tiro livre para o {1}: posicione o batedor.", TeamName(offender.Side), TeamName(victim.Side));
+            message = Txt.Get("Falta!");
             Enter(MatchState.PenaltySetup);
         }
 
@@ -967,7 +978,7 @@ namespace FutebolDeBotao
 
             GiveTurn(attacking);
             freeKickDisc = victim;
-            BeginPenaltyChoice(Txt.Format("Pênalti para o {0}! Posicione o botão.", TeamName(attacking)));
+            BeginPenaltyChoice(Txt.Get("Pênalti!"));
         }
 
         /// <summary>
@@ -982,7 +993,7 @@ namespace FutebolDeBotao
             {
                 penaltyKeeperFirst = true;
                 keeperHidden = true;
-                message = Txt.Format("Pênalti do {0}! O goleiro do {1} escolhe o canto.", TeamName(Turn), TeamName(Opponent(Turn)));
+                message = kickerMessage;
                 Enter(MatchState.ShotCall);
                 return;
             }
@@ -999,14 +1010,14 @@ namespace FutebolDeBotao
             {
                 if (stateTimer > 0f && !IsAi(Opponent(Turn)))
                 {
-                    message = Txt.Get("Escolha um lado: o goleiro não pode ficar no meio.");
+                    message = Txt.Get("Escolha um lado!");
                     return;
                 }
                 ForceKeeperSide(keeper);
             }
             if (penaltyKeeperFirst)
             {
-                message = Txt.Format("{0}: posicione o batedor (o goleiro já escolheu o canto).", TeamName(Turn));
+                message = string.Empty;
                 Enter(MatchState.PenaltySetup);
                 return;
             }
@@ -1189,7 +1200,7 @@ namespace FutebolDeBotao
                 {
                     if (stateTimer > 0f && !IsAi(Turn))
                     {
-                        message = Txt.Get("Escolha um lado: o batedor não pode ficar no meio.");
+                        message = Txt.Get("Escolha um lado!");
                         return;
                     }
                     ForceKickerSide();
@@ -1201,18 +1212,18 @@ namespace FutebolDeBotao
                     return;
                 }
                 kickerHidden = true;
-                message = Txt.Format("{0}: escolha o canto do goleiro.", TeamName(Opponent(Turn)));
+                message = Txt.Get("Escolha o canto!");
                 Enter(MatchState.ShotCall);
             }
             else if (setupIsPenalty)
             {
-                message = Txt.Format("Pênalti: {0} vai chutar!", TeamName(Turn));
+                message = Txt.Get("Chute!");
                 BeginShotCall();
             }
             else
             {
                 // Tiro livre: a vez começa normal; no campo de ataque o "Vai chutar" fica disponível como sempre.
-                message = Txt.Format("Tiro livre do {0}.", TeamName(Turn));
+                message = Txt.Get("Tiro livre!");
                 Enter(MatchState.Aim);
             }
         }
@@ -1296,7 +1307,7 @@ namespace FutebolDeBotao
                 Count(goal.DefendingSide).conceded++;
                 if (ownGoal) Count(Turn).ownGoals++;
                 else if (shotWasCalled) Count(scorer).shotGoals++;
-                message = ownGoal ? Txt.Format("Gol contra! Ponto do {0}.", TeamName(scorer)) : Txt.Format("GOL do {0}!", TeamName(scorer));
+                message = ownGoal ? Txt.Get("Gol contra!") : Txt.Get("GOL!");
             }
             else
             {
@@ -1364,7 +1375,7 @@ namespace FutebolDeBotao
             ResetFormation();
 
             GiveTurn(defending);
-            message += " " + Txt.Format("Tiro de meta do {0}: posicione a bola e aperte Pronto.", TeamName(defending));
+            message = string.IsNullOrEmpty(message) ? Txt.Get("Tiro de meta!") : $"{message} {Txt.Get("Tiro de meta!")}";
             goalKickPlacing = true;
             draggingGoalKickBall = false;
             Enter(MatchState.GoalKick);
@@ -1439,7 +1450,7 @@ namespace FutebolDeBotao
             if (!IsPlacingGoalKick) return;
             goalKickPlacing = false;
             draggingGoalKickBall = false;
-            message = Txt.Format("Tiro de meta do {0}: arraste a bola para chutar.", TeamName(Turn));
+            message = Txt.Get("Tiro de meta!");
             StateVersion++;
             aim.Cancel();
             ApplyControls();
@@ -1510,7 +1521,7 @@ namespace FutebolDeBotao
             period = Period.ExtraTime;
             clock = options.ExtraTimeSeconds;
             KickOff(Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top);
-            message = Txt.Format("Prorrogação! Saída do {0}.", TeamName(Turn));
+            message = Txt.Get("Prorrogação!");
             Hold();
         }
 
@@ -1537,7 +1548,7 @@ namespace FutebolDeBotao
             shootoutFirst = Random.value < 0.5f ? TeamSide.Bottom : TeamSide.Top;
             Noticed?.Invoke(MatchNotice.FinalWhistle);
             NextShootoutKick();
-            message = $"{Txt.Get("Disputa de pênaltis!")} {message}";
+            message = Txt.Get("Disputa de pênaltis!");
             Hold();
         }
 
@@ -1564,14 +1575,14 @@ namespace FutebolDeBotao
             setupIsPenalty = true;
             freeKickDisc = kicker;
             if (kicker != null) PlaceKickerNearest(kicker, 0f);
-            BeginPenaltyChoice(Txt.Format("Pênalti do {0}: posicione o batedor.", TeamName(side)));
+            BeginPenaltyChoice(Txt.Format("Pênalti do {0}", TeamName(side)));
         }
 
         /// <summary>Fim de uma cobrança: marca no placar da disputa e para um pouco para todo mundo ver.</summary>
         private void RecordShootoutKick(bool scored)
         {
             shootoutKicks[(int)Turn].Add(scored);
-            message = scored ? Txt.Format("GOL do {0}!", TeamName(Turn)) : Txt.Format("{0} perdeu o pênalti!", TeamName(Turn));
+            message = scored ? Txt.Get("GOL!") : Txt.Get("Perdeu!");
             Noticed?.Invoke(scored ? MatchNotice.Goal : MatchNotice.GoalAnnulled);
             pendingGoal = null;
             Enter(MatchState.Goal);
@@ -1588,7 +1599,7 @@ namespace FutebolDeBotao
                 return;
             }
 
-            message = Txt.Format("Fim de jogo: {0} vence nos pênaltis!", TeamName(winner.Value));
+            message = Txt.Get("Fim de jogo!");
             MatchSession.LastResult = new MatchResult(Score(TeamSide.Bottom), Score(TeamSide.Top), false,
                 ShootoutGoals(TeamSide.Bottom), ShootoutGoals(TeamSide.Top));
             RecordStats(walkover: false);
@@ -1667,7 +1678,7 @@ namespace FutebolDeBotao
         /// <summary>Tutorial: o time da vez avisa "Pro Gol!" (a IA, na lição de defender).</summary>
         public void TutorialCallShot()
         {
-            message = Txt.Format("{0}: Pro Gol!", TeamName(Turn));
+            message = Txt.Get("Pro Gol!");
             BeginShotCall();
         }
 
@@ -1726,7 +1737,7 @@ namespace FutebolDeBotao
         {
             int bottom = Score(TeamSide.Bottom);
             int top = Score(TeamSide.Top);
-            message = bottom == top ? Txt.Get("Fim de jogo: empate!") : Txt.Format("Fim de jogo: vitória do {0}!", TeamName(bottom > top ? TeamSide.Bottom : TeamSide.Top));
+            message = Txt.Get("Fim de jogo!");
             MatchSession.LastResult = new MatchResult(bottom, top);
             RecordStats(walkover: false);
             Noticed?.Invoke(MatchNotice.FinalWhistle);

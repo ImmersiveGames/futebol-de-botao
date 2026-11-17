@@ -72,7 +72,7 @@ namespace FutebolDeBotao
         private TurnHighlight highlight;
         private Font font;
         private Camera worldCamera;
-        private string lastMessage;
+        private int lastMessageVersion = -1;
         private float messageUntil;
         private bool messageHeld;
 
@@ -251,9 +251,9 @@ namespace FutebolDeBotao
         private void UpdateMessages(bool visible, bool portrait)
         {
             string message = match.Message;
-            if (message != lastMessage)
+            if (match.MessageVersion != lastMessageVersion)
             {
-                lastMessage = message;
+                lastMessageVersion = match.MessageVersion;
                 if (!string.IsNullOrEmpty(message)) messageUntil = Time.unscaledTime + match.Options.messageSeconds;
                 // Aviso que parou o jogo some junto com a pausa, para não ficar na tela com o jogo andando.
                 messageHeld = match.IsHolding;
