@@ -200,7 +200,8 @@ namespace FutebolDeBotao
             // painel 90 e sobe o resto 45.
             bool restoreShown = Purchases.Supported;
             bool playGamesShown = PlayGames.Supported;
-            int extras = (restoreShown ? 1 : 0) + (playGamesShown ? 1 : 0);
+            bool adPrivacyShown = Ads.PrivacyOptionsRequired;
+            int extras = (restoreShown ? 1 : 0) + (playGamesShown ? 1 : 0) + (adPrivacyShown ? 1 : 0);
             float lift = 45f * extras;
             var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f + 90f * extras));
             var background = panel.gameObject.AddComponent<Image>();
@@ -224,6 +225,25 @@ namespace FutebolDeBotao
             var privacyEntry = privacy.gameObject.AddComponent<MenuEntry>();
             privacyEntry.Configure(privacy);
             var entries = new List<MenuEntry> { language, master, music, effects, privacyEntry };
+            if (adPrivacyShown)
+            {
+                // Europa, Reino Unido...: o jogador pode rever o consentimento dos anúncios a qualquer momento.
+                y -= 90f;
+                Button adPrivacy = null;
+                adPrivacy = CreateButton(panel, "Privacidade dos anúncios", "Privacidade dos anúncios", new Vector2(0f, y),
+                    new Vector2(460f, 70f), () =>
+                    {
+                        adPrivacy.interactable = false;
+                        Ads.ShowPrivacyOptions(() =>
+                        {
+                            if (adPrivacy != null) adPrivacy.interactable = true;
+                        });
+                    }, ButtonStyle.Brown);
+                LocalizedText.Attach(adPrivacy.GetComponentInChildren<Text>());
+                var adPrivacyEntry = adPrivacy.gameObject.AddComponent<MenuEntry>();
+                adPrivacyEntry.Configure(adPrivacy);
+                entries.Add(adPrivacyEntry);
+            }
             if (restoreShown)
             {
                 y -= 90f;

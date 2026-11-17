@@ -20,6 +20,10 @@ namespace FutebolDeBotao
 
         public void ShowRewarded(Action<bool> done) => SimulatedAdScreen.Open(true, done);
 
+        public bool PrivacyOptionsRequired => false;
+
+        public void ShowPrivacyOptions(Action done) => done?.Invoke();
+
         private GameObject banner;
 
         /// <summary>Faixa cinza "Banner de teste" no topo, do tamanho de um banner de 50 dp num celular de 360 dp de largura.</summary>

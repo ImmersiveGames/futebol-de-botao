@@ -73,6 +73,20 @@ public sealed class AdMobAds : IAdsProvider
         }));
     }
 
+    public bool PrivacyOptionsRequired =>
+        group == AgeGroup.Adult && ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required;
+
+    /// <summary>Formulário do Google para rever o consentimento; se agora pode pedir anúncios e ainda não começou, começa.</summary>
+    public void ShowPrivacyOptions(Action done)
+    {
+        ConsentForm.ShowPrivacyOptionsForm(error => Main(() =>
+        {
+            if (error != null) Debug.LogWarning($"[Anúncios] Privacidade: {error.Message}");
+            if (ConsentInformation.CanRequestAds()) Start();
+            done?.Invoke();
+        }));
+    }
+
     /// <summary>Roda na thread do Unity (no próximo Update).</summary>
     private static void Main(Action action) => MobileAdsEventExecutor.ExecuteInUpdate(action);
 

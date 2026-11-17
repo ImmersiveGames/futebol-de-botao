@@ -19,6 +19,12 @@ namespace FutebolDeBotao
 
         void HideBanner();
 
+        /// <summary>A lei pede (Europa, Reino Unido...) que o jogador possa rever o consentimento dos anúncios.</summary>
+        bool PrivacyOptionsRequired { get; }
+
+        /// <summary>Abre de novo o formulário de consentimento do Google; <paramref name="done"/> quando fecha.</summary>
+        void ShowPrivacyOptions(Action done);
+
         /// <summary>Altura do banner à mostra em pixels da tela, contando do topo (0 = sem banner).</summary>
         float BannerHeightPixels { get; }
     }

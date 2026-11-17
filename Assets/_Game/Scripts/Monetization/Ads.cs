@@ -30,6 +30,19 @@ namespace FutebolDeBotao
         /// <summary>Já dá para pedir anúncio com prêmio (tem quem mostre e a idade foi respondida).</summary>
         public static bool RewardedAvailable => provider != null;
 
+        /// <summary>Botão "Privacidade dos anúncios" nas Configurações: só quando a lei pede.</summary>
+        public static bool PrivacyOptionsRequired => provider != null && provider.PrivacyOptionsRequired;
+
+        public static void ShowPrivacyOptions(Action done)
+        {
+            if (provider == null)
+            {
+                done?.Invoke();
+                return;
+            }
+            provider.ShowPrivacyOptions(() => OverlayUi.SafeInvoke(done));
+        }
+
         public static bool Removed => GameSave.Data.ads != null && GameSave.Data.ads.adsRemoved;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
