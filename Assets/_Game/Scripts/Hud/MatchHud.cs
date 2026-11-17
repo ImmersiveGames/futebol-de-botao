@@ -271,13 +271,13 @@ namespace FutebolDeBotao
 
             bottom.Label.text = message;
             top.Label.text = message;
-            // Com uma mensagem só (PC) ela fica bem no meio; com duas, uma de cada lado do círculo central. Com a faixa
-            // preta do pênalti, as duas encostam na linha do meio (longe da faixa, que fica perto da área).
+            // Com uma mensagem só (PC, ou contra a IA) ela fica na linha do meio; com duas, uma de cada lado do círculo
+            // central. Com a faixa preta do pênalti, as duas encostam na linha do meio (longe da faixa, perto da área).
             bool penaltyCover = match.KickerHidden || match.KeeperHidden;
             float offset = penaltyCover ? PenaltyMessageOffset : MessageOffset;
-            bool both = portrait && top.Root.activeSelf;
-            bottom.Root.transform.position = new Vector3(0f, !portrait || penaltyCover && !both ? 0f : -offset, 0f);
-            top.Root.transform.position = new Vector3(0f, penaltyCover && !bottom.Root.activeSelf ? 0f : offset, 0f);
+            bool both = portrait && top.Root.activeSelf && bottom.Root.activeSelf;
+            bottom.Root.transform.position = new Vector3(0f, both ? -offset : 0f, 0f);
+            top.Root.transform.position = new Vector3(0f, both ? offset : 0f, 0f);
         }
 
         /// <summary>Placar lido da esquerda para a direita: <paramref name="first"/> primeiro.</summary>
