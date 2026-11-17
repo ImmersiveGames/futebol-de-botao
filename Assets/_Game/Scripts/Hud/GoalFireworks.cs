@@ -16,9 +16,11 @@ namespace FutebolDeBotao
         /// <summary>Altura (em pixels da arte, contando de cima) onde o fogo estoura: vira o pivô do quadro.</summary>
         private const float BurstPixelFromTop = 28f;
         private const float FrameSeconds = 0.07f;
+        /// <summary>Tamanho dos fogos (1 = a arte em 32 PPU).</summary>
+        private const float Scale = 1.4f;
         private const float SideX = 2.4f;
         /// <summary>Os dois do meio: mais perto do centro e estourando um pouco mais alto.</summary>
-        private const float MiddleX = 0.8f;
+        private const float MiddleX = 1.0f;
         private const float MiddleRaise = 0.35f;
         /// <summary>O estouro fica acima da faixa (para quem lê a mensagem).</summary>
         private const float BurstAboveMessage = 1.3f;
@@ -110,6 +112,7 @@ namespace FutebolDeBotao
             go.transform.SetParent(transform, false);
             go.transform.position = new Vector3(x * up, message.y + (BurstAboveMessage + raise) * up, 0f);
             go.transform.rotation = Quaternion.Euler(0f, 0f, flipped ? 180f : 0f);
+            go.transform.localScale = new Vector3(Scale, Scale, 1f);
             Launched?.Invoke();
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = SortingOrder;

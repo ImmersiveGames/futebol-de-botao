@@ -58,6 +58,16 @@ namespace FutebolDeBotao
         {
             public GameObject Root;
             public Text Label;
+            /// <summary>"GOL!" ondulando nas cores de quem fez, com contorno escuro.</summary>
+            public TextWave Wave;
+            public Outline WaveOutline;
+
+            public void SetWave(bool on, Color first, Color second)
+            {
+                if (Wave.enabled != on) Wave.enabled = on;
+                if (WaveOutline.enabled != on) WaveOutline.enabled = on;
+                if (on) Wave.SetColors(first, second);
+            }
         }
 
         private readonly Dictionary<TeamSide, PlayerView> strips = new();
@@ -273,6 +283,12 @@ namespace FutebolDeBotao
 
             bottom.Label.text = message;
             top.Label.text = message;
+            // O "GOL!" (de qualquer time) ondula nas cores de quem fez; as outras mensagens ficam como são.
+            bool wave = message == Txt.Get("GOL!");
+            Color first = Color.white, second = Color.white;
+            if (wave) (first, second) = WaveColors(match.LastScorer);
+            bottom.SetWave(wave, first, second);
+            top.SetWave(wave, first, second);
             // Com uma mensagem só (PC, ou contra a IA) ela fica na linha do meio; com duas, uma de cada lado do círculo
             // central. Com a faixa preta do pênalti, as duas encostam na linha do meio (longe da faixa, perto da área).
             bool penaltyCover = match.KickerHidden || match.KeeperHidden;
@@ -320,6 +336,19 @@ namespace FutebolDeBotao
             MatchState.End => Txt.Get("Fim de jogo"),
             _ => string.Empty
         };
+
+        /// <summary>As duas cores do time para o "GOL!": clareadas para ler no fundo escuro; cor escura demais vira branco.</summary>
+        private static (Color, Color) WaveColors(TeamSide side)
+        {
+            static Color Readable(Color color)
+            {
+                Color.RGBToHSV(color, out _, out _, out float value);
+                return value < 0.3f ? Color.white : Color.Lerp(color, Color.white, 0.25f);
+            }
+            var first = Readable(MatchSession.PrimaryColor(side));
+            var second = Readable(MatchSession.SecondaryColor(side));
+            return (first, second);
+        }
 
         /// <summary>Cor do time um pouco mais clara, para ler sobre o fundo escuro do HUD.</summary>
         private static Color TeamColor(TeamSide side)
@@ -527,7 +556,14 @@ namespace FutebolDeBotao
                 Destroy(canvas.GetComponent<GraphicRaycaster>());
                 CreatePanel(canvas.transform, new Color(0f, 0f, 0f, 0.65f)).raycastTarget = false;
                 var label = CreateText(canvas.transform, "Texto", 32, FontStyle.Bold, Vector2.zero, new Vector2(620f, 96f));
-                messages[side] = new MessageView { Root = canvas.gameObject, Label = label };
+                // A onda vem antes do contorno, para o contorno acompanhar as letras.
+                var wave = label.gameObject.AddComponent<TextWave>();
+                wave.enabled = false;
+                var outline = label.gameObject.AddComponent<Outline>();
+                outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+                outline.effectDistance = new Vector2(2f, -2f);
+                outline.enabled = false;
+                messages[side] = new MessageView { Root = canvas.gameObject, Label = label, Wave = wave, WaveOutline = outline };
                 canvas.gameObject.SetActive(false);
             }
         }
