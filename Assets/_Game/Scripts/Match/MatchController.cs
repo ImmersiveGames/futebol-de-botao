@@ -1310,7 +1310,7 @@ namespace FutebolDeBotao
                 Count(goal.DefendingSide).conceded++;
                 if (ownGoal) Count(Turn).ownGoals++;
                 else if (shotWasCalled) Count(scorer).shotGoals++;
-                message = ownGoal ? Txt.Get("Gol contra!") : Txt.Get("GOL!");
+                message = ownGoal ? Txt.Get("Gol contra!") : Txt.Get("GOOOOOL!");
             }
             else
             {
@@ -1586,7 +1586,7 @@ namespace FutebolDeBotao
         {
             shootoutKicks[(int)Turn].Add(scored);
             LastScorer = Turn;
-            message = scored ? Txt.Get("GOL!") : Txt.Get("Perdeu!");
+            message = scored ? Txt.Get("GOOOOOL!") : Txt.Get("Perdeu!");
             Noticed?.Invoke(scored ? MatchNotice.Goal : MatchNotice.GoalAnnulled);
             pendingGoal = null;
             Enter(MatchState.Goal);

@@ -58,7 +58,7 @@ namespace FutebolDeBotao
         {
             public GameObject Root;
             public Text Label;
-            /// <summary>"GOL!" ondulando nas cores de quem fez, com contorno escuro.</summary>
+            /// <summary>"GOOOOOL!" ondulando nas cores de quem fez, com contorno escuro.</summary>
             public TextWave Wave;
             public Outline WaveOutline;
 
@@ -283,8 +283,8 @@ namespace FutebolDeBotao
 
             bottom.Label.text = message;
             top.Label.text = message;
-            // O "GOL!" (de qualquer time) ondula nas cores de quem fez; as outras mensagens ficam como são.
-            bool wave = message == Txt.Get("GOL!");
+            // O "GOOOOOL!" (de qualquer time) ondula nas cores de quem fez; as outras mensagens ficam como são.
+            bool wave = message == Txt.Get("GOOOOOL!");
             Color first = Color.white, second = Color.white;
             if (wave) (first, second) = WaveColors(match.LastScorer);
             bottom.SetWave(wave, first, second);
@@ -337,7 +337,7 @@ namespace FutebolDeBotao
             _ => string.Empty
         };
 
-        /// <summary>As duas cores do time para o "GOL!": clareadas para ler no fundo escuro; cor escura demais vira branco.</summary>
+        /// <summary>As duas cores do time para o "GOOOOOL!": clareadas para ler no fundo escuro; cor escura demais vira branco.</summary>
         private static (Color, Color) WaveColors(TeamSide side)
         {
             static Color Readable(Color color)

@@ -6,7 +6,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Letras ondulando (sobem e descem numa onda da esquerda para a direita) e alternando entre duas cores.
-    /// Usado no "GOL!" da mensagem do campo. Desligado, o texto fica como era. Fica antes do <see cref="Outline"/>
+    /// Usado no "GOOOOOL!" da mensagem do campo. Desligado, o texto fica como era. Fica antes do <see cref="Outline"/>
     /// no objeto, para o contorno acompanhar as letras.
     /// </summary>
     [RequireComponent(typeof(Text))]
