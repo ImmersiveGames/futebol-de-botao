@@ -34,7 +34,7 @@ namespace FutebolDeBotao
         private Action onClose;
         private bool fromPause;
         private Font font;
-        private Text languageLabel, masterLabel, musicLabel, effectsLabel;
+        private Text languageLabel, masterLabel, musicLabel, effectsLabel, joystickLabel;
         private Button restoreButton;
 
         /// <summary>Abre a tela (se já estiver aberta, nada muda). <paramref name="followPauser"/>: só quem pausou navega.</summary>
@@ -101,6 +101,12 @@ namespace FutebolDeBotao
             Refresh();
         }
 
+        private void ChangeJoystick(int step)
+        {
+            GameSave.Data.settings.touchJoystick = !GameSave.Data.settings.touchJoystick;
+            Refresh();
+        }
+
         /// <summary>"Restaurar compras": pede à loja as compras já feitas e diz no próprio botão como foi.</summary>
         private void RestorePurchases()
         {
@@ -121,6 +127,7 @@ namespace FutebolDeBotao
             masterLabel.text = GameVolume.Percent(GameVolume.Master);
             musicLabel.text = GameVolume.Percent(GameVolume.Music);
             effectsLabel.text = GameVolume.Percent(GameVolume.Effects);
+            joystickLabel.text = Txt.Get(GameSave.Data.settings.touchJoystick ? "Ligado" : "Desligado");
         }
 
         // ---- UI ----
@@ -148,8 +155,9 @@ namespace FutebolDeBotao
             bool restoreShown = Purchases.Supported;
             bool adPrivacyShown = Ads.PrivacyOptionsRequired;
             int extras = (restoreShown ? 1 : 0) + (adPrivacyShown ? 1 : 0);
-            float lift = 45f * extras;
-            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f + 90f * extras));
+            // A linha do joystick conta como um extra fixo.
+            float lift = 45f * (extras + 1);
+            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f + 90f * (extras + 1)));
             var background = panel.gameObject.AddComponent<Image>();
             var panelSprite = ButtonArt.Find(ButtonSkin.HudPanelName);
             if (panelSprite != null)
@@ -164,13 +172,14 @@ namespace FutebolDeBotao
             var master = CreateArrowRow(panel, "Volume geral", 40f + lift, ChangeMaster, out masterLabel);
             var music = CreateArrowRow(panel, "Música", -50f + lift, ChangeMusic, out musicLabel);
             var effects = CreateArrowRow(panel, "Efeitos", -140f + lift, ChangeEffects, out effectsLabel);
-            float y = -235f + lift;
+            var joystick = CreateArrowRow(panel, "Joystick na tela", -230f + lift, ChangeJoystick, out joystickLabel);
+            float y = -325f + lift;
             var privacy = CreateButton(panel, "Política de privacidade", "Política de privacidade", new Vector2(0f, y),
                 new Vector2(460f, 70f), () => Application.OpenURL(PrivacyPolicyUrl), ButtonStyle.Brown);
             LocalizedText.Attach(privacy.GetComponentInChildren<Text>());
             var privacyEntry = privacy.gameObject.AddComponent<MenuEntry>();
             privacyEntry.Configure(privacy);
-            var entries = new List<MenuEntry> { language, master, music, effects, privacyEntry };
+            var entries = new List<MenuEntry> { language, master, music, effects, joystick, privacyEntry };
             if (adPrivacyShown)
             {
                 // Europa, Reino Unido...: o jogador pode rever o consentimento dos anúncios a qualquer momento.

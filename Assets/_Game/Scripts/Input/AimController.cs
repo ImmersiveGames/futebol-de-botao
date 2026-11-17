@@ -106,6 +106,18 @@ namespace FutebolDeBotao
         private void Start()
         {
             ball = FindAnyObjectByType<Ball>();
+            if (GetComponent<TouchJoystick>() == null) gameObject.AddComponent<TouchJoystick>().Configure(this);
+        }
+
+        /// <summary>
+        /// Mira de toque em andamento: onde o dedo encostou (centro do joystick) e onde ele está. Falso fora do toque,
+        /// no teclado/controle, no mouse e na IA.
+        /// </summary>
+        public bool TryGetTouchDrag(out Vector2 anchor, out Vector2 pointer)
+        {
+            anchor = dragAnchor ?? Vector2.zero;
+            pointer = pointerWorld;
+            return !scripted && IsAiming && !padAiming && TouchMode && dragAnchor.HasValue;
         }
 
         private void Update()

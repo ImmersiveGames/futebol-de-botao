@@ -126,6 +126,8 @@ namespace FutebolDeBotao
             public int aiLevel = (int)AiLevel.Medium;
             /// <summary>Tamanho de torneio escolhido por último (id do asset em Resources/Torneios).</summary>
             public string tournamentId;
+            /// <summary>Joystick na tela (círculo transparente onde o dedo encosta para mirar). Padrão: ligado.</summary>
+            public bool touchJoystick = true;
             /// <summary>Liga escolhida por último (versão 12).</summary>
             public string leagueId;
         }
