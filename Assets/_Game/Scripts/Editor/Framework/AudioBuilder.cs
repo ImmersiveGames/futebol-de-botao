@@ -41,7 +41,7 @@ namespace FutebolDeBotao.Editor
             ("apito", 0.7f),
             ("apito_final", 0.8f),
             ("gol", 1f),
-            ("fogos", 0.7f),
+            ("fogos", 1f),
             ("cartao", 0.8f),
             ("clique", 0.6f)
         };
@@ -113,12 +113,14 @@ namespace FutebolDeBotao.Editor
                 return null;
             }
 
+            // Volume só no cue novo: depois quem manda é o Inspector (o Criar áudio não desfaz o ajuste).
+            bool created = AssetDatabase.LoadAssetAtPath<T>(CuePath(clipName)) == null;
             var cue = LoadOrCreate<T>(CuePath(clipName));
             Set(cue, so =>
             {
                 so.FindProperty("cueId").stringValue = $"{kind}.futebol.{clipName}";
                 so.FindProperty("clip").objectReferenceValue = clip;
-                so.FindProperty("volume").floatValue = volume;
+                if (created) so.FindProperty("volume").floatValue = volume;
                 so.FindProperty("pitch").floatValue = 1f;
                 so.FindProperty("routingBus").stringValue = bus;
             });
