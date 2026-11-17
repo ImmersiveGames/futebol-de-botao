@@ -20,9 +20,14 @@ namespace FutebolDeBotao
 
         public void ShowRewarded(Action<bool> done) => SimulatedAdScreen.Open(true, done);
 
-        public bool PrivacyOptionsRequired => false;
+        /// <summary>No teste o botão "Privacidade dos anúncios" sempre aparece, para ver o layout das Configurações.</summary>
+        public bool PrivacyOptionsRequired => true;
 
-        public void ShowPrivacyOptions(Action done) => done?.Invoke();
+        public void ShowPrivacyOptions(Action done)
+        {
+            Debug.Log("[Anúncios] Teste: aqui abriria o formulário de consentimento do Google.");
+            done?.Invoke();
+        }
 
         private GameObject banner;
 
