@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Fogos de artifício nas pontas da faixa de mensagem: no gol de quem joga (contra a IA, só os do jogador) e na
-    /// vitória de quem joga. Um de cada lado, o da esquerda na 1ª cor do time e o da direita na 2ª, um pouco defasados.
+    /// vitória de quem joga. Um em cada ponta (esquerda na 1ª cor do time, direita na 2ª) e dois no meio, defasados.
     /// A folha (Resources/Efeitos/Fogos_Sheet, quadros quadrados lado a lado, em branco/cinza) é recortada aqui; sem ela,
     /// nada aparece. Não roda no tutorial.
     /// </summary>
@@ -17,6 +17,9 @@ namespace FutebolDeBotao
         private const float BurstPixelFromTop = 28f;
         private const float FrameSeconds = 0.07f;
         private const float SideX = 2.4f;
+        /// <summary>Os dois do meio: mais perto do centro e estourando um pouco mais alto.</summary>
+        private const float MiddleX = 0.8f;
+        private const float MiddleRaise = 0.35f;
         /// <summary>O estouro fica acima da faixa (para quem lê a mensagem).</summary>
         private const float BurstAboveMessage = 1.3f;
         private const float SecondFireworkDelay = 0.25f;
@@ -81,14 +84,19 @@ namespace FutebolDeBotao
             if (match.Tutorial != null || match.IsAi(side) || !Load()) return;
             var primary = MatchSession.PrimaryColor(side);
             var secondary = MatchSession.SecondaryColor(side);
-            StartCoroutine(Launch(side, -1f, primary, 0f));
-            StartCoroutine(Launch(side, 1f, secondary, SecondFireworkDelay));
-            StartCoroutine(Launch(side, -1f, primary, RepeatDelay + SecondFireworkDelay));
-            StartCoroutine(Launch(side, 1f, secondary, RepeatDelay));
+            // Pontas (esquerda na 1ª cor, direita na 2ª) e, entre elas, os dois do meio com as cores trocadas.
+            StartCoroutine(Launch(side, -SideX, 0f, primary, 0f));
+            StartCoroutine(Launch(side, SideX, 0f, secondary, SecondFireworkDelay));
+            StartCoroutine(Launch(side, MiddleX, MiddleRaise, primary, SecondFireworkDelay * 0.5f));
+            StartCoroutine(Launch(side, -MiddleX, MiddleRaise, secondary, SecondFireworkDelay * 1.5f));
+            StartCoroutine(Launch(side, -SideX, 0f, primary, RepeatDelay + SecondFireworkDelay));
+            StartCoroutine(Launch(side, SideX, 0f, secondary, RepeatDelay));
+            StartCoroutine(Launch(side, -MiddleX, MiddleRaise, secondary, RepeatDelay + SecondFireworkDelay * 0.5f));
+            StartCoroutine(Launch(side, MiddleX, MiddleRaise, primary, RepeatDelay + SecondFireworkDelay * 1.5f));
         }
 
-        /// <summary>Um fogo na ponta <paramref name="direction"/> (-1 esquerda, 1 direita) da mensagem de quem comemora.</summary>
-        private IEnumerator Launch(TeamSide side, float direction, Color color, float delay)
+        /// <summary>Um fogo em <paramref name="x"/> (negativo = esquerda de quem lê) acima da mensagem de quem comemora.</summary>
+        private IEnumerator Launch(TeamSide side, float x, float raise, Color color, float delay)
         {
             if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
             // O jogador de cima lê a mensagem girada: o fogo também (sobe para o lado dele).
@@ -97,7 +105,7 @@ namespace FutebolDeBotao
             Vector3 message = messagePosition(side);
             var go = new GameObject("Fogo");
             go.transform.SetParent(transform, false);
-            go.transform.position = new Vector3(direction * SideX * up, message.y + BurstAboveMessage * up, 0f);
+            go.transform.position = new Vector3(x * up, message.y + (BurstAboveMessage + raise) * up, 0f);
             go.transform.rotation = Quaternion.Euler(0f, 0f, flipped ? 180f : 0f);
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = SortingOrder;
