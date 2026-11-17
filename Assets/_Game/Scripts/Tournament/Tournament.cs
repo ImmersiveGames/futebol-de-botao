@@ -731,9 +731,9 @@ namespace FutebolDeBotao
 
         private static void Simulate(SaveData.TournamentMatch match)
         {
-            int max = Mathf.Max(0, Config.maxSimulatedGoals);
-            match.homeGoals = Random.Range(0, max + 1);
-            match.awayGoals = Random.Range(0, max + 1);
+            var scores = Config.Scores;
+            match.homeGoals = scores.Roll();
+            match.awayGoals = scores.Roll();
             if (match.homeGoals == match.awayGoals && !match.groupStage) SimulateShootout(out match.homePenalties, out match.awayPenalties);
             else match.homePenalties = match.awayPenalties = -1;
             match.played = true;
