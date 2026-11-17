@@ -18,10 +18,15 @@ namespace FutebolDeBotao
         private static readonly Vector2 UniformTabSize = new(240f, 64f);
         private const float RowTop = -110f;
         private const float TabY = 445f;
-        private static readonly Vector2 TabSize = new(200f, 70f);
-        private const float TabGap = 20f;
-        private const int TeamTab = 0, TableTab = 1, FinanceTab = 2;
-        private static readonly string[] TabNames = { "Time", "Mesa", "Financeiro" };
+        private static readonly Vector2 TabSize = new(158f, 70f);
+        private const float TabGap = 12f;
+        private const int TeamTab = 0, TableTab = 1, FinanceTab = 2, CareerTab = 3;
+        private static readonly string[] TabNames = { "Time", "Mesa", "Financeiro", "Carreira" };
+        private const float CareerStatsY = 310f;
+        private const float CareerPointsLabelY = 170f;
+        private const float CareerPointsY = 110f;
+        private const float CareerTournamentsY = 55f;
+        private const float CareerPlayGamesY = -60f;
         private const float FinanceListTop = -10f;
         private const float FinanceListBottom = -455f;
         private const float FinanceRowHeight = 46f;
@@ -61,6 +66,10 @@ namespace FutebolDeBotao
         private Text balanceLabel, earnedLabel, spentLabel, matchesLabel, tournamentsLabel, tutorialLabel, sponsorsLabel;
         private Button sponsorButton;
         private MenuEntry sponsorEntry;
+        private MenuEntry statsEntry;
+        private Text weeklyPointsLabel, weeklyTournamentsLabel;
+        private RectTransform playGamesArea;
+        private readonly System.Collections.Generic.List<MenuEntry> playGamesEntries = new();
         private RectTransform statementContent;
         private ScrollRect statementScroll;
         private Button[] uniformTabButtons;
@@ -125,7 +134,7 @@ namespace FutebolDeBotao
             Back();
         }
 
-        /// <summary>Aba Time, Mesa ou Financeiro: o botão da aba fica apertado e o cursor passa pelas linhas dela.</summary>
+        /// <summary>Aba Time, Mesa, Financeiro ou Carreira: o botão da aba fica apertado e o cursor passa pelas linhas dela.</summary>
         private void ShowTab(int index)
         {
             tab = (index % TabNames.Length + TabNames.Length) % TabNames.Length;
@@ -138,6 +147,12 @@ namespace FutebolDeBotao
             if (tab == TeamTab) items.AddRange(teamEntries);
             else if (tab == TableTab) items.AddRange(tableEntries);
             else if (tab == FinanceTab && sponsorButton.gameObject.activeSelf) items.Add(sponsorEntry);
+            else if (tab == CareerTab)
+            {
+                RefreshCareer();
+                items.Add(statsEntry);
+                items.AddRange(playGamesEntries);
+            }
             items.Add(backEntry);
             items.Add(saveEntry);
             navigator.Configure(items.ToArray(), (Button)backEntry.GetComponent<Button>(), 0);
@@ -384,6 +399,7 @@ namespace FutebolDeBotao
             tableEntries = new[] { tableEntry, feltEntry, goalEntry, ballEntry };
 
             BuildFinance(root);
+            BuildCareer(root);
 
             var back = CreateButton(root, "Voltar", "Voltar", new Vector2(-180f, -510f), new Vector2(260f, 80f), Back, ButtonStyle.Red);
             var save = CreateButton(root, "Salvar", "Salvar", new Vector2(150f, -510f), new Vector2(300f, 80f), Save, ButtonStyle.Yellow);
@@ -391,6 +407,82 @@ namespace FutebolDeBotao
             saveEntry = Entry(save);
 
             navigator = gameObject.AddComponent<MenuNavigator>();
+        }
+
+        // ---- Carreira ----
+
+        /// <summary>Volta das Estatísticas abertas pela aba Carreira, sem perder o que não foi salvo.</summary>
+        public void ResumeCareer()
+        {
+            if (!built) return;
+            ShowTab(CareerTab);
+        }
+
+        /// <summary>Aba Carreira: Estatísticas, pontos da semana (do aparelho) e o Google Play Games.</summary>
+        private void BuildCareer(RectTransform root)
+        {
+            var page = CreateRect(root, "Aba Carreira", Vector2.zero, Vector2.zero);
+            tabPages[CareerTab] = page.gameObject;
+            var stats = CreateButton(page, "Estatísticas", "Estatísticas", new Vector2(0f, CareerStatsY), new Vector2(460f, 80f),
+                () => { if (menu != null) menu.ShowStatsFromProfile(); });
+            statsEntry = Entry(stats);
+            LocalizedText.Attach(CreateText(page, "Rótulo dos pontos", "Pontos da semana", 28, FontStyle.Bold, LabelColor,
+                new Vector2(0f, CareerPointsLabelY), new Vector2(600f, 40f)));
+            weeklyPointsLabel = CreateText(page, "Pontos da semana", string.Empty, 64, FontStyle.Bold, CoinColor,
+                new Vector2(0f, CareerPointsY), new Vector2(680f, 80f));
+            weeklyTournamentsLabel = CreateText(page, "Torneios da semana", string.Empty, 26, FontStyle.Normal, LabelColor,
+                new Vector2(0f, CareerTournamentsY), new Vector2(680f, 40f));
+            playGamesArea = CreateRect(page, "Play Games", Vector2.zero, Vector2.zero);
+        }
+
+        private void RefreshCareer()
+        {
+            weeklyPointsLabel.text = WeeklyRanking.Points.ToString();
+            weeklyTournamentsLabel.text = Txt.Format("{0} torneios nesta semana (contam os 10 melhores)", WeeklyRanking.Tournaments);
+
+            // Play Games: montado de novo a cada vez (muda com o login).
+            playGamesEntries.Clear();
+            for (int i = playGamesArea.childCount - 1; i >= 0; i--) Destroy(playGamesArea.GetChild(i).gameObject);
+            CreateText(playGamesArea, "Título", "Google Play Games", 32, FontStyle.Bold, Color.white,
+                new Vector2(0f, CareerPlayGamesY), new Vector2(600f, 50f));
+            if (!PlayGames.Supported)
+            {
+                CreateText(playGamesArea, "Indisponível", Txt.Get("O Play Games não está disponível neste aparelho."), 26, FontStyle.Normal,
+                    LabelColor, new Vector2(0f, CareerPlayGamesY - 70f), new Vector2(600f, 80f));
+                return;
+            }
+            if (PlayGames.SignedIn)
+            {
+                var achievements = CreateButton(playGamesArea, "Conquistas", "Conquistas", new Vector2(-130f, CareerPlayGamesY - 90f),
+                    new Vector2(240f, 80f), PlayGames.ShowAchievements);
+                var ranking = CreateButton(playGamesArea, "Ranking", "Ranking", new Vector2(130f, CareerPlayGamesY - 90f),
+                    new Vector2(240f, 80f), PlayGames.ShowLeaderboard);
+                playGamesEntries.Add(Entry(achievements));
+                playGamesEntries.Add(Entry(ranking));
+                return;
+            }
+            CreateText(playGamesArea, "Explicação", Txt.Get("Entre para guardar o progresso na nuvem, liberar conquistas e aparecer no ranking semanal."),
+                26, FontStyle.Normal, LabelColor, new Vector2(0f, CareerPlayGamesY - 70f), new Vector2(600f, 80f));
+            Button signIn = null;
+            signIn = CreateButton(playGamesArea, "Entrar no Play Games", "Entrar no Play Games", new Vector2(0f, CareerPlayGamesY - 170f),
+                new Vector2(460f, 80f), () =>
+                {
+                    signIn.interactable = false;
+                    var label = signIn.GetComponentInChildren<Text>();
+                    label.text = Txt.Get("Entrando...");
+                    PlayGames.SignIn(true, ok =>
+                    {
+                        if (this == null || signIn == null) return;
+                        if (ok)
+                        {
+                            if (tab == CareerTab) ShowTab(CareerTab);
+                            return;
+                        }
+                        signIn.interactable = true;
+                        label.text = Txt.Get("Não deu para entrar");
+                    });
+                }, ButtonStyle.Yellow);
+            playGamesEntries.Add(Entry(signIn));
         }
 
         /// <summary>Largura do extrato: a mesma das linhas da aba Time (do rótulo até a seta da direita).</summary>

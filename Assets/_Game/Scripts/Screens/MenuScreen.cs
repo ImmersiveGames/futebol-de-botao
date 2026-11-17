@@ -24,7 +24,7 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: a primeira tela tem Jogar, Meu time, Loja, Estatísticas, Configurações e Sair. Jogar abre a escolha entre Torneio, Partida única
+    /// Menu: a primeira tela tem Jogar, Meu time, Loja, Configurações e Sair (Estatísticas na aba Carreira do Meu time). Jogar abre a escolha entre Torneio, Partida única
     /// (contra a IA) e Dois jogadores. O Torneio continua o guardado ou monta um novo (Controles, Opções do torneio e a
     /// chave, <see cref="TournamentScreen"/>); nas outras, escolhido o modo, abre os Controles (só com mais de um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
     /// "Jogar" põe os jogadores na sessão e pede a Route da Partida.
@@ -287,12 +287,32 @@ namespace FutebolDeBotao
             profile.Open();
         }
 
-        /// <summary>"Estatísticas" na primeira tela do Menu.</summary>
+        /// <summary>Estatísticas (sem botão no Menu desde a aba Carreira; fica para quem chamar).</summary>
         public void ShowStats()
         {
             if (stats == null) return;
             Show(stats.gameObject);
-            stats.Open();
+            stats.Open(false);
+        }
+
+        /// <summary>"Estatísticas" na aba Carreira do Meu time: o Voltar volta para a aba.</summary>
+        public void ShowStatsFromProfile()
+        {
+            if (stats == null) return;
+            Show(stats.gameObject);
+            stats.Open(true);
+        }
+
+        /// <summary>Volta ao Meu time na aba Carreira, sem recarregar o que não foi salvo.</summary>
+        public void ReturnToProfileCareer()
+        {
+            if (profile == null)
+            {
+                ShowMode();
+                return;
+            }
+            Show(profile.gameObject);
+            profile.ResumeCareer();
         }
 
         public void SetPlayers(MenuPlayers menuPlayers) => players = menuPlayers;

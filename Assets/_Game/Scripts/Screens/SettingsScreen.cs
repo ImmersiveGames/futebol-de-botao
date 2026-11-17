@@ -115,59 +115,6 @@ namespace FutebolDeBotao
             });
         }
 
-        /// <summary>
-        /// Play Games: logado, "Conquistas" e "Ranking" lado a lado (abrem as telas do Google); sem login, "Entrar no
-        /// Play Games" (ao entrar, a tela se monta de novo com os dois botões).
-        /// </summary>
-        private void AddPlayGamesRow(Transform panel, float y, List<MenuEntry> entries)
-        {
-            if (PlayGames.SignedIn)
-            {
-                var achievements = CreateButton(panel, "Conquistas", Txt.Get("Conquistas"), new Vector2(-117.5f, y), new Vector2(225f, 70f),
-                    PlayGames.ShowAchievements, ButtonStyle.Brown);
-                var ranking = CreateButton(panel, "Ranking", Txt.Get("Ranking"), new Vector2(117.5f, y), new Vector2(225f, 70f),
-                    PlayGames.ShowLeaderboard, ButtonStyle.Brown);
-                foreach (var button in new[] { achievements, ranking })
-                {
-                    var buttonEntry = button.gameObject.AddComponent<MenuEntry>();
-                    buttonEntry.Configure(button);
-                    entries.Add(buttonEntry);
-                }
-                return;
-            }
-            Button signIn = null;
-            signIn = CreateButton(panel, "Entrar no Play Games", Txt.Get("Entrar no Play Games"), new Vector2(0f, y), new Vector2(460f, 70f), () =>
-            {
-                signIn.interactable = false;
-                var label = signIn.GetComponentInChildren<Text>();
-                label.text = Txt.Get("Entrando...");
-                PlayGames.SignIn(true, ok =>
-                {
-                    if (this == null) return;
-                    if (ok)
-                    {
-                        Reopen();
-                        return;
-                    }
-                    signIn.interactable = true;
-                    label.text = Txt.Get("Não deu para entrar");
-                });
-            }, ButtonStyle.Brown);
-            var entry = signIn.gameObject.AddComponent<MenuEntry>();
-            entry.Configure(signIn);
-            entries.Add(entry);
-        }
-
-        /// <summary>Fecha e abre de novo do mesmo jeito (depois do login, para mostrar os botões novos).</summary>
-        private void Reopen()
-        {
-            bool pauser = fromPause;
-            var closed = onClose;
-            onClose = null;
-            Close();
-            Open(pauser, closed);
-        }
-
         private void Refresh()
         {
             languageLabel.text = string.IsNullOrEmpty(Txt.Choice) ? Txt.Get("Automático") : Txt.NativeName(Txt.Choice);
@@ -196,12 +143,11 @@ namespace FutebolDeBotao
             dim.rectTransform.anchorMax = Vector2.one;
             dim.color = DimColor;
 
-            // Botões extras embaixo da política (Restaurar compras com loja, Play Games no Android): cada um cresce o
+            // Botões extras embaixo da política (Privacidade dos anúncios, Restaurar compras com loja): cada um cresce o
             // painel 90 e sobe o resto 45.
             bool restoreShown = Purchases.Supported;
-            bool playGamesShown = PlayGames.Supported;
             bool adPrivacyShown = Ads.PrivacyOptionsRequired;
-            int extras = (restoreShown ? 1 : 0) + (playGamesShown ? 1 : 0) + (adPrivacyShown ? 1 : 0);
+            int extras = (restoreShown ? 1 : 0) + (adPrivacyShown ? 1 : 0);
             float lift = 45f * extras;
             var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f + 90f * extras));
             var background = panel.gameObject.AddComponent<Image>();
@@ -252,11 +198,6 @@ namespace FutebolDeBotao
                 var restoreEntry = restoreButton.gameObject.AddComponent<MenuEntry>();
                 restoreEntry.Configure(restoreButton);
                 entries.Add(restoreEntry);
-            }
-            if (playGamesShown)
-            {
-                y -= 90f;
-                AddPlayGamesRow(panel, y, entries);
             }
             var back = CreateButton(panel, "Voltar", "Voltar", new Vector2(0f, -320f - lift), new Vector2(460f, 70f), Close, ButtonStyle.Red);
             LocalizedText.Attach(back.GetComponentInChildren<Text>());

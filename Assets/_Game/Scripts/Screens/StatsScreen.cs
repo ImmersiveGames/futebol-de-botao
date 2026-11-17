@@ -47,9 +47,13 @@ namespace FutebolDeBotao
 
         public void Configure(MenuScreen menuScreen) => menu = menuScreen;
 
+        /// <summary>Veio da aba Carreira do Meu time: o Voltar volta para lá.</summary>
+        private bool fromProfile;
+
         /// <summary>Abre na aba Geral, no topo da lista.</summary>
-        public void Open()
+        public void Open(bool returnToProfile = false)
         {
+            fromProfile = returnToProfile;
             Build();
             CloseDialog();
             ShowTab(0);
@@ -87,7 +91,9 @@ namespace FutebolDeBotao
 
         private void Back()
         {
-            if (menu != null) menu.ShowMode();
+            if (menu == null) return;
+            if (fromProfile) menu.ReturnToProfileCareer();
+            else menu.ShowMode();
         }
 
         // ---- Abas ----
