@@ -22,8 +22,8 @@ namespace FutebolDeBotao
     public sealed class TournamentScreen : MonoBehaviour
     {
         private const float TabY = 400f;
-        private const float TabSpacing = 140f;
-        private static readonly Vector2 TabSize = new(132f, 72f);
+        private const float TabSpacing = 176f;
+        private static readonly Vector2 TabSize = new(164f, 72f);
         private static readonly Vector2 ListCenter = new(0f, -40f);
         private static readonly Vector2 ListSize = new(680f, 760f);
         private const float ListPadding = 18f;
