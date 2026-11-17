@@ -16,7 +16,7 @@ namespace FutebolDeBotao
 
     /// <summary>
     /// Um torneio (asset em Resources/Torneios): formato, quantos times, os prêmios por colocação, o peso no ranking
-    /// semanal, os placares sorteados dos jogos sorteados e os troféus. Sem asset, vale o padrão do código (8 times, 50/25/10).
+    /// semanal, os pesos de placar dos jogos sorteados e os troféus. Sem asset, vale o padrão do código (8 times, 50/25/10).
     /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Torneio", fileName = "Torneio")]
     public sealed class TournamentConfig : ScriptableObject
