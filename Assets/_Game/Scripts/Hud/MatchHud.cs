@@ -111,6 +111,8 @@ namespace FutebolDeBotao
             BuildPcPanel();
             BuildShootoutBoard();
             BuildTutorial();
+            // Fogos na comemoração, nas pontas da mensagem de quem comemora.
+            gameObject.AddComponent<GoalFireworks>().Configure(match, side => messages[side].Root.transform.position);
             highlight = gameObject.AddComponent<TurnHighlight>();
             highlight.Configure(match);
         }

@@ -98,6 +98,8 @@ namespace FutebolDeBotao
         private TutorialDirector tutorial;
 
         public MatchState State { get; private set; }
+        /// <summary>Time que marcou o último gol (do aviso <see cref="MatchNotice.Goal"/>), contando gol contra e pênalti da disputa.</summary>
+        public TeamSide LastScorer { get; private set; }
         public TeamSide Turn { get; private set; }
         public int TouchesLeft => touchesLeft;
         public float ClockSeconds => clock;
@@ -1299,6 +1301,7 @@ namespace FutebolDeBotao
             pendingGoalValid = wallOk && (ownGoal || called);
 
             var scorer = Opponent(goal.DefendingSide);
+            LastScorer = scorer;
             if (pendingGoalValid)
             {
                 score[(int)scorer]++;
@@ -1582,6 +1585,7 @@ namespace FutebolDeBotao
         private void RecordShootoutKick(bool scored)
         {
             shootoutKicks[(int)Turn].Add(scored);
+            LastScorer = Turn;
             message = scored ? Txt.Get("GOL!") : Txt.Get("Perdeu!");
             Noticed?.Invoke(scored ? MatchNotice.Goal : MatchNotice.GoalAnnulled);
             pendingGoal = null;
