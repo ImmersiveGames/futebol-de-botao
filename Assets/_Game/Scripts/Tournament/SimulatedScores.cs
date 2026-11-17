@@ -12,8 +12,8 @@ namespace FutebolDeBotao
     {
         public const string DefaultPath = "Torneios/Placares";
 
-        /// <summary>Pesos padrão: 0 a 3 iguais, depois caindo (4 = 6, 5 = 4... 10 = 0,25).</summary>
-        public static readonly float[] DefaultWeights = { 10f, 10f, 10f, 10f, 6f, 4f, 2.5f, 1.5f, 1f, 0.5f, 0.25f };
+        /// <summary>Pesos padrão: 0 a 3 iguais, depois caindo (4 = 6, 5 = 4, 6 = 2,5, 7 = 0,6... 10 = 0,05).</summary>
+        public static readonly float[] DefaultWeights = { 10f, 10f, 10f, 10f, 6f, 4f, 2.5f, 0.6f, 0.3f, 0.1f, 0.05f };
 
         [Tooltip("Peso de cada número de gols: a posição 0 é 0 gol, a 1 é 1 gol... até 10. Maior = sai mais.")]
         public float[] weights = (float[])DefaultWeights.Clone();
