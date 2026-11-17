@@ -254,15 +254,16 @@ namespace FutebolDeBotao.Editor
             CreateStudioLogo(modePanel);
             CreateGameLogo(modePanel);
 
-            // Jogar: Torneio, Partida única (contra a IA) ou Dois jogadores; Voltar volta à primeira tela.
+            // Jogar: Torneio, Liga, Partida única (contra a IA) ou Dois jogadores; Voltar volta à primeira tela.
             var playPanel = CreateGroup(canvas, "Jogar");
             CreateText(playPanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
-            var tournamentButton = CreateButton(playPanel, "Torneio", "Torneio", new Vector2(0f, -110f), new Vector2(420f, 90f), menu.PlayTournament, ButtonStyle.Yellow);
+            var tournamentButton = CreateButton(playPanel, "Torneio", "Torneio", new Vector2(0f, -10f), new Vector2(420f, 90f), menu.PlayTournament, ButtonStyle.Yellow);
+            var leagueButton = CreateButton(playPanel, "Liga", "Liga", new Vector2(0f, -110f), new Vector2(420f, 90f), menu.PlayLeague, ButtonStyle.Yellow);
             var onePlayer = CreateButton(playPanel, "Partida única", "Partida única", new Vector2(0f, -210f), new Vector2(420f, 90f), menu.PlayOnePlayer, ButtonStyle.Yellow);
             var twoPlayers = CreateButton(playPanel, "Dois jogadores", "Dois jogadores", new Vector2(0f, -310f), new Vector2(420f, 90f), menu.PlayTwoPlayers, ButtonStyle.Yellow);
             var tutorialButton = CreateButton(playPanel, "Tutorial", TutorialTexts.MenuButton, new Vector2(0f, -410f), new Vector2(420f, 90f), menu.PlayTutorial, ButtonStyle.Green);
             var playBack = CreateButton(playPanel, "Voltar", "Voltar", new Vector2(0f, -510f), new Vector2(420f, 90f), menu.ShowMode, ButtonStyle.Red);
-            AddNavigator(playPanel, playBack, Item(tournamentButton), Item(onePlayer), Item(twoPlayers), Item(tutorialButton), Item(playBack));
+            AddNavigator(playPanel, playBack, Item(tournamentButton), Item(leagueButton), Item(onePlayer), Item(twoPlayers), Item(tutorialButton), Item(playBack));
             CreateStudioLogo(playPanel);
             CreateGameLogo(playPanel);
             menu.SetPlayPanel(playPanel.gameObject);

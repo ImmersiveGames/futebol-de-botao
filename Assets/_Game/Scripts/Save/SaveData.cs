@@ -10,7 +10,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 11;
+        public const int CurrentVersion = 12;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -26,6 +26,8 @@ namespace FutebolDeBotao
         public List<string> unlocked = new();
         /// <summary>Torneio (versão 5): o em andamento, ou o último terminado (<see cref="TournamentRun.active"/> falso).</summary>
         public TournamentRun tournament = new();
+        /// <summary>Liga (versão 12): save separado do torneio, para ter uma liga e um torneio em andamento ao mesmo tempo.</summary>
+        public TournamentRun league = new();
         /// <summary>Tutorial (versão 7): lições completas, se o Menu já perguntou e se o bônus já foi pago.</summary>
         public TutorialData tutorial = new();
         /// <summary>Financeiro (versão 9): totais de moedas, ganho por origem e o extrato (aba Financeiro do Meu time).</summary>
@@ -124,6 +126,8 @@ namespace FutebolDeBotao
             public int aiLevel = (int)AiLevel.Medium;
             /// <summary>Tamanho de torneio escolhido por último (id do asset em Resources/Torneios).</summary>
             public string tournamentId;
+            /// <summary>Liga escolhida por último (versão 12).</summary>
+            public string leagueId;
         }
 
         [Serializable]
@@ -267,6 +271,9 @@ namespace FutebolDeBotao
             public int tournamentRunnerUps;
             public int tournamentThirds;
             public int tournamentsAbandoned;
+            /// <summary>Ligas (versão 12): terminadas (ou abandonadas ao começar outra) e títulos.</summary>
+            public int leagues;
+            public int leagueTitles;
 
             public int Played => wins + draws + losses + abandoned;
             public int Finished => wins + draws + losses;
@@ -314,8 +321,12 @@ namespace FutebolDeBotao
             public List<TournamentMatch> matches = new();
             /// <summary>Colocação final do jogador: 1, 2, 3, 4...; 0 = ainda jogando ou abandonou.</summary>
             public int position;
-            /// <summary>Fase em que o jogador saiu (0 = primeira); -1 = chegou ao fim.</summary>
+            /// <summary>Fase do mata-mata em que o jogador saiu (0 = primeira); -1 = chegou ao fim.</summary>
             public int eliminatedRound = -1;
+            /// <summary>Copa: o jogador caiu na fase de grupos (versão 12).</summary>
+            public bool eliminatedInGroups;
+            /// <summary>Sorteio do desempate final da tabela (fixo no torneio, para a ordem não mudar a cada olhada).</summary>
+            public int seed;
             public bool abandoned;
             public int matchCoins;
             public int prize;
@@ -327,6 +338,10 @@ namespace FutebolDeBotao
         [Serializable]
         public sealed class TournamentMatch
         {
+            /// <summary>Jogo de grupo da copa ou da liga (versão 12): <see cref="round"/> é a rodada; empate vale.</summary>
+            public bool groupStage;
+            /// <summary>Grupo (0 = A); na liga, sempre 0.</summary>
+            public int group;
             /// <summary>Fase (0 = primeira) e posição na fase (de cima para baixo).</summary>
             public int round;
             public int order;
@@ -345,6 +360,7 @@ namespace FutebolDeBotao
 
             public bool HasPenalties => homePenalties >= 0 && awayPenalties >= 0;
             public bool HomeWon => homeGoals != awayGoals ? homeGoals > awayGoals : homePenalties > awayPenalties;
+            public bool Draw => homeGoals == awayGoals && !HasPenalties;
             public int Winner => HomeWon ? home : away;
             public int Loser => HomeWon ? away : home;
             public bool Has(int team) => home == team || away == team;

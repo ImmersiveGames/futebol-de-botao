@@ -156,10 +156,9 @@ namespace FutebolDeBotao
             var run = Tournament.Run;
             string status;
             var next = Tournament.PlayerMatch();
-            if (next != null)
-                status = Txt.Format("Torneio: próximo jogo na {0}",
-                    next.third ? Txt.Get("disputa de 3º lugar") : Tournament.RoundName(next.round, Tournament.Rounds).ToLowerInvariant());
-            else status = Txt.Format("Torneio: {0}", Tournament.PositionText(run));
+            string kind = Tournament.KindName;
+            if (next != null) status = Txt.Format("{0}: próximo jogo · {1}", kind, Tournament.MatchName(next));
+            else status = $"{kind}: {Tournament.PositionText(run)}";
             CreateText(page, "Torneio", status, 30, FontStyle.Bold, HighlightColor, new Vector2(0f, TournamentY), new Vector2(680f, 50f));
         }
 

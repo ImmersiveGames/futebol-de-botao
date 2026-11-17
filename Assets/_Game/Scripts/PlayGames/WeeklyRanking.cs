@@ -6,7 +6,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Ranking "Pontos da semana" (decidido em 16/11): cada torneio terminado vale
-    /// colocação × nível × tamanho da copa + saldo de gols (no máximo +3 por partida, nunca negativo no torneio)
+    /// colocação × nível × peso do torneio (no asset) + saldo de gols (no máximo +3 por partida, nunca negativo no torneio)
     /// + 10 por título logo depois de outro título na mesma semana. A pontuação da semana é a soma dos
     /// <see cref="BestCount"/> melhores torneios, então nunca diminui e o Google (que guarda só o maior valor da semana)
     /// mostra o certo. A semana vira de sábado para domingo no horário do Pacífico, igual ao ranking semanal do Google.
@@ -48,26 +48,40 @@ namespace FutebolDeBotao
         /// <summary>Pontos do último torneio registrado (para a tela do fim do torneio).</summary>
         public static int LastTournamentPoints { get; private set; }
 
+        /// <summary>Pontos de colocação no mata-mata: 1º 100, 2º 60, 3º 40, 4º 30; eliminado até as quartas 15, antes 8.</summary>
+        public static int KnockoutPlacement(int position, int stageFromFinal) => position switch
+        {
+            1 => 100,
+            2 => 60,
+            3 => 40,
+            4 => 30,
+            _ => stageFromFinal <= 2 ? 15 : 8
+        };
+
+        /// <summary>Pontos de colocação na liga: 1º 100, 2º 60, 3º 40, 4º 30; até a metade da tabela 15, abaixo 8.</summary>
+        public static int LeaguePlacement(int position, int teams) => position switch
+        {
+            1 => 100,
+            2 => 60,
+            3 => 40,
+            4 => 30,
+            _ => position <= teams / 2 ? 15 : 8
+        };
+
+        /// <summary>Caiu na fase de grupos da copa.</summary>
+        public const int GroupStagePlacement = 5;
+
         /// <summary>
-        /// Torneio terminado: calcula os pontos, guarda na semana e manda a soma ao Google. <paramref name="stageFromFinal"/>
-        /// só vale para quem foi eliminado: 0 = final... 2 = quartas, 3 = oitavas.
+        /// Torneio (ou liga) terminado: colocação × nível × peso do torneio + saldo, guarda na semana e manda a soma ao Google.
         /// </summary>
-        public static void TournamentFinished(int position, int stageFromFinal, bool abandoned, int level, int teams, int goalDifference)
+        public static void TournamentFinished(int placement, bool title, bool abandoned, int level, float weight, int goalDifference)
         {
             Roll();
             int points = 0;
-            bool title = !abandoned && position == 1;
+            title &= !abandoned;
             if (!abandoned)
             {
-                int placement = position switch
-                {
-                    1 => 100,
-                    2 => 60,
-                    3 => 40,
-                    4 => 30,
-                    _ => stageFromFinal <= 2 ? 15 : 8
-                };
-                float factor = LevelFactor[Mathf.Clamp(level, 0, LevelFactor.Length - 1)] * (teams >= 16 ? 1.5f : 1f);
+                float factor = LevelFactor[Mathf.Clamp(level, 0, LevelFactor.Length - 1)] * Mathf.Max(0f, weight);
                 points = Mathf.RoundToInt(placement * factor) + Mathf.Max(0, goalDifference);
                 if (title && Data.lastTitle) points += TitleStreakBonus;
             }

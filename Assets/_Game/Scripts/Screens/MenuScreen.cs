@@ -114,21 +114,38 @@ namespace FutebolDeBotao
         }
 
         /// <summary>Torneio: com um em andamento, a tela dele pergunta se continua; senão monta um novo.</summary>
-        public void PlayTournament()
+        public void PlayTournament() => OpenCompetition(false);
+
+        /// <summary>Liga: save separado do torneio; com uma em andamento, a tela pergunta se continua; senão monta uma nova.</summary>
+        public void PlayLeague() => OpenCompetition(true);
+
+        private void OpenCompetition(bool league)
         {
             tutorialFlow = false;
             MatchSession.VsAi = true;
+            Tournament.LeagueMode = league;
             if (Tournament.InProgress && tournament != null)
             {
                 Show(tournament.gameObject);
                 tournament.OpenAsk();
             }
+            else if (league) NewLeague();
             else NewTournament();
+        }
+
+        /// <summary>Liga nova: Controles e as Opções da liga; o "Avançar" sorteia a tabela de jogos.</summary>
+        public void NewLeague()
+        {
+            Tournament.LeagueMode = true;
+            MatchSession.VsAi = true;
+            MatchSession.TournamentSetup = true;
+            OpenDevices();
         }
 
         /// <summary>Torneio novo: Controles e as Opções do torneio; o "Avançar" sorteia a chave.</summary>
         public void NewTournament()
         {
+            Tournament.LeagueMode = false;
             MatchSession.VsAi = true;
             MatchSession.TournamentSetup = true;
             OpenDevices();
@@ -327,7 +344,10 @@ namespace FutebolDeBotao
             {
                 MatchSession.TournamentSetup = false;
                 GameSave.Save("opcoes");
-                Tournament.StartNew(TournamentConfig.Find(MatchSession.TournamentId), MatchSession.Options(defaults), MatchSession.AiLevel);
+                bool league = Tournament.LeagueMode;
+                var config = TournamentConfig.FindAvailable(league ? MatchSession.LeagueId : MatchSession.TournamentId, league)
+                             ?? TournamentConfig.Find(MatchSession.TournamentId);
+                Tournament.StartNew(config, MatchSession.Options(defaults), MatchSession.AiLevel);
                 ShowTournament();
                 return;
             }
@@ -434,11 +454,15 @@ namespace FutebolDeBotao
                     options.fouls = !options.fouls;
                     break;
                 case MatchOptionKind.TournamentSize:
-                    var sizes = TournamentConfig.All();
-                    if (sizes.Length > 0)
+                    // Só os do tipo (torneios ou ligas) que o catálogo tem times para montar.
+                    bool league = Tournament.LeagueMode;
+                    var list = TournamentConfig.Available(league);
+                    if (list.Count > 0)
                     {
-                        int current = System.Array.IndexOf(sizes, TournamentConfig.Find(MatchSession.TournamentId));
-                        MatchSession.TournamentId = sizes[Wrap(Mathf.Max(0, current) + step, sizes.Length)].id;
+                        int current = list.IndexOf(TournamentConfig.FindAvailable(league ? MatchSession.LeagueId : MatchSession.TournamentId, league));
+                        string id = list[Wrap(Mathf.Max(0, current) + step, list.Count)].id;
+                        if (league) MatchSession.LeagueId = id;
+                        else MatchSession.TournamentId = id;
                     }
                     break;
             }
@@ -453,11 +477,23 @@ namespace FutebolDeBotao
         private void Refresh()
         {
             if (modeLabel != null)
-                modeLabel.text = Txt.Get(MatchSession.TournamentSetup ? "Torneio"
+                modeLabel.text = Txt.Get(MatchSession.TournamentSetup ? Tournament.LeagueMode ? "Liga" : "Torneio"
                     : MatchSession.VsAi == true ? "Partida única" : "Dois jogadores");
+            RefreshCompetitionLabel();
             var options = MatchSession.Options(defaults);
             for (int i = 0; i < valueLabels.Length; i++)
                 if (valueLabels[i] != null) valueLabels[i].text = Value(options, (MatchOptionKind)i);
+        }
+
+        /// <summary>A linha da escolha do torneio diz "Torneio" ou "Liga" (o texto do Criar telas é fixo).</summary>
+        private void RefreshCompetitionLabel()
+        {
+            int index = (int)MatchOptionKind.TournamentSize;
+            if (optionRows == null || index >= optionRows.Length || optionRows[index] == null) return;
+            var name = optionRows[index].Find("Nome");
+            if (name == null || !name.TryGetComponent<Text>(out var text)) return;
+            if (name.TryGetComponent<LocalizedText>(out var localized)) Destroy(localized);
+            text.text = Txt.Get(Tournament.LeagueMode ? "Liga" : "Torneio");
         }
 
         public static string Label(MatchOptionKind kind) => kind switch
@@ -473,7 +509,7 @@ namespace FutebolDeBotao
             MatchOptionKind.ExtraTime => "Prorrogação",
             MatchOptionKind.Penalties => "Pênaltis",
             MatchOptionKind.Music => "Música",
-            MatchOptionKind.TournamentSize => "Times",
+            MatchOptionKind.TournamentSize => "Torneio",
             _ => kind.ToString()
         };
 
@@ -495,9 +531,17 @@ namespace FutebolDeBotao
             MatchOptionKind.ExtraTime => options.extraTimePercent > 0 ? $"{options.extraTimePercent}%" : Txt.Get("Desligado"),
             MatchOptionKind.Penalties => OnOff(options.penalties),
             MatchOptionKind.Music => GameVolume.Percent(GameVolume.Music),
-            MatchOptionKind.TournamentSize => TournamentConfig.Find(MatchSession.TournamentId).TeamCount.ToString(),
+            MatchOptionKind.TournamentSize => CompetitionName(),
             _ => string.Empty
         };
+
+        /// <summary>Nome do torneio (ou liga) escolhido nas Opções.</summary>
+        private static string CompetitionName()
+        {
+            bool league = Tournament.LeagueMode;
+            var config = TournamentConfig.FindAvailable(league ? MatchSession.LeagueId : MatchSession.TournamentId, league);
+            return config != null ? Txt.Get(config.displayName) : "-";
+        }
 
         public static string OnOff(bool value) => Txt.Get(value ? "Ligado" : "Desligado");
 

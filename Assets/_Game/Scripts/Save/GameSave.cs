@@ -95,6 +95,7 @@ namespace FutebolDeBotao
         {
             MatchSession.AiLevel = (AiLevel)Mathf.Clamp(Data.settings.aiLevel, 0, AiDifficulty.LevelCount - 1);
             MatchSession.TournamentId = Data.settings.tournamentId;
+            MatchSession.LeagueId = Data.settings.leagueId;
             for (int i = 0; i < 2; i++)
             {
                 var side = (TeamSide)i;
@@ -112,6 +113,7 @@ namespace FutebolDeBotao
         {
             Data.settings.aiLevel = (int)MatchSession.AiLevel;
             Data.settings.tournamentId = MatchSession.TournamentId;
+            Data.settings.leagueId = MatchSession.LeagueId;
 
             var options = MatchSession.Current;
             if (options != null)
@@ -230,6 +232,7 @@ namespace FutebolDeBotao
             if (data.tutorial != null && data.tutorial.done != null && data.tutorial.done.Count > 0) return true;
             if (data.unlocked != null && data.unlocked.Count > 0) return true;
             if (data.tournament != null && data.tournament.active) return true;
+            if (data.league != null && data.league.active) return true;
             var profile = data.profile;
             return profile != null && (profile.coins > 0 || profile.teamName != PlayerProfile.DefaultName);
         }
@@ -274,6 +277,9 @@ namespace FutebolDeBotao
             data.tournament ??= new SaveData.TournamentRun();
             data.tournament.slots ??= new System.Collections.Generic.List<int>();
             data.tournament.matches ??= new System.Collections.Generic.List<SaveData.TournamentMatch>();
+            data.league ??= new SaveData.TournamentRun();
+            data.league.slots ??= new System.Collections.Generic.List<int>();
+            data.league.matches ??= new System.Collections.Generic.List<SaveData.TournamentMatch>();
             // Versão 8 trocou a cor reserva pelo Uniforme 2: a reserva vira o Uniforme 2; sem reserva, as cores invertidas.
             if (data.version < 8)
             {

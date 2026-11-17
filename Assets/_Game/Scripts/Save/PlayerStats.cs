@@ -58,7 +58,7 @@ namespace FutebolDeBotao
         /// <summary>Saiu da partida no meio (menu ou reiniciar): abandonada. Partida já terminada não conta de novo.</summary>
         public static void Abandon()
         {
-            // Torneio: sair no meio da partida é derrota e fim do torneio (grava sozinho).
+            // Torneio: sair no meio da partida é derrota e fim do torneio; liga: derrota por W.O. nessa partida (grava sozinho).
             if (MatchSession.InTournamentMatch) Tournament.Forfeit();
             if (CountLeftover()) GameSave.Save("partida abandonada");
         }

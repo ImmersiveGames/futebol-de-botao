@@ -206,6 +206,8 @@ namespace FutebolDeBotao
             rows.Add(("Vice-campeão", s.tournamentRunnerUps.ToString()));
             rows.Add(("3º lugar", s.tournamentThirds.ToString()));
             rows.Add(("Abandonados", s.tournamentsAbandoned.ToString()));
+            rows.Add(("Ligas jogadas", s.leagues.ToString()));
+            rows.Add(("Ligas ganhas", s.leagueTitles.ToString()));
 
             rows.Add(("Jogo (total e por partida)", null));
             rows.Add(("Chutes a gol (Pro Gol!)", WithAverage(n.shots, finished)));

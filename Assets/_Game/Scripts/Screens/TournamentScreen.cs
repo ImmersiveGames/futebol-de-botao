@@ -15,6 +15,9 @@ namespace FutebolDeBotao
     /// <item>Fim do torneio: troféu, colocação e moedas (das partidas e o prêmio), Ver chave e Menu.</item>
     /// </list>
     /// Esquerda/direita na linha das abas (ou LB/RB) troca a fase; a lista rola como a das Estatísticas.
+    /// Copa: a primeira aba é "Grupos" (tabela e jogos de cada grupo, o do jogador primeiro). Liga: abas "Tabela" e
+    /// "Rodadas" (todas as rodadas, a lista abre na atual). A mesma tela serve o torneio e a liga
+    /// (<see cref="Tournament.LeagueMode"/>).
     /// </summary>
     public sealed class TournamentScreen : MonoBehaviour
     {
@@ -28,10 +31,13 @@ namespace FutebolDeBotao
         private const float CardGap = 20f;
         private const float LabelHeight = 44f;
         private const float StickScrollSpeed = 900f;
+        private const float LineHeight = 44f;
+        private const float GroupGap = 30f;
         private static readonly Color HighlightColor = new(1f, 0.85f, 0.25f);
         private static readonly Color CardColor = new(1f, 1f, 1f, 0.08f);
         private static readonly Color PlayerCardColor = new(1f, 0.85f, 0.25f, 0.18f);
         private static readonly Color LoserColor = new(1f, 1f, 1f, 0.55f);
+        private static readonly Color QualifiedColor = new(0.3f, 0.85f, 0.4f, 0.16f);
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
         private static readonly Color[] TrophyColors = { new(1f, 0.8f, 0.2f), new(0.82f, 0.84f, 0.9f), new(0.8f, 0.5f, 0.25f) };
@@ -42,7 +48,12 @@ namespace FutebolDeBotao
         private bool built;
         private int tab;
         private int rounds;
+
+        private enum TabKind { Groups, Table, Matchdays, Knockout }
+
+        private readonly List<(TabKind kind, int round, string name)> tabInfos = new();
         private GameObject askPage, bracketPage, endPage;
+        private Text askTitle, askQuestion, askNewLabel, endTitle, bracketLabel;
         private Text titleText, statusText;
         private readonly List<Button> tabs = new();
         private RectTransform tabRow;
@@ -63,6 +74,11 @@ namespace FutebolDeBotao
         public void OpenAsk()
         {
             Build();
+            bool league = Tournament.LeagueMode;
+            askTitle.text = Txt.Get(league ? "Liga em andamento" : "Torneio em andamento");
+            askQuestion.text = Txt.Get(league ? "Continuar a liga guardada ou começar outra?\nComeçar outra abandona a guardada."
+                : "Continuar o torneio guardado ou começar outro?\nComeçar outro abandona o guardado.");
+            askNewLabel.text = Txt.Get(league ? "Nova liga" : "Novo torneio");
             ShowPage(askPage);
         }
 
@@ -91,7 +107,9 @@ namespace FutebolDeBotao
 
         private void NewTournament()
         {
-            if (menu != null) menu.NewTournament();
+            if (menu == null) return;
+            if (Tournament.LeagueMode) menu.NewLeague();
+            else menu.NewTournament();
         }
 
         private void Play()
@@ -141,9 +159,8 @@ namespace FutebolDeBotao
             if (next != null)
             {
                 int opponent = next.home == Tournament.Player ? next.away : next.home;
-                string round = next.third ? Txt.Get("Disputa de 3º lugar") : Tournament.RoundName(next.round, rounds);
                 string id = next.home == Tournament.Player ? "{0} · {1}: contra {2} (em casa)" : "{0} · {1}: contra {2} (fora)";
-                statusText.text = Txt.Format(id, level, round, Tournament.TeamName(opponent));
+                statusText.text = Txt.Format(id, level, Tournament.MatchName(next), Tournament.TeamName(opponent));
             }
             else statusText.text = $"{level} · {Tournament.PositionText(run)}";
 
@@ -151,20 +168,45 @@ namespace FutebolDeBotao
             actionButton.onClick.RemoveAllListeners();
             actionButton.onClick.AddListener(next != null ? (UnityAction)Play : ShowEnd);
 
-            BuildTabs();
-            ShowTab(next != null ? next.round : Tournament.CurrentRound());
+            BuildTabs(config);
+            int first = 0;
+            if (config.IsLeague) first = 0;
+            else if (next != null && next.groupStage) first = 0;
+            else
+            {
+                int round = next != null ? next.round : Tournament.CurrentRound();
+                // Copa com o mata-mata ainda sem jogos: fica nos grupos.
+                if (config.HasGroups && Tournament.MatchesOf(0).Count == 0) round = -1;
+                first = tabInfos.FindIndex(t => t.kind == TabKind.Knockout && t.round == round);
+                if (first < 0) first = 0;
+            }
+            ShowTab(first);
         }
 
-        private void BuildTabs()
+        private void BuildTabs(TournamentConfig config)
         {
             foreach (var old in tabs) Destroy(old.gameObject);
             tabs.Clear();
+            tabInfos.Clear();
+            if (config.IsLeague)
+            {
+                tabInfos.Add((TabKind.Table, 0, Txt.Get("Tabela")));
+                tabInfos.Add((TabKind.Matchdays, 0, Txt.Get("Rodadas")));
+            }
+            else
+            {
+                if (config.HasGroups) tabInfos.Add((TabKind.Groups, 0, Txt.Get("Grupos")));
+                for (int i = 0; i < rounds; i++) tabInfos.Add((TabKind.Knockout, i, Tournament.TabName(i, rounds)));
+            }
             var areas = new List<RectTransform>();
-            for (int i = 0; i < rounds; i++)
+            int count = tabInfos.Count;
+            float spacing = Mathf.Min(TabSpacing, 680f / Mathf.Max(1, count));
+            var size = new Vector2(Mathf.Min(TabSize.x, spacing - 8f), TabSize.y);
+            for (int i = 0; i < count; i++)
             {
                 int index = i;
-                float x = (i - (rounds - 1) * 0.5f) * TabSpacing;
-                var button = CreateButton(tabRow, $"Aba {i}", Tournament.TabName(i, rounds), new Vector2(x, 0f), TabSize, () => ShowTab(index));
+                float x = (i - (count - 1) * 0.5f) * spacing;
+                var button = CreateButton(tabRow, $"Aba {i}", tabInfos[i].name, new Vector2(x, 0f), size, () => ShowTab(index));
                 button.GetComponentInChildren<Text>().fontSize = 26;
                 tabs.Add(button);
                 areas.Add((RectTransform)button.transform);
@@ -174,8 +216,8 @@ namespace FutebolDeBotao
 
         private void ShowTab(int index)
         {
-            if (rounds <= 0) return;
-            tab = Mathf.Clamp(index, 0, rounds - 1);
+            if (tabInfos.Count == 0) return;
+            tab = Mathf.Clamp(index, 0, tabInfos.Count - 1);
             for (int i = 0; i < tabs.Count; i++)
                 ButtonSkin.Apply(tabs[i], i == tab ? ButtonStyle.Yellow : ButtonStyle.Green);
             FillList();
@@ -184,10 +226,26 @@ namespace FutebolDeBotao
         private void FillList()
         {
             for (int i = content.childCount - 1; i >= 0; i--) Destroy(content.GetChild(i).gameObject);
+            var info = tabInfos[tab];
+            float scrollTo = 0f;
+            float y = info.kind switch
+            {
+                TabKind.Groups => FillGroups(),
+                TabKind.Table => FillTable(0, 0f, false),
+                TabKind.Matchdays => FillMatchdays(out scrollTo),
+                _ => FillKnockout(info.round)
+            };
+            content.sizeDelta = new Vector2(0f, y);
+            scroll.velocity = Vector2.zero;
+            float overflow = Mathf.Max(0f, y - (ListSize.y - 2f * ListPadding));
+            content.anchoredPosition = new Vector2(0f, Mathf.Clamp(scrollTo, 0f, overflow));
+        }
+
+        private float FillKnockout(int round)
+        {
             float width = ListSize.x - 2f * ListPadding;
             float y = 0f;
-
-            var matches = Tournament.MatchesOf(tab);
+            var matches = Tournament.MatchesOf(round);
             if (matches.Count == 0)
             {
                 var empty = CreateText(content, "Vazio", Txt.Get("Os jogos desta fase saem quando a fase anterior terminar."), 30,
@@ -196,7 +254,7 @@ namespace FutebolDeBotao
                 y = 200f;
             }
 
-            bool finalRound = tab == rounds - 1;
+            bool finalRound = round == rounds - 1;
             foreach (var match in matches)
             {
                 if (finalRound)
@@ -210,10 +268,160 @@ namespace FutebolDeBotao
                 BuildCard(match, y);
                 y += CardHeight + CardGap;
             }
+            return y;
+        }
 
-            content.sizeDelta = new Vector2(0f, y);
-            content.anchoredPosition = Vector2.zero;
-            scroll.velocity = Vector2.zero;
+        /// <summary>Copa: cada grupo (o do jogador primeiro) com a tabela e os jogos.</summary>
+        private float FillGroups()
+        {
+            float y = 0f;
+            int groups = Tournament.GroupCount();
+            int mine = Tournament.PlayerGroup();
+            var order = new List<int>();
+            if (mine >= 0) order.Add(mine);
+            for (int g = 0; g < groups; g++)
+                if (g != mine) order.Add(g);
+            foreach (int g in order)
+            {
+                var label = CreateText(content, "Grupo", Tournament.GroupName(g), 32, FontStyle.Bold, HighlightColor, Vector2.zero, Vector2.zero);
+                label.alignment = TextAnchor.LowerLeft;
+                PlaceTop(label.rectTransform, y, LabelHeight);
+                y += LabelHeight;
+                y = FillTable(g, y, true);
+                foreach (var match in Tournament.GroupMatches(g, -1)) y = BuildLine(match, y);
+                y += GroupGap;
+            }
+            return y;
+        }
+
+        /// <summary>Liga: todas as rodadas; devolve em <paramref name="current"/> onde começa a rodada atual.</summary>
+        private float FillMatchdays(out float current)
+        {
+            float y = 0f;
+            current = 0f;
+            int now = Tournament.CurrentMatchday();
+            int days = Tournament.Matchdays();
+            for (int day = 0; day < days; day++)
+            {
+                if (day == now) current = y;
+                var label = CreateText(content, "Rodada", Txt.Format("Rodada {0}", day + 1), 30, FontStyle.Bold,
+                    day == now ? HighlightColor : Color.white, Vector2.zero, Vector2.zero);
+                label.alignment = TextAnchor.LowerLeft;
+                PlaceTop(label.rectTransform, y, LabelHeight);
+                y += LabelHeight;
+                foreach (var match in Tournament.GroupMatches(-1, day)) y = BuildLine(match, y);
+                y += GroupGap * 0.5f;
+            }
+            return y;
+        }
+
+        /// <summary>
+        /// Tabela de um grupo (ou da liga): posição, cor, nome, J, V, E, D, SG e P; o jogador em destaque e, na copa, os
+        /// classificados com fundo verde.
+        /// </summary>
+        private float FillTable(int group, float y, bool markQualifiers)
+        {
+            var table = Tournament.Table(group);
+            int qualifiers = markQualifiers ? Tournament.Config.Qualifiers : 0;
+            BuildTableRow(null, 0, y, false);
+            y += LineHeight;
+            for (int i = 0; i < table.Count; i++)
+            {
+                BuildTableRow(table[i], i + 1, y, i < qualifiers);
+                y += LineHeight;
+            }
+            return y + 8f;
+        }
+
+        private static readonly string[] TableColumns = { "J", "V", "E", "D", "SG", "P" };
+        private const float NumberWidth = 50f;
+
+        /// <summary>Uma linha da tabela (<paramref name="row"/> nulo: o cabeçalho).</summary>
+        private void BuildTableRow(Tournament.Standing row, int position, float top, bool qualified)
+        {
+            var line = CreateRect(content, row == null ? "Cabeçalho" : $"Linha {position}", Vector2.zero, Vector2.zero);
+            PlaceTop(line, top, LineHeight);
+            bool player = row != null && row.team == Tournament.Player;
+            if (row != null && (player || qualified))
+            {
+                var background = line.gameObject.AddComponent<Image>();
+                background.color = player ? PlayerCardColor : QualifiedColor;
+                background.raycastTarget = false;
+            }
+            Color color = row == null ? LoserColor : player ? HighlightColor : Color.white;
+            int size = 24;
+
+            if (row != null)
+            {
+                var number = CreateText(line, "Posição", position.ToString(), size, FontStyle.Bold, color, Vector2.zero, Vector2.zero);
+                Stretch(number.rectTransform, Vector2.zero, new Vector2(0f, 1f), 0f);
+                number.rectTransform.offsetMax = new Vector2(40f, 0f);
+
+                var data = Tournament.TeamOf(row.team);
+                var chip = CreateRect(line, "Cor", Vector2.zero, new Vector2(26f, 26f));
+                chip.anchorMin = chip.anchorMax = new Vector2(0f, 0.5f);
+                chip.anchoredPosition = new Vector2(60f, 0f);
+                var outer = chip.gameObject.AddComponent<Image>();
+                int uniform = player ? MatchSession.UniformChoice(TeamSide.Bottom) : 0;
+                outer.color = data.PrimaryOf(uniform);
+                outer.raycastTarget = false;
+                var inner = CreateRect(chip, "Cor 2", Vector2.zero, new Vector2(10f, 10f)).gameObject.AddComponent<Image>();
+                inner.color = data.SecondaryOf(uniform);
+                inner.raycastTarget = false;
+
+                var name = CreateText(line, "Nome", data.TeamName, size, player ? FontStyle.Bold : FontStyle.Normal, color, Vector2.zero, Vector2.zero);
+                name.alignment = TextAnchor.MiddleLeft;
+                Stretch(name.rectTransform, Vector2.zero, Vector2.one, 0f);
+                name.rectTransform.offsetMin = new Vector2(84f, 0f);
+                name.rectTransform.offsetMax = new Vector2(-NumberWidth * TableColumns.Length, 0f);
+            }
+
+            int[] values = row == null ? null
+                : new[] { row.played, row.won, row.drawn, row.lost, row.GoalDifference, row.Points };
+            for (int i = 0; i < TableColumns.Length; i++)
+            {
+                string text = row == null ? Txt.Get(TableColumns[i]) : values[i].ToString();
+                bool points = i == TableColumns.Length - 1;
+                var cell = CreateText(line, TableColumns[i], text, size, points ? FontStyle.Bold : FontStyle.Normal, color,
+                    Vector2.zero, Vector2.zero);
+                cell.rectTransform.anchorMin = new Vector2(1f, 0f);
+                cell.rectTransform.anchorMax = new Vector2(1f, 1f);
+                cell.rectTransform.pivot = new Vector2(1f, 0.5f);
+                cell.rectTransform.sizeDelta = new Vector2(NumberWidth, 0f);
+                cell.rectTransform.anchoredPosition = new Vector2(-NumberWidth * (TableColumns.Length - 1 - i), 0f);
+            }
+        }
+
+        /// <summary>Um jogo numa linha: "Mandante 2 x 1 Visitante" (sem jogar: "x"); o do jogador em destaque.</summary>
+        private float BuildLine(SaveData.TournamentMatch match, float top)
+        {
+            var line = CreateRect(content, "Jogo", Vector2.zero, Vector2.zero);
+            PlaceTop(line, top, LineHeight);
+            bool player = match.Has(Tournament.Player);
+            if (player)
+            {
+                var background = line.gameObject.AddComponent<Image>();
+                background.color = PlayerCardColor;
+                background.raycastTarget = false;
+            }
+            Color color = player ? HighlightColor : Color.white;
+            const float scoreWidth = 110f;
+
+            var home = CreateText(line, "Mandante", Tournament.TeamName(match.home), 24, FontStyle.Normal, color, Vector2.zero, Vector2.zero);
+            home.alignment = TextAnchor.MiddleRight;
+            Stretch(home.rectTransform, Vector2.zero, new Vector2(0.5f, 1f), 0f);
+            home.rectTransform.offsetMax = new Vector2(-scoreWidth * 0.5f, 0f);
+
+            string goals = match.played ? $"{match.homeGoals} x {match.awayGoals}" : "x";
+            if (match.played && match.walkover) goals += " W.O.";
+            var score = CreateText(line, "Placar", goals, 24, FontStyle.Bold, color, Vector2.zero, new Vector2(scoreWidth, LineHeight));
+            score.rectTransform.anchorMin = score.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+
+            var away = CreateText(line, "Visitante", Tournament.TeamName(match.away), 24, FontStyle.Normal, color, Vector2.zero, Vector2.zero);
+            away.alignment = TextAnchor.MiddleLeft;
+            Stretch(away.rectTransform, new Vector2(0.5f, 0f), Vector2.one, 0f);
+            away.rectTransform.offsetMin = new Vector2(scoreWidth * 0.5f, 0f);
+            return top + LineHeight;
         }
 
         /// <summary>Um jogo: mandante em cima, visitante embaixo, cada um com a cor do time, o nome e os gols.</summary>
@@ -286,6 +494,8 @@ namespace FutebolDeBotao
             ShowPage(endPage);
             var run = Tournament.Run;
             var config = Tournament.Config;
+            endTitle.text = Txt.Get(Tournament.LeagueMode ? "Fim da liga" : "Fim do torneio");
+            bracketLabel.text = Txt.Get(config.IsLeague ? "Ver tabela" : config.HasGroups ? "Ver jogos" : "Ver chave");
             endName.text = Txt.Get(config.displayName);
             endPosition.text = Tournament.PositionText(run);
 
@@ -309,7 +519,8 @@ namespace FutebolDeBotao
         private void DoublePrize()
         {
             MessageDialog.Open(Txt.Get("Dobrar prêmio"),
-                Txt.Format("Assista a um anúncio e ganhe mais {0} moedas, o dobro do prêmio do torneio.", Tournament.Run.prize),
+                Txt.Format(Tournament.LeagueMode ? "Assista a um anúncio e ganhe mais {0} moedas, o dobro do prêmio da liga."
+                    : "Assista a um anúncio e ganhe mais {0} moedas, o dobro do prêmio do torneio.", Tournament.Run.prize),
                 Txt.Get("Assistir"), WatchDoublePrize, Txt.Get("Agora não"));
         }
 
@@ -321,7 +532,7 @@ namespace FutebolDeBotao
                 if (this == null) return;
                 if (rewarded) Tournament.DoublePrize();
                 ShowEnd();
-            }, "dobrar_torneio");
+            }, Tournament.LeagueMode ? "dobrar_liga" : "dobrar_torneio");
         }
 
         private static readonly Dictionary<int, Sprite> placeholders = new();
@@ -386,14 +597,14 @@ namespace FutebolDeBotao
             var page = CreateRect(root, "Torneio em andamento", Vector2.zero, Vector2.zero);
             Stretch(page, Vector2.zero, Vector2.one, 0f);
             askPage = page.gameObject;
-            LocalizedText.Attach(CreateText(page, "Título", "Torneio em andamento", 52, FontStyle.Bold, Color.white, new Vector2(0f, 300f), new Vector2(680f, 90f)));
-            LocalizedText.Attach(CreateText(page, "Pergunta", "Continuar o torneio guardado ou começar outro?\nComeçar outro abandona o guardado.", 30,
-                FontStyle.Normal, Color.white, new Vector2(0f, 170f), new Vector2(640f, 140f)));
+            askTitle = CreateText(page, "Título", "Torneio em andamento", 52, FontStyle.Bold, Color.white, new Vector2(0f, 300f), new Vector2(680f, 90f));
+            askQuestion = CreateText(page, "Pergunta", "-", 30, FontStyle.Normal, Color.white, new Vector2(0f, 170f), new Vector2(640f, 140f));
             var go = CreateButton(page, "Continuar", "Continuar", new Vector2(0f, -40f), new Vector2(420f, 90f), Continue, ButtonStyle.Yellow);
             var fresh = CreateButton(page, "Novo torneio", "Novo torneio", new Vector2(0f, -150f), new Vector2(420f, 90f), NewTournament);
             var back = CreateButton(page, "Voltar", "Voltar", new Vector2(0f, -260f), new Vector2(420f, 90f), () => menu.ShowPlay(), ButtonStyle.Red);
             var navigator = page.gameObject.AddComponent<MenuNavigator>();
-            foreach (var b in new[] { go, fresh, back }) LocalizedText.Attach(b.GetComponentInChildren<Text>());
+            foreach (var b in new[] { go, back }) LocalizedText.Attach(b.GetComponentInChildren<Text>());
+            askNewLabel = fresh.GetComponentInChildren<Text>();
             navigator.Configure(new[] { Entry(go), Entry(fresh), Entry(back) }, back);
         }
 
@@ -454,7 +665,7 @@ namespace FutebolDeBotao
             Stretch(page, Vector2.zero, Vector2.one, 0f);
             endPage = page.gameObject;
 
-            LocalizedText.Attach(CreateText(page, "Título", "Fim do torneio", 56, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 100f)));
+            endTitle = CreateText(page, "Título", "Fim do torneio", 56, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 100f));
             endName = CreateText(page, "Torneio", "-", 34, FontStyle.Normal, Color.white, new Vector2(0f, 440f), new Vector2(680f, 60f));
             var trophy = CreateRect(page, "Troféu", new Vector2(0f, 200f), new Vector2(320f, 320f));
             endTrophy = trophy.gameObject.AddComponent<Image>();
@@ -469,7 +680,7 @@ namespace FutebolDeBotao
             var bracket = CreateButton(page, "Ver chave", "Ver chave", new Vector2(0f, -390f), new Vector2(420f, 90f), ShowBracket);
             var toMenu = CreateButton(page, "Menu", "Menu", new Vector2(0f, -500f), new Vector2(420f, 90f), Back, ButtonStyle.Yellow);
             var navigator = page.gameObject.AddComponent<MenuNavigator>();
-            LocalizedText.Attach(bracket.GetComponentInChildren<Text>());
+            bracketLabel = bracket.GetComponentInChildren<Text>();
             LocalizedText.Attach(toMenu.GetComponentInChildren<Text>());
             navigator.Configure(new[] { Entry(doublePrize), Entry(bracket), Entry(toMenu) }, toMenu, 2);
         }

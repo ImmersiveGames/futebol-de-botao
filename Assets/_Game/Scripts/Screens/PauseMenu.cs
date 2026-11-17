@@ -34,13 +34,13 @@ namespace FutebolDeBotao
 
         private void Start()
         {
-            // Torneio: não dá para reiniciar a partida, e sair dela abandona o torneio.
+            // Torneio: não dá para reiniciar a partida, e sair dela abandona o torneio (na liga, é W.O. só dessa partida).
             if (!MatchSession.InTournamentMatch) return;
             var restart = transform.Find("Painel/Reiniciar");
             if (restart != null) restart.gameObject.SetActive(false);
             var menu = transform.Find("Painel/Menu");
             var label = menu != null ? menu.GetComponentInChildren<Text>(true) : null;
-            if (label != null) label.text = Txt.Get("Abandonar torneio");
+            if (label != null) label.text = Txt.Get(Tournament.LeagueMode ? "Sair (derrota por W.O.)" : "Abandonar torneio");
         }
 
         public void OpenSettings() => SettingsScreen.Open(true);
