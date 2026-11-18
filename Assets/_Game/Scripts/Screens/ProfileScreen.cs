@@ -5,10 +5,10 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tela Meu time (do Menu), em três abas. Time: nome do time e sigla de 3 letras em cima e, embaixo, as abas Uniforme 1
+    /// Tela Meu time (do Menu), em quatro abas: Time, Mesa, Financeiro e Carreira. Time: nome do time e sigla de 3 letras em cima e, embaixo, as abas Uniforme 1
     /// e Uniforme 2, cada uma com o botão e o goleiro pintados e as opções dela: cor principal e segunda cor (da lista Cores
     /// do time; podem ser iguais), camisa do botão e do goleiro (só as liberadas). Financeiro: saldo, ganhos e gastos e o extrato (<see cref="Finance"/>). Mesa: a mesa de casa (mesa, feltro, cor das traves que o feltro aceita e bola, só os liberados), com a mesa
-    /// montada em cima. "Salvar" grava Time e Mesa e volta ao Menu; "Voltar" volta sem gravar. Tocar no nome ou na sigla
+    /// montada em cima. Carreira: Estatísticas, Pontos da semana e Play Games (conquistas e ranking). "Salvar" grava Time e Mesa e volta ao Menu; "Voltar" volta sem gravar. Tocar no nome ou na sigla
     /// abre o teclado (no celular, o do aparelho); no teclado/controle, Confirmar começa a digitar. Monta a UI sozinha.
     /// </summary>
     public sealed class ProfileScreen : MonoBehaviour

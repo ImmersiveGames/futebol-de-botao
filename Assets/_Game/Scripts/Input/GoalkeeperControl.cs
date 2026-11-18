@@ -3,7 +3,7 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Deixa o defensor mover o goleiro durante o "Vai chutar": segurar o mouse (ou o dedo) e arrastar para os lados.
+    /// Deixa o defensor mover o goleiro durante o "Pro Gol!": segurar o mouse (ou o dedo) e arrastar para os lados.
     /// A/D, setas, analógico esquerdo e D-pad também movem (direita = direita de quem defende).
     /// </summary>
     public sealed class GoalkeeperControl : MonoBehaviour

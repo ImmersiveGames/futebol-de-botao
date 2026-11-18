@@ -66,7 +66,6 @@ namespace FutebolDeBotao
             return -1;
         }
 
-        /// <summary>Nome na tela: "Teclado e mouse", "Toque" ou "Controle N" (N pela ordem em <paramref name="devices"/>).</summary>
         /// <summary>Ícone do cartão na tela Controles (recortes da folha de ícones; teclado e mouse lado a lado).</summary>
         public static string[] Icons(InputDevice device) => device switch
         {
@@ -89,6 +88,7 @@ namespace FutebolDeBotao
             return total > 1 ? number : 0;
         }
 
+        /// <summary>Nome na tela: "Teclado e mouse", "Toque" ou "Controle N" (N pela ordem em <paramref name="devices"/>).</summary>
         public static string Label(InputDevice device, List<InputDevice> devices)
         {
             switch (device)

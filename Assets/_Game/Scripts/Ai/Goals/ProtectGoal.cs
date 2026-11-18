@@ -9,7 +9,7 @@ namespace FutebolDeBotao
     /// </summary>
     public sealed class ProtectGoal : AiGoal
     {
-        /// <summary>Até onde o adversário pode anunciar o Vai chutar (o mesmo do Difícil).</summary>
+        /// <summary>Até onde o adversário pode anunciar o Pro Gol! (o mesmo do Difícil).</summary>
         private const float OpponentReach = 6f;
         /// <summary>Desconto de deixar chute livre para ele (maior que qualquer distância do gol).</summary>
         private const float OpenShotPenalty = 30f;

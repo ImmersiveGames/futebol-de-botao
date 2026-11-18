@@ -36,7 +36,7 @@ namespace FutebolDeBotao
         public const string Select = "Confirmar";
         /// <summary>Chutar. Espaço, X.</summary>
         public const string Kick = "Chutar";
-        /// <summary>"Vai chutar". C, LB, RB.</summary>
+        /// <summary>"Pro Gol!". C, LB, RB.</summary>
         public const string ShotCall = "VaiChutar";
         /// <summary>
         /// Pausa (mapa Global), sem teclas: o framework exige a ação no Jogador, mas quem lê o Esc/Start é a partida,

@@ -151,13 +151,13 @@ namespace FutebolDeBotao
 
         public void ClearBallOverride() => ballOverride = null;
 
+        /// <summary>Opção da partida: desligada, bater em adversário não para a jogada.</summary>
+        public bool FoulsEnabled { get; set; } = true;
+
         /// <summary>
         /// Simula um peteleco a partir da mesa de verdade como está agora.
         /// <paramref name="shooter"/> nulo = chute direto na bola (tiro de meta).
         /// </summary>
-        /// <summary>Opção da partida: desligada, bater em adversário não para a jogada.</summary>
-        public bool FoulsEnabled { get; set; } = true;
-
         /// <param name="from">Começa deste momento simulado, não da mesa de verdade (o toque seguinte da IA).</param>
         public SimResult Simulate(Rigidbody2D shooter, Vector2 impulse, TeamSide shooterSide, SimState from = null)
         {

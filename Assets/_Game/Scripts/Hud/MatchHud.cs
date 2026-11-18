@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// HUD da partida (visual provisório, montado em código).
+    /// HUD da partida (montado em código).
     /// Tela em pé (celular): uma faixa por jogador logo depois do gol dele (a de cima girada 180° para o jogador de cima),
     /// dentro da moldura que a câmera sempre encaixa (ScreenFit). Na faixa, da esquerda para a direita: relógio e pausa;
     /// placar (abreviações, gols e cartões); vez, toques, timer e o botão de ação.
@@ -29,7 +29,7 @@ namespace FutebolDeBotao
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.45f);
         private static readonly Color ButtonColor = new(0.95f, 0.95f, 0.9f);
         private static readonly Color ButtonTextColor = new(0.1f, 0.1f, 0.1f);
-        // "Vai chutar" pulsando para ninguém esquecer de avisar antes do chute a gol.
+        // "Pro Gol!" pulsando para ninguém esquecer de avisar antes do chute a gol.
         private static readonly Color GlowColor = new(1f, 0.85f, 0.25f);
         private static readonly Color SkinGlowTint = new(1f, 0.8f, 0.55f);
         private const float GlowSpeed = 5f;
@@ -121,7 +121,6 @@ namespace FutebolDeBotao
                 return;
             }
 
-            match.ExternalHud = true;
             Txt.Changed += OnTextsChanged;
             font = GameFont.Get();
             BuildStrips();
@@ -206,7 +205,7 @@ namespace FutebolDeBotao
 
             // Na faixa, o time do jogador vem primeiro; no painel do PC, sempre o de baixo primeiro.
             // Contra a IA a faixa de cima não tem botões e a de baixo só tem botões: o que não existe fica de fora.
-            var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var other = side.Opponent();
             if (view == pcPanel) view.Score.text = ScoreText(TeamSide.Bottom, TeamSide.Top);
             // Contra a IA o placar tem os cartões do lado de fora de cada time, na mesma linha.
             else if (view == soloInfo) view.Score.text = ScoreText(side, other);
@@ -737,7 +736,6 @@ namespace FutebolDeBotao
             return text;
         }
 
-        /// <summary>Placar sempre numa linha: com cartões ao lado das abreviações, a fonte diminui em vez de quebrar.</summary>
         /// <summary>Texto preso à caixa: a fonte diminui até caber, sem quebrar nem passar da altura.</summary>
         private static void FitInBox(Text text)
         {
@@ -746,6 +744,7 @@ namespace FutebolDeBotao
             text.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
+        /// <summary>Placar sempre numa linha: com cartões ao lado das abreviações, a fonte diminui em vez de quebrar.</summary>
         private static void FitOneLine(Text text)
         {
             text.resizeTextForBestFit = true;

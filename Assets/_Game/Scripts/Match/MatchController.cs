@@ -8,8 +8,8 @@ using UnityEngine.InputSystem;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Máquina de estados da partida: Saída, Mira, Vai chutar, Tiro de meta, Movimento, Gol e Fim.
-    /// Cuida da vez, dos toques, da perda da vez, da falta e do pênalti, do relógio, do placar e do HUD provisório.
+    /// Máquina de estados da partida: Saída, Mira, Pro Gol!, Tiro de meta, Movimento, Gol e Fim.
+    /// Cuida da vez, dos toques, da perda da vez, da falta e do pênalti, do relógio e do placar (o HUD é o MatchHud).
     /// A partida começa quando a Activity "Jogo" do framework entra (e recomeça a cada Activity Restart).
     /// </summary>
     public sealed class MatchController : MonoBehaviour, IActivityContentLifecycleReceiver
@@ -31,12 +31,6 @@ namespace FutebolDeBotao
         [SerializeField] private bool aiPlaysTop = true;
         [Tooltip("Nível da IA quando a partida abre direto, sem passar pelo Menu. Vazio usa o Médio.")]
         [SerializeField] private AiDifficulty aiDifficulty;
-
-        [Tooltip("Multiplica o tamanho do HUD provisório.")]
-        [SerializeField, Range(0.5f, 2f)] private float hudScale = 1f;
-
-        private const float ReferenceHeight = 720f;
-        private const float ReferenceMinWidth = 400f;
 
         private readonly Dictionary<TeamSide, List<Disc>> discs = new();
         private readonly int[] score = new int[2];
@@ -116,18 +110,16 @@ namespace FutebolDeBotao
         public int MessageVersion { get; private set; }
         /// <summary>Segundos que restam no timer da etapa atual (mira, goleiro, pênalti).</summary>
         public float StateSecondsLeft => Mathf.Max(0f, stateTimer);
-        /// <summary>Timer de mira correndo (Mira, Vai chutar ou Tiro de meta).</summary>
+        /// <summary>Timer de mira correndo (Mira, Pro Gol! ou Tiro de meta).</summary>
         public bool IsAimTimerRunning => ClockRunning;
         /// <summary>Quem age agora: o atacante na mira e no pênalti, o defensor ajustando o goleiro.</summary>
-        public TeamSide ActingSide => State == MatchState.ShotCall ? Opponent(Turn) : Turn;
-        /// <summary>Há um "Pronto" esperando (goleiro no Vai chutar ou batedor no pênalti).</summary>
+        public TeamSide ActingSide => State == MatchState.ShotCall ? Turn.Opponent() : Turn;
+        /// <summary>Há um "Pronto" esperando (goleiro no Pro Gol! ou batedor no pênalti).</summary>
         public bool CanConfirmReady => !IsHolding && (State is (MatchState.ShotCall or MatchState.PenaltySetup) || IsPlacingGoalKick);
         /// <summary>Tiro de meta, primeiro passo: o time arrasta a bola para os lados e aperta "Pronto" antes de mirar.</summary>
         public bool IsPlacingGoalKick => State == MatchState.GoalKick && goalKickPlacing;
         /// <summary>Um aviso importante está na tela: controles travados, relógio e timer parados, a IA espera.</summary>
         public bool IsHolding => holdTimer > 0f;
-        /// <summary>Com um HUD de verdade na cena, o HUD provisório (OnGUI) não é desenhado.</summary>
-        public bool ExternalHud { get; set; }
         public PauseRequestTrigger PauseTrigger => pauseTrigger;
         /// <summary>Quem conduz as lições quando a partida é o tutorial; nulo numa partida normal.</summary>
         public TutorialDirector Tutorial => tutorial;
@@ -409,7 +401,7 @@ namespace FutebolDeBotao
             foreach (var keeper in keepers)
                 if (keeper.isActiveAndEnabled) keeper.ResetToCenter();
             ball.ResetTo(Vector2.zero);
-            KeepOutOfCenterCircle(Opponent(side));
+            KeepOutOfCenterCircle(side.Opponent());
 
             GiveTurn(side);
             message = Txt.Format("Saída do {0}", TeamName(side));
@@ -475,7 +467,7 @@ namespace FutebolDeBotao
                     break;
 
                 case MatchState.ShotCall:
-                    bool ready = !IsAi(Opponent(Turn)) && MatchInput.For(Opponent(Turn)).SelectPressedThisFrame;
+                    bool ready = !IsAi(Turn.Opponent()) && MatchInput.For(Turn.Opponent()).SelectPressedThisFrame;
                     if (stateTimer <= 0f || ready) FinishShotCall();
                     break;
 
@@ -557,7 +549,7 @@ namespace FutebolDeBotao
             aim.BallKickMode = state == MatchState.GoalKick;
             aim.CanSelect = CanUse;
 
-            keeperControl.ControlledSide = !holding && state == MatchState.ShotCall && !IsAi(Opponent(Turn)) ? Opponent(Turn) : null;
+            keeperControl.ControlledSide = !holding && state == MatchState.ShotCall && !IsAi(Turn.Opponent()) ? Turn.Opponent() : null;
         }
 
         // ---- Avisos ----
@@ -579,13 +571,13 @@ namespace FutebolDeBotao
             restoreControls = true;
         }
 
-        // ---- Vai chutar ----
+        // ---- Pro Gol! ----
 
         public bool CanCallShot
         {
             get
             {
-                // Sem goleiro não existe "Vai chutar": entrou, é gol.
+                // Sem goleiro não existe "Pro Gol!": entrou, é gol.
                 // Disponível quando a bola está no campo de ataque do time da vez; qualquer botão pode chutar.
                 return !IsHolding && !TutorialLocked && State == MatchState.Aim && !aim.IsAiming && options.hasGoalkeeper &&
                        InAttackHalf(ball.Body.position, Turn);
@@ -616,7 +608,7 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// Chute anunciado (falta no ataque, pênalti ou "Vai chutar"): o defensor ganha os segundos para ajustar o goleiro.
+        /// Chute anunciado (falta no ataque, pênalti ou "Pro Gol!"): o defensor ganha os segundos para ajustar o goleiro.
         /// Sem goleiro vira um chute normal de quem vai bater.
         /// </summary>
         private void BeginShotCall()
@@ -792,7 +784,7 @@ namespace FutebolDeBotao
                 RecordShootoutKick(false);
                 return;
             }
-            GiveTurn(Opponent(Turn));
+            GiveTurn(Turn.Opponent());
             message = string.IsNullOrEmpty(reason) ? Txt.Format("Vez do {0}", TeamName(Turn)) : Txt.Get(reason);
             Enter(MatchState.Aim);
         }
@@ -825,7 +817,9 @@ namespace FutebolDeBotao
             if (State != MatchState.Moving || shooter == null || !options.fouls || IsShootout) return;
             if (asShooter ? disc != shooter : disc == shooter || disc.Side != shooter.Side || ball.LastTouchSide != null) return;
 
+#if UNITY_EDITOR
             Debug.Log($"[Falta] {disc.name} ({TeamName(disc.Side)}) acertou o goleiro do {TeamName(keeper.Side)}.");
+#endif
             Count(disc.Side).fouls++;
             EndShot();
             monitor.StopWatching();
@@ -846,9 +840,11 @@ namespace FutebolDeBotao
 
         private void CommitFoul(Disc offender, Disc victim, Vector2 victimPosition)
         {
-            // Para investigar falta marcada errado: mostra o que o jogo sabia no momento.
+            // Para investigar falta marcada errado: mostra o que o jogo sabia no momento (só no editor).
+#if UNITY_EDITOR
             Debug.Log($"[Falta] {offender.name} ({TeamName(offender.Side)}) acertou {victim.name}. " +
                       $"Último toque na bola neste peteleco: {(ball.LastDiscTouch != null ? ball.LastDiscTouch.name : "ninguém")}.");
+#endif
 
             Count(offender.Side).fouls++;
             EndShot();
@@ -901,7 +897,7 @@ namespace FutebolDeBotao
         /// <summary>W.O.: o time ficou sem botões. Quem foi expulso fica com 0 e o adversário ganha 3 gols a mais.</summary>
         private void Walkover(TeamSide loser)
         {
-            var winner = Opponent(loser);
+            var winner = loser.Opponent();
             score[(int)loser] = 0;
             score[(int)winner] += 3;
             EndShot();
@@ -991,7 +987,7 @@ namespace FutebolDeBotao
         {
             kickerHidden = keeperHidden = false;
             penaltyKeeperFirst = false;
-            if (HiddenPenalty && IsAi(Opponent(Turn)) && !IsAi(Turn))
+            if (HiddenPenalty && IsAi(Turn.Opponent()) && !IsAi(Turn))
             {
                 penaltyKeeperFirst = true;
                 keeperHidden = true;
@@ -1010,7 +1006,7 @@ namespace FutebolDeBotao
             var keeper = DefendingKeeper();
             if (keeper != null && !KeeperSideChosen(keeper))
             {
-                if (stateTimer > 0f && !IsAi(Opponent(Turn)))
+                if (stateTimer > 0f && !IsAi(Turn.Opponent()))
                 {
                     message = Txt.Get("Escolha um lado!");
                     return;
@@ -1029,7 +1025,7 @@ namespace FutebolDeBotao
         private Goalkeeper DefendingKeeper()
         {
             foreach (var keeper in keepers)
-                if (keeper != null && keeper.isActiveAndEnabled && keeper.Side == Opponent(Turn)) return keeper;
+                if (keeper != null && keeper.isActiveAndEnabled && keeper.Side == Turn.Opponent()) return keeper;
             return null;
         }
 
@@ -1089,7 +1085,7 @@ namespace FutebolDeBotao
             else
             {
                 var keeper = DefendingKeeper();
-                float goalY = FieldLayout.GoalLineY(Opponent(Turn));
+                float goalY = FieldLayout.GoalLineY(Turn.Opponent());
                 float sign = Mathf.Sign(goalY);
                 float front = goalY - sign * 0.6f;
                 if (keeper != null && keeper.TryGetComponent(out Collider2D box))
@@ -1224,7 +1220,7 @@ namespace FutebolDeBotao
             }
             else
             {
-                // Tiro livre: a vez começa normal; no campo de ataque o "Vai chutar" fica disponível como sempre.
+                // Tiro livre: a vez começa normal; no campo de ataque o "Pro Gol!" fica disponível como sempre.
                 message = Txt.Get("Tiro livre!");
                 Enter(MatchState.Aim);
             }
@@ -1286,7 +1282,7 @@ namespace FutebolDeBotao
             // Disputa de pênaltis: entrou no gol de quem defende = gol.
             if (IsShootout)
             {
-                RecordShootoutKick(goal.DefendingSide == Opponent(Turn));
+                RecordShootoutKick(goal.DefendingSide == Turn.Opponent());
                 return;
             }
             pendingGoal = goal;
@@ -1300,7 +1296,7 @@ namespace FutebolDeBotao
             bool called = options.hasGoalkeeper ? shotWasCalled : shotFromAttackHalf;
             pendingGoalValid = wallOk && (ownGoal || called);
 
-            var scorer = Opponent(goal.DefendingSide);
+            var scorer = goal.DefendingSide.Opponent();
             LastScorer = scorer;
             if (pendingGoalValid)
             {
@@ -1340,7 +1336,7 @@ namespace FutebolDeBotao
             {
                 // Sai do estado de gol (senão o gol seria resolvido de novo a cada quadro); a lição monta a próxima jogada.
                 Enter(MatchState.Moving);
-                tutorial.OnGoal(Opponent(defending), pendingGoalValid);
+                tutorial.OnGoal(defending.Opponent(), pendingGoalValid);
                 return;
             }
 
@@ -1459,7 +1455,6 @@ namespace FutebolDeBotao
             ApplyControls();
         }
 
-        /// <summary>Todos os botões na formação inicial; quem cair em cima da bola vai para o lugar livre mais perto.</summary>
         /// <summary>
         /// Na saída, os botões de quem não sai que caem dentro do círculo central vão para a linha dele (o centro do
         /// botão em cima da linha), na mesma direção. Quem dá a saída pode ficar dentro.
@@ -1482,6 +1477,7 @@ namespace FutebolDeBotao
             }
         }
 
+        /// <summary>Todos os botões na formação inicial; quem cair em cima da bola vai para o lugar livre mais perto.</summary>
         private void ResetFormation()
         {
             foreach (var pair in discs)
@@ -1561,7 +1557,7 @@ namespace FutebolDeBotao
             int bottomKicks = shootoutKicks[(int)TeamSide.Bottom].Count;
             int topKicks = shootoutKicks[(int)TeamSide.Top].Count;
             var side = bottomKicks == topKicks ? shootoutFirst : bottomKicks < topKicks ? TeamSide.Bottom : TeamSide.Top;
-            var defending = Opponent(side);
+            var defending = side.Opponent();
 
             var takers = shootoutTakers[(int)side];
             Disc kicker = takers.Count > 0 ? takers[shootoutNext[(int)side]++ % takers.Count] : null;
@@ -1748,10 +1744,10 @@ namespace FutebolDeBotao
             Enter(MatchState.End);
         }
 
-        /// <summary>Fim da partida: os números dos dois times vão para o pós-jogo; os do jogador (baixo), para o save.</summary>
         /// <summary>O jogador (time de baixo) ficou atrás no placar em algum momento (conquista Virada).</summary>
         private bool playerTrailed;
 
+        /// <summary>Fim da partida: os números dos dois times vão para o pós-jogo; os do jogador (baixo), para o save.</summary>
         private void RecordStats(bool walkover)
         {
             MatchSession.LastMatchNumbers = new[] { numbers[0], numbers[1] };
@@ -1799,7 +1795,6 @@ namespace FutebolDeBotao
             return null;
         }
 
-        private static TeamSide Opponent(TeamSide side) => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
 
         public static string TeamName(TeamSide side) => MatchSession.Team(side).TeamName;
 
@@ -1845,74 +1840,6 @@ namespace FutebolDeBotao
                 else if (keeper.TryGetComponent(out SpriteRenderer renderer))
                     renderer.color = Color.Lerp(primary, Color.black, 0.25f);
             }
-        }
-
-        // ---- HUD provisório ----
-
-        private void OnGUI()
-        {
-            // Na pausa só a tela de pausa do framework aparece; esperando a Activity, nada.
-            if (ExternalHud || Paused || State == MatchState.Waiting) return;
-
-            // O HUD é desenhado numa tela de referência de 720 px de altura e escalado para a tela real.
-            float scale = Mathf.Max(0.5f, Mathf.Min(Screen.height / ReferenceHeight, Screen.width / ReferenceMinWidth)) * hudScale;
-            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
-            float screenHeight = Screen.height / scale;
-
-            var big = new GUIStyle(GUI.skin.label) { fontSize = 30, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
-            var small = new GUIStyle(GUI.skin.label) { fontSize = 20, wordWrap = true, normal = { textColor = Color.white } };
-            var button = new GUIStyle(GUI.skin.button) { fontSize = 20, fontStyle = FontStyle.Bold };
-
-            int minutes = Mathf.FloorToInt(clock / 60f);
-            int seconds = Mathf.CeilToInt(clock % 60f);
-            if (seconds == 60) { minutes++; seconds = 0; }
-
-            const float x = 20f;
-            const float width = 340f;
-            var lines = new List<(string text, GUIStyle style, float height)>
-            {
-                ($"{TeamName(TeamSide.Bottom)} {Score(TeamSide.Bottom)} x {Score(TeamSide.Top)} {TeamName(TeamSide.Top)}", big, 40f),
-                ($"Tempo {minutes}:{seconds:00}", small, 28f)
-            };
-            if (State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick or MatchState.Moving)
-                lines.Add(($"Vez: {TeamName(Turn)}  |  toques: {touchesLeft}", small, 28f));
-            if (State is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick)
-                lines.Add(($"Mira: {Mathf.CeilToInt(Mathf.Max(0f, stateTimer))} s", small, 28f));
-            if (State == MatchState.PenaltySetup)
-                lines.Add(($"Batedor: arraste em volta da bola ({Mathf.CeilToInt(stateTimer)} s)", small, 56f));
-            if (State == MatchState.ShotCall)
-                lines.Add(($"Goleiro: arraste para os lados ({Mathf.CeilToInt(stateTimer)} s)", small, 56f));
-            if (!string.IsNullOrEmpty(message))
-                lines.Add((message, small, small.CalcHeight(new GUIContent(message), width)));
-
-            bool showButton = CanCallShot || State is MatchState.ShotCall or MatchState.PenaltySetup;
-            float panelHeight = 16f;
-            foreach (var line in lines) panelHeight += line.height;
-            if (showButton) panelHeight += 52f;
-
-            var previous = GUI.color;
-            GUI.color = new Color(0f, 0f, 0f, 0.6f);
-            GUI.DrawTexture(new Rect(x - 10f, 10f, width + 20f, panelHeight), Texture2D.whiteTexture);
-            GUI.color = previous;
-
-            float y = 16f;
-            foreach (var line in lines)
-            {
-                GUI.Label(new Rect(x, y, width, line.height), line.text, line.style);
-                y += line.height;
-            }
-
-            var buttonRect = new Rect(x, y + 6f, 220f, 42f);
-            if (CanCallShot && GUI.Button(buttonRect, "Pro Gol! (V)", button)) TryCallShot();
-            if (State == MatchState.ShotCall && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishShotCall();
-            if (State == MatchState.PenaltySetup && GUI.Button(buttonRect, "Pronto (Espaço)", button)) FinishPenaltySetup();
-
-            float screenWidth = Screen.width / scale;
-            if (pauseTrigger != null && GUI.Button(new Rect(screenWidth - 150f, 16f, 130f, 42f), "Pausa (Esc)", button))
-                pauseTrigger.RequestPause();
-
-            GUI.Label(new Rect(x, screenHeight - 34f, 600f, 28f), "R: reiniciar  |  Botão direito: cancelar mira", small);
-            GUI.matrix = Matrix4x4.identity;
         }
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Marcar: dá pra chutar? Com goleiro, anuncia o "Vai chutar" sempre que tem chute livre (sem conta de chance) e
+    /// Marcar: dá pra chutar? Com goleiro, anuncia o "Pro Gol!" sempre que tem chute livre (sem conta de chance) e
     /// depois chuta no canto que o goleiro cobre pior. Sem goleiro, com a bola no ataque, chuta direto se algum chute
     /// entra. A conta: gol que vale.
     /// </summary>
@@ -28,7 +28,7 @@ namespace FutebolDeBotao
         {
             if (result.Foul) return 0f;
             if (GoalOutcome(result, situation, context) is float goal) return goal > 0f ? 100f : goal < -50f ? goal : 0f;
-            var opponent = situation.Side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var opponent = situation.Side.Opponent();
             float toGoal = Vector2.Distance(result.BallEnd, new Vector2(0f, FieldLayout.GoalLineY(opponent)));
             return Mathf.Max(0f, MissMax - toGoal * 2f);
         }

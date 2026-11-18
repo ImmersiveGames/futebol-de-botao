@@ -36,7 +36,7 @@ namespace FutebolDeBotao
             if (shooters < 0) return null;
 
             Vector2 end = result.BallEnd;
-            var opponent = situation.Side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var opponent = situation.Side.Opponent();
             float toGoal = Vector2.Distance(end, new Vector2(0f, FieldLayout.GoalLineY(opponent)));
             if (shooters > 0)
                 return SetupScore + (shooters - 1) * ExtraShooterScore + (situation.ShotCallDistance - toGoal) * 3f;
@@ -56,7 +56,7 @@ namespace FutebolDeBotao
         public static int Shooters(in SimResult result, AiSituation situation, in AiScoreContext context)
         {
             if (result.End == null) return 0;
-            var opponent = situation.Side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var opponent = situation.Side.Opponent();
             var keeper = KeeperBall.Find(context.Planner.Keepers, opponent);
             float ballRadius = context.Planner.BallRadius;
             if (keeper != null && KeeperBall.InZone(result.BallEnd, ballRadius, keeper)) return -1;

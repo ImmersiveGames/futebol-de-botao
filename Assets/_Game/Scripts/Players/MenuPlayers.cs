@@ -84,9 +84,15 @@ namespace FutebolDeBotao
                 ? new LocalPlayerJoinRequest(Source, reason, device, DeviceChoice.SchemeFor(device))
                 : new LocalPlayerJoinRequest(Source, reason);
             var outcome = join.RequestJoin(request);
+            if (outcome != null && outcome.Code == LocalPlayerJoinOutcomeCode.Joined)
+            {
+#if UNITY_EDITOR
+                Debug.Log($"[Jogadores] Entrou um jogador ({reason}, {device?.displayName ?? "sem dispositivo"}).");
+#endif
+                return;
+            }
             string with = device != null ? device.displayName : "sem dispositivo";
-            if (outcome != null && outcome.Code == LocalPlayerJoinOutcomeCode.Joined) Debug.Log($"[Jogadores] Entrou um jogador ({reason}, {with}).");
-            else Debug.LogWarning($"[Jogadores] Join falhou ({reason}, {with}): {(outcome != null ? outcome.Code.ToString() : "sem resposta")}");
+            Debug.LogWarning($"[Jogadores] Join falhou ({reason}, {with}): {(outcome != null ? outcome.Code.ToString() : "sem resposta")}");
         }
 
         private bool TryGetObservation(out PlayerSessionScopedObservationSnapshot observation)

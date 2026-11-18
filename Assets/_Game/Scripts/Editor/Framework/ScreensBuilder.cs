@@ -666,7 +666,6 @@ namespace FutebolDeBotao.Editor
             image.raycastTarget = false;
         }
 
-        /// <summary>Um recorte da Field_Sprites pelo nome, ou nulo (com aviso) se não existir.</summary>
         /// <summary>Recortes da mesa, das marcações e da bola para o campo desenhado da seleção de times.</summary>
         private static Sprite[] LoadTableSprites()
         {

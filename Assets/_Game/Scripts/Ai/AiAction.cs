@@ -13,7 +13,7 @@ namespace FutebolDeBotao
         public abstract string Effect { get; }
         /// <summary>A jogada encosta na bola. Falso: posicionamento (sem tocar em nada; a vez passa).</summary>
         public virtual bool TouchesBall => true;
-        /// <summary>Não precisa de jogada simulada (anunciar o Vai chutar).</summary>
+        /// <summary>Não precisa de jogada simulada (anunciar o Pro Gol!).</summary>
         public virtual bool IsInstant => false;
 
         public abstract bool CanRun(AiSituation situation);
@@ -49,7 +49,7 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// Anuncia o "Vai chutar": o próximo toque vale gol e o adversário ajusta o goleiro. Anuncia sempre que algum
+        /// Anuncia o "Pro Gol!": o próximo toque vale gol e o adversário ajusta o goleiro. Anuncia sempre que algum
         /// botão tem chute livre, a bola está a distância de chute e o goleiro não alcança a bola (sem conta de chance).
         /// </summary>
         private sealed class CallShotAction : AiAction

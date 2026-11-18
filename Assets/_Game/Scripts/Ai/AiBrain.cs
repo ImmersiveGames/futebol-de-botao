@@ -134,7 +134,7 @@ namespace FutebolDeBotao
 
                 if (action.IsInstant)
                 {
-                    // Vai chutar: a ação só roda com caminho livre até o gol, então anuncia (tem caminho, chuta). Quem
+                    // Pro Gol!: a ação só roda com caminho livre até o gol, então anuncia (tem caminho, chuta). Quem
                     // chuta e onde, a IA decide depois, contra o goleiro já posicionado.
                     string shooters = string.Empty;
                     if (log)

@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Brilho de quem é a vez: um halo pulsando atrás dos botões que podem ser usados agora
-    /// (mais forte, e ainda pulsando, no botão sendo mirado ou escolhido pelo toque; no teclado/controle só no botão do cursor e no toque só no escolhido), atrás da bola no tiro de meta e atrás do goleiro no "Vai chutar".
+    /// (mais forte, e ainda pulsando, no botão sendo mirado ou escolhido pelo toque; no teclado/controle só no botão do cursor e no toque só no escolhido), atrás da bola no tiro de meta e atrás do goleiro no "Pro Gol!".
     /// Nos botões, com a arte Selected_UI (folha de UI, guardada pelo "Criar telas"), o halo vira o anel de seleção girando
     /// por cima do botão, no tamanho dos pixels do jogo; sem a arte, o brilho com o desenho do botão.
     /// </summary>
@@ -87,7 +87,7 @@ namespace FutebolDeBotao
             bool ballSelected = ballOn && aim != null && aim.IsAiming && aim.IsBallKick;
             Show(ballHalo, ballOn, ballSelected ? selectedPulse : pulse, ballSelected ? SelectedScale : HaloScale);
 
-            // No "Vai chutar" quem age é o defensor, ajustando o goleiro.
+            // No "Pro Gol!" quem age é o defensor, ajustando o goleiro.
             foreach (var pair in keeperHalos)
             {
                 bool on = !paused && state == MatchState.ShotCall && pair.Key != null && pair.Key.Side == match.ActingSide &&

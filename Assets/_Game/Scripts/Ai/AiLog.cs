@@ -60,7 +60,7 @@ namespace FutebolDeBotao
             pending = string.Join(";",
                 Field(level),
                 Field(Mathf.FloorToInt(match.ClockSeconds).ToString(Number)),
-                Field($"{match.Score(side)}x{match.Score(side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom)}"),
+                Field($"{match.Score(side)}x{match.Score(side.Opponent())}"),
                 Field(match.TouchesLeft.ToString(Number)),
                 Field(situation.Describe()),
                 Field(decision.GoalsLine),
@@ -81,7 +81,7 @@ namespace FutebolDeBotao
             notices.Clear();
             noticedTouches = string.Empty;
             execution = string.Empty;
-            // Anúncio do Vai chutar não mexe nada: a linha sai na hora.
+            // Anúncio do Pro Gol! não mexe nada: a linha sai na hora.
             if (decision.Action != null && decision.Action.IsInstant) Finish(match);
 #endif
         }
@@ -96,7 +96,7 @@ namespace FutebolDeBotao
 #if UNITY_EDITOR
             var c = Number;
             Vector2 ball = match.Ball.Body.position;
-            var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var opponent = side.Opponent();
             // A partida já contou o toque quando o peteleco sai (estado Moving): o toque desta jogada é um a mais.
             int touches = match.State == MatchState.Moving ? match.TouchesLeft + 1 : match.TouchesLeft;
             string facts = string.Join(" ",
@@ -138,7 +138,7 @@ namespace FutebolDeBotao
 #if UNITY_EDITOR
             var c = Number;
             Vector2 ball = match.Ball.Body.position;
-            var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var opponent = side.Opponent();
             var predicted = new StringBuilder();
             foreach (var threat in threats)
                 predicted.Append(predicted.Length > 0 ? ", " : string.Empty)

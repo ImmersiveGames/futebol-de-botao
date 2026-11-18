@@ -11,9 +11,9 @@ namespace FutebolDeBotao
         Aim,
         /// <summary>Pênalti ou tiro livre: o atacante posiciona o batedor em volta da bola (no pênalti, só no arco atrás dela).</summary>
         PenaltySetup,
-        /// <summary>"Vai chutar" declarado: o defensor ajusta o goleiro.</summary>
+        /// <summary>"Pro Gol!" declarado: o defensor ajusta o goleiro.</summary>
         ShotCall,
-        /// <summary>"Vai chutar": o atacante mira com um botão do campo de ataque.</summary>
+        /// <summary>"Pro Gol!": o atacante mira com um botão do campo de ataque.</summary>
         ShotAim,
         /// <summary>Tiro de meta: o defensor chuta direto na bola, na frente do goleiro.</summary>
         GoalKick,

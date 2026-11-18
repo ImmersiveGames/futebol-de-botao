@@ -12,7 +12,7 @@ namespace FutebolDeBotao
 
     /// <summary>
     /// Personalidade da IA: o nível diz quão bem ela joga, o perfil mexe só em duas coisas, de quão longe ela anuncia o
-    /// Vai chutar e o risco de falta que ela aceita. Assets em Resources/IA/Perfis (Ofensivo, Equilibrado, Defensivo).
+    /// Pro Gol! e o risco de falta que ela aceita. Assets em Resources/IA/Perfis (Ofensivo, Equilibrado, Defensivo).
     /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Perfil da IA", fileName = "PerfilDaIA")]
     public sealed class AiProfile : ScriptableObject

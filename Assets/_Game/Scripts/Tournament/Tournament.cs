@@ -32,6 +32,10 @@ namespace FutebolDeBotao
         /// <summary>Mexendo na liga (verdadeiro) ou no torneio (falso). O Menu troca ao entrar em Liga ou Torneio.</summary>
         public static bool LeagueMode { get; set; }
 
+        // Com o "Enter Play Mode" sem recarregar o domínio, o estático sobrevive entre execuções no editor.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => LeagueMode = false;
+
         public static SaveData.TournamentRun Run => LeagueMode
             ? (GameSave.Data.league ??= new SaveData.TournamentRun())
             : (GameSave.Data.tournament ??= new SaveData.TournamentRun());

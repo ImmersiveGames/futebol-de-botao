@@ -198,7 +198,7 @@ namespace FutebolDeBotao
         {
             if (MatchSession.InTournamentMatch) return;
             var catalog = TeamCatalog.Load();
-            int other = MatchSession.TeamIndex(Other(side));
+            int other = MatchSession.TeamIndex(side.Opponent());
             if (other >= 0) other = Wrap(other, catalog.TeamCount);
             // Posições nas setas: com o Meu time, a 0 é ele e o time i do catálogo fica na i + 1.
             int first = side == TeamSide.Bottom ? MatchSession.ProfileTeam : 0;
@@ -929,7 +929,6 @@ namespace FutebolDeBotao
             rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
-        private static TeamSide Other(TeamSide side) => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
 
         private static int Wrap(int value, int count) => count == 0 ? 0 : ((value % count) + count) % count;
     }

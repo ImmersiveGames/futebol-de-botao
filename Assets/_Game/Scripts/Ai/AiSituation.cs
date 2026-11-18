@@ -33,7 +33,7 @@ namespace FutebolDeBotao
         public List<Disc> ClearShooters = new();
         public bool HasClearShot => ClearShooters.Count > 0;
         public float ShotCallDistance;
-        /// <summary>O goleiro adversário consegue chegar na bola: no Vai chutar ela viraria dele.</summary>
+        /// <summary>O goleiro adversário consegue chegar na bola: no Pro Gol! ela viraria dele.</summary>
         public bool KeeperCanTakeBall;
         public int ScoreDifference;
         public float SecondsLeft;
@@ -52,7 +52,7 @@ namespace FutebolDeBotao
         public static AiSituation Read(MatchController match, TeamSide side, ShotPlanner planner, AiDifficulty difficulty,
             List<Disc> usable, List<Disc> allUsable)
         {
-            var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+            var opponent = side.Opponent();
             Vector2 ball = match.Ball.Body.position;
             var situation = new AiSituation
             {

@@ -5,7 +5,8 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Tudo o que o jogo guarda no aparelho, num arquivo só (JSON). <see cref="version"/> sobe quando o formato mudar,
-    /// para converter o save de quem já joga. Desbloqueios e torneio já têm lugar, mas ainda não são usados.
+    /// para converter o save de quem já joga (ver Upgrade). Guarda opções, perfil (Meu time), moedas e extrato, itens
+    /// comprados, estatísticas, torneio e liga em andamento, tutorial, anúncios e conquistas.
     /// </summary>
     [Serializable]
     public sealed class SaveData

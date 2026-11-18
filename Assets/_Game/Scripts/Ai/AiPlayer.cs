@@ -255,7 +255,7 @@ namespace FutebolDeBotao
         /// <summary>O planejador do adversário: chutes que ele teria (goleiro da IA e perigo de passar a vez).</summary>
         private ShotPlanner OpponentPlanner()
         {
-            attackerPlanner ??= new ShotPlanner(Opponent(Side), aim.Tuning, match.Ball);
+            attackerPlanner ??= new ShotPlanner(Side.Opponent(), aim.Tuning, match.Ball);
             attackerPlanner.FoulsEnabled = match.Options.fouls;
             attackerPlanner.GoalWidth = match.GoalWidth;
             attackerPlanner.AllDiscs = match.AllDiscs;
@@ -325,7 +325,7 @@ namespace FutebolDeBotao
         private IEnumerator BestKeeperX(Goalkeeper keeper, int version, System.Action<float?> done)
         {
             EnsureBrain();
-            var attacker = Opponent(Side);
+            var attacker = Side.Opponent();
             var usable = new List<Disc>();
             foreach (var disc in match.AllDiscs)
                 if (match.CanUse(disc)) usable.Add(disc);
@@ -412,7 +412,7 @@ namespace FutebolDeBotao
         private void UpdateProfile()
         {
             if (match == null || levelDifficulty == null || baseProfile == null || profile == null) return;
-            int diff = match.Score(Side) - match.Score(Opponent(Side));
+            int diff = match.Score(Side) - match.Score(Side.Opponent());
             float window = match.Options.DurationSeconds * LateFraction;
             float late = window > 0f ? Mathf.Clamp01(1f - match.ClockSeconds / window) : 0f;
             float pull = diff == 0 ? 0f : late * Mathf.Clamp01(Mathf.Abs(diff) / (float)FullPullGoals);
@@ -426,7 +426,6 @@ namespace FutebolDeBotao
                               : string.Empty);
         }
 
-        private static TeamSide Opponent(TeamSide side) => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
 
         /// <summary>Onde a bola cruza a linha do gol se o batedor bater reto nela.</summary>
         private float PredictShotX()

@@ -341,6 +341,12 @@ namespace FutebolDeBotao
             InTournamentMatch = false;
             TournamentSetup = false;
             OpenTournament = false;
+            TournamentId = null;
+            LeagueId = null;
+            LeagueLegs = 0;
+            Player1Device = null;
+            Player2Device = null;
+            SharedDevice = false;
             LastResult = null;
             LastMatchNumbers = null;
             FeltId = null;

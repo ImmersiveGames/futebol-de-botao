@@ -28,7 +28,7 @@ namespace FutebolDeBotao
         bool SelectPressedThisFrame { get; }
         /// <summary>Chutar (Espaço, X).</summary>
         bool KickPressedThisFrame { get; }
-        /// <summary>"Vai chutar" (C, LB, RB).</summary>
+        /// <summary>"Pro Gol!" (C, LB, RB).</summary>
         bool ShotCallPressedThisFrame { get; }
     }
 

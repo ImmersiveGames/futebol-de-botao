@@ -26,8 +26,8 @@ namespace FutebolDeBotao
     }
 
     /// <summary>
-    /// Menu: a primeira tela tem Jogar, Meu time, Loja, Configurações e Sair (Estatísticas na aba Carreira do Meu time). Jogar abre a escolha entre Torneio, Partida única
-    /// (contra a IA) e Dois jogadores. O Torneio continua o guardado ou monta um novo (Controles, Opções do torneio e a
+    /// Menu: a primeira tela tem Jogar, Meu time, Loja, Configurações e Sair (Estatísticas na aba Carreira do Meu time). Jogar abre a escolha entre Torneio, Liga, Partida única
+    /// (contra a IA), Dois jogadores e Tutorial. O Torneio (e a Liga) continua o guardado ou monta um novo (Controles, Opções do torneio e a
     /// chave, <see cref="TournamentScreen"/>); nas outras, escolhido o modo, abre os Controles (só com mais de um dispositivo), as Opções da partida (com a dificuldade da IA só em Um jogador), depois a Seleção de times, e
     /// "Jogar" põe os jogadores na sessão e pede a Route da Partida.
     /// As opções editam a cópia da sessão (MatchSession), não o asset padrão.

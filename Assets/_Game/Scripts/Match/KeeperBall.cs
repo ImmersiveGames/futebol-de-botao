@@ -50,7 +50,7 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// O goleiro consegue deixar a bola parada em <paramref name="ballPosition"/> na área em volta dele, andando para
-        /// algum lugar onde pode ficar (no Vai chutar o defensor faria isso e a bola viraria dele).
+        /// algum lugar onde pode ficar (no Pro Gol! o defensor faria isso e a bola viraria dele).
         /// </summary>
         public static bool CanReach(Vector2 ballPosition, float ballRadius, Goalkeeper keeper)
         {

@@ -87,7 +87,7 @@ namespace FutebolDeBotao
             ball = matchBall;
         }
 
-        private TeamSide Opponent => side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
+        private TeamSide Opponent => side.Opponent();
         private Vector2 Attack => FieldLayout.AttackDirection(side);
 
         // ---- Jogadas por geometria ----
@@ -139,7 +139,7 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// Neste momento simulado, algum botão teria chute a gol livre (sem adversário no caminho, sem força máxima)
-        /// com a bola perto do gol? É o "Preparar o chute": no toque seguinte dá para anunciar o Vai chutar.
+        /// com a bola perto do gol? É o "Preparar o chute": no toque seguinte dá para anunciar o Pro Gol!.
         /// </summary>
         public bool HasShotSetup(SimState state, IReadOnlyList<Disc> discs, float maxDistance) =>
             ShotSetupCount(state, discs, maxDistance, 1) > 0;
@@ -351,7 +351,7 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// Vale anunciar o "Vai chutar"? Sim quando a bola está perto do gol e existe um chute com caminho livre
+        /// Vale anunciar o "Pro Gol!"? Sim quando a bola está perto do gol e existe um chute com caminho livre
         /// até a bola e da bola até o gol (sem contar o goleiro, que ainda vai se mexer).
         /// </summary>
         public bool ShouldCallShot(IReadOnlyList<Disc> usable, float maxDistance)
@@ -367,7 +367,7 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// Botões com chute a gol livre agora: sem risco de falta, caminho livre até a bola e da bola até o gol, sem
-        /// precisar da força máxima. O goleiro não conta (ele ainda vai se mexer depois do Vai chutar): tem caminho, chuta.
+        /// precisar da força máxima. O goleiro não conta (ele ainda vai se mexer depois do Pro Gol!): tem caminho, chuta.
         /// </summary>
         public List<Disc> ClearShooters(IReadOnlyList<Disc> discs)
         {
