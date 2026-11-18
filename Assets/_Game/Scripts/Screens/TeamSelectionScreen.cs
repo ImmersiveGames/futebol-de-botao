@@ -385,6 +385,9 @@ namespace FutebolDeBotao
                 }
 
                 view.Keeper.Root.gameObject.SetActive(options.hasGoalkeeper);
+                // Mesma largura da Partida (Goalkeeper.SetWidth): o desenho estica junto.
+                float keeperWidth = Mathf.Clamp(options.keeperWidth, 0.1f, FieldLayout.GoalWidth);
+                view.Keeper.Root.localScale = new Vector3(keeperWidth, 1f, 1f);
                 // As camisas vêm do uniforme: sem setas no goleiro.
                 SetActive(view.KeeperArrows.gameObject, false);
                 SetActive(bigGoals, !boardsTable && options.hasGoalkeeper);
@@ -833,8 +836,15 @@ namespace FutebolDeBotao
         private static void SetUpright(HalfView view, bool upright)
         {
             view.Controls.localRotation = upright ? Quaternion.Euler(0f, 0f, 180f) : Quaternion.identity;
+            // As colunas sobem inteiras para a metade de cima, na mesma ordem de cima para baixo (nome em cima);
+            // só as setas do goleiro espelham, para continuarem ao lado dele.
+            float shift = -(NameY + UniformArrowY) * Unit;
             foreach (var (rect, position) in view.ControlPositions)
-                rect.anchoredPosition = upright ? new Vector2(position.x, -position.y) : position;
+            {
+                if (!upright) rect.anchoredPosition = position;
+                else if (rect == view.KeeperArrows) rect.anchoredPosition = new Vector2(position.x, -position.y);
+                else rect.anchoredPosition = new Vector2(position.x, position.y + shift);
+            }
         }
 
         /// <summary>
