@@ -202,8 +202,10 @@ namespace FutebolDeBotao
             if (restoreShown)
             {
                 y -= 90f;
-                restoreButton = CreateButton(panel, "Restaurar compras", Txt.Get("Restaurar compras"), new Vector2(0f, y), new Vector2(460f, 70f),
+                restoreButton = CreateButton(panel, "Restaurar compras", "Restaurar compras", new Vector2(0f, y), new Vector2(460f, 70f),
                     RestorePurchases, ButtonStyle.Brown);
+                // Troca junto quando o idioma muda com a tela aberta (como os outros botões).
+                LocalizedText.Attach(restoreButton.GetComponentInChildren<Text>());
                 var restoreEntry = restoreButton.gameObject.AddComponent<MenuEntry>();
                 restoreEntry.Configure(restoreButton);
                 entries.Add(restoreEntry);
