@@ -74,7 +74,10 @@ namespace FutebolDeBotao
             else PassTurn(null);
         }
 
-        /// <summary>Bola do goleiro (parada na área em volta dele) vira tiro de meta para o time dele, não importa quem jogou.</summary>
+        /// <summary>
+        /// Bola do goleiro (parada na área em volta dele) vira tiro de meta para o time dele, menos no recuo (a própria
+        /// jogada do time deixou a bola com o goleiro dele): aí ver <see cref="SetupBackPass"/>.
+        /// </summary>
         private bool TryKeeperZoneGoalKick()
         {
             if (IsShootout) return false;
@@ -85,6 +88,15 @@ namespace FutebolDeBotao
                 monitor.FreezeAll();
                 Enter(MatchState.Moving);
                 tutorial.OnPlayEnded(TutorialPlay.KeeperBall);
+                return true;
+            }
+            // Recuo: a própria jogada deixou a bola com o próprio goleiro. Não é tiro de meta (não enche os toques):
+            // sem toque sobrando a bola fica onde parou; com toque, o goleiro chuta gastando um toque.
+            if (State == MatchState.Moving && owner.Value == Turn && ball.LastTouchSide == Turn)
+            {
+                // Chute anunciado encerra a vez de qualquer jogo ("Pra fora!").
+                if (touchesLeft <= 0 || shotWasCalled) return false;
+                SetupBackPass(Turn);
                 return true;
             }
             message = string.Empty;

@@ -120,5 +120,33 @@ namespace FutebolDeBotao
             draggingGoalKickBall = false;
             Enter(MatchState.GoalKick);
         }
+
+        /// <summary>
+        /// Recuo com toque sobrando: a bola vai para a frente do goleiro (o lugar livre mais perto na largura da área) e
+        /// ele chuta como no tiro de meta, mas ninguém volta para a formação, a vez continua e os toques não enchem: o
+        /// chute do goleiro gasta um toque (<see cref="OnBallKicked"/>).
+        /// </summary>
+        private void SetupBackPass(TeamSide side)
+        {
+            monitor.FreezeAll();
+            var keeper = FindKeeper(side);
+            if (keeper != null)
+            {
+                Vector2 front = (Vector2)keeper.transform.position + FieldLayout.AttackDirection(side) * 0.8f;
+                float range = GoalKickHalfRange;
+                for (float offset = 0f; offset <= range * 2f; offset += 0.1f)
+                {
+                    var right = new Vector2(Mathf.Clamp(front.x + offset, -range, range), front.y);
+                    var left = new Vector2(Mathf.Clamp(front.x - offset, -range, range), front.y);
+                    if (BallSpotFree(right)) { ball.ResetTo(right); break; }
+                    if (BallSpotFree(left)) { ball.ResetTo(left); break; }
+                }
+            }
+            message = Txt.Get("Recuo para o goleiro!");
+            goalKickPlacing = true;
+            draggingGoalKickBall = false;
+            Enter(MatchState.GoalKick);
+            Hold();
+        }
     }
 }
