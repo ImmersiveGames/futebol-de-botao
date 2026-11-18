@@ -199,5 +199,21 @@ namespace FutebolDeBotao.Tests
             fresh.profile.coins = 1;
             Assert.IsTrue(SaveSandbox.Call<bool>(typeof(GameSave), "HasProgress", fresh));
         }
+
+        [Test]
+        public void PassosDeVersao_EmOrdem_E_NenhumDepoisDaAtual()
+        {
+            var field = typeof(GameSave).GetField("Migrations", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.IsNotNull(field, "lista de passos de versão não encontrada");
+            var steps = ((int version, System.Action<SaveData> step)[])field.GetValue(null);
+            int previous = 1;
+            foreach (var (version, step) in steps)
+            {
+                Assert.Greater(version, previous, "passos fora de ordem ou repetidos");
+                Assert.LessOrEqual(version, SaveData.CurrentVersion, "passo para uma versão que ainda não existe");
+                Assert.IsNotNull(step);
+                previous = version;
+            }
+        }
     }
 }

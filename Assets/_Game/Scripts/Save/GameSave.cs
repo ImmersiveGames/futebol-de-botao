@@ -32,6 +32,8 @@ namespace FutebolDeBotao
         {
             Data = new SaveData();
             Existed = false;
+            dirty = false;
+            pendingReason = null;
             createdTicks = 0;
             store = null;
             try
@@ -62,18 +64,53 @@ namespace FutebolDeBotao
             if (PlayerStats.CountLeftover()) Save("partida abandonada");
         }
 
-        /// <summary>Junta o estado atual (MatchSession, opções, música) e grava.</summary>
+        /// <summary>
+        /// Junta o estado atual (MatchSession, opções) no save e marca para gravar. A gravação no disco acontece uma vez só,
+        /// no fim do quadro (<see cref="Flush"/>), mesmo que vários sistemas peçam no mesmo quadro.
+        /// </summary>
         public static void Save(string reason)
         {
             Capture();
-            Write(reason);
+            MarkDirty(reason);
         }
 
         /// <summary>
-        /// Grava o save como está, sem juntar as escolhas da sessão (o tutorial usa: a partida dele troca os times da
-        /// sessão e isso não pode virar a última escolha do jogador).
+        /// Marca para gravar o save como está, sem juntar as escolhas da sessão (o tutorial usa: a partida dele troca os
+        /// times da sessão e isso não pode virar a última escolha do jogador).
         /// </summary>
-        public static void WriteOnly(string reason) => Write(reason);
+        public static void WriteOnly(string reason) => MarkDirty(reason);
+
+        // ---- Gravar uma vez por quadro ----
+
+        private static bool dirty;
+        private static string pendingReason;
+        private static SaveFlusher flusher;
+
+        /// <summary>Tem mudança marcada que ainda não foi para o disco.</summary>
+        public static bool IsDirty => dirty;
+
+        private static void MarkDirty(string reason)
+        {
+            if (!Application.isPlaying)
+            {
+                // Fora do Play (menus do editor): grava na hora, não há quadro para esperar.
+                Write(reason);
+                return;
+            }
+            pendingReason = dirty ? pendingReason + ", " + reason : reason;
+            dirty = true;
+            if (flusher == null) flusher = SaveFlusher.Create();
+        }
+
+        /// <summary>Grava agora o que estiver marcado. Chamado no fim do quadro, ao pausar o app e ao fechar o jogo.</summary>
+        public static void Flush()
+        {
+            if (!dirty) return;
+            dirty = false;
+            string reason = pendingReason;
+            pendingReason = null;
+            Write(reason);
+        }
 
         /// <summary>Opções salvas por cima da cópia da sessão (chamado quando o MatchSession cria a cópia).</summary>
         public static void ApplyOptions(MatchOptions options)
@@ -239,8 +276,95 @@ namespace FutebolDeBotao
             return profile != null && (profile.coins > 0 || profile.teamName != PlayerProfile.DefaultName);
         }
 
-        /// <summary>Converte saves de versões antigas e completa o que faltar (campos novos ficam no padrão).</summary>
+        /// <summary>
+        /// Converte um save de versão antiga para a de hoje: primeiro completa o que faltar (campos novos ficam no padrão),
+        /// depois roda, em ordem, cada passo de versão mais nova que a do save (<see cref="Migrations"/>).
+        /// </summary>
         private static SaveData Upgrade(SaveData data)
+        {
+            FillMissing(data);
+            foreach (var (version, step) in Migrations)
+                if (data.version < version) step(data);
+            // Uniforme 2 zerado (save sem perfil): as cores do 1 invertidas.
+            if (data.profile.primary2.a <= 0f) data.profile.primary2 = data.profile.secondary;
+            if (data.profile.secondary2.a <= 0f) data.profile.secondary2 = data.profile.primary;
+            data.version = SaveData.CurrentVersion;
+            return data;
+        }
+
+        /// <summary>
+        /// Passos de conversão: cada um leva o save para a versão do número (só roda se o save for mais velho que ela).
+        /// Versão nova com conversão = um passo novo no fim da lista; versões sem passo só ganharam campos com padrão.
+        /// </summary>
+        private static readonly (int version, Action<SaveData> step)[] Migrations =
+        {
+            (2, ToVersion2),
+            (4, ToVersion4),
+            (8, ToVersion8),
+            (9, ToVersion9),
+            (10, ToVersion10),
+        };
+
+        /// <summary>Versão 1 não tinha a marca de partida em andamento (o campo vinha 0 = "Fácil em andamento").</summary>
+        private static void ToVersion2(SaveData data) => data.stats.inProgressLevel = -1;
+
+        /// <summary>Versão 4 passou a contar moedas ganhas e gastas: gastos pelo preço do que já foi comprado, ganhos = saldo + gastos.</summary>
+        private static void ToVersion4(SaveData data)
+        {
+            int spent = 0, bought = 0;
+            foreach (var key in data.unlocked)
+            {
+                int price = Shop.PriceOf(key);
+                if (price < 0) continue;
+                spent += price;
+                bought++;
+            }
+            data.stats.coinsSpent = spent;
+            data.stats.itemsBought = bought;
+            data.stats.coinsEarned = data.profile.coins + spent;
+        }
+
+        /// <summary>Versão 8 trocou a cor reserva pelo Uniforme 2: a reserva vira o Uniforme 2; sem reserva, as cores invertidas.</summary>
+        private static void ToVersion8(SaveData data)
+        {
+            var profile = data.profile;
+            profile.discPatternId2 = profile.discPatternId;
+            profile.keeperPatternId2 = profile.keeperPatternId;
+            if (profile.hasReserve && profile.reserve.a > 0f)
+            {
+                profile.primary2 = profile.reserveReplacesSecondary ? profile.primary : profile.reserve;
+                profile.secondary2 = profile.reserveReplacesSecondary ? profile.reserve : profile.secondary;
+            }
+            else
+            {
+                profile.primary2 = profile.secondary;
+                profile.secondary2 = profile.primary;
+            }
+            profile.hasReserve = false;
+        }
+
+        /// <summary>
+        /// Versão 9 criou o Financeiro: os totais vêm das estatísticas; do ganho, o tutorial é exato (lições e bônus) e
+        /// o resto vai para Partidas (antes não se separava partida de torneio). O extrato começa vazio.
+        /// </summary>
+        private static void ToVersion9(SaveData data)
+        {
+            var finance = data.finance;
+            finance.earned = data.stats.coinsEarned;
+            finance.spent = data.stats.coinsSpent;
+            int tutorial = data.tutorial.done.Count * Tutorial.LessonReward + (data.tutorial.bonusPaid ? Tutorial.CompleteBonus : 0);
+            finance.fromTutorial = Math.Min(tutorial, Math.Max(0, finance.earned));
+            finance.fromMatches = Math.Max(0, finance.earned - finance.fromTutorial);
+        }
+
+        /// <summary>Versão 10 trocou a Música Ligado/Desligado pelos volumes: música desligada = volume da música no 0.</summary>
+        private static void ToVersion10(SaveData data)
+        {
+            if (!data.settings.music) data.settings.musicVolume = 0;
+        }
+
+        /// <summary>Completa o que o save não tem (listas nulas, níveis faltando, perfil sem nome ou cor).</summary>
+        private static void FillMissing(SaveData data)
         {
             data.settings ??= new SaveData.SettingsData();
             data.options ??= new SaveData.OptionsData();
@@ -267,8 +391,6 @@ namespace FutebolDeBotao
             foreach (var level in stats.levels) level.numbers ??= new SaveData.MatchNumbers();
             stats.last ??= new SaveData.LastMatchData();
             stats.last.numbers ??= new SaveData.MatchNumbers();
-            // Versão 1 não tinha a marca de partida em andamento (o campo vinha 0 = "Fácil em andamento").
-            if (data.version < 2) stats.inProgressLevel = -1;
             data.profile ??= new SaveData.ProfileData();
             if (string.IsNullOrWhiteSpace(data.profile.teamName)) data.profile.teamName = PlayerProfile.DefaultName;
             if (string.IsNullOrWhiteSpace(data.profile.abbreviation)) data.profile.abbreviation = PlayerProfile.DefaultAbbreviation;
@@ -282,43 +404,8 @@ namespace FutebolDeBotao
             data.league ??= new SaveData.TournamentRun();
             data.league.slots ??= new System.Collections.Generic.List<int>();
             data.league.matches ??= new System.Collections.Generic.List<SaveData.TournamentMatch>();
-            // Versão 8 trocou a cor reserva pelo Uniforme 2: a reserva vira o Uniforme 2; sem reserva, as cores invertidas.
-            if (data.version < 8)
-            {
-                var profile = data.profile;
-                profile.discPatternId2 = profile.discPatternId;
-                profile.keeperPatternId2 = profile.keeperPatternId;
-                if (profile.hasReserve && profile.reserve.a > 0f)
-                {
-                    profile.primary2 = profile.reserveReplacesSecondary ? profile.primary : profile.reserve;
-                    profile.secondary2 = profile.reserveReplacesSecondary ? profile.reserve : profile.secondary;
-                }
-                else
-                {
-                    profile.primary2 = profile.secondary;
-                    profile.secondary2 = profile.primary;
-                }
-                profile.hasReserve = false;
-            }
-            if (data.profile.primary2.a <= 0f) data.profile.primary2 = data.profile.secondary;
-            if (data.profile.secondary2.a <= 0f) data.profile.secondary2 = data.profile.primary;
             data.tutorial ??= new SaveData.TutorialData();
             data.tutorial.done ??= new System.Collections.Generic.List<string>();
-            // Versão 4 passou a contar moedas ganhas e gastas: gastos pelo preço do que já foi comprado, ganhos = saldo + gastos.
-            if (data.version < 4)
-            {
-                int spent = 0, bought = 0;
-                foreach (var key in data.unlocked)
-                {
-                    int price = Shop.PriceOf(key);
-                    if (price < 0) continue;
-                    spent += price;
-                    bought++;
-                }
-                stats.coinsSpent = spent;
-                stats.itemsBought = bought;
-                stats.coinsEarned = data.profile.coins + spent;
-            }
             data.finance ??= new SaveData.FinanceData();
             data.finance.entries ??= new System.Collections.Generic.List<SaveData.FinanceEntry>();
             data.ads ??= new SaveData.AdsData();
@@ -326,21 +413,6 @@ namespace FutebolDeBotao
             data.achievements ??= new System.Collections.Generic.List<string>();
             data.weekly ??= new SaveData.WeeklyData();
             data.weekly.points ??= new System.Collections.Generic.List<int>();
-            // Versão 9 criou o Financeiro: os totais vêm das estatísticas; do ganho, o tutorial é exato (lições e bônus) e
-            // o resto vai para Partidas (antes não se separava partida de torneio). O extrato começa vazio.
-            if (data.version < 9)
-            {
-                var finance = data.finance;
-                finance.earned = stats.coinsEarned;
-                finance.spent = stats.coinsSpent;
-                int tutorial = data.tutorial.done.Count * Tutorial.LessonReward + (data.tutorial.bonusPaid ? Tutorial.CompleteBonus : 0);
-                finance.fromTutorial = Math.Min(tutorial, Math.Max(0, finance.earned));
-                finance.fromMatches = Math.Max(0, finance.earned - finance.fromTutorial);
-            }
-            // Versão 10 trocou a Música Ligado/Desligado pelos volumes: música desligada = volume da música no 0.
-            if (data.version < 10 && !data.settings.music) data.settings.musicVolume = 0;
-            data.version = SaveData.CurrentVersion;
-            return data;
         }
     }
 }

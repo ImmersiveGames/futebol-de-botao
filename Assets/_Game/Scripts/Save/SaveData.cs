@@ -116,8 +116,6 @@ namespace FutebolDeBotao
         [Serializable]
         public sealed class SettingsData
         {
-            /// <summary>Música Ligado/Desligado (até a versão 9); agora vale <see cref="musicVolume"/>.</summary>
-            public bool music = true;
             /// <summary>Volumes da tela Configurações (versão 10), de 0 a <see cref="GameVolume.MaxLevel"/>.</summary>
             public int masterVolume = GameVolume.MaxLevel;
             public int musicVolume = GameVolume.MaxLevel;
@@ -133,6 +131,10 @@ namespace FutebolDeBotao
             public string leagueId;
             /// <summary>Turnos da liga escolhidos por último (1 ou 2; 0 = o padrão do asset).</summary>
             public int leagueLegs;
+
+            // ---- Legado: só servem para converter saves antigos (GameSave, passos de versão). O jogo não usa. ----
+            /// <summary>Música Ligado/Desligado (até a versão 9; o passo da versão 10 converte); agora vale <see cref="musicVolume"/>.</summary>
+            public bool music = true;
         }
 
         [Serializable]
@@ -184,16 +186,18 @@ namespace FutebolDeBotao
             public UnityEngine.Color secondary2 = PlayerProfile.DefaultPrimary;
             public string discPatternId2;
             public string keeperPatternId2;
-            /// <summary>Cor reserva (versão 3 a 7): convertida no Uniforme 2 ao abrir um save antigo.</summary>
-            public bool hasReserve;
-            public UnityEngine.Color reserve = UnityEngine.Color.white;
-            public bool reserveReplacesSecondary;
             public int coins;
             /// <summary>Mesa de casa (aba Mesa do Meu time): ids da mesa, do feltro e da bola e o nome da cor das traves. Vazio: a primeira liberada.</summary>
             public string tableId;
             public string feltId;
             public string goalColorName;
             public string ballId;
+
+            // ---- Legado: só servem para converter saves antigos (GameSave, passos de versão). O jogo não usa. ----
+            /// <summary>Cor reserva (versão 3 a 7): convertida no Uniforme 2 ao abrir um save antigo.</summary>
+            public bool hasReserve;
+            public UnityEngine.Color reserve = UnityEngine.Color.white;
+            public bool reserveReplacesSecondary;
         }
 
         [Serializable]
@@ -208,10 +212,13 @@ namespace FutebolDeBotao
             /// <summary>Já houve uma partida terminada (a aba Última partida).</summary>
             public bool hasLast;
             public LastMatchData last = new();
-            /// <summary>Moedas ganhas e gastas (versões 4 a 8; agora em <see cref="FinanceData"/>).</summary>
+            /// <summary>Itens comprados na Loja (versão 4).</summary>
+            public int itemsBought;
+
+            // ---- Legado: só servem para converter saves antigos (GameSave, passos de versão). O jogo não usa. ----
+            /// <summary>Moedas ganhas e gastas (versões 4 a 8; o passo da versão 9 leva para o <see cref="FinanceData"/>).</summary>
             public int coinsEarned;
             public int coinsSpent;
-            public int itemsBought;
         }
 
         /// <summary>Números do jogador numa partida (ou somados em várias).</summary>
