@@ -46,7 +46,6 @@ namespace FutebolDeBotao
         private const float PreviewY = 25f;
         private const float PreviewSize = 150f;
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
-        private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
         private static readonly Color CoinColor = new(1f, 0.85f, 0.25f);
         private static readonly Color LabelColor = new(1f, 1f, 1f, 0.85f);
 
@@ -54,7 +53,6 @@ namespace FutebolDeBotao
         [Tooltip("Recortes da mesa e da bola (Field_Sprites, Field_Marks e Ball_SpriteSheet), para a prévia da aba Mesa.")]
         [SerializeField] private Sprite[] tableSprites;
 
-        private Font font;
         private bool built;
         private InputField nameField, abbreviationField;
         private Image primarySwatch, secondarySwatch;
@@ -336,7 +334,6 @@ namespace FutebolDeBotao
         {
             if (built) return;
             built = true;
-            font = GameFont.Get();
             var root = (RectTransform)transform;
 
             LocalizedText.Attach(CreateText(root, "Título", "Meu time", 52, FontStyle.Bold, Color.white, new Vector2(0f, 545f), new Vector2(680f, 90f)));
@@ -706,62 +703,19 @@ namespace FutebolDeBotao
             rect.offsetMax = new Vector2(-inset, 0f);
         }
 
-        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size)
-        {
-            var go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            return rect;
-        }
+        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size) =>
+            UiKit.CreateRect(parent, objectName, position, size);
 
-        private Text CreateText(Transform parent, string objectName, string content, int size, FontStyle style, Color color,
-            Vector2 position, Vector2 box)
-        {
-            var text = CreateRect(parent, objectName, position, box).gameObject.AddComponent<Text>();
-            text.font = font;
-            text.text = content;
-            text.fontSize = size;
-            text.fontStyle = style;
-            text.color = color;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
-            text.gameObject.AddComponent<Shadow>().effectColor = ShadowColor;
-            TextFit.Shrink(text);
-            return text;
-        }
+        private static Text CreateText(Transform parent, string objectName, string content, int size, FontStyle style, Color color,
+            Vector2 position, Vector2 box) =>
+            UiKit.CreateText(parent, objectName, content, size, style, color, position, box);
 
-        private Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action,
-            ButtonStyle style = ButtonStyle.Green)
-        {
-            var rect = CreateRect(parent, objectName, position, size);
-            var image = rect.gameObject.AddComponent<Image>();
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            button.onClick.AddListener(action);
-            var text = CreateText(rect, "Texto", label, 30, FontStyle.Bold, ButtonSkin.TextColor(style), Vector2.zero, size);
-            LocalizedText.Attach(text);
-            Destroy(text.GetComponent<Shadow>());
-            text.rectTransform.anchorMin = Vector2.zero;
-            text.rectTransform.anchorMax = Vector2.one;
-            text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
-            ButtonSkin.Apply(button, style);
-            return button;
-        }
+        private static Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action,
+            ButtonStyle style = ButtonStyle.Green) =>
+            UiKit.CreateButton(parent, objectName, label, position, size, action, style, localize: true);
 
         /// <summary>Botão sem imagem nem clique: só para o teclado/controle apertar (MenuEntry).</summary>
-        private static Button CreateHiddenButton(Transform parent, string objectName, UnityAction action)
-        {
-            var button = CreateRect(parent, objectName, Vector2.zero, Vector2.zero).gameObject.AddComponent<Button>();
-            button.transition = Selectable.Transition.None;
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            button.onClick.AddListener(action);
-            return button;
-        }
+        private static Button CreateHiddenButton(Transform parent, string objectName, UnityAction action) =>
+            UiKit.CreateHiddenButton(parent, objectName, action);
     }
 }

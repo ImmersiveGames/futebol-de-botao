@@ -861,16 +861,8 @@ namespace FutebolDeBotao
 
         // ---- UI ----
 
-        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size)
-        {
-            var go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            return rect;
-        }
+        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size) =>
+            UiKit.CreateRect(parent, objectName, position, size);
 
         /// <summary>Imagem em unidades do campo (posição e tamanho multiplicados por <see cref="Unit"/>).</summary>
         private static Image CreateImage(Transform parent, string objectName, Color color, Sprite sprite, Vector2 position = default, Vector2 size = default)

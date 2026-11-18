@@ -83,7 +83,6 @@ namespace FutebolDeBotao
         private GameObject stripsRoot;
         private GameObject pcRoot;
         private TurnHighlight highlight;
-        private Font font;
         private Camera worldCamera;
         private int lastMessageVersion = -1;
         // Sobe quando o idioma muda: obriga os textos a serem montados de novo.
@@ -122,7 +121,6 @@ namespace FutebolDeBotao
             }
 
             Txt.Changed += OnTextsChanged;
-            font = GameFont.Get();
             BuildStrips();
             BuildMessages();
             BuildPcPanel();
@@ -715,26 +713,8 @@ namespace FutebolDeBotao
             return image;
         }
 
-        private Text CreateText(Transform parent, string objectName, int size, FontStyle style, Vector2 position, Vector2 box)
-        {
-            var go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = (RectTransform)go.transform;
-            rect.anchoredPosition = position;
-            rect.sizeDelta = box;
-            var text = go.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = size;
-            text.fontStyle = style;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.supportRichText = true;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
-            TextFit.Shrink(text);
-            return text;
-        }
+        private static Text CreateText(Transform parent, string objectName, int size, FontStyle style, Vector2 position, Vector2 box) =>
+            UiKit.CreateText(parent, objectName, string.Empty, size, style, Color.white, position, box, shadow: false);
 
         /// <summary>Texto preso à caixa: a fonte diminui até caber, sem quebrar nem passar da altura.</summary>
         private static void FitInBox(Text text)

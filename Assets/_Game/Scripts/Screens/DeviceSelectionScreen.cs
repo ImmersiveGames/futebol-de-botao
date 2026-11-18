@@ -52,7 +52,6 @@ namespace FutebolDeBotao
         private readonly List<Entry> entries = new();
         private readonly List<InputDevice> devices = new();
         private readonly List<InputDevice> lastDevices = new();
-        private Font font;
         private RectTransform cards;
         private Text instructions;
         private Text secondHeader;
@@ -285,7 +284,6 @@ namespace FutebolDeBotao
         {
             if (built) return;
             built = true;
-            font = GameFont.Get();
             var root = (RectTransform)transform;
 
             LocalizedText.Attach(CreateText(root, "Título", "Controles", 52, FontStyle.Bold, Color.white, new Vector2(0f, 520f), new Vector2(680f, 90f)));
@@ -329,33 +327,12 @@ namespace FutebolDeBotao
             CreateButton(entry.Card, "Direita", ">", new Vector2(arrowX, 0f), ArrowSize, () => Move(entry, 1));
         }
 
-        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size)
-        {
-            var go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            return rect;
-        }
+        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size) =>
+            UiKit.CreateRect(parent, objectName, position, size);
 
-        private Text CreateText(Transform parent, string objectName, string content, int size, FontStyle style, Color color,
-            Vector2 position, Vector2 box)
-        {
-            var text = CreateRect(parent, objectName, position, box).gameObject.AddComponent<Text>();
-            text.font = font;
-            text.text = content;
-            text.fontSize = size;
-            text.fontStyle = style;
-            text.color = color;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
-            TextFit.Shrink(text);
-            return text;
-        }
+        private static Text CreateText(Transform parent, string objectName, string content, int size, FontStyle style, Color color,
+            Vector2 position, Vector2 box) =>
+            UiKit.CreateText(parent, objectName, content, size, style, color, position, box, shadow: false);
 
         private Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action,
             ButtonStyle style = ButtonStyle.Green)

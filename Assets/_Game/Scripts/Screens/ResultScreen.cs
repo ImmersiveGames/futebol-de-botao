@@ -44,13 +44,11 @@ namespace FutebolDeBotao
         private static readonly Color HighlightColor = new(1f, 0.85f, 0.25f);
         private static readonly Color StripeColor = new(1f, 1f, 1f, 0.07f);
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
-        private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
         private static readonly Vector2 ShadowDistance = new(3f, -3f);
 
         [SerializeField] private RouteRequestTrigger matchRoute;
         [SerializeField] private RouteRequestTrigger menuRoute;
 
-        private Font font;
         private RectTransform resultPage;
         private RectTransform prizePage;
         private Text title;
@@ -80,7 +78,6 @@ namespace FutebolDeBotao
         private void Start()
         {
             Ads.ShowBanner(this);
-            font = GameFont.Get();
             var root = (RectTransform)transform;
             title = FindChild<Text>(root, "Título");
             againButton = FindChild<Button>(root, "Jogar de novo");
@@ -393,36 +390,14 @@ namespace FutebolDeBotao
 
         // ---- UI ----
 
-        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size)
-        {
-            var go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            return rect;
-        }
+        private static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size) =>
+            UiKit.CreateRect(parent, objectName, position, size);
 
-        private Text CreateText(Transform parent, string objectName, string content, int size, FontStyle style, Color color,
+        private static Text CreateText(Transform parent, string objectName, string content, int size, FontStyle style, Color color,
             Vector2 position, Vector2 box)
         {
-            var text = CreateRect(parent, objectName, position, box).gameObject.AddComponent<Text>();
-            text.font = font;
-            text.text = content;
-            text.fontSize = size;
-            text.fontStyle = style;
-            text.color = color;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 12;
-            text.resizeTextMaxSize = size;
-            text.raycastTarget = false;
-            var shadow = text.gameObject.AddComponent<Shadow>();
-            shadow.effectColor = ShadowColor;
-            shadow.effectDistance = ShadowDistance;
+            var text = UiKit.CreateText(parent, objectName, content, size, style, color, position, box, bestFitMin: 12);
+            text.GetComponent<Shadow>().effectDistance = ShadowDistance;
             return text;
         }
     }

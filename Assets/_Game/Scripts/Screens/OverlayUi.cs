@@ -16,7 +16,6 @@ namespace FutebolDeBotao
         public static readonly Vector2 ReferenceResolution = new(720f, 1280f);
         public static readonly Color DimColor = new(0f, 0f, 0f, 0.6f);
         public static readonly Color PanelColor = new(0f, 0f, 0f, 0.85f);
-        public static readonly Color ShadowColor = new(0f, 0f, 0f, 0.6f);
         public static readonly Color LabelColor = new(1f, 1f, 1f, 0.85f);
         public static readonly Color HighlightColor = new(1f, 0.85f, 0.25f);
 
@@ -54,52 +53,16 @@ namespace FutebolDeBotao
             return panel;
         }
 
-        public static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size)
-        {
-            var go = new GameObject(objectName, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = position;
-            rect.sizeDelta = size;
-            return rect;
-        }
+        public static RectTransform CreateRect(Transform parent, string objectName, Vector2 position, Vector2 size) =>
+            UiKit.CreateRect(parent, objectName, position, size);
 
         public static Text CreateText(Transform parent, string objectName, string content, int size, FontStyle style, Color color,
-            Vector2 position, Vector2 box)
-        {
-            var text = CreateRect(parent, objectName, position, box).gameObject.AddComponent<Text>();
-            text.font = GameFont.Get();
-            text.text = content;
-            text.fontSize = size;
-            text.fontStyle = style;
-            text.color = color;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
-            text.gameObject.AddComponent<Shadow>().effectColor = ShadowColor;
-            TextFit.Shrink(text);
-            return text;
-        }
+            Vector2 position, Vector2 box) =>
+            UiKit.CreateText(parent, objectName, content, size, style, color, position, box);
 
         public static Button CreateButton(Transform parent, string objectName, string label, Vector2 position, Vector2 size, UnityAction action,
-            ButtonStyle style = ButtonStyle.Green)
-        {
-            var rect = CreateRect(parent, objectName, position, size);
-            var image = rect.gameObject.AddComponent<Image>();
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            if (action != null) button.onClick.AddListener(action);
-            var text = CreateText(rect, "Texto", label, 30, FontStyle.Bold, ButtonSkin.TextColor(style), Vector2.zero, size);
-            UnityEngine.Object.Destroy(text.GetComponent<Shadow>());
-            text.rectTransform.anchorMin = Vector2.zero;
-            text.rectTransform.anchorMax = Vector2.one;
-            text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
-            ButtonSkin.Apply(button, style);
-            return button;
-        }
+            ButtonStyle style = ButtonStyle.Green) =>
+            UiKit.CreateButton(parent, objectName, label, position, size, action, style);
 
         public static MenuEntry Entry(Button button)
         {
