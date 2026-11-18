@@ -52,6 +52,9 @@ namespace FutebolDeBotao
             public Button Pause;
             /// <summary>A faixa inteira (só no celular).</summary>
             public GameObject Root;
+            /// <summary>Resumo do que os textos mostraram da última vez: igual = não monta os textos de novo.</summary>
+            public int ShownKey;
+            public bool HasShown;
         }
 
         private sealed class MessageView
@@ -83,6 +86,10 @@ namespace FutebolDeBotao
         private Font font;
         private Camera worldCamera;
         private int lastMessageVersion = -1;
+        // Sobe quando o idioma muda: obriga os textos a serem montados de novo.
+        private int textsVersion;
+        private int shootoutKey;
+        private bool shootoutShown;
         private float messageUntil;
         private bool messageHeld;
 
@@ -115,6 +122,7 @@ namespace FutebolDeBotao
             }
 
             match.ExternalHud = true;
+            Txt.Changed += OnTextsChanged;
             font = GameFont.Get();
             BuildStrips();
             BuildMessages();
@@ -127,13 +135,22 @@ namespace FutebolDeBotao
             highlight.Configure(match);
         }
 
+        private void OnDestroy() => Txt.Changed -= OnTextsChanged;
+
+        private void OnTextsChanged() => textsVersion++;
+
         private void Update()
         {
             bool visible = match.State != MatchState.Waiting && Time.timeScale > 0f;
             bool portrait = Screen.height >= Screen.width;
 
-            worldCamera = WorldCamera.Resolve(worldCamera);
-            foreach (var canvas in worldCanvases) canvas.worldCamera = worldCamera;
+            // Os canvases só precisam da câmera quando ela muda (troca de cena), não a cada quadro.
+            var camera = WorldCamera.Resolve(worldCamera);
+            if (camera != worldCamera)
+            {
+                worldCamera = camera;
+                foreach (var canvas in worldCanvases) canvas.worldCamera = worldCamera;
+            }
 
             stripsRoot.SetActive(visible && portrait);
             pcRoot.SetActive(visible && !portrait);
@@ -173,6 +190,20 @@ namespace FutebolDeBotao
 
         private void Refresh(PlayerView view, TeamSide side)
         {
+            // O botão de ação pulsa a cada quadro; os textos só são montados de novo quando algo que eles mostram muda
+            // (montar texto todo quadro gera lixo de memória, ruim no celular).
+            string action = view.Action != null ? ActionFor(side) : null;
+            if (view.Action != null)
+            {
+                view.Action.gameObject.SetActive(action != null);
+                Glow(view.Action, action == ShotCallLabel);
+            }
+            int key = ShownKey(side, action);
+            if (view.HasShown && view.ShownKey == key) return;
+            view.HasShown = true;
+            view.ShownKey = key;
+            if (action != null) view.ActionLabel.text = action;
+
             // Na faixa, o time do jogador vem primeiro; no painel do PC, sempre o de baixo primeiro.
             // Contra a IA a faixa de cima não tem botões e a de baixo só tem botões: o que não existe fica de fora.
             var other = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
@@ -197,13 +228,6 @@ namespace FutebolDeBotao
             bool active = state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick or MatchState.ShotCall or MatchState.PenaltySetup;
             bool mine = active && acting == side;
 
-            if (view.Action != null)
-            {
-                string action = ActionFor(side);
-                view.Action.gameObject.SetActive(action != null);
-                if (action != null) view.ActionLabel.text = action;
-                Glow(view.Action, action == ShotCallLabel);
-            }
             if (view.Turn == null) return;
 
             view.Turn.text = !active ? (match.IsShootout && state == MatchState.Goal ? Txt.Get("Pênaltis") : StateText(state))
@@ -218,6 +242,26 @@ namespace FutebolDeBotao
             float seconds = match.StateSecondsLeft;
             view.Timer.text = mine ? $"{Mathf.CeilToInt(seconds)} s" : string.Empty;
             view.Timer.color = seconds <= warningSeconds ? WarningColor : Color.white;
+        }
+
+        /// <summary>
+        /// Tudo o que os textos da faixa de <paramref name="side"/> mostram, resumido num número: placar, cartões,
+        /// relógio (no segundo), estado, vez, toques, timer (no segundo), reticências da IA, botão e idioma.
+        /// </summary>
+        private int ShownKey(TeamSide side, string action)
+        {
+            var state = match.State;
+            var acting = match.ActingSide;
+            bool active = state is MatchState.Aim or MatchState.ShotAim or MatchState.GoalKick or MatchState.ShotCall or MatchState.PenaltySetup;
+            bool mine = active && acting == side;
+            float seconds = match.StateSecondsLeft;
+            int thinking = active && match.IsAi(acting) ? 1 + ThinkingDots() : 0;
+            var score = System.HashCode.Combine(match.Score(TeamSide.Bottom), match.Score(TeamSide.Top),
+                match.HasYellow(TeamSide.Bottom), match.RedCards(TeamSide.Bottom), match.HasYellow(TeamSide.Top), match.RedCards(TeamSide.Top));
+            var clock = System.HashCode.Combine(Mathf.CeilToInt(match.ClockSeconds), match.IsExtraTime, match.IsShootout);
+            var turn = System.HashCode.Combine(state, acting, side, match.TouchesLeft, match.IsPlacingGoalKick, thinking);
+            var timer = System.HashCode.Combine(mine ? Mathf.CeilToInt(seconds) : -1, seconds <= warningSeconds);
+            return System.HashCode.Combine(score, clock, turn, timer, action, textsVersion);
         }
 
         /// <summary>Pulsa a cor, a borda e o tamanho do botão (ou volta ao normal).</summary>
@@ -325,7 +369,9 @@ namespace FutebolDeBotao
         }
 
         /// <summary>"IA pensando" com reticências andando, enquanto a IA age.</summary>
-        private static string ThinkingText() => Txt.Get("IA pensando") + new string('.', 1 + (int)(Time.unscaledTime * 2f) % 3);
+        private static string ThinkingText() => Txt.Get("IA pensando") + new string('.', 1 + ThinkingDots());
+
+        private static int ThinkingDots() => (int)(Time.unscaledTime * 2f) % 3;
 
         private static string TouchesText(int touches) => touches == 1 ? Txt.Get("Sua vez: 1 toque") : Txt.Format("Sua vez: {0} toques", touches);
 
@@ -493,11 +539,22 @@ namespace FutebolDeBotao
         {
             bool show = visible && match.IsShootout;
             shootoutRoot.SetActive(show);
-            if (!show) return;
+            if (!show)
+            {
+                shootoutShown = false;
+                return;
+            }
 
             // Na metade oposta à de quem bate agora: o de baixo bate no gol de cima, o placar fica embaixo.
             float y = match.Turn == TeamSide.Bottom ? -ShootoutBoardY : ShootoutBoardY;
             shootoutRoot.transform.GetChild(0).position = new Vector3(0f, y, 0f);
+
+            // Só monta de novo quando sai um chute ou muda o idioma.
+            int key = System.HashCode.Combine(match.ShootoutKicks(TeamSide.Bottom).Count, match.ShootoutKicks(TeamSide.Top).Count,
+                match.IsSuddenDeath, textsVersion);
+            if (shootoutShown && shootoutKey == key) return;
+            shootoutShown = true;
+            shootoutKey = key;
             shootoutTitle.text = Txt.Get(match.IsSuddenDeath ? "Morte súbita" : "Pênaltis");
 
             // Morte súbita: quando as 5 casas enchem, elas zeram e voltam a encher (o total continua somando).

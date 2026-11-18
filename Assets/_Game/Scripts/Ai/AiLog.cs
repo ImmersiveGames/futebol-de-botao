@@ -16,6 +16,17 @@ namespace FutebolDeBotao
     public sealed class AiLog : IDisposable
     {
         private static readonly CultureInfo Number = CultureInfo.InvariantCulture;
+
+        /// <summary>
+        /// O CSV só existe no editor: fora dele (no celular) os textos do log nem são montados, para não gerar lixo de
+        /// memória à toa a cada decisão da IA.
+        /// </summary>
+        public static readonly bool Enabled =
+#if UNITY_EDITOR
+            true;
+#else
+            false;
+#endif
         private const string Header =
             "nivel;tempo;placar;toque;fatos;objetivos;objetivo;recusados;acao;botao;direcao;forca;nota;riscos;" +
             "bola_esperada;ultimo_toque_esperado;gol_esperado;plano;simulacoes;ms;bola_real;ultimo_toque_real;avisos;batidas;erro";
@@ -124,6 +135,7 @@ namespace FutebolDeBotao
             float bestX, float targetX, double milliseconds)
         {
             Flush();
+#if UNITY_EDITOR
             var c = Number;
             Vector2 ball = match.Ball.Body.position;
             var opponent = side == TeamSide.Bottom ? TeamSide.Top : TeamSide.Bottom;
@@ -135,7 +147,6 @@ namespace FutebolDeBotao
             var positions = new StringBuilder();
             for (int i = 0; i < xs.Length; i++)
                 positions.Append(i > 0 ? " " : string.Empty).Append(string.Format(c, "x{0:0.0}={1:0.0}", xs[i], conceded[i]));
-#if UNITY_EDITOR
             Write(string.Join(";",
                 Field(level),
                 Field(Mathf.FloorToInt(match.ClockSeconds).ToString(c)),

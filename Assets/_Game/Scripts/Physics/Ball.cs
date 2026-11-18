@@ -39,7 +39,10 @@ namespace FutebolDeBotao
         public IReadOnlyList<Touch> Touches => touches;
 
         private Vector2 velocityBeforeStep;
-        public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
+        private CircleCollider2D circle;
+        /// <summary>O colisor, guardado na primeira leitura (o raio é lido muitas vezes por quadro pela IA e pelo posicionamento).</summary>
+        private CircleCollider2D Circle => circle != null ? circle : circle = GetComponent<CircleCollider2D>();
+        public float Radius => Circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
 
         private void Awake()
         {
@@ -62,7 +65,7 @@ namespace FutebolDeBotao
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             // Sem atrito: a bola sai na linha entre os centros (a mesma da previsão da mira), sem ser arrastada
             // para o lado em que o botão andava.
-            GetComponent<CircleCollider2D>().sharedMaterial = new PhysicsMaterial2D("Bola")
+            Circle.sharedMaterial = new PhysicsMaterial2D("Bola")
             {
                 bounciness = tuning.bounciness,
                 friction = 0f
@@ -120,8 +123,7 @@ namespace FutebolDeBotao
         private void OnCollisionStay2D(Collision2D collision)
         {
             if (!Disc.IsPushing(collision)) return;
-            var disc = collision.collider.GetComponent<Disc>();
-            if (disc != null)
+            if (collision.collider.TryGetComponent(out Disc disc))
             {
                 TableImpacts.Raise(TableImpactKind.BallDisc, collision.relativeVelocity.magnitude);
                 LastDiscTouch = disc;
@@ -130,8 +132,7 @@ namespace FutebolDeBotao
                 return;
             }
 
-            var keeper = collision.collider.GetComponent<Goalkeeper>();
-            if (keeper != null)
+            if (collision.collider.TryGetComponent(out Goalkeeper keeper))
             {
                 LastDiscTouch = null;
                 LastTouchSide = keeper.Side;
@@ -141,8 +142,7 @@ namespace FutebolDeBotao
 
         private void OnCollisionEnter2D(Collision2D collision)
         {
-            var wall = collision.collider.GetComponent<Wall>();
-            if (wall != null)
+            if (collision.collider.TryGetComponent(out Wall wall))
             {
                 TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
                 AddTouch(wall.IsSideWall ? (wall.transform.position.x < 0f ? "parede esquerda" : "parede direita")
@@ -160,8 +160,7 @@ namespace FutebolDeBotao
                 return;
             }
 
-            var disc = collision.collider.GetComponent<Disc>();
-            if (disc != null)
+            if (collision.collider.TryGetComponent(out Disc disc))
             {
                 TableImpacts.Raise(TableImpactKind.BallDisc, collision.relativeVelocity.magnitude);
                 LastDiscTouch = disc;
@@ -173,8 +172,7 @@ namespace FutebolDeBotao
                 return;
             }
 
-            var keeper = collision.collider.GetComponent<Goalkeeper>();
-            if (keeper != null)
+            if (collision.collider.TryGetComponent(out Goalkeeper keeper))
             {
                 TableImpacts.Raise(TableImpactKind.BallKeeper, collision.relativeVelocity.magnitude);
                 LastDiscTouch = null;

@@ -113,7 +113,9 @@ namespace FutebolDeBotao
             var goals = Plan(situation);
             var rejected = new StringBuilder();
             // No log: quantas saídas já usadas a IA está evitando.
-            if (situation.IsKickOff && usedKickOffs.Count > 0) rejected.Append("saídas já usadas: ").Append(usedKickOffs.Count);
+            // Os textos (recusados, objetivos, quem chuta) só servem para o CSV do editor.
+            bool log = AiLog.Enabled;
+            if (log && situation.IsKickOff && usedKickOffs.Count > 0) rejected.Append("saídas já usadas: ").Append(usedKickOffs.Count);
             AiDecision fallback = null;
             AiDecision chosen = null;
             simulator.Sync();
@@ -134,10 +136,15 @@ namespace FutebolDeBotao
                 {
                     // Vai chutar: a ação só roda com caminho livre até o gol, então anuncia (tem caminho, chuta). Quem
                     // chuta e onde, a IA decide depois, contra o goleiro já posicionado.
-                    var names = new StringBuilder();
-                    foreach (var disc in situation.ClearShooters)
-                        names.Append(names.Length > 0 ? ", " : string.Empty).Append(disc.name);
-                    chosen = new AiDecision { Goal = goal, Action = action, FollowLine = $"chute livre: {names}" };
+                    string shooters = string.Empty;
+                    if (log)
+                    {
+                        var names = new StringBuilder();
+                        foreach (var disc in situation.ClearShooters)
+                            names.Append(names.Length > 0 ? ", " : string.Empty).Append(disc.name);
+                        shooters = $"chute livre: {names}";
+                    }
+                    chosen = new AiDecision { Goal = goal, Action = action, FollowLine = shooters };
                     break;
                 }
 
@@ -156,8 +163,9 @@ namespace FutebolDeBotao
                 }
                 if (pick == null)
                 {
-                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(" sem jogada")
-                        .Append(NoPlayReason(list));
+                    if (log)
+                        rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(" sem jogada")
+                            .Append(NoPlayReason(list));
                     continue;
                 }
 
@@ -176,10 +184,13 @@ namespace FutebolDeBotao
                     chosen = decision;
                     break;
                 }
-                rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(' ')
-                    .Append(pick.Value.Verdict.Score.ToString("0"));
-                if (pick.Value.Verdict.Foul) rejected.Append(" (falta)");
-                else if (pick.Value.Verdict.OwnGoalRisk) rejected.Append(" (gol contra)");
+                if (log)
+                {
+                    rejected.Append(rejected.Length > 0 ? ", " : string.Empty).Append(goal.Name).Append(' ')
+                        .Append(pick.Value.Verdict.Score.ToString("0"));
+                    if (pick.Value.Verdict.Foul) rejected.Append(" (falta)");
+                    else if (pick.Value.Verdict.OwnGoalRisk) rejected.Append(" (gol contra)");
+                }
                 // Se nenhum aceitar, fica a do primeiro objetivo; uma jogada segura ganha de uma arriscada.
                 if (fallback == null || (!fallback.Verdict.SafeFor(difficulty) && decision.Verdict.SafeFor(difficulty)))
                     fallback = decision;
@@ -193,11 +204,14 @@ namespace FutebolDeBotao
             chosen ??= new AiDecision { Candidate = Straight(situation, match) };
             if (situation.IsKickOff && chosen.HasExpected) usedKickOffs.Add(KickOffKey(chosen.Candidate, chosen.Expected.BallEnd));
 
-            var line = new StringBuilder();
-            foreach (var goal in goals)
-                line.Append(line.Length > 0 ? " > " : string.Empty).Append(goal.Name);
-            chosen.GoalsLine = line.ToString();
-            chosen.Rejected = rejected.ToString();
+            if (log)
+            {
+                var line = new StringBuilder();
+                foreach (var goal in goals)
+                    line.Append(line.Length > 0 ? " > " : string.Empty).Append(goal.Name);
+                chosen.GoalsLine = line.ToString();
+                chosen.Rejected = rejected.ToString();
+            }
             chosen.Simulations = simulations;
             chosen.Steps = simulator.TotalSteps - stepsBefore;
             chosen.Milliseconds = computeMs;
@@ -433,8 +447,9 @@ namespace FutebolDeBotao
                 if (score is float value && value > best)
                 {
                     best = value;
-                    line = $"{candidate.Disc.name} nota {value:0}" +
-                           (next.GoalOf != null && next.GoalOf != side && goalsCount ? " (gol)" : string.Empty);
+                    if (AiLog.Enabled)
+                        line = $"{candidate.Disc.name} nota {value:0}" +
+                               (next.GoalOf != null && next.GoalOf != side && goalsCount ? " (gol)" : string.Empty);
                 }
                 if (Budget()) yield return Pause();
                 if (aborted) yield break;

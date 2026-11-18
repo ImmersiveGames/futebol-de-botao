@@ -43,7 +43,10 @@ namespace FutebolDeBotao
         public bool IsShotDisc => shotDisc;
         /// <summary>Velocidade antes do passo de física atual (para refazer a batida da bola).</summary>
         public Vector2 VelocityBeforeStep { get; private set; }
-        public float Radius => GetComponent<CircleCollider2D>().radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
+        private CircleCollider2D circle;
+        /// <summary>O colisor, guardado na primeira leitura (o raio é lido muitas vezes por quadro pela IA e pelo posicionamento).</summary>
+        private CircleCollider2D Circle => circle != null ? circle : circle = GetComponent<CircleCollider2D>();
+        public float Radius => Circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
 
         private void Awake()
         {
@@ -66,7 +69,7 @@ namespace FutebolDeBotao
             body.linearDamping = tuning.discLinearDamping;
             body.angularDamping = tuning.discAngularDamping;
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-            GetComponent<CircleCollider2D>().sharedMaterial = new PhysicsMaterial2D("Botão")
+            Circle.sharedMaterial = new PhysicsMaterial2D("Botão")
             {
                 bounciness = tuning.bounciness,
                 friction = tuning.friction
@@ -98,17 +101,19 @@ namespace FutebolDeBotao
         private void OnCollisionEnter2D(Collision2D collision)
         {
             WallElastic.OnEnter(body, collision, tuning);
-            RaiseImpact(collision);
-            var keeper = collision.collider.GetComponent<Goalkeeper>();
+            // Cada componente é procurado uma vez só por batida.
+            var hit = collision.collider;
+            hit.TryGetComponent(out Disc other);
+            RaiseImpact(collision, other);
+            hit.TryGetComponent(out Goalkeeper keeper);
             if (!shooting)
             {
-                var opponent = collision.collider.GetComponent<Disc>();
-                if (opponent != null && opponent.Side != side) HitOpponent?.Invoke(this, opponent, opponent.Body.position);
+                if (other != null && other.Side != side) HitOpponent?.Invoke(this, other, other.Body.position);
                 else if (keeper != null && keeper.Side != side) HitOpponentKeeper?.Invoke(this, keeper, false);
                 return;
             }
 
-            if (collision.collider.GetComponent<Ball>() != null)
+            if (hit.TryGetComponent(out Ball _))
             {
                 TouchedBallThisShot = true;
                 return;
@@ -126,7 +131,6 @@ namespace FutebolDeBotao
                 return;
             }
 
-            var other = collision.collider.GetComponent<Disc>();
             // Bola de raspão e adversário no mesmo passo de física: a Unity avisa as batidas em qualquer ordem,
             // então confere se a bola também está encostando agora antes de marcar falta.
             if (!TouchedBallThisShot && other != null && other.Side != side && TouchingBall()) TouchedBallThisShot = true;
@@ -142,21 +146,21 @@ namespace FutebolDeBotao
         private void OnCollisionStay2D(Collision2D collision)
         {
             if (!shooting || TouchedBallThisShot) return;
-            if (collision.collider.GetComponent<Ball>() != null && IsPushing(collision)) TouchedBallThisShot = true;
+            if (collision.collider.TryGetComponent(out Ball _) && IsPushing(collision)) TouchedBallThisShot = true;
         }
 
         /// <summary>
         /// Som da batida: botão com botão ou botão na parede (a bola avisa as dela). Os dois botões avisam a mesma
         /// batida; o MatchSounds não repete o mesmo som no mesmo instante, então toca uma vez só.
         /// </summary>
-        private void RaiseImpact(Collision2D collision)
+        private void RaiseImpact(Collision2D collision, Disc other)
         {
-            if (collision.collider.GetComponent<Disc>() != null)
+            if (other != null)
             {
                 TableImpacts.Raise(TableImpactKind.DiscDisc, collision.relativeVelocity.magnitude);
                 return;
             }
-            if (collision.collider.GetComponent<Wall>() != null) TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
+            if (collision.collider.TryGetComponent(out Wall _)) TableImpacts.Raise(TableImpactKind.Wall, collision.relativeVelocity.magnitude);
         }
 
         /// <summary>O contato está trocando força (não é só um encostar parado).</summary>
@@ -170,10 +174,11 @@ namespace FutebolDeBotao
         private bool TouchingBall()
         {
             int count = body.GetContacts(contacts);
+            var own = Circle;
             for (int i = 0; i < count; i++)
             {
-                var hit = contacts[i].collider == GetComponent<Collider2D>() ? contacts[i].otherCollider : contacts[i].collider;
-                if (hit != null && hit.GetComponent<Ball>() != null) return true;
+                var hit = contacts[i].collider == own ? contacts[i].otherCollider : contacts[i].collider;
+                if (hit != null && hit.TryGetComponent(out Ball _)) return true;
             }
             return false;
         }
