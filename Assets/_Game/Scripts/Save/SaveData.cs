@@ -130,6 +130,8 @@ namespace FutebolDeBotao
             public bool touchJoystick = true;
             /// <summary>Liga escolhida por último (versão 12).</summary>
             public string leagueId;
+            /// <summary>Turnos da liga escolhidos por último (1 ou 2; 0 = o padrão do asset).</summary>
+            public int leagueLegs;
         }
 
         [Serializable]
@@ -329,6 +331,8 @@ namespace FutebolDeBotao
             public bool eliminatedInGroups;
             /// <summary>Sorteio do desempate final da tabela (fixo no torneio, para a ordem não mudar a cada olhada).</summary>
             public int seed;
+            /// <summary>Turnos (1 ou 2) gravados no começo; 0 = guardado antes da opção (vale o do asset).</summary>
+            public int legs;
             public bool abandoned;
             public int matchCoins;
             public int prize;

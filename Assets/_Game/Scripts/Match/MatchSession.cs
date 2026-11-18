@@ -234,6 +234,9 @@ namespace FutebolDeBotao
         /// <summary>Liga escolhida nas Opções da liga (id do asset; vazio: a primeira).</summary>
         public static string LeagueId { get; set; }
 
+        /// <summary>Turnos escolhidos nas Opções da liga (1 ou 2; 0 = o padrão do asset).</summary>
+        public static int LeagueLegs { get; set; }
+
         /// <summary>A partida é do torneio (<see cref="Tournament"/>): as opções são as dele.</summary>
         public static bool InTournamentMatch { get; private set; }
 

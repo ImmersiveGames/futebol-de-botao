@@ -44,6 +44,20 @@ namespace FutebolDeBotao
         /// <summary>Número de fases do mata-mata do guardado (liga: 0).</summary>
         public static int Rounds => Config.Rounds;
 
+        /// <summary>Turnos do guardado (gravados no começo; guardado antigo: o do asset).</summary>
+        public static int Legs => Config.LegsFor(Run.legs);
+
+        /// <summary>Nome para as telas; a liga diz os turnos ("Liga 10 · 2 turnos").</summary>
+        public static string DisplayName
+        {
+            get
+            {
+                var config = Config;
+                string name = Txt.Get(config.displayName);
+                return config.IsLeague ? $"{name} · {Txt.Get(Legs >= 2 ? "2 turnos" : "1 turno")}" : name;
+            }
+        }
+
         /// <summary>O guardado tem fase de grupos (copa) ou tabela (liga).</summary>
         public static bool HasGroups => Config.HasGroups;
 
@@ -75,6 +89,7 @@ namespace FutebolDeBotao
                 discsPerTeam = options.discsPerTeam,
                 aimAssist = (int)options.aimAssist,
                 seed = Random.Range(1, int.MaxValue),
+                legs = config.LegsFor(config.IsLeague ? MatchSession.LeagueLegs : 0),
             };
 
             // Times do catálogo sorteados, sem repetir enquanto der.
@@ -114,7 +129,7 @@ namespace FutebolDeBotao
             {
                 var teams = new List<int>();
                 for (int i = g * size; i < (g + 1) * size && i < run.slots.Count; i++) teams.Add(run.slots[i]);
-                all.AddRange(RoundRobin(teams, Mathf.Clamp(config.legs, 1, 2), g));
+                all.AddRange(RoundRobin(teams, config.LegsFor(run.legs), g));
             }
             all.Sort((a, b) => a.round != b.round ? a.round.CompareTo(b.round)
                 : a.group != b.group ? a.group.CompareTo(b.group) : a.order.CompareTo(b.order));
@@ -656,7 +671,8 @@ namespace FutebolDeBotao
             run.active = false;
             run.playing = false;
             run.position = run.abandoned ? 0 : position;
-            run.prize = run.abandoned ? 0 : config.PrizeFor(position);
+            int legs = config.LegsFor(run.legs);
+            run.prize = run.abandoned ? 0 : config.PrizeFor(position, legs);
 
             var stats = GameSave.Data.stats;
             int level = Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1);
@@ -690,7 +706,7 @@ namespace FutebolDeBotao
                 : run.eliminatedInGroups ? WeeklyRanking.GroupStagePlacement
                 : WeeklyRanking.KnockoutPlacement(run.position, stageFromFinal);
             bool title = !run.abandoned && run.position == 1;
-            WeeklyRanking.TournamentFinished(placement, title, run.abandoned, level, config.rankingWeight,
+            WeeklyRanking.TournamentFinished(placement, title, run.abandoned, level, config.RankingWeightFor(legs),
                 WeeklyRanking.GoalDifference(played));
             if (title && !league) Achievements.TournamentWon(config.TeamCount);
             else Achievements.Report();

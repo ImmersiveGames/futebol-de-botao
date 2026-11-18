@@ -20,7 +20,9 @@ namespace FutebolDeBotao
         /// <summary>Saiu das Opções (agora na tela Configurações); a linha continua montada, mas fica escondida.</summary>
         Music,
         /// <summary>Só nas Opções do torneio: quantos times na chave (um asset de torneio por tamanho).</summary>
-        TournamentSize
+        TournamentSize,
+        /// <summary>Só nas Opções da liga: 1 ou 2 turnos.</summary>
+        LeagueLegs
     }
 
     /// <summary>
@@ -400,6 +402,7 @@ namespace FutebolDeBotao
                 bool shown = kind != MatchOptionKind.Music &&
                              (vsAi || kind != MatchOptionKind.Difficulty) &&
                              (tournamentSetup || kind != MatchOptionKind.TournamentSize) &&
+                             ((tournamentSetup && Tournament.LeagueMode) || kind != MatchOptionKind.LeagueLegs) &&
                              (kind != MatchOptionKind.Penalties || MatchSession.Options(defaults).hasGoalkeeper) &&
                              !(tournamentSetup && kind is MatchOptionKind.Goalkeeper or MatchOptionKind.ExtraTime or MatchOptionKind.Penalties);
                 row.gameObject.SetActive(shown);
@@ -465,6 +468,9 @@ namespace FutebolDeBotao
                         else MatchSession.TournamentId = id;
                     }
                     break;
+                case MatchOptionKind.LeagueLegs:
+                    MatchSession.LeagueLegs = ChosenLeagueLegs() >= 2 ? 1 : 2;
+                    break;
             }
             GameSave.Save("opcoes");
             Refresh();
@@ -510,6 +516,7 @@ namespace FutebolDeBotao
             MatchOptionKind.Penalties => "Pênaltis",
             MatchOptionKind.Music => "Música",
             MatchOptionKind.TournamentSize => "Torneio",
+            MatchOptionKind.LeagueLegs => "Turnos",
             _ => kind.ToString()
         };
 
@@ -532,8 +539,16 @@ namespace FutebolDeBotao
             MatchOptionKind.Penalties => OnOff(options.penalties),
             MatchOptionKind.Music => GameVolume.Percent(GameVolume.Music),
             MatchOptionKind.TournamentSize => CompetitionName(),
+            MatchOptionKind.LeagueLegs => Txt.Get(ChosenLeagueLegs() >= 2 ? "2 turnos" : "1 turno"),
             _ => string.Empty
         };
+
+        /// <summary>Turnos da liga escolhida nas Opções: o da linha Turnos, senão o padrão do asset.</summary>
+        private static int ChosenLeagueLegs()
+        {
+            var config = TournamentConfig.FindAvailable(MatchSession.LeagueId, true);
+            return config != null ? config.LegsFor(MatchSession.LeagueLegs) : Mathf.Clamp(MatchSession.LeagueLegs, 1, 2);
+        }
 
         /// <summary>Nome do torneio (ou liga) escolhido nas Opções.</summary>
         private static string CompetitionName()

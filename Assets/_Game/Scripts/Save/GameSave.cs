@@ -96,6 +96,7 @@ namespace FutebolDeBotao
             MatchSession.AiLevel = (AiLevel)Mathf.Clamp(Data.settings.aiLevel, 0, AiDifficulty.LevelCount - 1);
             MatchSession.TournamentId = Data.settings.tournamentId;
             MatchSession.LeagueId = Data.settings.leagueId;
+            MatchSession.LeagueLegs = Mathf.Clamp(Data.settings.leagueLegs, 0, 2);
             for (int i = 0; i < 2; i++)
             {
                 var side = (TeamSide)i;
@@ -114,6 +115,7 @@ namespace FutebolDeBotao
             Data.settings.aiLevel = (int)MatchSession.AiLevel;
             Data.settings.tournamentId = MatchSession.TournamentId;
             Data.settings.leagueId = MatchSession.LeagueId;
+            Data.settings.leagueLegs = MatchSession.LeagueLegs;
 
             var options = MatchSession.Current;
             if (options != null)

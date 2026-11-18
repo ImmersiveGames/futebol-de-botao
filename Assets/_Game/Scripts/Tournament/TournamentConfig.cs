@@ -35,12 +35,17 @@ namespace FutebolDeBotao
         [Tooltip("Classificados de cada grupo para o mata-mata. Grupos × classificados precisa dar 2, 4, 8, 16 ou 32.")]
         [Min(1)] public int qualifiersPerGroup = 2;
         [Header("Copa e Liga")]
-        [Tooltip("Turnos: 1 = só ida; 2 = ida e volta (mando invertido).")]
+        [Tooltip("Turnos: 1 = só ida; 2 = ida e volta (mando invertido). Liga: é o padrão da linha Turnos das Opções da liga.")]
         [Range(1, 2)] public int legs = 1;
+        [Header("Liga: 2 turnos")]
+        [Tooltip("Liga em 2 turnos: os prêmios (que valem para 1 turno) são multiplicados por isto.")]
+        [Min(0f)] public float twoLegsPrizeMultiplier = 2f;
+        [Tooltip("Liga em 2 turnos: o peso no ranking (que vale para 1 turno) é multiplicado por isto.")]
+        [Min(0f)] public float twoLegsRankingMultiplier = 1.5f;
         [Header("Prêmios")]
-        [Tooltip("Multiplica os pontos do ranking semanal (Copa 8 = 1).")]
+        [Tooltip("Multiplica os pontos do ranking semanal (Copa 8 = 1). Liga: o de 1 turno.")]
         [Min(0f)] public float rankingWeight = 1f;
-        [Tooltip("Moedas por colocação: campeão, vice, 3º lugar... (quem não está na lista não ganha prêmio).")]
+        [Tooltip("Moedas por colocação: campeão, vice, 3º lugar... (quem não está na lista não ganha prêmio). Liga: os de 1 turno.")]
         public int[] prizes = { 50, 25, 10 };
         [Tooltip("Placar dos jogos entre os outros times (pesos de 0 a 10 gols). Vazio: o padrão (Resources/Torneios/Placares).")]
         public SimulatedScores simulatedScores;
@@ -85,6 +90,17 @@ namespace FutebolDeBotao
         public int Rounds => KnockoutTeams >= 2 ? Mathf.RoundToInt(Mathf.Log(KnockoutTeams, 2f)) : 0;
 
         public int PrizeFor(int position) => prizes != null && position >= 1 && position <= prizes.Length ? Mathf.Max(0, prizes[position - 1]) : 0;
+
+        /// <summary>Turnos disputados: na liga, o escolhido (0 = o padrão do asset); nos outros, o do asset.</summary>
+        public int LegsFor(int chosen) => Mathf.Clamp(IsLeague && chosen > 0 ? chosen : legs, 1, 2);
+
+        /// <summary>Prêmio da colocação com <paramref name="legsPlayed"/> turnos (liga em 2 turnos: multiplicado).</summary>
+        public int PrizeFor(int position, int legsPlayed) =>
+            Mathf.RoundToInt(PrizeFor(position) * (IsLeague && legsPlayed >= 2 ? twoLegsPrizeMultiplier : 1f));
+
+        /// <summary>Peso no ranking com <paramref name="legsPlayed"/> turnos (liga em 2 turnos: multiplicado).</summary>
+        public float RankingWeightFor(int legsPlayed) =>
+            rankingWeight * (IsLeague && legsPlayed >= 2 ? twoLegsRankingMultiplier : 1f);
 
         /// <summary>Os pesos de placar deste torneio (ou o padrão).</summary>
         public SimulatedScores Scores => simulatedScores != null ? simulatedScores : SimulatedScores.Default;

@@ -28,6 +28,14 @@ namespace FutebolDeBotao.Editor
                 EditorGUILayout.HelpBox($"{config.GroupCount} grupos de {config.GroupSize}; {config.KnockoutTeams} no mata-mata " +
                                         $"({config.Qualifiers} por grupo).", MessageType.Info);
             }
+            if (format == TournamentFormat.Liga)
+            {
+                var config = (TournamentConfig)target;
+                int teams = config.TeamCount;
+                EditorGUILayout.HelpBox($"1 turno: {teams - 1} jogos, campeão {config.PrizeFor(1, 1)} moedas, peso {config.RankingWeightFor(1):0.##}.\n" +
+                                        $"2 turnos: {2 * (teams - 1)} jogos, campeão {config.PrizeFor(1, 2)} moedas, peso {config.RankingWeightFor(2):0.##}.",
+                    MessageType.Info);
+            }
             serializedObject.ApplyModifiedProperties();
         }
 
@@ -36,6 +44,7 @@ namespace FutebolDeBotao.Editor
             "groupSize" or "qualifiersPerGroup" => format == TournamentFormat.Copa,
             "legs" => format != TournamentFormat.MataMata,
             "extraTimePercent" => format != TournamentFormat.Liga,
+            "twoLegsPrizeMultiplier" or "twoLegsRankingMultiplier" => format == TournamentFormat.Liga,
             _ => true
         };
     }
