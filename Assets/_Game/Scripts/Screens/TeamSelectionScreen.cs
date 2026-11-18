@@ -43,18 +43,19 @@ namespace FutebolDeBotao
         private const float BallArrowX = 0.6f;
         private const float BallArrowSize = 0.42f;
         // Duas colunas iguais, encostadas nas paredes: time e uniforme na esquerda, esquema na direita (de quem joga).
-        // Nome grande; embaixo, as setas com a sigla (ou o estilo) no meio; depois o uniforme e as setas dele.
+        // Em linhas: nome grande; embaixo a sigla (ou o estilo); embaixo as setas; depois "Uniforme" e as setas dele.
         private const float ColumnX = 2.75f;
         private const float ColumnWidth = 1.5f;
-        private const float NameY = BlockY + 0.55f;
-        private const float NameHeight = 0.7f;
+        private const float NameY = BlockY + 1.0f;
+        private const float NameHeight = 0.5f;
         private const int NameFontSize = 30;
-        private const float InfoY = BlockY - 0.05f;
-        private const float InfoArrowX = 0.55f;
+        private const float InfoY = BlockY + 0.55f;
+        private const float InfoHeight = 0.36f;
         private const int InfoFontSize = 22;
-        private const float UniformY = BlockY - 0.6f;
-        private const float UniformArrowY = BlockY - 1.1f;
-        private const float UniformArrowX = 0.35f;
+        private const float InfoArrowY = BlockY + 0.15f;
+        private const float UniformY = BlockY - 0.3f;
+        private const float UniformArrowY = BlockY - 0.7f;
+        private const float ColumnArrowX = 0.35f;
         private const float ColumnArrowSize = 0.45f;
         // Linha da camisa (escondida: as camisas vêm do uniforme).
         private const float ShirtY = BlockY - 1.05f;
@@ -762,32 +763,32 @@ namespace FutebolDeBotao
             var controls = CreateRect(half, "Opções", Vector2.zero, Vector2.zero);
             view.Controls = controls;
 
-            // Esquerda (de quem joga deste lado): nome do time; setas com a sigla no meio; uniforme e as setas dele.
+            // Esquerda (de quem joga deste lado): nome do time, sigla embaixo, setas embaixo; depois o uniforme e as setas dele.
             float left = -ColumnX;
             var arrow = Vector2.one * ColumnArrowSize;
             view.Name = FieldLabel(CreateText(controls, "Nome", NameFontSize, FontStyle.Bold, Color.white, new Vector2(left, NameY), new Vector2(ColumnWidth, NameHeight)), false);
-            var previousTeam = CreateButton(controls, "Time anterior", "<", new Vector2(left - InfoArrowX, InfoY), arrow, () => ChangeTeam(side, -1));
-            var nextTeam = CreateButton(controls, "Próximo time", ">", new Vector2(left + InfoArrowX, InfoY), arrow, () => ChangeTeam(side, 1));
-            view.Abbreviation = FieldLabel(CreateText(controls, "Abreviação", InfoFontSize, FontStyle.Bold, SoftText, new Vector2(left, InfoY), new Vector2(InfoArrowX * 2f - ColumnArrowSize, ColumnArrowSize)), true);
+            var previousTeam = CreateButton(controls, "Time anterior", "<", new Vector2(left - ColumnArrowX, InfoArrowY), arrow, () => ChangeTeam(side, -1));
+            var nextTeam = CreateButton(controls, "Próximo time", ">", new Vector2(left + ColumnArrowX, InfoArrowY), arrow, () => ChangeTeam(side, 1));
+            view.Abbreviation = FieldLabel(CreateText(controls, "Abreviação", InfoFontSize, FontStyle.Bold, SoftText, new Vector2(left, InfoY), new Vector2(ColumnWidth, InfoHeight)), true);
             view.TeamItem = CreateRect(controls, "Item do time", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.TeamItem.Configure(null, previousTeam, nextTeam, view.Name.rectTransform,
                 view.Abbreviation.rectTransform, (RectTransform)previousTeam.transform, (RectTransform)nextTeam.transform);
 
-            // Direita: o esquema tático, no mesmo formato (estilo entre as setas).
+            // Direita: o esquema tático no mesmo formato (número grande, estilo embaixo, setas embaixo).
             float right = ColumnX;
             view.Scheme = FieldLabel(CreateText(controls, "Nome do esquema", NameFontSize, FontStyle.Bold, Color.white, new Vector2(right, NameY), new Vector2(ColumnWidth, NameHeight)), false);
-            var previousScheme = CreateButton(controls, "Esquema anterior", "<", new Vector2(right - InfoArrowX, InfoY), arrow, () => ChangeScheme(side, -1));
-            var nextScheme = CreateButton(controls, "Próximo esquema", ">", new Vector2(right + InfoArrowX, InfoY), arrow, () => ChangeScheme(side, 1));
-            view.Style = FieldLabel(CreateText(controls, "Estilo", InfoFontSize, FontStyle.Bold, SoftText, new Vector2(right, InfoY), new Vector2(InfoArrowX * 2f - ColumnArrowSize, ColumnArrowSize)), true);
+            var previousScheme = CreateButton(controls, "Esquema anterior", "<", new Vector2(right - ColumnArrowX, InfoArrowY), arrow, () => ChangeScheme(side, -1));
+            var nextScheme = CreateButton(controls, "Próximo esquema", ">", new Vector2(right + ColumnArrowX, InfoArrowY), arrow, () => ChangeScheme(side, 1));
+            view.Style = FieldLabel(CreateText(controls, "Estilo", InfoFontSize, FontStyle.Bold, SoftText, new Vector2(right, InfoY), new Vector2(ColumnWidth, InfoHeight)), true);
             view.SchemeItem = CreateRect(controls, "Item do esquema", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SchemeItem.Configure(null, previousScheme, nextScheme, view.Scheme.rectTransform,
                 view.Style.rectTransform, (RectTransform)previousScheme.transform, (RectTransform)nextScheme.transform);
 
             // Uniforme: embaixo do time, o texto e as setas embaixo dele.
-            var secondaryTitle = FieldLabel(CreateText(controls, "Uniforme", InfoFontSize, FontStyle.Bold, Color.white, new Vector2(left, UniformY), new Vector2(ColumnWidth, 0.36f)), false);
+            var secondaryTitle = FieldLabel(CreateText(controls, "Uniforme", InfoFontSize, FontStyle.Bold, Color.white, new Vector2(left, UniformY), new Vector2(ColumnWidth, InfoHeight)), false);
             secondaryTitle.text = "Uniforme 1";
-            var previousSecondary = CreateButton(controls, "Uniforme anterior", "<", new Vector2(left - UniformArrowX, UniformArrowY), arrow, () => ChangeUniform(side, -1));
-            var nextSecondary = CreateButton(controls, "Próximo uniforme", ">", new Vector2(left + UniformArrowX, UniformArrowY), arrow, () => ChangeUniform(side, 1));
+            var previousSecondary = CreateButton(controls, "Uniforme anterior", "<", new Vector2(left - ColumnArrowX, UniformArrowY), arrow, () => ChangeUniform(side, -1));
+            var nextSecondary = CreateButton(controls, "Próximo uniforme", ">", new Vector2(left + ColumnArrowX, UniformArrowY), arrow, () => ChangeUniform(side, 1));
             view.UniformLabel = secondaryTitle;
             view.SecondaryItem = CreateRect(controls, "Item da cor 2", Vector2.zero, Vector2.zero).gameObject.AddComponent<MenuEntry>();
             view.SecondaryItem.Configure(null, previousSecondary, nextSecondary, secondaryTitle.rectTransform,
