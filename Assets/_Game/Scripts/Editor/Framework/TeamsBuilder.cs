@@ -43,12 +43,6 @@ namespace FutebolDeBotao.Editor
             Directory.CreateDirectory(SchemesFolder);
             AssetDatabase.Refresh();
 
-            var teams = new TeamData[Teams.Length];
-            for (int i = 0; i < Teams.Length; i++)
-            {
-                var (teamName, abbreviation, primary, secondary) = Teams[i];
-                teams[i] = LoadOrCreate<TeamData>($"{Folder}/{teamName}.asset", team => team.Set(teamName, abbreviation, primary, secondary));
-            }
 
             var schemes5 = new[]
             {
@@ -64,12 +58,22 @@ namespace FutebolDeBotao.Editor
             };
 
             var catalog = LoadOrCreate<TeamCatalog>(CatalogPath, _ => { });
-            // Catálogo já montado: a lista de times é a do Inspector (times novos e a ordem são do usuário).
-            // Só um catálogo vazio recebe os times da lista acima.
+            // Catálogo já montado: a lista de times é a do Inspector (times novos e a ordem são do usuário) e nenhum
+            // time é criado. Só um catálogo vazio recebe (e cria) os times da lista acima.
+            TeamData[] teams;
             if (catalog.TeamCount > 0)
             {
                 teams = new TeamData[catalog.TeamCount];
                 for (int i = 0; i < teams.Length; i++) teams[i] = catalog.Team(i);
+            }
+            else
+            {
+                teams = new TeamData[Teams.Length];
+                for (int i = 0; i < Teams.Length; i++)
+                {
+                    var (teamName, abbreviation, primary, secondary) = Teams[i];
+                    teams[i] = LoadOrCreate<TeamData>($"{Folder}/{teamName}.asset", team => team.Set(teamName, abbreviation, primary, secondary));
+                }
             }
             catalog.Set(teams, schemes5, schemes3);
             EditorUtility.SetDirty(catalog);
