@@ -25,7 +25,7 @@ namespace FutebolDeBotao
             public Sprite color;
         }
 
-        /// <summary>O que a peça é: decide a ordem de desenho (Fill embaixo, rede atrás da bola, trave na frente).</summary>
+        /// <summary>O que a peça é: decide a ordem de desenho (Fill embaixo, rede por cima da bola, trave na frente).</summary>
         public enum PieceKind
         {
             Fill,

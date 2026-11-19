@@ -17,7 +17,8 @@ namespace FutebolDeBotao
         private const string UpperHalfName = "Feltro (meia fileira)";
         private const string BuiltName = "Mesa montada";
         private const int FillOrder = -18;
-        private const int NetOrder = -14;
+        // Rede por cima da bola (7) e dos botões, embaixo da trave: a bola dentro do gol fica atrás da rede.
+        private const int NetOrder = 12;
         private const int BoardOrder = -12;
         private const int BoardColorOrder = -11;
         private const int GoalOrder = 13;
