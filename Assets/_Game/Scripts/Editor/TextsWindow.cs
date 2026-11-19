@@ -255,13 +255,10 @@ namespace FutebolDeBotao.Editor
             foreach (var ball in BallTheme.All()) AddItem("Bolas", ball.displayName, ball);
             foreach (var table in TableTheme.All()) AddItem("Mesas", table.displayName, table);
             foreach (var felt in FeltTheme.All()) AddItem("Feltros", felt.displayName, felt);
-            var palette = TeamColorPalette.Load();
+            var palette = ColorPalette.Load();
             if (palette != null)
                 foreach (var color in palette.colors)
-                    if (color != null) AddItem("Cores do time", color.name, palette);
-            foreach (var table in TableTheme.All())
-                foreach (var goal in table.colors)
-                    if (goal != null) AddItem("Cores da trave", goal.name, table);
+                    if (color != null) AddItem("Cores", color.name, palette);
             foreach (var config in TournamentConfig.All()) AddItem("Torneios", config.displayName, config);
             return list;
         }

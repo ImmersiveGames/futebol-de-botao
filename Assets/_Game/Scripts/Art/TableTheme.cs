@@ -4,8 +4,8 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Uma mesa (item desbloqueável): placas em volta do feltro, a trave (<see cref="GoalFrameSet"/>), as cores que o
-    /// jogador pode escolher, preço e se já vem liberada. As 6 peças de placa são desenhadas para a parede de cima (as
+    /// Uma mesa (item desbloqueável): placas em volta do feltro, a trave (<see cref="GoalFrameSet"/>), preço e se já vem
+    /// liberada. As cores que o jogador escolhe vêm da <see cref="ColorPalette"/> (a mesma do time), filtradas pelo feltro. As 6 peças de placa são desenhadas para a parede de cima (as
     /// outras paredes giram e espelham): canto, parede, a parede ao lado do gol (grande e pequeno) e o canto do fundo do
     /// gol, uma fileira acima, com a parede normal entre os dois cantos. Cada peça pode ter uma camada de cor (desenho
     /// branco que o jogo pinta com a cor escolhida, por cima da peça); a trave inteira também é pintada. O Fill, se
@@ -23,14 +23,6 @@ namespace FutebolDeBotao
             public Sprite sprite;
             [Tooltip("Desenho branco por cima da peça, pintado com a cor escolhida. Vazio: a peça não muda de cor.")]
             public Sprite color;
-        }
-
-        /// <summary>Uma cor que o jogador pode escolher (o nome é o que o feltro aceita e o que vai no save).</summary>
-        [System.Serializable]
-        public sealed class TableColor
-        {
-            public string name = "Branca";
-            public Color color = Color.white;
         }
 
         /// <summary>O que a peça é: decide a ordem de desenho (Fill embaixo, rede atrás da bola, trave na frente).</summary>
@@ -87,11 +79,9 @@ namespace FutebolDeBotao
         [Tooltip("Opcional: preenche o lado de fora da mesa no lugar do feltro.")]
         public Sprite fill;
 
-        [Header("Trave e cores")]
-        [Tooltip("A trave e a rede dos dois gols (o asset pode ser o mesmo em várias mesas).")]
+        [Header("Trave")]
+        [Tooltip("A trave e a rede dos dois gols (o asset pode ser o mesmo em várias mesas). As cores vêm da Color Palette.")]
         public GoalFrameSet goal;
-        [Tooltip("Cores que o jogador escolhe: pintam a trave e as camadas de cor das placas. O feltro filtra pelo nome.")]
-        public TableColor[] colors = { };
 
         [Header("Loja")]
         [Tooltip("Preço em moedas.")]
@@ -114,15 +104,14 @@ namespace FutebolDeBotao
 
         private static bool Has(BoardPiece piece) => piece != null && piece.sprite != null;
 
-        /// <summary>A cor de posição <paramref name="colorIndex"/> (dá a volta); nula se a mesa não tiver cores.</summary>
-        public TableColor Goal(int colorIndex)
+        /// <summary>A cor da <see cref="ColorPalette"/> na posição <paramref name="colorIndex"/> (dá a volta); nula se a paleta estiver vazia.</summary>
+        public ColorPalette.Entry Goal(int colorIndex)
         {
-            if (colors == null || colors.Length == 0) return null;
-            int count = colors.Length;
-            return colors[((colorIndex % count) + count) % count];
+            var palette = ColorPalette.Load();
+            return palette.Count > 0 ? palette[colorIndex] : null;
         }
 
-        /// <summary>A cor para pintar: a escolhida ou, sem cores na mesa, branco (o desenho como está).</summary>
+        /// <summary>A cor para pintar: a escolhida ou, sem paleta, branco (o desenho como está).</summary>
         public Color Tint(int colorIndex) => Goal(colorIndex)?.color ?? Color.white;
 
         /// <summary>
@@ -274,12 +263,12 @@ namespace FutebolDeBotao
         {
             var all = new List<int>();
             var allowed = new List<int>();
-            int count = colors?.Length ?? 0;
-            for (int i = 0; i < count; i++)
+            var palette = ColorPalette.Load();
+            for (int i = 0; i < palette.Count; i++)
             {
-                if (colors[i] == null) continue;
+                if (palette.colors[i] == null) continue;
                 all.Add(i);
-                if (felt != null && felt.AcceptsGoal(colors[i].name)) allowed.Add(i);
+                if (felt != null && felt.AcceptsGoal(palette.colors[i].name)) allowed.Add(i);
             }
             return allowed.Count > 0 ? allowed : all;
         }

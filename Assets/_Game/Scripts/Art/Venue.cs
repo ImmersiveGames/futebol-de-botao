@@ -83,7 +83,7 @@ namespace FutebolDeBotao
             var allowed = table.AllowedGoalColors(felt);
             if (allowed.Count == 0) return 0;
             foreach (int index in allowed)
-                if (!string.IsNullOrEmpty(colorName) && string.Equals(table.colors[index].name, colorName, System.StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(colorName) && string.Equals(ColorPalette.Load().colors[index].name, colorName, System.StringComparison.OrdinalIgnoreCase))
                     return index;
             return allowed[0];
         }

@@ -270,13 +270,13 @@ namespace FutebolDeBotao
 
         private void ChangePrimary(int step)
         {
-            Current.primary = TeamColorPalette.Load().Step(Current.primary, step);
+            Current.primary = ColorPalette.Load().Step(Current.primary, step);
             Refresh();
         }
 
         private void ChangeSecondary(int step)
         {
-            Current.secondary = TeamColorPalette.Load().Step(Current.secondary, step);
+            Current.secondary = ColorPalette.Load().Step(Current.secondary, step);
             Refresh();
         }
 
@@ -293,7 +293,7 @@ namespace FutebolDeBotao
                 ButtonSkin.SetHeld(uniformTabButtons[i], ButtonStyle.Green, i == uniformTab);
 
             var uniform = Current;
-            var palette = TeamColorPalette.Load();
+            var palette = ColorPalette.Load();
             PaintSwatch(primarySwatch, primaryLabel, uniform.primary, palette.NameOf(uniform.primary));
             PaintSwatch(secondarySwatch, secondaryLabel, uniform.secondary, palette.NameOf(uniform.secondary));
 

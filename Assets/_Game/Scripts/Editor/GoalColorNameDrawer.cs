@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace FutebolDeBotao.Editor
 {
-    /// <summary>Lista com os nomes das cores de todas as mesas, no lugar de digitar o nome.</summary>
+    /// <summary>Lista com os nomes das cores da Color Palette, no lugar de digitar o nome.</summary>
     [CustomPropertyDrawer(typeof(GoalColorNameAttribute))]
     public sealed class GoalColorNameDrawer : PropertyDrawer
     {
@@ -17,13 +17,9 @@ namespace FutebolDeBotao.Editor
             }
 
             var names = new List<string>();
-            foreach (var table in TableTheme.All())
-            {
-                if (table.colors == null) continue;
-                foreach (var frames in table.colors)
-                    if (frames != null && !string.IsNullOrWhiteSpace(frames.name) && !names.Contains(frames.name.Trim()))
-                        names.Add(frames.name.Trim());
-            }
+            foreach (var entry in ColorPalette.Load().colors)
+                if (entry != null && !string.IsNullOrWhiteSpace(entry.name) && !names.Contains(entry.name.Trim()))
+                    names.Add(entry.name.Trim());
 
             string current = property.stringValue?.Trim() ?? string.Empty;
             int index = names.FindIndex(n => string.Equals(n, current, System.StringComparison.OrdinalIgnoreCase));
@@ -31,7 +27,7 @@ namespace FutebolDeBotao.Editor
             // Nome que não existe mais em nenhuma mesa: aparece marcado, para não sumir sem aviso.
             if (index < 0)
             {
-                options.Insert(0, string.IsNullOrEmpty(current) ? "(escolha)" : $"{current} (não existe nas mesas)");
+                options.Insert(0, string.IsNullOrEmpty(current) ? "(escolha)" : $"{current} (não existe na paleta)");
                 index = 0;
             }
 

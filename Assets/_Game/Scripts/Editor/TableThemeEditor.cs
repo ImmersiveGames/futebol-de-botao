@@ -33,11 +33,12 @@ namespace FutebolDeBotao.Editor
                 EditorGUILayout.HelpBox("Sem trave completa: os gols ficam sem trave.", MessageType.Warning);
 
             smallGoal = EditorGUILayout.Toggle("Gol pequeno (sem goleiro)", smallGoal);
-            int count = table.colors?.Length ?? 0;
+            var palette = ColorPalette.Load();
+            int count = palette.Count;
             if (count > 0)
             {
                 var names = new string[count];
-                for (int i = 0; i < count; i++) names[i] = table.colors[i]?.name ?? "?";
+                for (int i = 0; i < count; i++) names[i] = palette.colors[i]?.name ?? "?";
                 colorIndex = EditorGUILayout.Popup("Cor", Mathf.Clamp(colorIndex, 0, count - 1), names);
             }
             feltColor = EditorGUILayout.ColorField("Cor do feltro", feltColor);

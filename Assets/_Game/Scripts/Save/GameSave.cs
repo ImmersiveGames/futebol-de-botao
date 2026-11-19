@@ -303,7 +303,23 @@ namespace FutebolDeBotao
             (8, ToVersion8),
             (9, ToVersion9),
             (10, ToVersion10),
+            (13, ToVersion13),
         };
+
+        /// <summary>
+        /// Versão 13: as cores da mesa passaram a vir da Color Palette (a do time), com os nomes no masculino; o nome
+        /// salvo da cor das traves acompanha.
+        /// </summary>
+        private static void ToVersion13(SaveData data)
+        {
+            data.profile.goalColorName = data.profile.goalColorName switch
+            {
+                "Branca" => "Branco",
+                "Vermelha" => "Vermelho",
+                "Amarela" => "Amarelo",
+                var name => name,
+            };
+        }
 
         /// <summary>Versão 1 não tinha a marca de partida em andamento (o campo vinha 0 = "Fácil em andamento").</summary>
         private static void ToVersion2(SaveData data) => data.stats.inProgressLevel = -1;

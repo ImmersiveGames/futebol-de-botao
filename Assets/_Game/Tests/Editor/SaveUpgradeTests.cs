@@ -134,6 +134,13 @@ namespace FutebolDeBotao.Tests
         }
 
         [Test]
+        public void Versao12_CorDaTraveVaiParaONomeDaPaleta()
+        {
+            var data = Open("{\"version\":12,\"profile\":{\"goalColorName\":\"Vermelha\"}}");
+            Assert.AreEqual("Vermelho", data.profile.goalColorName);
+        }
+
+        [Test]
         public void SaveVazio_TudoPreenchido()
         {
             var data = Open("{}");

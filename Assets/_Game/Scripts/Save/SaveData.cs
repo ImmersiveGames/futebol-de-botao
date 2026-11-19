@@ -11,7 +11,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 12;
+        public const int CurrentVersion = 13;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();

@@ -3,14 +3,15 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Cores que o jogador escolhe para o Meu time (principal e segunda cor), na ordem das setas. Fica em
-    /// Resources/CoresDoTime: é só acrescentar, tirar ou mudar as cores ali. O save guarda a cor em si (não a posição na
-    /// lista), então mexer na lista não troca a cor de quem já escolheu.
+    /// Paleta de cores do jogo, na ordem das setas: as cores do Meu time (principal e segunda cor) e as cores das mesas
+    /// (traves e camadas de cor das placas; o feltro filtra pelo nome). Fica em Resources/ColorPalette: é só acrescentar,
+    /// tirar ou mudar as cores ali. O time guarda a cor em si e a mesa guarda o nome, então mexer na ordem não troca a
+    /// escolha de ninguém (trocar um nome, sim: a mesa volta para a primeira cor aceita).
     /// </summary>
-    [CreateAssetMenu(menuName = "Futebol de Botão/Cores do time", fileName = "CoresDoTime")]
-    public sealed class TeamColorPalette : ScriptableObject
+    [CreateAssetMenu(menuName = "Futebol de Botão/Color Palette", fileName = "ColorPalette")]
+    public sealed class ColorPalette : ScriptableObject
     {
-        public const string ResourcePath = "CoresDoTime";
+        public const string ResourcePath = "ColorPalette";
 
         [System.Serializable]
         public sealed class Entry
@@ -22,7 +23,7 @@ namespace FutebolDeBotao
 
         public Entry[] colors = { };
 
-        private static TeamColorPalette cached;
+        private static ColorPalette cached;
 
         public int Count => colors.Length;
 
@@ -63,14 +64,14 @@ namespace FutebolDeBotao
             return this[index + step].color;
         }
 
-        public static TeamColorPalette Load()
+        public static ColorPalette Load()
         {
             if (cached != null) return cached;
-            cached = Resources.Load<TeamColorPalette>(ResourcePath);
+            cached = Resources.Load<ColorPalette>(ResourcePath);
             if (cached == null || cached.colors == null || cached.colors.Length == 0)
             {
-                if (cached != null) Debug.LogWarning("[Futebol de Botão] Cores do time vazias; usando as do código.");
-                cached = CreateInstance<TeamColorPalette>();
+                if (cached != null) Debug.LogWarning("[Futebol de Botão] Color Palette vazia; usando as do código.");
+                cached = CreateInstance<ColorPalette>();
                 cached.name = "Cores padrão";
                 cached.hideFlags = HideFlags.DontSave;
                 cached.colors = new[]
