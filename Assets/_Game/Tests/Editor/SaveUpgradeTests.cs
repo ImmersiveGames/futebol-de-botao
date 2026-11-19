@@ -195,6 +195,8 @@ namespace FutebolDeBotao.Tests
         [Test]
         public void SaveIlegivel_DevolveNulo()
         {
+            // O aviso é esperado: o teste manda um texto quebrado de propósito.
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("Save da nuvem ilegível"));
             Assert.IsNull(SaveSandbox.Call<SaveData>(typeof(GameSave), "ParseCloud", "{isso não é um save"));
         }
 
