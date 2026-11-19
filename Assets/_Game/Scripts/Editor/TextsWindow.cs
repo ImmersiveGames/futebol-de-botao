@@ -260,7 +260,7 @@ namespace FutebolDeBotao.Editor
                 foreach (var color in palette.colors)
                     if (color != null) AddItem("Cores do time", color.name, palette);
             foreach (var table in TableTheme.All())
-                foreach (var goal in table.goalColors)
+                foreach (var goal in table.colors)
                     if (goal != null) AddItem("Cores da trave", goal.name, table);
             foreach (var config in TournamentConfig.All()) AddItem("Torneios", config.displayName, config);
             return list;

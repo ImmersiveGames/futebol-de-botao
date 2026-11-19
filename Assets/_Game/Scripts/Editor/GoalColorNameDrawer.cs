@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace FutebolDeBotao.Editor
 {
-    /// <summary>Lista com os nomes das cores de trave de todas as mesas, no lugar de digitar o nome.</summary>
+    /// <summary>Lista com os nomes das cores de todas as mesas, no lugar de digitar o nome.</summary>
     [CustomPropertyDrawer(typeof(GoalColorNameAttribute))]
     public sealed class GoalColorNameDrawer : PropertyDrawer
     {
@@ -19,8 +19,8 @@ namespace FutebolDeBotao.Editor
             var names = new List<string>();
             foreach (var table in TableTheme.All())
             {
-                if (table.goalColors == null) continue;
-                foreach (var frames in table.goalColors)
+                if (table.colors == null) continue;
+                foreach (var frames in table.colors)
                     if (frames != null && !string.IsNullOrWhiteSpace(frames.name) && !names.Contains(frames.name.Trim()))
                         names.Add(frames.name.Trim());
             }

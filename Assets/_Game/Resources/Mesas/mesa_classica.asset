@@ -14,15 +14,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: FutebolDeBotao::FutebolDeBotao.TableTheme
   id: mesa_classica
   displayName: "Cl\xE1ssica"
-  classic: 1
   wallInsetPixels: 3
-  corner: {fileID: 0}
-  afterCorner: {fileID: 0}
-  center: {fileID: 0}
-  beforeCorner: {fileID: 0}
-  bigGoalBoard: {fileID: 0}
-  smallGoalBoard: {fileID: 0}
-  goalColors: []
+  corner:
+    sprite: {fileID: 1020788692, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 0}
+  wall:
+    sprite: {fileID: 396938744, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 0}
+  bigGoal:
+    sprite: {fileID: -1376734298, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 0}
+  bigGoalCorner:
+    sprite: {fileID: -1186638459, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 0}
+  smallGoal:
+    sprite: {fileID: -815356609, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 0}
+  smallGoalCorner:
+    sprite: {fileID: -1098853948, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 0}
+  fill: {fileID: 834703822, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+  goal: {fileID: 11400000, guid: 4e5f6a7b8c9d4e0f9a1b2c3d4e5f6071, type: 2}
+  colors:
+  - name: Branca
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - name: Vermelha
+    color: {r: 0.7058824, g: 0.1254902, b: 0.16470589, a: 1}
+  - name: Amarela
+    color: {r: 1, g: 0.8352941, b: 0.25490198, a: 1}
   price: 0
   unlockedByDefault: 1
   thumbnail: {fileID: 0}

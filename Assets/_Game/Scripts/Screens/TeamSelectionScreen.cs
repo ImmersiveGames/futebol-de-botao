@@ -603,8 +603,8 @@ namespace FutebolDeBotao
             SetActive(woodImage, !boardsTable);
             if (boardsTable)
             {
-                boardsBig = CreateTablePieces(boardsLayer, "Placas (gol grande)", table.Boards(false));
-                boardsSmall = CreateTablePieces(boardsLayer, "Placas (gol pequeno)", table.Boards(true));
+                boardsBig = CreateTablePieces(boardsLayer, "Placas (gol grande)", table.Boards(false, MatchSession.GoalColor));
+                boardsSmall = CreateTablePieces(boardsLayer, "Placas (gol pequeno)", table.Boards(true, MatchSession.GoalColor));
                 goalsBig = CreateTablePieces(goalsLayer, "Traves grandes", table.Goals(false, MatchSession.GoalColor));
                 goalsSmall = CreateTablePieces(goalsLayer, "Traves pequenas", table.Goals(true, MatchSession.GoalColor));
             }
@@ -632,7 +632,7 @@ namespace FutebolDeBotao
             var group = CreateRect(parent, groupName, Vector2.zero, Vector2.zero);
             foreach (var piece in pieces)
             {
-                var rect = CreateImage(group, piece.Sprite.name, Color.white, piece.Sprite, piece.Position, Vector2.one).rectTransform;
+                var rect = CreateImage(group, piece.Sprite.name, piece.Tint, piece.Sprite, piece.Position, Vector2.one).rectTransform;
                 rect.localRotation = Quaternion.Euler(0f, 0f, piece.Rotation);
                 if (piece.FlipX) rect.localScale = new Vector3(-1f, 1f, 1f);
             }

@@ -99,7 +99,7 @@ namespace FutebolDeBotao
             SetActive(classicPoles, !boards);
             if (boards)
             {
-                AddPieces(boardsLayer, table.Boards(false));
+                AddPieces(boardsLayer, table.Boards(false, setup.GoalColor, 0));
                 AddPieces(goalsLayer, table.Goals(false, setup.GoalColor));
             }
 
@@ -155,7 +155,9 @@ namespace FutebolDeBotao
         {
             foreach (var piece in pieces)
             {
-                var rect = CreateImage(parent, piece.Sprite.name, piece.Sprite, piece.Position, Vector2.one).rectTransform;
+                var image = CreateImage(parent, piece.Sprite.name, piece.Sprite, piece.Position, Vector2.one);
+                image.color = piece.Tint;
+                var rect = image.rectTransform;
                 rect.localRotation = Quaternion.Euler(0f, 0f, piece.Rotation);
                 if (piece.FlipX) rect.localScale = new Vector3(-1f, 1f, 1f);
             }

@@ -14,33 +14,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: FutebolDeBotao::FutebolDeBotao.TableTheme
   id: mesa_placas
   displayName: Placas
-  classic: 0
   wallInsetPixels: 3
-  corner: {fileID: -901831270, guid: 73861b0915cfa804facf87477eb9ac9c, type: 3}
-  afterCorner: {fileID: -732120516, guid: 73861b0915cfa804facf87477eb9ac9c, type: 3}
-  center: {fileID: 736972421, guid: 73861b0915cfa804facf87477eb9ac9c, type: 3}
-  beforeCorner: {fileID: 25256560, guid: 73861b0915cfa804facf87477eb9ac9c, type: 3}
-  bigGoalBoard: {fileID: 205732640, guid: 73861b0915cfa804facf87477eb9ac9c, type: 3}
-  smallGoalBoard: {fileID: -1245908556, guid: 73861b0915cfa804facf87477eb9ac9c, type: 3}
-  goalColors:
+  corner:
+    sprite: {fileID: 1098825018, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 1967374253, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+  wall:
+    sprite: {fileID: 949815752, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 515255674, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+  bigGoal:
+    sprite: {fileID: 1221545720, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 571846940, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+  bigGoalCorner:
+    sprite: {fileID: -2101286409, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 1663161596, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+  smallGoal:
+    sprite: {fileID: -519765121, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: 1905441409, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+  smallGoalCorner:
+    sprite: {fileID: -1285943085, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+    color: {fileID: -1751661398, guid: 3c1470a6ccb9de54587881297dcf97c6, type: 3}
+  fill: {fileID: 0}
+  goal: {fileID: 11400000, guid: 4e5f6a7b8c9d4e0f9a1b2c3d4e5f6071, type: 2}
+  colors:
   - name: Branca
-    bigLeft: {fileID: -568719700, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    bigRight: {fileID: -1447107466, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    smallLeft: {fileID: -967225316, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    smallRight: {fileID: -1015283777, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    center: {fileID: -555625553, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
   - name: Vermelha
-    bigLeft: {fileID: -2117559057, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    bigRight: {fileID: -1137604035, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    smallLeft: {fileID: 1179411295, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    smallRight: {fileID: -1214515932, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    center: {fileID: -1422328280, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
+    color: {r: 0.7058824, g: 0.1254902, b: 0.16470589, a: 1}
   - name: Amarela
-    bigLeft: {fileID: 933297042, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    bigRight: {fileID: 679729225, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    smallLeft: {fileID: -536151467, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    smallRight: {fileID: 203261428, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
-    center: {fileID: 2133748841, guid: 5bc2aa30236f7c747b6dc8cdf1c7b8c2, type: 3}
+    color: {r: 1, g: 0.8352941, b: 0.25490198, a: 1}
   price: 200
   unlockedByDefault: 0
   thumbnail: {fileID: 0}

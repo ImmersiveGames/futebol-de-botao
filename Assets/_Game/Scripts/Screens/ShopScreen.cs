@@ -311,12 +311,17 @@ namespace FutebolDeBotao
             }
             if (table.HasBoards)
             {
-                // Canto, placa e a placa da trave, como no alto da mesa, sobre o feltro.
+                // Canto, parede e a parede do gol, como no alto da mesa, sobre o feltro (com a camada de cor na 1ª cor).
                 const float tile = 80f;
                 CreateImage(area, "Feltro", null, FeltColor, Vector2.zero, new Vector2(tile * 3f, tile));
-                var sprites = new[] { table.corner, table.center, table.bigGoalBoard };
-                for (int i = 0; i < sprites.Length; i++)
-                    CreateImage(area, sprites[i].name, sprites[i], Color.white, new Vector2((i - 1) * tile, 0f), Vector2.one * tile);
+                var pieces = new[] { table.corner, table.wall, table.bigGoal };
+                var tint = table.Tint(0);
+                for (int i = 0; i < pieces.Length; i++)
+                {
+                    var position = new Vector2((i - 1) * tile, 0f);
+                    CreateImage(area, pieces[i].sprite.name, pieces[i].sprite, Color.white, position, Vector2.one * tile);
+                    if (pieces[i].color != null) CreateImage(area, pieces[i].color.name, pieces[i].color, tint, position, Vector2.one * tile);
+                }
                 return;
             }
             // Clássica sem miniatura: moldura de madeira com o feltro dentro.

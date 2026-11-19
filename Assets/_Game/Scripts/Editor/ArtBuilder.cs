@@ -55,16 +55,8 @@ namespace FutebolDeBotao.Editor
         private const string FeltThemesFolder = "Assets/_Game/Resources/Feltros";
         private static readonly string[] FeltSpriteNames = { "Felt_White", "Felt_White_Gradient", "Felt_White_Texture" };
 
-        private const string BoardSheetPath = "Assets/_Game/Art/Campo/Board_02_Tiles_Sheet.png";
-        private const string GoalFramesPath = "Assets/_Game/Art/Campo/Goal_Frames_Sheet.png";
-        private const string TableAtlasPath = "Assets/_Game/Art/Campo/Mesas.spriteatlasv2";
-        private const string TablesFolder = "Assets/_Game/Resources/Mesas";
-        private static readonly string[] BoardSpriteNames =
-        {
-            "Board_02_Corner", "Board_02_Near_Corner_Left", "Board_02_Center", "Board_02_Near_Corner_right",
-            "Board_02_Big_Goal_frame", "Board_02_Small_Goal_frame",
-        };
-        private static readonly (string suffix, string name)[] GoalColorNames = { ("White", "Branca"), ("Red", "Vermelha"), ("Yellow", "Amarela") };
+        // Mesas: as folhas de placas e de traves ficam na pasta Boards (o atlas Mesas empacota a pasta inteira).
+        private const string TableSheetsFolder = "Assets/_Game/Art/Campo/Boards";
 
         // Camisas: células de 32x32, uma coluna por camada e uma linha por padrão (as colunas do goleiro têm outra ordem).
         private const string DiscSheetPath = "Assets/_Game/Art/Botoes/Botoes_Base_Sheet.png";
@@ -528,86 +520,14 @@ namespace FutebolDeBotao.Editor
         // ---- Mesas ----
 
         /// <summary>
-        /// Mesas em Resources/Mesas: a clássica (a moldura e os gols da folha do campo) e a de placas (folhas
-        /// Board_02_Tiles_Sheet e Goal_Frames_Sheet), as duas já liberadas. Cria só as que faltam; as que existem só
-        /// têm os recortes religados (para seguir a folha se o usuário recortar de novo).
+        /// Folhas da pasta Boards (placas e traves) com 32 px por unidade, Point e sem compressão. As mesas
+        /// (Resources/Mesas) e as traves são montadas à mão no Inspector, com os recortes dessas folhas.
         /// </summary>
         private static void BuildTables()
         {
-            if (!AssetDatabase.IsValidFolder(TablesFolder)) AssetDatabase.CreateFolder("Assets/_Game/Resources", "Mesas");
-
-            var classic = LoadOrCreateTable("mesa_classica");
-            if (classic.displayName == "Mesa")
-            {
-                classic.displayName = "Clássica";
-                classic.classic = true;
-                classic.wallInsetPixels = 3f;
-                classic.unlockedByDefault = true;
-            }
-            EditorUtility.SetDirty(classic);
-
-            if (!File.Exists(BoardSheetPath) || !File.Exists(GoalFramesPath))
-            {
-                Debug.LogWarning($"[Futebol de Botão] Sem {BoardSheetPath} ou {GoalFramesPath}: só a mesa clássica.");
-                AssetDatabase.SaveAssets();
-                return;
-            }
-            ConfigureImport(BoardSheetPath);
-            ConfigureImport(GoalFramesPath);
-            EnsureAtlas(TableAtlasPath, BoardSheetPath, GoalFramesPath);
-            var boards = LoadSprites(BoardSheetPath);
-            var frames = LoadSprites(GoalFramesPath);
-            var missing = BoardSpriteNames.Where(n => !boards.ContainsKey(n)).ToArray();
-            if (missing.Length > 0)
-            {
-                Debug.LogError($"[Futebol de Botão] Faltam recortes em {BoardSheetPath}: {string.Join(", ", missing)}. Mesa de placas não montada.");
-                AssetDatabase.SaveAssets();
-                return;
-            }
-
-            var table = LoadOrCreateTable("mesa_placas");
-            if (table.displayName == "Mesa")
-            {
-                table.displayName = "Placas";
-                table.wallInsetPixels = 0f;
-                table.unlockedByDefault = true;
-            }
-            table.classic = false;
-            table.corner = boards[BoardSpriteNames[0]];
-            table.afterCorner = boards[BoardSpriteNames[1]];
-            table.center = boards[BoardSpriteNames[2]];
-            table.beforeCorner = boards[BoardSpriteNames[3]];
-            table.bigGoalBoard = boards[BoardSpriteNames[4]];
-            table.smallGoalBoard = boards[BoardSpriteNames[5]];
-            Sprite Frame(string spriteName) => frames.TryGetValue(spriteName, out var sprite) ? sprite : null;
-            table.goalColors = GoalColorNames
-                .Select(c => new TableTheme.GoalFrames
-                {
-                    name = c.name,
-                    bigLeft = Frame($"Big_Left_{c.suffix}"),
-                    bigRight = Frame($"Big_Right_{c.suffix}"),
-                    smallLeft = Frame($"Small_Left_{c.suffix}"),
-                    smallRight = Frame($"Small_Right_{c.suffix}"),
-                    center = Frame($"Goal_Center_{c.suffix}"),
-                })
-                .Where(f => f.Complete)
-                .ToArray();
-            if (table.goalColors.Length < GoalColorNames.Length)
-                Debug.LogWarning($"[Futebol de Botão] {GoalFramesPath}: só {table.goalColors.Length} de {GoalColorNames.Length} cores de trave com todos os recortes.");
-            EditorUtility.SetDirty(table);
-            AssetDatabase.SaveAssets();
-            Debug.Log($"[Futebol de Botão] Mesas: clássica e de placas ({table.goalColors.Length} cores de trave) em {TablesFolder}.");
-        }
-
-        private static TableTheme LoadOrCreateTable(string id)
-        {
-            string path = $"{TablesFolder}/{id}.asset";
-            var table = AssetDatabase.LoadAssetAtPath<TableTheme>(path);
-            if (table != null) return table;
-            table = ScriptableObject.CreateInstance<TableTheme>();
-            table.id = id;
-            AssetDatabase.CreateAsset(table, path);
-            return table;
+            if (!AssetDatabase.IsValidFolder(TableSheetsFolder)) return;
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { TableSheetsFolder }))
+                ConfigureImport(AssetDatabase.GUIDToAssetPath(guid));
         }
 
         // ---- Feltros ----

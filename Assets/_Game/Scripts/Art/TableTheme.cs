@@ -4,45 +4,63 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Uma mesa (item desbloqueável): a moldura com placas e as traves, com preço e se já vem liberada. A clássica é a
-    /// da folha do campo (moldura e gols montados pelo "Aplicar artes"); as outras são montadas aqui com 6 tiles de
-    /// placa desenhados para a parede de cima (as outras paredes giram e espelham) e as traves em várias cores, também
-    /// do gol de cima (o de baixo gira 180°). Nas mesas de placas o feltro passa por baixo das placas e dos gols.
-    /// Os assets ficam em Resources/Mesas; a da partida é sorteada entre as liberadas a cada partida nova.
+    /// Uma mesa (item desbloqueável): placas em volta do feltro, a trave (<see cref="GoalFrameSet"/>), as cores que o
+    /// jogador pode escolher, preço e se já vem liberada. As 6 peças de placa são desenhadas para a parede de cima (as
+    /// outras paredes giram e espelham): canto, parede, a parede ao lado do gol (grande e pequeno) e o canto do fundo do
+    /// gol, uma fileira acima, com a parede normal entre os dois cantos. Cada peça pode ter uma camada de cor (desenho
+    /// branco que o jogo pinta com a cor escolhida, por cima da peça); a trave inteira também é pintada. O Fill, se
+    /// houver, cobre o lado de fora da mesa em vez do feltro. Os assets ficam em Resources/Mesas.
     /// </summary>
     [CreateAssetMenu(menuName = "Futebol de Botão/Mesa", fileName = "Mesa")]
     public sealed class TableTheme : ScriptableObject
     {
         public const string ResourceFolder = "Mesas";
 
-        /// <summary>Traves de uma cor: as peças dos gols grande e pequeno (o meio é o mesmo nos dois).</summary>
+        /// <summary>Uma peça de placa e a camada dela que recebe a cor (opcional).</summary>
         [System.Serializable]
-        public sealed class GoalFrames
+        public sealed class BoardPiece
         {
-            public string name = "Branca";
-            public Sprite bigLeft;
-            public Sprite bigRight;
-            public Sprite smallLeft;
-            public Sprite smallRight;
-            public Sprite center;
-
-            public bool Complete => bigLeft != null && bigRight != null && smallLeft != null && smallRight != null && center != null;
+            public Sprite sprite;
+            [Tooltip("Desenho branco por cima da peça, pintado com a cor escolhida. Vazio: a peça não muda de cor.")]
+            public Sprite color;
         }
 
-        /// <summary>Uma peça da moldura ou do gol: centro (em unidades, campo no 0,0), giro e espelho.</summary>
+        /// <summary>Uma cor que o jogador pode escolher (o nome é o que o feltro aceita e o que vai no save).</summary>
+        [System.Serializable]
+        public sealed class TableColor
+        {
+            public string name = "Branca";
+            public Color color = Color.white;
+        }
+
+        /// <summary>O que a peça é: decide a ordem de desenho (Fill embaixo, rede atrás da bola, trave na frente).</summary>
+        public enum PieceKind
+        {
+            Fill,
+            Board,
+            BoardColor,
+            Net,
+            Frame,
+        }
+
+        /// <summary>Uma peça da mesa ou do gol: centro (em unidades, campo no 0,0), giro, espelho e cor.</summary>
         public readonly struct Piece
         {
             public readonly Sprite Sprite;
             public readonly Vector2 Position;
             public readonly float Rotation;
             public readonly bool FlipX;
+            public readonly Color Tint;
+            public readonly PieceKind Kind;
 
-            public Piece(Sprite sprite, Vector2 position, float rotation, bool flipX)
+            public Piece(Sprite sprite, Vector2 position, float rotation, bool flipX, Color tint, PieceKind kind)
             {
                 Sprite = sprite;
                 Position = position;
                 Rotation = rotation;
                 FlipX = flipX;
+                Tint = tint;
+                Kind = kind;
             }
         }
 
@@ -50,27 +68,37 @@ namespace FutebolDeBotao
         public string id = "mesa";
         [Tooltip("Nome que o jogador vê.")]
         public string displayName = "Mesa";
-        [Tooltip("A mesa da folha do campo (Field_Sprites): moldura e gols já montados na cena; as placas daqui não são usadas.")]
-        public bool classic;
-        [Tooltip("A colisão das paredes fica estes pixels para dentro da linha do feltro (clássica: 3, a face inclinada).")]
+        [Tooltip("A colisão das paredes fica estes pixels para fora da linha do feltro (a face de dentro da parede).")]
         [Min(0f)] public float wallInsetPixels;
 
         [Header("Placas (desenhadas para a parede de cima)")]
-        public Sprite corner;
-        public Sprite afterCorner;
-        public Sprite center;
-        public Sprite beforeCorner;
-        public Sprite bigGoalBoard;
-        public Sprite smallGoalBoard;
+        [Tooltip("Os cantos da mesa.")]
+        public BoardPiece corner = new();
+        [Tooltip("A parede: fundo e laterais (gira e espelha).")]
+        public BoardPiece wall = new();
+        [Tooltip("A parede ao lado do gol grande, que faz o encaixe dele.")]
+        public BoardPiece bigGoal = new();
+        [Tooltip("O canto do fundo do gol grande, uma fileira acima da parede do gol.")]
+        public BoardPiece bigGoalCorner = new();
+        [Tooltip("A parede ao lado do gol pequeno (sem goleiro).")]
+        public BoardPiece smallGoal = new();
+        [Tooltip("O canto do fundo do gol pequeno.")]
+        public BoardPiece smallGoalCorner = new();
+        [Tooltip("Opcional: preenche o lado de fora da mesa no lugar do feltro.")]
+        public Sprite fill;
 
-        [Header("Traves (desenhadas para o gol de cima)")]
-        public GoalFrames[] goalColors = { };
+        [Header("Trave e cores")]
+        [Tooltip("A trave e a rede dos dois gols (o asset pode ser o mesmo em várias mesas).")]
+        public GoalFrameSet goal;
+        [Tooltip("Cores que o jogador escolhe: pintam a trave e as camadas de cor das placas. O feltro filtra pelo nome.")]
+        public TableColor[] colors = { };
 
+        [Header("Loja")]
         [Tooltip("Preço em moedas.")]
         [Min(0)] public int price;
         [Tooltip("O jogador já tem desde o começo.")]
         public bool unlockedByDefault;
-        [Tooltip("Miniatura na Loja. Vazio: a Loja monta com o canto, a placa e a trave.")]
+        [Tooltip("Miniatura na Loja. Vazio: a Loja monta com o canto, a parede e a parede do gol.")]
         public Sprite thumbnail;
 
         /// <summary>Código na lista de comprados do save.</summary>
@@ -79,27 +107,32 @@ namespace FutebolDeBotao
         /// <summary>Vem liberada ou o jogador comprou.</summary>
         public bool Unlocked => unlockedByDefault || Shop.Owns(ShopKey);
 
-        /// <summary>Mesa de placas com todos os recortes.</summary>
-        public bool HasBoards => !classic && corner != null && afterCorner != null && center != null && beforeCorner != null
-                                 && bigGoalBoard != null && smallGoalBoard != null;
+        /// <summary>Mesa com todas as peças de placa (sem elas, fica a moldura antiga da cena).</summary>
+        public bool HasBoards => Has(corner) && Has(wall) && Has(bigGoal) && Has(bigGoalCorner) && Has(smallGoal) && Has(smallGoalCorner);
 
         public float WallInset => wallInsetPixels / 32f;
 
-        public GoalFrames Goal(int colorIndex)
+        private static bool Has(BoardPiece piece) => piece != null && piece.sprite != null;
+
+        /// <summary>A cor de posição <paramref name="colorIndex"/> (dá a volta); nula se a mesa não tiver cores.</summary>
+        public TableColor Goal(int colorIndex)
         {
-            if (goalColors == null || goalColors.Length == 0) return null;
-            int count = goalColors.Length;
-            var frames = goalColors[((colorIndex % count) + count) % count];
-            return frames != null && frames.Complete ? frames : null;
+            if (colors == null || colors.Length == 0) return null;
+            int count = colors.Length;
+            return colors[((colorIndex % count) + count) % count];
         }
+
+        /// <summary>A cor para pintar: a escolhida ou, sem cores na mesa, branco (o desenho como está).</summary>
+        public Color Tint(int colorIndex) => Goal(colorIndex)?.color ?? Color.white;
 
         /// <summary>
         /// Placas em volta do feltro (<see cref="FieldLayout.Width"/> x <see cref="FieldLayout.Height"/>, células de 1
-        /// unidade). Paredes de cima e de baixo: canto, depois do canto, antes do canto e a placa até a trave, e o
-        /// espelho do outro lado; a de baixo é a de cima girada 180°. Laterais: depois do canto, centros e antes do canto,
-        /// giradas 90° (a da direita espelhada).
+        /// unidade). Fundo de cima, da esquerda para o meio: canto, paredes e a parede do gol; uma fileira acima, o canto
+        /// do fundo do gol e a parede entre os dois cantos; o outro lado espelhado e o fundo de baixo girado 180°.
+        /// Laterais: paredes giradas 90° (a da direita espelhada). Cada peça vem seguida da camada de cor; o Fill vem
+        /// antes, nas células de fora até <paramref name="fillRing"/> células além das placas.
         /// </summary>
-        public List<Piece> Boards(bool smallGoal)
+        public List<Piece> Boards(bool smallGoal, int colorIndex, int fillRing = 1)
         {
             var pieces = new List<Piece>();
             if (!HasBoards) return pieces;
@@ -107,43 +140,74 @@ namespace FutebolDeBotao
             int halfRows = Mathf.RoundToInt(FieldLayout.Height) / 2;
             int edgeX = halfColumns + 1;
             int edgeY = halfRows + 1;
+            var goalWall = smallGoal ? this.smallGoal : bigGoal;
+            var goalCorner = smallGoal ? smallGoalCorner : bigGoalCorner;
 
-            // Fileira de cima, metade da esquerda (de fora para dentro); o gol ocupa as 3 colunas do meio.
-            var end = new List<(int x, Sprite sprite)> { (-edgeX, corner) };
-            for (int x = -edgeX + 1; x <= -2; x++)
-                end.Add((x, x == -edgeX + 1 ? afterCorner : x == -2 ? beforeCorner : center));
-            end.Add((-1, smallGoal ? smallGoalBoard : bigGoalBoard));
-            foreach (var (x, sprite) in end)
+            var placed = new List<(BoardPiece piece, Vector2Int cell, float rotation, bool flip)>();
+            void End(BoardPiece piece, int x, int y)
             {
-                pieces.Add(new Piece(sprite, new Vector2(x, edgeY), 0f, false));
-                pieces.Add(new Piece(sprite, new Vector2(-x, edgeY), 0f, true));
-                pieces.Add(new Piece(sprite, new Vector2(-x, -edgeY), 180f, false));
-                pieces.Add(new Piece(sprite, new Vector2(x, -edgeY), 180f, true));
+                placed.Add((piece, new Vector2Int(x, y), 0f, false));
+                placed.Add((piece, new Vector2Int(-x, y), 0f, true));
+                placed.Add((piece, new Vector2Int(-x, -y), 180f, false));
+                placed.Add((piece, new Vector2Int(x, -y), 180f, true));
             }
+
+            // Fundos: da ponta até a parede do gol; o gol ocupa a coluna do meio e entra nas duas do lado.
+            End(corner, -edgeX, edgeY);
+            for (int x = -edgeX + 1; x <= -2; x++) End(wall, x, edgeY);
+            End(goalWall, -1, edgeY);
+            // Atrás do gol: os dois cantos e a parede entre eles (a do meio entra uma vez só de cada lado).
+            End(goalCorner, -1, edgeY + 1);
+            placed.Add((wall, new Vector2Int(0, edgeY + 1), 0f, false));
+            placed.Add((wall, new Vector2Int(0, -edgeY - 1), 180f, false));
 
             // Laterais, de baixo para cima.
             for (int y = -halfRows; y <= halfRows; y++)
             {
-                var sprite = y == -halfRows ? afterCorner : y == halfRows ? beforeCorner : center;
-                pieces.Add(new Piece(sprite, new Vector2(-edgeX, y), 90f, false));
-                pieces.Add(new Piece(sprite, new Vector2(edgeX, y), -90f, true));
+                placed.Add((wall, new Vector2Int(-edgeX, y), 90f, false));
+                placed.Add((wall, new Vector2Int(edgeX, y), -90f, true));
+            }
+
+            if (fill != null && fillRing > 0)
+            {
+                var taken = new HashSet<Vector2Int>();
+                foreach (var item in placed) taken.Add(item.cell);
+                for (int x = -edgeX - fillRing; x <= edgeX + fillRing; x++)
+                    for (int y = -edgeY - 1 - fillRing; y <= edgeY + 1 + fillRing; y++)
+                    {
+                        var cell = new Vector2Int(x, y);
+                        bool field = Mathf.Abs(x) <= halfColumns && Mathf.Abs(y) <= halfRows;
+                        bool goalMouth = x == 0 && Mathf.Abs(y) == edgeY;
+                        if (field || goalMouth || taken.Contains(cell)) continue;
+                        pieces.Add(new Piece(fill, cell, 0f, false, Color.white, PieceKind.Fill));
+                    }
+            }
+
+            var tint = Tint(colorIndex);
+            foreach (var (piece, cell, rotation, flip) in placed)
+            {
+                pieces.Add(new Piece(piece.sprite, cell, rotation, flip, Color.white, PieceKind.Board));
+                if (piece.color != null) pieces.Add(new Piece(piece.color, cell, rotation, flip, tint, PieceKind.BoardColor));
             }
             return pieces;
         }
 
-        /// <summary>As traves de uma cor nos dois gols: as do de cima como desenhadas, as do de baixo giradas 180°.</summary>
+        /// <summary>A rede e a trave (pintada com a cor) nos dois gols: as do de cima como desenhadas, as do de baixo giradas 180°.</summary>
         public List<Piece> Goals(bool smallGoal, int colorIndex)
         {
             var pieces = new List<Piece>();
-            var frames = Goal(colorIndex);
-            if (frames == null) return pieces;
+            if (goal == null || !goal.Complete) return pieces;
             float y = FieldLayout.HalfHeight + 0.5f;
-            var row = new[] { smallGoal ? frames.smallLeft : frames.bigLeft, frames.center, smallGoal ? frames.smallRight : frames.bigRight };
-            for (int i = 0; i < row.Length; i++)
-            {
-                pieces.Add(new Piece(row[i], new Vector2(i - 1, y), 0f, false));
-                pieces.Add(new Piece(row[i], new Vector2(1 - i, -y), 180f, false));
-            }
+            var tint = Tint(colorIndex);
+            var nets = new[] { smallGoal ? goal.smallNetLeft : goal.bigNetLeft, goal.centerNet, smallGoal ? goal.smallNetRight : goal.bigNetRight };
+            var frames = new[] { smallGoal ? goal.smallLeft : goal.bigLeft, goal.center, smallGoal ? goal.smallRight : goal.bigRight };
+            foreach (var (row, kind, color) in new[] { (nets, PieceKind.Net, Color.white), (frames, PieceKind.Frame, tint) })
+                for (int i = 0; i < row.Length; i++)
+                {
+                    if (row[i] == null) continue;
+                    pieces.Add(new Piece(row[i], new Vector2(i - 1, y), 0f, false, color, kind));
+                    pieces.Add(new Piece(row[i], new Vector2(1 - i, -y), 180f, false, color, kind));
+                }
             return pieces;
         }
 
@@ -173,7 +237,7 @@ namespace FutebolDeBotao
 
         /// <summary>
         /// Mesa da partida: a guardada na <see cref="MatchSession"/> ou, se nenhuma, uma sorteada entre as liberadas (e a
-        /// cor das traves junto), guardada para a Seleção de times e a Partida mostrarem a mesma e o Reiniciar manter.
+        /// cor junto), guardada para a Seleção de times e a Partida mostrarem a mesma e o Reiniciar manter.
         /// Nula se não houver mesas (fica a clássica da cena).
         /// </summary>
         public static TableTheme Current()
@@ -193,7 +257,7 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// Sorteia a cor das traves entre as que o feltro aceita (<see cref="FeltTheme.goalColors"/>, pelo nome); sem lista
+        /// Sorteia a cor (traves e placas) entre as que o feltro aceita (<see cref="FeltTheme.goalColors"/>, pelo nome); sem lista
         /// ou sem nenhuma dessas cores na mesa, entre todas.
         /// </summary>
         public int PickGoalColor(FeltTheme felt)
@@ -203,21 +267,21 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// Posições das cores de trave completas que o feltro aceita; se o feltro não tiver lista ou nenhuma bater, todas
-        /// as completas.
+        /// Posições das cores que o feltro aceita (<see cref="FeltTheme.goalColors"/>, pelo nome); se o feltro não tiver
+        /// lista ou nenhuma bater, todas.
         /// </summary>
         public List<int> AllowedGoalColors(FeltTheme felt)
         {
-            var complete = new List<int>();
+            var all = new List<int>();
             var allowed = new List<int>();
-            int count = goalColors?.Length ?? 0;
+            int count = colors?.Length ?? 0;
             for (int i = 0; i < count; i++)
             {
-                if (goalColors[i] == null || !goalColors[i].Complete) continue;
-                complete.Add(i);
-                if (felt != null && felt.AcceptsGoal(goalColors[i].name)) allowed.Add(i);
+                if (colors[i] == null) continue;
+                all.Add(i);
+                if (felt != null && felt.AcceptsGoal(colors[i].name)) allowed.Add(i);
             }
-            return allowed.Count > 0 ? allowed : complete;
+            return allowed.Count > 0 ? allowed : all;
         }
 
         // Com o "Enter Play Mode" sem recarregar o domínio, a lista sobreviveria a mudanças nos assets.

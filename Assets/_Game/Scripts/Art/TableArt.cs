@@ -16,12 +16,17 @@ namespace FutebolDeBotao
     {
         private const string UpperHalfName = "Feltro (meia fileira)";
         private const string BuiltName = "Mesa montada";
+        private const int FillOrder = -18;
+        private const int NetOrder = -14;
         private const int BoardOrder = -12;
+        private const int BoardColorOrder = -11;
         private const int GoalOrder = 13;
+        // Células de Fill além das placas: cobre o que a câmera mostra em volta da mesa (celular comprido inclusive).
+        private const int FillRing = 4;
 
         [Tooltip("Para testar: esta mesa em vez da da partida. Vazio: a da partida (a mesma da Seleção de times).")]
         [SerializeField] private TableTheme tableOverride;
-        [Tooltip("Para testar: a cor das traves (0 = a primeira cor da mesa). -1: a da partida.")]
+        [Tooltip("Para testar: a cor da mesa (traves e placas; 0 = a primeira). -1: a da partida.")]
         [SerializeField] private int goalColorOverride = -1;
         [Tooltip("Para testar: este feltro em vez do da partida. Vazio: o da partida (o mesmo da Seleção de times).")]
         [SerializeField] private FeltTheme feltOverride;
@@ -143,13 +148,22 @@ namespace FutebolDeBotao
             // Montada na hora a partir da mesa: não vai para a cena salva.
             root.gameObject.hideFlags = HideFlags.DontSave;
             int color = GoalColorIndex;
-            boardsBig = CreatePieces(root, "Placas (gol grande)", table.Boards(false), BoardOrder);
-            boardsSmall = CreatePieces(root, "Placas (gol pequeno)", table.Boards(true), BoardOrder);
-            goalsBig = CreatePieces(root, "Traves grandes", table.Goals(false, color), GoalOrder);
-            goalsSmall = CreatePieces(root, "Traves pequenas", table.Goals(true, color), GoalOrder);
+            boardsBig = CreatePieces(root, "Placas (gol grande)", table.Boards(false, color, FillRing));
+            boardsSmall = CreatePieces(root, "Placas (gol pequeno)", table.Boards(true, color, FillRing));
+            goalsBig = CreatePieces(root, "Traves grandes", table.Goals(false, color));
+            goalsSmall = CreatePieces(root, "Traves pequenas", table.Goals(true, color));
         }
 
-        private static GameObject CreatePieces(Transform parent, string groupName, System.Collections.Generic.List<TableTheme.Piece> pieces, int order)
+        private static int Order(TableTheme.PieceKind kind) => kind switch
+        {
+            TableTheme.PieceKind.Fill => FillOrder,
+            TableTheme.PieceKind.BoardColor => BoardColorOrder,
+            TableTheme.PieceKind.Net => NetOrder,
+            TableTheme.PieceKind.Frame => GoalOrder,
+            _ => BoardOrder,
+        };
+
+        private static GameObject CreatePieces(Transform parent, string groupName, System.Collections.Generic.List<TableTheme.Piece> pieces)
         {
             var group = new GameObject(groupName).transform;
             group.SetParent(parent, false);
@@ -162,7 +176,8 @@ namespace FutebolDeBotao
                 var renderer = go.AddComponent<SpriteRenderer>();
                 renderer.sprite = piece.Sprite;
                 renderer.flipX = piece.FlipX;
-                renderer.sortingOrder = order;
+                renderer.color = piece.Tint;
+                renderer.sortingOrder = Order(piece.Kind);
             }
             return group.gameObject;
         }
@@ -176,7 +191,7 @@ namespace FutebolDeBotao
         {
             if (!Application.isPlaying) return;
             var table = CurrentTable();
-            float inset = table != null && (table.classic || table.HasBoards) ? table.WallInset : FieldLayout.ClassicWallInset;
+            float inset = table != null && table.HasBoards ? table.WallInset : FieldLayout.ClassicWallInset;
             FieldLayout.WallInset = inset;
             float sideSegment = (FieldLayout.Width - FieldLayout.GoalWidth) * 0.5f + inset;
             foreach (var wall in FindObjectsByType<Wall>())
