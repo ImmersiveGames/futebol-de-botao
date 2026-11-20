@@ -368,7 +368,13 @@ namespace FutebolDeBotao.Editor
         {
             if (!AssetDatabase.IsValidFolder(BallsFolder)) AssetDatabase.CreateFolder("Assets/_Game/Resources", "Bolas");
             string path = $"{BallsFolder}/bola_padrao.asset";
-            var ball = AssetDatabase.LoadAssetAtPath<BallTheme>(path);
+            // Acha pelo id (o arquivo pode ter sido renomeado na pasta).
+            BallTheme ball = null;
+            foreach (string guid in AssetDatabase.FindAssets("t:BallTheme", new[] { BallsFolder }))
+            {
+                var found = AssetDatabase.LoadAssetAtPath<BallTheme>(AssetDatabase.GUIDToAssetPath(guid));
+                if (found != null && found.id == "bola_padrao") ball = found;
+            }
             if (ball == null)
             {
                 ball = ScriptableObject.CreateInstance<BallTheme>();
