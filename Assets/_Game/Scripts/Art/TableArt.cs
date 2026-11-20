@@ -5,12 +5,11 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Desenho da mesa em pixel art: a mesa (<see cref="TableTheme"/>), o feltro e os gols grande e pequeno (sem
-    /// goleiro). A mesa clássica usa a moldura e os gols montados por "Futebol de Botão/Aplicar artes"; nas mesas de
-    /// placas as placas e as traves são montadas aqui (sem ir para a cena salva), o feltro passa por baixo delas e a
-    /// colisão das paredes vai para a borda de dentro das placas. O feltro é um <see cref="FeltTheme"/> pintado com os
-    /// tiles brancos da <see cref="FeltArt"/>. Mesa e feltro são os da partida (sorteados entre os liberados a cada
-    /// partida nova, o Reiniciar mantém) ou, para testar, os escolhidos no Inspector. Sem os feltros, volta às faixas
-    /// antigas (Field_Braight/Dark).
+    /// goleiro). As placas e as traves são montadas aqui (sem ir para a cena salva), o feltro passa por baixo delas e a
+    /// colisão das paredes vai para a borda de dentro das placas. Mesa sem as 6 placas: usa a primeira completa. O
+    /// feltro é um <see cref="FeltTheme"/> pintado com os tiles brancos da <see cref="FeltArt"/> (sem feltros, o tile
+    /// liso em verde listrado). Mesa e feltro são os da partida (sorteados entre os liberados a cada partida nova, o
+    /// Reiniciar mantém) ou, para testar, os escolhidos no Inspector.
     /// </summary>
     public sealed class TableArt : MonoBehaviour
     {
@@ -32,36 +31,23 @@ namespace FutebolDeBotao
         [Tooltip("Para testar: este feltro em vez do da partida. Vazio: o da partida (o mesmo da Seleção de times).")]
         [SerializeField] private FeltTheme feltOverride;
         [SerializeField] private Tilemap felt;
-        [Tooltip("Faixas antigas, usadas só se não houver feltros (Resources/Feltros) ou a arte deles.")]
-        [SerializeField] private TileBase bright;
-        [SerializeField] private TileBase dark;
         [Tooltip("Primeira célula (canto de baixo à esquerda) e tamanho do feltro em tiles.")]
         [SerializeField] private Vector2Int feltOrigin = new(-4, -6);
         [SerializeField] private Vector2Int feltSize = new(7, 11);
-        [Tooltip("Moldura da mesa clássica (escondida nas mesas de placas).")]
-        [SerializeField] private GameObject classicFrame;
-        [Tooltip("Gols da mesa clássica.")]
-        [SerializeField] private GameObject bigGoals;
-        [SerializeField] private GameObject smallGoals;
 
         private Tilemap upperHalf;
-        private GameObject wood;
-        private BoundsInt? woodCells;
         private bool small;
-        private bool boards;
         private GameObject boardsBig, boardsSmall, goalsBig, goalsSmall;
 
-        public void Configure(Tilemap feltTilemap, TileBase brightTile, TileBase darkTile, Vector2Int origin, Vector2Int size,
-            GameObject frame, GameObject big, GameObject smallGoal)
+        // Feltro de reserva (sem nenhum FeltTheme): o tile liso em verde listrado.
+        private static readonly Color FallbackBright = new Color32(0x1A, 0x7A, 0x3E, 0xFF);
+        private static readonly Color FallbackDark = new Color32(0x24, 0x52, 0x3B, 0xFF);
+
+        public void Configure(Tilemap feltTilemap, Vector2Int origin, Vector2Int size)
         {
             felt = feltTilemap;
-            bright = brightTile;
-            dark = darkTile;
             feltOrigin = origin;
             feltSize = size;
-            classicFrame = frame;
-            bigGoals = big;
-            smallGoals = smallGoal;
             Refresh();
             SetSmallGoals(false);
         }
@@ -76,8 +62,6 @@ namespace FutebolDeBotao
         public void SetSmallGoals(bool smallGoal)
         {
             small = smallGoal;
-            if (bigGoals != null) bigGoals.SetActive(!boards && !small);
-            if (smallGoals != null) smallGoals.SetActive(!boards && small);
             if (boardsBig != null) boardsBig.SetActive(!small);
             if (goalsBig != null) goalsBig.SetActive(!small);
             if (boardsSmall != null) boardsSmall.SetActive(small);
@@ -87,46 +71,33 @@ namespace FutebolDeBotao
         /// <summary>Monta a mesa e pinta o feltro (de novo, se a mesa ou o feltro mudarem).</summary>
         public void Refresh()
         {
-            var table = CurrentTable();
-            boards = table != null && table.HasBoards;
-            // Cena montada antes das mesas: a moldura é o filho "Moldura".
-            if (classicFrame == null && transform.Find("Moldura") is { } frame) classicFrame = frame.gameObject;
-            if (classicFrame != null) classicFrame.SetActive(!boards);
-            ApplyWood();
-            BuildBoards(boards ? table : null);
+            RemoveOldTable();
+            BuildBoards(CurrentTable());
             SetSmallGoals(small);
             PaintFelt();
         }
 
-        /// <summary>
-        /// A madeira em volta é da mesa clássica. Nas de placas o feltro cobre a área dela: no Play ela sai da cena (não
-        /// volta até a cena recarregar); no editor só fica desligada.
-        /// </summary>
-        private void ApplyWood()
+        /// <summary>Cena montada antes da limpeza da mesa antiga: tira a madeira, a moldura e os gols antigos.</summary>
+        private void RemoveOldTable()
         {
-            if (wood == null && transform.Find("Madeira") is { } found) wood = found.gameObject;
-            if (wood == null) return;
-            if (woodCells == null && wood.TryGetComponent(out Tilemap map))
+            foreach (var oldName in new[] { "Madeira", "Moldura", "Gols grandes", "Gols pequenos" })
             {
-                map.CompressBounds();
-                woodCells = map.cellBounds;
+                var old = transform.Find(oldName);
+                if (old == null) continue;
+                if (Application.isPlaying) Destroy(old.gameObject);
+                else old.gameObject.SetActive(false);
             }
-            if (boards && Application.isPlaying)
-            {
-                Destroy(wood);
-                wood = null;
-            }
-            else wood.SetActive(!boards);
         }
 
-        private TableTheme CurrentTable()
+        private TableTheme CurrentTable() => TableTheme.Complete(ChosenTable());
+
+        private TableTheme ChosenTable()
         {
             if (tableOverride != null) return tableOverride;
             if (Application.isPlaying) return TableTheme.Current();
-            var all = TableTheme.All();
-            foreach (var table in all)
+            foreach (var table in TableTheme.All())
                 if (table.unlockedByDefault) return table;
-            return all.Length > 0 ? all[0] : null;
+            return null;
         }
 
         private int GoalColorIndex => goalColorOverride >= 0 ? goalColorOverride : Application.isPlaying ? MatchSession.GoalColor : 0;
@@ -192,7 +163,7 @@ namespace FutebolDeBotao
         {
             if (!Application.isPlaying) return;
             var table = CurrentTable();
-            float inset = table != null && table.HasBoards ? table.WallInset : FieldLayout.ClassicWallInset;
+            float inset = table != null ? table.WallInset : FieldLayout.ClassicWallInset;
             FieldLayout.WallInset = inset;
             float sideSegment = (FieldLayout.Width - FieldLayout.GoalWidth) * 0.5f + inset;
             foreach (var wall in FindObjectsByType<Wall>())
@@ -221,8 +192,8 @@ namespace FutebolDeBotao
         // ---- Feltro ----
 
         /// <summary>
-        /// Pinta cada fileira com a cor do feltro (de baixo para cima). Nas mesas de placas o feltro vai além, por baixo
-        /// das placas e dos gols e por toda a área da madeira, com a cor da fileira da ponta.
+        /// Pinta cada fileira com a cor do feltro (de baixo para cima). O feltro vai uma célula além, por baixo das placas
+        /// e dos gols, com a cor da fileira da ponta (o resto em volta é o Fill da mesa).
         /// </summary>
         public void PaintFelt()
         {
@@ -232,43 +203,18 @@ namespace FutebolDeBotao
             felt.ClearAllTiles();
             ClearUpperHalf();
             int rows = feltSize.y;
-            // Clássica: só o feltro. Placas: por baixo das placas e dos gols, até onde ia a madeira (no mínimo 1 célula além).
-            int left = 0, right = feltSize.x, bottom = 0, top = rows;
-            if (boards)
-            {
-                left = bottom = -1;
-                right++;
-                top++;
-                if (woodCells is { } cells)
-                {
-                    left = Mathf.Min(left, cells.xMin - feltOrigin.x);
-                    right = Mathf.Max(right, cells.xMax - feltOrigin.x);
-                    bottom = Mathf.Min(bottom, cells.yMin - feltOrigin.y);
-                    top = Mathf.Max(top, cells.yMax - feltOrigin.y);
-                }
-            }
+            int left = -1, right = feltSize.x + 1, bottom = -1, top = rows + 1;
             bool themed = theme != null && art != null && art.Has(theme.tile);
-            var tile = themed ? art.GetTile(theme.tile) : null;
+            var tile = art == null ? null : themed ? art.GetTile(theme.tile) : art.GetTile(FeltTheme.TileKind.Liso);
+            if (tile == null) return;
+            // Fileira do meio clara, como no verde listrado.
+            int middleRow = rows / 2;
             for (int row = bottom; row < top; row++)
             {
                 int inside = Mathf.Clamp(row, 0, rows - 1);
-                var color = themed ? theme.RowColor(inside, rows) : Color.white;
-                var rowTile = themed ? tile : inside % 2 == 0 ? bright : dark;
+                var color = themed ? theme.RowColor(inside, rows) : (inside - middleRow) % 2 == 0 ? FallbackBright : FallbackDark;
                 for (int column = left; column < right; column++)
-                    PaintCell(felt, new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), rowTile, color);
-            }
-
-            // Clássica: o fundo do gol é transparente; o feltro (cor da fileira da ponta) passa por baixo das 3 células do gol.
-            if (!boards)
-            {
-                int middle = feltSize.x / 2;
-                foreach (var (row, inside) in new[] { (-1, 0), (rows, rows - 1) })
-                {
-                    var color = themed ? theme.RowColor(inside, rows) : Color.white;
-                    var rowTile = themed ? tile : inside % 2 == 0 ? bright : dark;
-                    for (int column = middle - 1; column <= middle + 1; column++)
-                        PaintCell(felt, new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), rowTile, color);
-                }
+                    PaintCell(felt, new Vector3Int(feltOrigin.x + column, feltOrigin.y + row, 0), tile, color);
             }
 
             PaintMarks(themed ? theme.marks : Color.white);

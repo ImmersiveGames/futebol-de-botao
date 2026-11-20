@@ -50,7 +50,7 @@ namespace FutebolDeBotao
         private static readonly Color LabelColor = new(1f, 1f, 1f, 0.85f);
 
         [SerializeField] private MenuScreen menu;
-        [Tooltip("Recortes da mesa e da bola (Field_Sprites, Field_Marks e Ball_SpriteSheet), para a prévia da aba Mesa.")]
+        [Tooltip("Recortes das marcações e da bola (Field_Marks e Ball_SpriteSheet), para a prévia da aba Mesa.")]
         [SerializeField] private Sprite[] tableSprites;
 
         private bool built;
@@ -250,7 +250,7 @@ namespace FutebolDeBotao
             tableLabel.text = table != null ? Txt.Get(table.displayName) : "-";
             feltLabel.text = felt != null ? Txt.Get(felt.displayName) : "-";
             ballLabel.text = ball != null ? Txt.Get(ball.displayName) : "-";
-            // Cor da trave só nas mesas de placas (a clássica tem os gols da folha do campo).
+            // Cor da trave só na mesa com as placas montadas (a incompleta aparece como a primeira completa).
             bool goals = table != null && table.HasBoards && table.AllowedGoalColors(felt).Count > 0;
             goalRow.SetActive(goals);
             goalLabel.text = goals ? Txt.Get(table.Goal(home.GoalColor)?.name ?? "-") : string.Empty;

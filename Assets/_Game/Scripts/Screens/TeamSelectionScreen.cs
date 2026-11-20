@@ -71,8 +71,8 @@ namespace FutebolDeBotao
         [SerializeField] private MatchOptions defaults;
         [Tooltip("Círculo branco usado nos botões e na bola sem a arte.")]
         [SerializeField] private Sprite circle;
-        [Tooltip("Recortes da mesa e da bola (Field_Sprites, Field_Marks e Ball_SpriteSheet), achados pelo nome. " +
-                 "Sem eles, o campo é desenhado com formas lisas.")]
+        [Tooltip("Recortes das marcações e da bola (Field_Marks e Ball_SpriteSheet), achados pelo nome. " +
+                 "Sem as marcações, o campo é desenhado com formas lisas.")]
         [SerializeField] private Sprite[] tableSprites;
 
         /// <summary>Botão ou goleiro: as camadas da camisa (com a arte) ou as formas lisas do protótipo.</summary>
@@ -122,20 +122,12 @@ namespace FutebolDeBotao
         private Image feltUpperHalf;
         private Image marksImage;
         private Image ballImage, ballShineImage, ballShadowImage;
-        private Sprite oldBright, oldDark;
-        private GameObject bigGoals;
-        private GameObject smallGoals;
-        private GameObject bigPoles;
-        private GameObject smallPoles;
-        /// <summary>Fileiras do feltro além das de cima e de baixo, por baixo das placas (só nas mesas de placas).</summary>
+        /// <summary>Fileiras do feltro além das de cima e de baixo, por baixo das placas.</summary>
         private readonly List<Image> feltEnds = new();
         /// <summary>Textos em cima do campo (nome, sigla, Cor 2, Camisa, esquema): levam a cor das marcações do feltro.</summary>
         private readonly List<(Text text, bool soft)> fieldLabels = new();
-        private GameObject classicFrame;
-        private GameObject woodImage;
         private RectTransform boardsLayer, goalsLayer;
         private GameObject boardsBig, boardsSmall, goalsBig, goalsSmall;
-        private bool boardsTable;
         private Font font;
         private bool built;
         private bool starting;
@@ -392,10 +384,6 @@ namespace FutebolDeBotao
                 view.Keeper.Root.localScale = new Vector3(keeperWidth, 1f, 1f);
                 // As camisas vêm do uniforme: sem setas no goleiro.
                 SetActive(view.KeeperArrows.gameObject, false);
-                SetActive(bigGoals, !boardsTable && options.hasGoalkeeper);
-                SetActive(bigPoles, !boardsTable && options.hasGoalkeeper);
-                SetActive(smallGoals, !boardsTable && !options.hasGoalkeeper);
-                SetActive(smallPoles, !boardsTable && !options.hasGoalkeeper);
                 SetActive(boardsBig, options.hasGoalkeeper);
                 SetActive(goalsBig, options.hasGoalkeeper);
                 SetActive(boardsSmall, !options.hasGoalkeeper);
@@ -446,7 +434,7 @@ namespace FutebolDeBotao
             if (tableSprites != null)
                 foreach (var sprite in tableSprites)
                     if (sprite != null) art[sprite.name] = sprite;
-            bool hasArt = System.Array.TrueForAll(RequiredArt, art.ContainsKey);
+            bool hasArt = art.ContainsKey("Field_Marks");
             if (hasArt) BuildTableArt(root, art);
             else BuildPlainTable(root);
 
@@ -457,8 +445,6 @@ namespace FutebolDeBotao
             // Traves e rede por cima dos botões, como na Partida.
             if (hasArt)
             {
-                bigPoles = CreateGoalPieces(field, "Traves grandes", art, "Pole");
-                smallPoles = CreateGoalPieces(field, "Traves pequenas", art, "Small_Pole");
                 goalsLayer = CreateRect(field, "Traves da mesa", Vector2.zero, Vector2.zero);
                 PaintTable();
             }
@@ -503,13 +489,11 @@ namespace FutebolDeBotao
         }
 
         // Mesa em pixel art: 9 x 13 tiles (1 tile = 1 unidade do campo), com as mesmas peças da Partida.
-        private static readonly string[] RequiredArt =
-        {
-            "Wall_Fill", "Wall_Top", "Wall_Bottom", "Wall_Left", "Wall_Right",
-            "Top_Corner_L", "Top_Corner_R", "Bottom_Corner_L", "Bottom_Corner_R", "Field_Braight", "Field_Dark",
-        };
-        private static readonly string[] GoalPieces = { "Corner_Left", "Center", "Corner_Right" };
-        private static readonly Vector2Int WoodTiles = new(45, 29);
+        // O feltro cobre a tela toda (por baixo das placas), na mesma escala da mesa.
+        private static readonly Vector2Int ScreenTiles = new(45, 29);
+        // Sem feltro: o tile liso em verde listrado (fileira do meio clara).
+        private static readonly Color FallbackBright = new Color32(0x1A, 0x7A, 0x3E, 0xFF);
+        private static readonly Color FallbackDark = new Color32(0x24, 0x52, 0x3B, 0xFF);
         private static readonly Color BallShadowColor = new(0f, 0f, 0f, 0.4f);
 
         private void BuildTableArt(RectTransform root, Dictionary<string, Sprite> art)
@@ -517,37 +501,20 @@ namespace FutebolDeBotao
             float halfW = FieldLayout.HalfWidth + 0.5f, halfH = FieldLayout.HalfHeight + 0.5f;
             field = CreateRect(root, "Campo", Vector2.zero, new Vector2(halfW, halfH) * 2f * Unit);
 
-            // Madeira por toda a tela, na mesma escala da mesa.
-            woodImage = CreateTiled(field, "Madeira", art["Wall_Fill"], Vector2.zero, WoodTiles).gameObject;
-
-            // Moldura da mesa clássica: faixas das paredes e os 4 cantos.
             var horizontal = new Vector2(FieldLayout.Width, 1f);
-            var vertical = new Vector2(1f, FieldLayout.Height);
-            var frame = CreateRect(field, "Moldura", Vector2.zero, Vector2.zero);
-            classicFrame = frame.gameObject;
-            CreateTiled(frame, "Parede de cima", art["Wall_Top"], new Vector2(0f, halfH), horizontal);
-            CreateTiled(frame, "Parede de baixo", art["Wall_Bottom"], new Vector2(0f, -halfH), horizontal);
-            CreateTiled(frame, "Parede da esquerda", art["Wall_Left"], new Vector2(-halfW, 0f), vertical);
-            CreateTiled(frame, "Parede da direita", art["Wall_Right"], new Vector2(halfW, 0f), vertical);
-            CreateImage(frame, "Canto de cima esquerdo", Color.white, art["Top_Corner_L"], new Vector2(-halfW, halfH), Vector2.one);
-            CreateImage(frame, "Canto de cima direito", Color.white, art["Top_Corner_R"], new Vector2(halfW, halfH), Vector2.one);
-            CreateImage(frame, "Canto de baixo esquerdo", Color.white, art["Bottom_Corner_L"], new Vector2(-halfW, -halfH), Vector2.one);
-            CreateImage(frame, "Canto de baixo direito", Color.white, art["Bottom_Corner_R"], new Vector2(halfW, -halfH), Vector2.one);
 
             // Feltro: uma faixa por fileira, pintada com o feltro da partida (PaintFelt).
-            oldBright = art["Field_Braight"];
-            oldDark = art["Field_Dark"];
             int rows = Mathf.RoundToInt(FieldLayout.Height);
             for (int row = 0; row < rows; row++)
-                feltRows.Add(CreateTiled(field, $"Feltro {row + 1}", oldBright, new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal));
+                feltRows.Add(CreateTiled(field, $"Feltro {row + 1}", null, new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal));
             foreach (int row in new[] { -1, rows })
             {
-                var end = CreateTiled(field, row < 0 ? "Feltro embaixo das placas de baixo" : "Feltro embaixo das placas de cima", oldBright,
+                var end = CreateTiled(field, row < 0 ? "Feltro embaixo das placas de baixo" : "Feltro embaixo das placas de cima", null,
                     new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal + new Vector2(2f, 0f));
                 end.gameObject.SetActive(false);
                 feltEnds.Add(end);
             }
-            feltUpperHalf = CreateTiled(field, "Feltro (meia fileira)", oldBright,
+            feltUpperHalf = CreateTiled(field, "Feltro (meia fileira)", null,
                 new Vector2(0f, -FieldLayout.HalfHeight + rows / 2 + 0.75f), new Vector2(FieldLayout.Width, 0.5f));
             feltUpperHalf.gameObject.SetActive(false);
             PaintFelt();
@@ -555,12 +522,8 @@ namespace FutebolDeBotao
             if (art.TryGetValue("Field_Marks", out var marks))
                 marksImage = CreateImage(field, "Marcações", Color.white, marks, Vector2.zero, new Vector2(FieldLayout.Width, FieldLayout.Height));
 
-            // Placas das outras mesas por cima do feltro e das marcações (montadas no PaintTable).
+            // Placas da mesa por cima do feltro e das marcações (montadas no PaintTable).
             boardsLayer = CreateRect(field, "Placas da mesa", Vector2.zero, Vector2.zero);
-
-            // Fundo dos gols embaixo da bola e dos botões (grande com goleiro, pequeno sem).
-            bigGoals = CreateGoalPieces(field, "Gols grandes", art, "Goal");
-            smallGoals = CreateGoalPieces(field, "Gols pequenos", art, "Small_Goal");
 
             // Bola no meio: sombra, desenho e luz, 1 tile cada.
             if (art.TryGetValue("Ball_Shadow", out var shadow)) ballShadowImage = CreateImage(field, "Sombra da bola", BallShadowColor, shadow, Vector2.zero, Vector2.one);
@@ -570,24 +533,9 @@ namespace FutebolDeBotao
             PaintBall();
         }
 
-        /// <summary>Um par de gols (cima e baixo) com 3 peças cada, no lugar dos 3 tiles do meio da moldura. Nulo se faltar recorte.</summary>
-        private static GameObject CreateGoalPieces(Transform parent, string groupName, Dictionary<string, Sprite> art, string prefix)
-        {
-            foreach (var end in new[] { "Top", "Bottom" })
-                foreach (var piece in GoalPieces)
-                    if (!art.ContainsKey($"{prefix}_{end}_{piece}")) return null;
-
-            var group = CreateRect(parent, groupName, Vector2.zero, Vector2.zero);
-            float y = FieldLayout.HalfHeight + 0.5f;
-            foreach (var (end, sign) in new[] { ("Top", 1f), ("Bottom", -1f) })
-                for (int i = 0; i < GoalPieces.Length; i++)
-                    CreateImage(group, $"{end} {i + 1}", Color.white, art[$"{prefix}_{end}_{GoalPieces[i]}"], new Vector2(i - 1, sign * y), Vector2.one);
-            return group.gameObject;
-        }
-
         /// <summary>
-        /// Mesa da partida (<see cref="TableTheme.Current"/>), como a Partida monta: a clássica usa a moldura e os gols da
-        /// folha do campo; as de placas, as placas e as traves da mesa (na cor da partida), com o feltro por baixo.
+        /// Mesa da partida (<see cref="TableTheme.Current"/>), como a Partida monta: as placas e as traves da mesa (na cor
+        /// da partida), com o feltro por baixo. Mesa sem as 6 placas: a primeira completa.
         /// </summary>
         private void PaintTable()
         {
@@ -597,11 +545,8 @@ namespace FutebolDeBotao
                     Destroy(layer.GetChild(i).gameObject);
             boardsBig = boardsSmall = goalsBig = goalsSmall = null;
 
-            var table = TableTheme.Current();
-            boardsTable = table != null && table.HasBoards;
-            SetActive(classicFrame, !boardsTable);
-            SetActive(woodImage, !boardsTable);
-            if (boardsTable)
+            var table = TableTheme.Complete(TableTheme.Current());
+            if (table != null)
             {
                 boardsBig = CreateTablePieces(boardsLayer, "Placas (gol grande)", table.Boards(false, MatchSession.GoalColor));
                 boardsSmall = CreateTablePieces(boardsLayer, "Placas (gol pequeno)", table.Boards(true, MatchSession.GoalColor));
@@ -640,8 +585,8 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// Feltro da partida (<see cref="FeltTheme.Current"/>), como a mesa pinta; sem os feltros, as faixas antigas. Nas
-        /// mesas de placas vai uma célula além, por baixo das placas e dos gols.
+        /// Feltro da partida (<see cref="FeltTheme.Current"/>), como a mesa pinta; sem os feltros, o tile liso em verde
+        /// listrado. Cobre a tela toda, por baixo das placas e dos gols.
         /// </summary>
         private void PaintFelt()
         {
@@ -650,13 +595,13 @@ namespace FutebolDeBotao
             var art = FeltArt.Load();
             bool themed = theme != null && art != null && art.Has(theme.tile);
             int rows = feltRows.Count;
-            // Placas: o feltro cobre a tela toda (no lugar da madeira); clássica: só o campo.
-            float width = boardsTable ? WoodTiles.x : FieldLayout.Width;
+            float width = ScreenTiles.x;
             for (int row = 0; row < rows; row++)
             {
                 var image = feltRows[row];
-                image.sprite = themed ? art.GetSprite(theme.tile) : row % 2 == 0 ? oldBright : oldDark;
-                image.color = themed ? theme.RowColor(row, rows) : Color.white;
+                image.sprite = art == null ? null : art.GetSprite(themed ? theme.tile : FeltTheme.TileKind.Liso);
+                image.color = themed ? theme.RowColor(row, rows) : (row - rows / 2) % 2 == 0 ? FallbackBright : FallbackDark;
+                image.enabled = image.sprite != null;
                 image.rectTransform.sizeDelta = new Vector2(width, 1f) * Unit;
             }
             for (int i = 0; i < feltEnds.Count; i++)
@@ -665,10 +610,11 @@ namespace FutebolDeBotao
                 var source = feltRows[i == 0 ? 0 : rows - 1];
                 feltEnds[i].sprite = source.sprite;
                 feltEnds[i].color = source.color;
+                feltEnds[i].enabled = source.enabled;
                 feltEnds[i].gameObject.SetActive(true);
-                // Placas: da linha de fundo até a beira da madeira, atrás do gol. Clássica: só embaixo do gol (3 células).
-                float depth = boardsTable ? (WoodTiles.y - FieldLayout.Height) * 0.5f : 1f;
-                feltEnds[i].rectTransform.sizeDelta = new Vector2(boardsTable ? width : 3f, depth) * Unit;
+                // Da linha de fundo até a beira da tela, atrás do gol.
+                float depth = (ScreenTiles.y - FieldLayout.Height) * 0.5f;
+                feltEnds[i].rectTransform.sizeDelta = new Vector2(width, depth) * Unit;
                 feltEnds[i].rectTransform.anchoredPosition = new Vector2(0f, (i == 0 ? -1f : 1f) * (FieldLayout.HalfHeight + depth * 0.5f)) * Unit;
             }
 

@@ -43,10 +43,8 @@ namespace FutebolDeBotao.Editor
         private const string PowerRingsPrefix = "Power_Rings";
         private static readonly Vector2Int PowerRingsCell = new(100, 100);
 
-        private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
         private const string TilesFolder = "Assets/_Game/Art/Campo/Tiles";
-        private const string FieldAtlasPath = "Assets/_Game/Art/Campo/Campo.spriteatlasv2";
         private const string TableArtName = "Desenho da mesa";
         // Feltros: tiles brancos de 32x32 (liso, gradiente, textura) que o jogo pinta com as cores de cada feltro.
         private const string FeltSheetPath = "Assets/_Game/Art/Campo/padrão_feltros_Sheet.png";
@@ -75,18 +73,12 @@ namespace FutebolDeBotao.Editor
         // O Grid fica deslocado meio tile para as células baterem com o feltro (de -3,5 a 3,5).
         private static readonly Vector2Int FeltOrigin = new(-4, -6);
         private static readonly Vector2Int FeltSize = new(7, 11);
-        private static readonly Vector2Int WoodOrigin = new(-23, -10);
-        private static readonly Vector2Int WoodSize = new(45, 19);
 
         // Ordem de desenho: madeira, moldura, feltro, marcações, fundo do gol, bola (sombra, rastro, bola, luz), botões (10 a 12), traves e rede.
         // A bola e os botões passam por baixo da trave e da rede; a mira (50) continua por cima de tudo.
-        private const int WoodOrder = -30;
-        private const int FrameOrder = -25;
         private const int FeltOrder = -20;
         private const int MarksOrder = -15;
-        private const int GoalBackOrder = -14;
         private const int BallOrder = 7;
-        private const int GoalFrontOrder = 13;
 
         // Sombra preta semitransparente: escurece igual a faixa clara e a escura do feltro.
         private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.4f);
@@ -95,12 +87,12 @@ namespace FutebolDeBotao.Editor
         public static void Build()
         {
             bool hasBall = File.Exists(BallSheetPath);
-            bool hasTable = File.Exists(FieldSheetPath);
+            bool hasTable = File.Exists(FeltSheetPath) || File.Exists(FieldMarksPath);
             bool hasShirts = File.Exists(DiscSheetPath) && File.Exists(KeeperSheetPath);
             bool hasAim = File.Exists(AimSheetPath);
             if (!hasBall && !hasTable && !hasShirts && !hasAim)
             {
-                Debug.LogWarning($"[Futebol de Botão] Nenhuma arte encontrada (esperava {BallSheetPath} ou {FieldSheetPath}). Nada foi alterado.");
+                Debug.LogWarning($"[Futebol de Botão] Nenhuma arte encontrada (esperava {BallSheetPath} ou {FeltSheetPath}). Nada foi alterado.");
                 return;
             }
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -445,26 +437,15 @@ namespace FutebolDeBotao.Editor
 
         // ---- Mesa ----
 
+        /// <summary>
+        /// Monta o "Desenho da mesa": o feltro (Tilemap pintado pela <see cref="TableArt"/>) e as marcações. As placas e
+        /// as traves vêm da mesa da partida (Resources/Mesas) e são montadas pela <see cref="TableArt"/> na hora.
+        /// </summary>
         private static void BuildTable(Transform table)
         {
-            ConfigureImport(FieldSheetPath);
             if (File.Exists(FieldMarksPath)) ConfigureImport(FieldMarksPath);
-            EnsureAtlas(FieldAtlasPath, FieldSheetPath);
             BuildFelts();
             BuildTables();
-            var sprites = LoadSprites(FieldSheetPath);
-
-            string[] required =
-            {
-                "Wall_Fill", "Wall_Top", "Wall_Bottom", "Wall_Left", "Wall_Right",
-                "Top_Corner_L", "Top_Corner_R", "Bottom_Corner_L", "Bottom_Corner_R", "Field_Braight", "Field_Dark",
-            };
-            var missing = required.Where(n => !sprites.ContainsKey(n)).ToArray();
-            if (missing.Length > 0)
-            {
-                Debug.LogError($"[Futebol de Botão] Faltam recortes em {FieldSheetPath}: {string.Join(", ", missing)}. A mesa não foi montada.");
-                return;
-            }
 
             var old = table.Find(TableArtName);
             if (old != null) Object.DestroyImmediate(old.gameObject);
@@ -474,31 +455,6 @@ namespace FutebolDeBotao.Editor
             root.transform.SetParent(table, false);
             root.transform.position = new Vector3(0.5f, 0.5f, 0f);
 
-            // Madeira por tudo; a moldura por cima dela; o feltro dentro da moldura.
-            var wood = CreateTilemap(root.transform, "Madeira", WoodOrder);
-            var woodTile = LoadOrCreateTile(sprites["Wall_Fill"]);
-            for (int x = 0; x < WoodSize.x; x++)
-                for (int y = 0; y < WoodSize.y; y++)
-                    wood.SetTile(new Vector3Int(WoodOrigin.x + x, WoodOrigin.y + y, 0), woodTile);
-
-            var frame = CreateTilemap(root.transform, "Moldura", FrameOrder);
-            int left = FeltOrigin.x - 1, right = FeltOrigin.x + FeltSize.x;
-            int bottom = FeltOrigin.y - 1, top = FeltOrigin.y + FeltSize.y;
-            for (int x = left + 1; x < right; x++)
-            {
-                frame.SetTile(new Vector3Int(x, top, 0), LoadOrCreateTile(sprites["Wall_Top"]));
-                frame.SetTile(new Vector3Int(x, bottom, 0), LoadOrCreateTile(sprites["Wall_Bottom"]));
-            }
-            for (int y = bottom + 1; y < top; y++)
-            {
-                frame.SetTile(new Vector3Int(left, y, 0), LoadOrCreateTile(sprites["Wall_Left"]));
-                frame.SetTile(new Vector3Int(right, y, 0), LoadOrCreateTile(sprites["Wall_Right"]));
-            }
-            frame.SetTile(new Vector3Int(left, top, 0), LoadOrCreateTile(sprites["Top_Corner_L"]));
-            frame.SetTile(new Vector3Int(right, top, 0), LoadOrCreateTile(sprites["Top_Corner_R"]));
-            frame.SetTile(new Vector3Int(left, bottom, 0), LoadOrCreateTile(sprites["Bottom_Corner_L"]));
-            frame.SetTile(new Vector3Int(right, bottom, 0), LoadOrCreateTile(sprites["Bottom_Corner_R"]));
-
             var felt = CreateTilemap(root.transform, "Feltro", FeltOrder);
 
             // Marcações: um sprite só do tamanho do feltro, no centro.
@@ -506,15 +462,9 @@ namespace FutebolDeBotao.Editor
             if (marks != null) CreateSpriteObject(root.transform, "Marcações", marks, Vector2.zero, MarksOrder);
             else Debug.LogWarning($"[Futebol de Botão] Sem {FieldMarksPath}: campo sem marcações.");
 
-            // Gols: o fundo fica no lugar dos 3 tiles do meio da moldura, embaixo da bola; traves e rede por cima.
-            var big = CreateGoals(root.transform, "Gols grandes", sprites, "Goal", "Pole", top, bottom);
-            var small = CreateGoals(root.transform, "Gols pequenos", sprites, "Small_Goal", "Small_Pole", top, bottom);
+            root.AddComponent<TableArt>().Configure(felt, FeltOrigin, FeltSize);
 
-            root.AddComponent<TableArt>().Configure(felt,
-                LoadOrCreateTile(sprites["Field_Braight"]), LoadOrCreateTile(sprites["Field_Dark"]),
-                FeltOrigin, FeltSize, frame.gameObject, big, small);
-
-            Debug.Log("[Futebol de Botão] Mesa em pixel art montada (madeira, moldura, feltro, marcações e gols).");
+            Debug.Log("[Futebol de Botão] Mesa montada (feltro e marcações; placas e traves vêm da mesa da partida).");
         }
 
         // ---- Mesas ----
@@ -540,7 +490,7 @@ namespace FutebolDeBotao.Editor
         {
             if (!File.Exists(FeltSheetPath))
             {
-                Debug.LogWarning($"[Futebol de Botão] Sem {FeltSheetPath}: o feltro fica nas faixas antigas.");
+                Debug.LogWarning($"[Futebol de Botão] Sem {FeltSheetPath}: a mesa fica sem feltro.");
                 return;
             }
             ConfigureImport(FeltSheetPath);
@@ -680,39 +630,6 @@ namespace FutebolDeBotao.Editor
                 if (!child.TryGetComponent(out SpriteRenderer renderer)) continue;
                 if (child.GetComponent<Wall>() != null || renderer.sortingOrder < 0) renderer.enabled = false;
             }
-        }
-
-        /// <summary>
-        /// Um par de gols (cima e baixo), cada um com 3 peças de fundo e 3 de trave/rede. Peças: {prefixo}_Top_Corner_Left,
-        /// _Top_Center, _Top_Corner_Right e o mesmo com Bottom. Nulo se faltar algum recorte.
-        /// </summary>
-        private static GameObject CreateGoals(Transform parent, string groupName, System.Collections.Generic.Dictionary<string, Sprite> sprites,
-            string backPrefix, string frontPrefix, int topRow, int bottomRow)
-        {
-            string[] pieces = { "Corner_Left", "Center", "Corner_Right" };
-            var names = new[] { "Top", "Bottom" }
-                .SelectMany(end => pieces.SelectMany(p => new[] { $"{backPrefix}_{end}_{p}", $"{frontPrefix}_{end}_{p}" }))
-                .ToArray();
-            var missing = names.Where(n => !sprites.ContainsKey(n)).ToArray();
-            if (missing.Length > 0)
-            {
-                Debug.LogWarning($"[Futebol de Botão] {groupName}: faltam recortes ({string.Join(", ", missing)}).");
-                return null;
-            }
-
-            var group = new GameObject(groupName).transform;
-            group.SetParent(parent, false);
-            foreach (var (end, row) in new[] { ("Top", topRow), ("Bottom", bottomRow) })
-            {
-                for (int i = 0; i < pieces.Length; i++)
-                {
-                    // Centro da célula: o Grid já está deslocado meio tile, então a célula (x, y) tem centro em (x + 1, y + 1).
-                    var center = new Vector2(i - 1, row + 1);
-                    CreateSpriteObject(group, $"Fundo {end} {i + 1}", sprites[$"{backPrefix}_{end}_{pieces[i]}"], center, GoalBackOrder);
-                    CreateSpriteObject(group, $"Trave {end} {i + 1}", sprites[$"{frontPrefix}_{end}_{pieces[i]}"], center, GoalFrontOrder);
-                }
-            }
-            return group.gameObject;
         }
 
         private static Tilemap CreateTilemap(Transform parent, string layerName, int order)

@@ -34,7 +34,6 @@ namespace FutebolDeBotao.Editor
         private const string ResultScenePath = ScenesFolder + "/Resultado.unity";
         private const string OptionsPath = "Assets/_Game/Data/OpcoesDaPartida.asset";
         private const string CircleSpritePath = "Assets/_Game/Art/Placeholder/Circle.png";
-        private const string FieldSheetPath = "Assets/_Game/Art/Campo/Field_Sprites.png";
         private const string FieldMarksPath = "Assets/_Game/Art/Campo/Field_Marks.png";
         private const string BallSheetPath = "Assets/_Game/Art/Ball/Ball_SpriteSheet.png";
         /// <summary>Logo da Immersive só com o desenho (sem o texto), no canto da Abertura.</summary>
@@ -44,8 +43,10 @@ namespace FutebolDeBotao.Editor
         /// <summary>Altura do logo na tela de referência (720 x 1280) e distância das bordas.</summary>
         private const float StudioLogoHeight = 84f;
         private const float StudioLogoMargin = 24f;
-        private const string BrightFeltSprite = "Field_Braight";
-        private const string DarkFeltSprite = "Field_Dark";
+        private const string FeltArtPath = "Assets/_Game/Resources/" + FeltArt.ResourcePath + ".asset";
+        /// <summary>Cores das faixas do fundo das telas (as do campo verde listrado).</summary>
+        private static readonly Color BrightFeltColor = new Color32(0x1A, 0x7A, 0x3E, 0xFF);
+        private static readonly Color DarkFeltColor = new Color32(0x24, 0x52, 0x3B, 0xFF);
 
         private const string MatchSystemsName = "Partida (sistemas)";
         private const string MatchFrameworkName = "Framework (telas)";
@@ -579,18 +580,17 @@ namespace FutebolDeBotao.Editor
         }
 
         /// <summary>
-        /// Fundo das telas: faixas horizontais do feltro (clara e escura, a do meio clara), na mesma escala da mesa
-        /// na partida. Sem a arte do campo, fica o verde liso.
+        /// Fundo das telas: faixas horizontais do tile branco do feltro pintado de verde (clara e escura, a do meio
+        /// clara), na mesma escala da mesa na partida. Sem a arte do feltro, fica o verde liso.
         /// </summary>
         private static void CreateFieldBackground(Transform canvas)
         {
             var background = CreatePanel(canvas, "Fundo", Background, Vector2.zero, Vector2.one);
-            var sprites = new Dictionary<string, Sprite>();
-            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(FieldSheetPath))
-                if (asset is Sprite sprite) sprites[sprite.name] = sprite;
-            if (!sprites.TryGetValue(BrightFeltSprite, out var bright) || !sprites.TryGetValue(DarkFeltSprite, out var dark))
+            var felt = AssetDatabase.LoadAssetAtPath<FeltArt>(FeltArtPath);
+            var tileSprite = felt != null ? felt.GetSprite(FeltTheme.TileKind.Liso) : null;
+            if (tileSprite == null)
             {
-                Debug.LogWarning($"[Futebol de Botão] Sem {BrightFeltSprite}/{DarkFeltSprite} em {FieldSheetPath}: telas com fundo liso.");
+                Debug.LogWarning($"[Futebol de Botão] Sem o Felt_White em {FeltArtPath} (rode o Aplicar artes): telas com fundo liso.");
                 return;
             }
 
@@ -611,7 +611,8 @@ namespace FutebolDeBotao.Editor
                 rect.anchoredPosition = new Vector2(0f, fromMiddle * tile);
                 rect.sizeDelta = new Vector2(0f, tile);
                 var image = go.AddComponent<Image>();
-                image.sprite = fromMiddle % 2 == 0 ? bright : dark;
+                image.sprite = tileSprite;
+                image.color = fromMiddle % 2 == 0 ? BrightFeltColor : DarkFeltColor;
                 image.type = Image.Type.Tiled;
                 // Image.Tiled desenha cada tile com (pixels / PPU) x 100 unidades; o multiplicador acerta para "tile".
                 image.pixelsPerUnitMultiplier = 100f / tile;
@@ -666,11 +667,11 @@ namespace FutebolDeBotao.Editor
             image.raycastTarget = false;
         }
 
-        /// <summary>Recortes da mesa, das marcações e da bola para o campo desenhado da seleção de times.</summary>
+        /// <summary>Recortes das marcações e da bola para o campo desenhado da seleção de times.</summary>
         private static Sprite[] LoadTableSprites()
         {
             var sprites = new List<Sprite>();
-            foreach (var path in new[] { FieldSheetPath, FieldMarksPath, BallSheetPath })
+            foreach (var path in new[] { FieldMarksPath, BallSheetPath })
                 foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
                     if (asset is Sprite sprite) sprites.Add(sprite);
             return sprites.ToArray();

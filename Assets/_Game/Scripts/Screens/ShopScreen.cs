@@ -31,7 +31,6 @@ namespace FutebolDeBotao
         private static readonly Color OwnedColor = new(0.55f, 1f, 0.55f);
         private static readonly Color PanelColor = new(0f, 0f, 0f, 0.55f);
         private static readonly Color DimColor = new(0f, 0f, 0f, 0.7f);
-        private static readonly Color WoodColor = new(0.35f, 0.22f, 0.12f);
         private static readonly Color FeltColor = new(0.13f, 0.45f, 0.2f);
 
         /// <summary>Um item à venda, de qualquer tipo.</summary>
@@ -324,8 +323,7 @@ namespace FutebolDeBotao
                 }
                 return;
             }
-            // Clássica sem miniatura: moldura de madeira com o feltro dentro.
-            CreateImage(area, "Madeira", null, WoodColor, Vector2.zero, new Vector2(200f, 120f));
+            // Mesa sem as placas montadas: só o feltro.
             CreateImage(area, "Feltro", null, FeltColor, Vector2.zero, new Vector2(176f, 96f));
         }
 

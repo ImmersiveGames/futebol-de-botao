@@ -216,6 +216,18 @@ namespace FutebolDeBotao
             return cached;
         }
 
+        /// <summary>
+        /// A própria mesa, se tem as 6 placas; senão a primeira completa (mesa montada pela metade não aparece sem
+        /// placas). Nula se nenhuma estiver completa.
+        /// </summary>
+        public static TableTheme Complete(TableTheme table)
+        {
+            if (table != null && table.HasBoards) return table;
+            foreach (var item in All())
+                if (item.HasBoards) return item;
+            return null;
+        }
+
         public static TableTheme Find(string tableId)
         {
             if (string.IsNullOrEmpty(tableId)) return null;
@@ -227,7 +239,7 @@ namespace FutebolDeBotao
         /// <summary>
         /// Mesa da partida: a guardada na <see cref="MatchSession"/> ou, se nenhuma, uma sorteada entre as liberadas (e a
         /// cor junto), guardada para a Seleção de times e a Partida mostrarem a mesma e o Reiniciar manter.
-        /// Nula se não houver mesas (fica a clássica da cena).
+        /// Nula se não houver mesas.
         /// </summary>
         public static TableTheme Current()
         {
