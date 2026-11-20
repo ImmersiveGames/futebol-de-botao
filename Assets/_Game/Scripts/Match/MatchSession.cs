@@ -66,6 +66,9 @@ namespace FutebolDeBotao
         /// <summary>Id da bola da partida (<see cref="BallTheme"/>); nulo = sortear de novo. O Reiniciar mantém.</summary>
         public static string BallId { get; set; }
 
+        /// <summary>Cor da bola da partida (posição na <see cref="ColorPalette"/>). O Reiniciar mantém.</summary>
+        public static int BallColor { get; set; }
+
         /// <summary>Cor das traves da mesa da partida (índice nas cores da mesa).</summary>
         public static int GoalColor { get; set; }
 
@@ -97,6 +100,7 @@ namespace FutebolDeBotao
             FeltId = venue.FeltId;
             GoalColor = venue.GoalColor;
             BallId = venue.BallId;
+            BallColor = venue.BallColor;
         }
 
         // Times e esquemas escolhidos na Seleção de times, por lado (0 = baixo, 1 = cima).
@@ -352,6 +356,7 @@ namespace FutebolDeBotao
             FeltId = null;
             TableId = null;
             BallId = null;
+            BallColor = 0;
             GoalColor = 0;
             Away = false;
             HomeVenue = null;

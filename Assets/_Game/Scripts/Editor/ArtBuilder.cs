@@ -374,13 +374,13 @@ namespace FutebolDeBotao.Editor
                 ball = ScriptableObject.CreateInstance<BallTheme>();
                 ball.id = "bola_padrao";
                 ball.displayName = "Clássica";
-                ball.color = Color.white;
                 ball.unlockedByDefault = true;
                 AssetDatabase.CreateAsset(ball, path);
             }
-            ball.frames = frames;
-            ball.shine = shine;
-            ball.shadow = shadow;
+            // Só preenche o que estiver vazio: os recortes ligados à mão no asset (padrão com camada de cor) ficam.
+            if (!ball.HasFrames) ball.frames = frames;
+            if (ball.shine == null) ball.shine = shine;
+            if (ball.shadow == null) ball.shadow = shadow;
             EditorUtility.SetDirty(ball);
             AssetDatabase.SaveAssets();
         }

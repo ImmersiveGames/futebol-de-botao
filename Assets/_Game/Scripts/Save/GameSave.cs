@@ -304,7 +304,23 @@ namespace FutebolDeBotao
             (9, ToVersion9),
             (10, ToVersion10),
             (13, ToVersion13),
+            (14, ToVersion14),
         };
+
+        /// <summary>
+        /// Versão 14: as bolas viraram padrões com a cor escolhida à parte. As bolas amarela e vermelha antigas viram a bola
+        /// padrão nessas cores; as outras ficam brancas (como eram desenhadas).
+        /// </summary>
+        private static void ToVersion14(SaveData data)
+        {
+            var profile = data.profile;
+            (profile.ballId, profile.ballColorName) = profile.ballId?.ToLowerInvariant() switch
+            {
+                "bola_padrao_amarela" => ("bola_padrao", "Amarelo"),
+                "bola_padrao_vermelha" => ("bola_padrao", "Vermelho"),
+                _ => (profile.ballId, "Branco"),
+            };
+        }
 
         /// <summary>
         /// Versão 13: as cores da mesa passaram a vir da Color Palette (a do time), com os nomes no masculino; o nome

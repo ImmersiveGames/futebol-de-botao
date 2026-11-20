@@ -75,6 +75,7 @@ namespace FutebolDeBotao
             data.feltId = home.FeltId;
             data.goalColorName = home.Table != null ? home.Table.Goal(home.GoalColor)?.name : null;
             data.ballId = home.BallId;
+            data.ballColorName = ColorPalette.Load() is { Count: > 0 } palette ? palette[home.BallColor]?.name : null;
             GameSave.Save("mesa de casa");
         }
 

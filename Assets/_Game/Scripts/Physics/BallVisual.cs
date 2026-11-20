@@ -5,7 +5,8 @@ namespace FutebolDeBotao
     /// <summary>
     /// Desenho da bola em pixel art. Os quadros de rolagem avançam pela distância que a bola andou e o desenho
     /// gira para a direção do movimento, em passos fixos (8 direções); a luz e a sombra ficam sempre paradas.
-    /// Com a bola rápida aparece o rastro atrás dela: o quadro cresce com a velocidade e encolhe quando ela freia.
+    /// Com a bola rápida aparece o rastro atrás dela: o quadro cresce com a velocidade e encolhe quando ela freia. A
+    /// camada de cor da bola (<see cref="BallTheme.colorFrames"/>) é criada na hora, por cima dos quadros e girando junto.
     /// Montado por "Futebol de Botão/Aplicar artes".
     /// </summary>
     public sealed class BallVisual : MonoBehaviour
@@ -16,6 +17,8 @@ namespace FutebolDeBotao
         [SerializeField] private Transform shine;
         [SerializeField] private Transform shadow;
         [SerializeField] private Sprite[] frames = new Sprite[0];
+        [Tooltip("Para testar: a cor da bola (posição na Color Palette). -1: a da partida.")]
+        [SerializeField] private int colorOverride = -1;
         [Tooltip("Distância que a bola anda por quadro. O desenho anda 2 px por quadro: 2/32 = 0,0625.")]
         [SerializeField] private float distancePerFrame = 0.0625f;
         [Tooltip("Direções do giro do desenho (8 = de 45 em 45°, 4 = de 90 em 90°).")]
@@ -38,6 +41,8 @@ namespace FutebolDeBotao
         private const float TeleportDistance = 0.5f;
 
         private Rigidbody2D body;
+        private SpriteRenderer colorLayer;
+        private Sprite[] colorFrames = new Sprite[0];
         private Vector2 lastPosition;
         private float travelled;
         private float angle;
@@ -62,15 +67,24 @@ namespace FutebolDeBotao
             Apply(ballOverride != null ? ballOverride : BallTheme.Current());
         }
 
-        /// <summary>Troca o desenho pela bola <paramref name="ball"/>: quadros (tingidos com a cor dela), luz e sombra.</summary>
-        public void Apply(BallTheme ball)
+        /// <summary>
+        /// Troca o desenho pela bola <paramref name="ball"/> na cor <paramref name="colorIndex"/> (posição na paleta; -1 = a
+        /// da partida): quadros, camada de cor, luz e sombra.
+        /// </summary>
+        public void Apply(BallTheme ball, int colorIndex = -1)
         {
             if (ball == null || !ball.HasFrames) return;
+            if (colorIndex < 0) colorIndex = colorOverride >= 0 ? colorOverride : MatchSession.BallColor;
             frames = ball.frames;
+            colorFrames = ball.HasColorLayer ? ball.colorFrames : new Sprite[0];
             if (rolling != null)
             {
                 rolling.sprite = frames[0];
-                rolling.color = ball.color;
+                rolling.color = ball.FrameTint(colorIndex);
+                var layer = ColorLayer();
+                layer.enabled = colorFrames.Length > 0;
+                layer.sprite = colorFrames.Length > 0 ? colorFrames[0] : null;
+                layer.color = BallTheme.Tint(colorIndex);
             }
             if (shine != null && shine.TryGetComponent(out SpriteRenderer light))
             {
@@ -87,6 +101,30 @@ namespace FutebolDeBotao
             if (Application.isPlaying && ballOverride != null) Apply(ballOverride);
         }
 #endif
+
+        /// <summary>
+        /// Camada de cor: filha dos quadros (gira junto), num Sorting Group com eles para ficar logo acima dos quadros e
+        /// abaixo da luz. Criada na primeira vez (não vai para a cena salva).
+        /// </summary>
+        private SpriteRenderer ColorLayer()
+        {
+            if (colorLayer != null) return colorLayer;
+            var group = rolling.GetComponent<UnityEngine.Rendering.SortingGroup>();
+            if (group == null)
+            {
+                group = rolling.gameObject.AddComponent<UnityEngine.Rendering.SortingGroup>();
+                group.sortingLayerID = rolling.sortingLayerID;
+                group.sortingOrder = rolling.sortingOrder;
+            }
+            var go = new GameObject("Cor da bola") { hideFlags = HideFlags.DontSave };
+            go.transform.SetParent(rolling.transform, false);
+            colorLayer = go.AddComponent<SpriteRenderer>();
+            colorLayer.sharedMaterial = rolling.sharedMaterial;
+            colorLayer.sortingLayerID = rolling.sortingLayerID;
+            colorLayer.sortingOrder = rolling.sortingOrder + 1;
+            return colorLayer;
+        }
+
 
         private void OnEnable() => lastPosition = transform.position;
 
@@ -112,7 +150,9 @@ namespace FutebolDeBotao
                 {
                     float cycle = distancePerFrame * frames.Length;
                     travelled = Mathf.Repeat(travelled, cycle);
-                    rolling.sprite = frames[Mathf.Min(frames.Length - 1, (int)(travelled / distancePerFrame))];
+                    int frame = Mathf.Min(frames.Length - 1, (int)(travelled / distancePerFrame));
+                    rolling.sprite = frames[frame];
+                    if (colorLayer != null && colorFrames.Length > 0) colorLayer.sprite = colorFrames[Mathf.Min(frame, colorFrames.Length - 1)];
                 }
                 rolling.transform.rotation = Quaternion.Euler(0f, 0f, angle);
             }

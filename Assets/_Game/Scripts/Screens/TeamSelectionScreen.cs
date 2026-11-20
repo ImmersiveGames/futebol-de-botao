@@ -121,7 +121,7 @@ namespace FutebolDeBotao
         private readonly List<Image> feltRows = new();
         private Image feltUpperHalf;
         private Image marksImage;
-        private Image ballImage, ballShineImage, ballShadowImage;
+        private Image ballImage, ballColorImage, ballShineImage, ballShadowImage;
         /// <summary>Fileiras do feltro além das de cima e de baixo, por baixo das placas.</summary>
         private readonly List<Image> feltEnds = new();
         /// <summary>Textos em cima do campo (nome, sigla, Cor 2, Camisa, esquema): levam a cor das marcações do feltro.</summary>
@@ -255,6 +255,9 @@ namespace FutebolDeBotao
         public void ChangeBall(int step)
         {
             MatchSession.BallId = Venue.Step(Venue.Balls(), MatchSession.BallId, step, ball => ball.id);
+            // A cor fica; se a bola nova não aceitar, a primeira que ela aceita.
+            var current = BallTheme.Find(MatchSession.BallId);
+            if (current != null) MatchSession.BallColor = current.KeepColor(MatchSession.BallColor);
             PaintBall();
         }
 
@@ -527,7 +530,12 @@ namespace FutebolDeBotao
 
             // Bola no meio: sombra, desenho e luz, 1 tile cada.
             if (art.TryGetValue("Ball_Shadow", out var shadow)) ballShadowImage = CreateImage(field, "Sombra da bola", BallShadowColor, shadow, Vector2.zero, Vector2.one);
-            if (art.TryGetValue("Ball_Frame_1", out var ball)) ballImage = CreateImage(field, "Bola", Color.white, ball, Vector2.zero, Vector2.one);
+            if (art.TryGetValue("Ball_Frame_1", out var ball))
+            {
+                ballImage = CreateImage(field, "Bola", Color.white, ball, Vector2.zero, Vector2.one);
+                ballColorImage = CreateImage(field, "Cor da bola", Color.white, null, Vector2.zero, Vector2.one);
+                ballColorImage.enabled = false;
+            }
             else CreateImage(field, "Bola", Color.white, circle, Vector2.zero, Vector2.one * 0.4f);
             if (art.TryGetValue("Ball_Light", out var light)) ballShineImage = CreateImage(field, "Luz da bola", Color.white, light, Vector2.zero, Vector2.one);
             PaintBall();
@@ -562,7 +570,10 @@ namespace FutebolDeBotao
             var ball = BallTheme.Current();
             if (ball == null || !ball.HasFrames || ballImage == null) return;
             ballImage.sprite = ball.frames[0];
-            ballImage.color = ball.color;
+            ballImage.color = ball.FrameTint(MatchSession.BallColor);
+            ballColorImage.sprite = ball.ColorFrame(0);
+            ballColorImage.color = BallTheme.Tint(MatchSession.BallColor);
+            ballColorImage.enabled = ball.HasColorLayer;
             if (ballShineImage != null)
             {
                 ballShineImage.sprite = ball.shine;

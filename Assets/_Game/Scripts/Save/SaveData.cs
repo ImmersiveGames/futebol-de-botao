@@ -11,7 +11,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 13;
+        public const int CurrentVersion = 14;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -187,11 +187,15 @@ namespace FutebolDeBotao
             public string discPatternId2;
             public string keeperPatternId2;
             public int coins;
-            /// <summary>Mesa de casa (aba Mesa do Meu time): ids da mesa, do feltro e da bola e o nome da cor das traves. Vazio: a primeira liberada.</summary>
+            /// <summary>
+            /// Mesa de casa (aba Mesa do Meu time): ids da mesa, do feltro e da bola e os nomes das cores das traves e da bola
+            /// (da Color Palette). Vazio: a primeira liberada.
+            /// </summary>
             public string tableId;
             public string feltId;
             public string goalColorName;
             public string ballId;
+            public string ballColorName;
 
             // ---- Legado: só servem para converter saves antigos (GameSave, passos de versão). O jogo não usa. ----
             /// <summary>Cor reserva (versão 3 a 7): convertida no Uniforme 2 ao abrir um save antigo.</summary>

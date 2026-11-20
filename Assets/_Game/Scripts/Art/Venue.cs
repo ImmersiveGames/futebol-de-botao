@@ -3,13 +3,14 @@ using UnityEngine;
 
 namespace FutebolDeBotao
 {
-    /// <summary>Uma montagem de mesa para a partida: mesa, feltro, cor das traves (posição na mesa) e bola.</summary>
+    /// <summary>Uma montagem de mesa para a partida: mesa, feltro, cor das traves e bola com a cor dela (posições na paleta).</summary>
     public sealed class VenueSetup
     {
         public string TableId;
         public string FeltId;
         public int GoalColor;
         public string BallId;
+        public int BallColor;
 
         public TableTheme Table => TableTheme.Find(TableId);
         public FeltTheme Felt => FeltTheme.Find(FeltId);
@@ -50,10 +51,12 @@ namespace FutebolDeBotao
                 BallId = Pick(Balls(), data.ballId, b => b.id),
             };
             setup.GoalColor = GoalByName(setup.Table, setup.Felt, data.goalColorName);
+            var ball = setup.Ball;
+            setup.BallColor = ball != null ? ball.ColorByName(data.ballColorName) : 0;
             return setup;
         }
 
-        /// <summary>Sorteia a mesa do visitante: mesa e feltro diferentes dos de casa (quando der), traves e bola.</summary>
+        /// <summary>Sorteia a mesa do visitante: mesa e feltro diferentes dos de casa (quando der), traves, bola e a cor dela.</summary>
         public static VenueSetup RollAway(VenueSetup home)
         {
             var tables = Tables();
@@ -73,6 +76,7 @@ namespace FutebolDeBotao
                 FeltId = felt != null ? felt.id : null,
                 GoalColor = table != null ? table.PickGoalColor(felt) : 0,
                 BallId = ball != null ? ball.id : null,
+                BallColor = ball != null ? ball.PickColor() : 0,
             };
         }
 

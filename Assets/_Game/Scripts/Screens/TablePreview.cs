@@ -18,7 +18,7 @@ namespace FutebolDeBotao
         private readonly RectTransform boardsLayer, goalsLayer;
         private readonly List<Image> feltRows = new();
         private readonly List<Image> feltEnds = new();
-        private readonly Image feltUpperHalf, marks, ball, ballShine, ballShadow;
+        private readonly Image feltUpperHalf, marks, ball, ballColor, ballShine, ballShadow;
         // Sem feltro: o tile liso em verde listrado (fileira do meio clara).
         private static readonly Color FallbackBright = new Color32(0x1A, 0x7A, 0x3E, 0xFF);
         private static readonly Color FallbackDark = new Color32(0x24, 0x52, 0x3B, 0xFF);
@@ -56,6 +56,8 @@ namespace FutebolDeBotao
             art.TryGetValue("Ball_Frame_1", out var ballSprite);
             ball = CreateImage(root, "Bola", ballSprite, Vector2.zero, Vector2.one);
             ball.enabled = ballSprite != null;
+            ballColor = CreateImage(root, "Cor da bola", null, Vector2.zero, Vector2.one);
+            ballColor.enabled = false;
             if (art.TryGetValue("Ball_Light", out var light)) ballShine = CreateImage(root, "Luz da bola", light, Vector2.zero, Vector2.one);
 
             goalsLayer = CreateRect(root, "Traves da mesa", Vector2.zero, Vector2.zero);
@@ -111,8 +113,12 @@ namespace FutebolDeBotao
             var ballTheme = setup?.Ball;
             if (ballTheme != null && ballTheme.HasFrames)
             {
+                int color = setup.BallColor;
                 ball.sprite = ballTheme.frames[0];
-                ball.color = ballTheme.color;
+                ball.color = ballTheme.FrameTint(color);
+                ballColor.sprite = ballTheme.ColorFrame(0);
+                ballColor.color = BallTheme.Tint(color);
+                ballColor.enabled = ballTheme.HasColorLayer;
                 ball.enabled = true;
                 if (ballShine != null)
                 {

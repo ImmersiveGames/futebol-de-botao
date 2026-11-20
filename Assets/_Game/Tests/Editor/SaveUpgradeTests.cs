@@ -141,6 +141,14 @@ namespace FutebolDeBotao.Tests
         }
 
         [Test]
+        public void Versao13_BolaAmarelaViraBolaPadraoAmarela()
+        {
+            var data = Open("{\"version\":13,\"profile\":{\"ballId\":\"bola_padrao_Amarela\"}}");
+            Assert.AreEqual("bola_padrao", data.profile.ballId);
+            Assert.AreEqual("Amarelo", data.profile.ballColorName);
+        }
+
+        [Test]
         public void SaveVazio_TudoPreenchido()
         {
             var data = Open("{}");

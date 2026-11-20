@@ -34,7 +34,7 @@ namespace FutebolDeBotao
         private static readonly Color SpendColor = new(1f, 0.45f, 0.4f);
         private static readonly Color StripeColor = new(1f, 1f, 1f, 0.06f);
         private const float TableRowTop = -120f;
-        private const float TableRowSpacing = 90f;
+        private const float TableRowSpacing = 72f;
         private const float TablePreviewY = 150f;
         private const float TablePreviewTile = 32f;
         private const float RowSpacing = 80f;
@@ -75,7 +75,7 @@ namespace FutebolDeBotao
         private MenuEntry tabsEntry, backEntry, saveEntry;
         private MenuNavigator navigator;
         private TablePreview tablePreview;
-        private Text tableLabel, feltLabel, goalLabel, ballLabel;
+        private Text tableLabel, feltLabel, goalLabel, ballLabel, ballColorLabel;
         private GameObject goalRow;
         private int tab;
         private VenueSetup home;
@@ -117,13 +117,13 @@ namespace FutebolDeBotao
         {
             var before = PlayerProfile.Data;
             string uniformsBefore = JsonUtility.ToJson(PlayerProfile.Uniform(0)) + JsonUtility.ToJson(PlayerProfile.Uniform(1));
-            string tableBefore = $"{before.tableId}|{before.feltId}|{before.goalColorName}|{before.ballId}";
+            string tableBefore = $"{before.tableId}|{before.feltId}|{before.goalColorName}|{before.ballId}|{before.ballColorName}";
             string nameBefore = before.teamName + "|" + before.abbreviation;
             PlayerProfile.Save(nameField.text, abbreviationField.text, uniforms[0], uniforms[1]);
             PlayerProfile.SaveHome(home);
             var after = PlayerProfile.Data;
             bool uniformChanged = uniformsBefore != JsonUtility.ToJson(PlayerProfile.Uniform(0)) + JsonUtility.ToJson(PlayerProfile.Uniform(1));
-            bool tableChanged = tableBefore != $"{after.tableId}|{after.feltId}|{after.goalColorName}|{after.ballId}";
+            bool tableChanged = tableBefore != $"{after.tableId}|{after.feltId}|{after.goalColorName}|{after.ballId}|{after.ballColorName}";
             bool nameChanged = nameBefore != after.teamName + "|" + after.abbreviation;
             if (uniformChanged || tableChanged || nameChanged)
                 GameAnalytics.Log("profile_changed", ("uniform", uniformChanged ? "yes" : "no"),
@@ -239,6 +239,16 @@ namespace FutebolDeBotao
         private void ChangeBall(int step)
         {
             home.BallId = Venue.Step(Venue.Balls(), home.BallId, step, ball => ball.id);
+            // Fica com a mesma cor se a bola nova aceitar; senão, a primeira que ela aceita.
+            var ball = home.Ball;
+            home.BallColor = ball != null ? ball.KeepColor(home.BallColor) : 0;
+            RefreshTable();
+        }
+
+        private void ChangeBallColor(int step)
+        {
+            var ball = home.Ball;
+            home.BallColor = ball != null ? ball.StepColor(home.BallColor, step) : 0;
             RefreshTable();
         }
 
@@ -250,6 +260,8 @@ namespace FutebolDeBotao
             tableLabel.text = table != null ? Txt.Get(table.displayName) : "-";
             feltLabel.text = felt != null ? Txt.Get(felt.displayName) : "-";
             ballLabel.text = ball != null ? Txt.Get(ball.displayName) : "-";
+            var palette = ColorPalette.Load();
+            ballColorLabel.text = ball != null && palette != null && palette.Count > 0 ? Txt.Get(palette[home.BallColor]?.name ?? "-") : "-";
             // Cor da trave só na mesa com as placas montadas (a incompleta aparece como a primeira completa).
             bool goals = table != null && table.HasBoards && table.AllowedGoalColors(felt).Count > 0;
             goalRow.SetActive(goals);
@@ -393,7 +405,8 @@ namespace FutebolDeBotao
             var feltEntry = CreateArrowRow(tablePage, "Feltro", TableRowY(1), ChangeFelt, false, out feltLabel, out _, out _);
             var goalEntry = CreateArrowRow(tablePage, "Cor da trave", TableRowY(2), ChangeGoal, false, out goalLabel, out _, out goalRow);
             var ballEntry = CreateArrowRow(tablePage, "Bola", TableRowY(3), ChangeBall, false, out ballLabel, out _, out _);
-            tableEntries = new[] { tableEntry, feltEntry, goalEntry, ballEntry };
+            var ballColorEntry = CreateArrowRow(tablePage, "Cor da bola", TableRowY(4), ChangeBallColor, false, out ballColorLabel, out _, out _);
+            tableEntries = new[] { tableEntry, feltEntry, goalEntry, ballEntry, ballColorEntry };
 
             BuildFinance(root);
             BuildCareer(root);
