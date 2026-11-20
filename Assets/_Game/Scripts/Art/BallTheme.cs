@@ -5,7 +5,7 @@ namespace FutebolDeBotao
 {
     /// <summary>
     /// Um padrão de bola (item desbloqueável da Loja): os quadros de rolagem (sem cor), a camada de cor de cada quadro
-    /// (o branco recebe a cor), a luz, a sombra, as cores que aceita (da <see cref="ColorPalette"/>, pelo nome), preço e
+    /// (o fundo em branco, que recebe a cor e fica por baixo dos quadros), a luz, a sombra, as cores que aceita (da <see cref="ColorPalette"/>, pelo nome), preço e
     /// se já vem liberada. A cor não se compra: o jogador escolhe no Meu time. Sem a camada de cor, os próprios quadros
     /// recebem a cor (o branco vira a cor). Os assets ficam em Resources/Bolas.
     /// </summary>
@@ -20,7 +20,7 @@ namespace FutebolDeBotao
         public string displayName = "Bola";
         [Tooltip("Quadros de rolagem, em ordem (Ball_Frame_1, 2...): a parte que não muda de cor.")]
         public Sprite[] frames = { };
-        [Tooltip("Camada de cor de cada quadro, na mesma ordem (em branco: recebe a cor). Vazio: os quadros de cima recebem a cor.")]
+        [Tooltip("Camada de cor de cada quadro, na mesma ordem: o fundo em branco, que recebe a cor e fica por baixo dos quadros. Vazio: os quadros de cima recebem a cor.")]
         public Sprite[] colorFrames = { };
         [Tooltip("Luz por cima (fica parada). Vazio: sem luz.")]
         public Sprite shine;

@@ -299,8 +299,9 @@ namespace FutebolDeBotao
             if (ball.shadow != null) CreateImage(area, "Sombra", ball.shadow, Color.white, Vector2.zero, size);
             // Na cor da bola de casa do jogador, se este padrão aceitar; senão a primeira que ele aceita.
             int color = ball.ColorByName(PlayerProfile.Data.ballColorName);
-            CreateImage(area, "Bola", ball.frames[0], ball.FrameTint(color), Vector2.zero, size);
+            // A cor é o fundo: vem antes (por baixo) dos quadros.
             if (ball.HasColorLayer) CreateImage(area, "Cor", ball.ColorFrame(0), BallTheme.Tint(color), Vector2.zero, size);
+            CreateImage(area, "Bola", ball.frames[0], ball.FrameTint(color), Vector2.zero, size);
             if (ball.shine != null) CreateImage(area, "Brilho", ball.shine, Color.white, Vector2.zero, size);
         }
 

@@ -6,7 +6,8 @@ namespace FutebolDeBotao
     /// Desenho da bola em pixel art. Os quadros de rolagem avançam pela distância que a bola andou e o desenho
     /// gira para a direção do movimento, em passos fixos (8 direções); a luz e a sombra ficam sempre paradas.
     /// Com a bola rápida aparece o rastro atrás dela: o quadro cresce com a velocidade e encolhe quando ela freia. A
-    /// camada de cor da bola (<see cref="BallTheme.colorFrames"/>) é criada na hora, por cima dos quadros e girando junto.
+    /// camada de cor da bola (<see cref="BallTheme.colorFrames"/>, o fundo que recebe a cor) é criada na hora, por baixo
+    /// dos quadros e girando junto.
     /// Montado por "Futebol de Botão/Aplicar artes".
     /// </summary>
     public sealed class BallVisual : MonoBehaviour
@@ -103,8 +104,9 @@ namespace FutebolDeBotao
 #endif
 
         /// <summary>
-        /// Camada de cor: filha dos quadros (gira junto), num Sorting Group com eles para ficar logo acima dos quadros e
-        /// abaixo da luz. Criada na primeira vez (não vai para a cena salva).
+        /// Camada de cor (o fundo da bola): filha dos quadros (gira junto), num Sorting Group com eles para ficar logo
+        /// abaixo dos quadros (a parte sem cor fica por cima) e acima do rastro. Criada na primeira vez (não vai para a
+        /// cena salva).
         /// </summary>
         private SpriteRenderer ColorLayer()
         {
@@ -121,7 +123,7 @@ namespace FutebolDeBotao
             colorLayer = go.AddComponent<SpriteRenderer>();
             colorLayer.sharedMaterial = rolling.sharedMaterial;
             colorLayer.sortingLayerID = rolling.sortingLayerID;
-            colorLayer.sortingOrder = rolling.sortingOrder + 1;
+            colorLayer.sortingOrder = rolling.sortingOrder - 1;
             return colorLayer;
         }
 

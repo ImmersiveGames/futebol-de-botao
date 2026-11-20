@@ -532,8 +532,9 @@ namespace FutebolDeBotao
             if (art.TryGetValue("Ball_Shadow", out var shadow)) ballShadowImage = CreateImage(field, "Sombra da bola", BallShadowColor, shadow, Vector2.zero, Vector2.one);
             if (art.TryGetValue("Ball_Frame_1", out var ball))
             {
-                ballImage = CreateImage(field, "Bola", Color.white, ball, Vector2.zero, Vector2.one);
+                // A cor é o fundo da bola: vem antes (por baixo) dos quadros.
                 ballColorImage = CreateImage(field, "Cor da bola", Color.white, null, Vector2.zero, Vector2.one);
+                ballImage = CreateImage(field, "Bola", Color.white, ball, Vector2.zero, Vector2.one);
                 ballColorImage.enabled = false;
             }
             else CreateImage(field, "Bola", Color.white, circle, Vector2.zero, Vector2.one * 0.4f);

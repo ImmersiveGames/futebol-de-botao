@@ -54,10 +54,11 @@ namespace FutebolDeBotao
             if (art.TryGetValue("Ball_Shadow", out var shadow)) ballShadow = CreateImage(root, "Sombra da bola", shadow, Vector2.zero, Vector2.one);
             if (ballShadow != null) ballShadow.color = BallShadowColor;
             art.TryGetValue("Ball_Frame_1", out var ballSprite);
-            ball = CreateImage(root, "Bola", ballSprite, Vector2.zero, Vector2.one);
-            ball.enabled = ballSprite != null;
+            // A cor é o fundo da bola: vem antes (por baixo) dos quadros.
             ballColor = CreateImage(root, "Cor da bola", null, Vector2.zero, Vector2.one);
             ballColor.enabled = false;
+            ball = CreateImage(root, "Bola", ballSprite, Vector2.zero, Vector2.one);
+            ball.enabled = ballSprite != null;
             if (art.TryGetValue("Ball_Light", out var light)) ballShine = CreateImage(root, "Luz da bola", light, Vector2.zero, Vector2.one);
 
             goalsLayer = CreateRect(root, "Traves da mesa", Vector2.zero, Vector2.zero);
