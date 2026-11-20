@@ -8,6 +8,7 @@ namespace FutebolDeBotao.Editor
     /// (sombra, camada de cor por baixo, quadro e luz), na cor escolhida entre as que a bola aceita e sobre o feltro.
     /// </summary>
     [CustomEditor(typeof(BallTheme))]
+    [CanEditMultipleObjects]
     public sealed class BallThemeEditor : UnityEditor.Editor
     {
         private const float MaxCell = 96f;
@@ -19,6 +20,8 @@ namespace FutebolDeBotao.Editor
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
+            // Vários selecionados: os campos editam todos; a prévia é só de um.
+            if (targets.Length > 1) return;
 
             var ball = (BallTheme)target;
             EditorGUILayout.Space();

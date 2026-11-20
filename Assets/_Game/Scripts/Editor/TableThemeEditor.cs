@@ -9,6 +9,7 @@ namespace FutebolDeBotao.Editor
     /// Fill, rede e trave), com gol grande ou pequeno, a cor escolhida e a cor do feltro por baixo.
     /// </summary>
     [CustomEditor(typeof(TableTheme))]
+    [CanEditMultipleObjects]
     public sealed class TableThemeEditor : UnityEditor.Editor
     {
         private const float MaxCell = 24f;
@@ -20,6 +21,8 @@ namespace FutebolDeBotao.Editor
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
+            // Vários selecionados: os campos editam todos; a prévia é só de um.
+            if (targets.Length > 1) return;
 
             var table = (TableTheme)target;
             EditorGUILayout.Space();
