@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Immersive.Framework.PlayerParticipation;
 using Immersive.Framework.PlayerSlots;
+using Immersive.Framework.UnityInput;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -50,6 +51,7 @@ namespace FutebolDeBotao
                 foreach (var slot in observation.Slots)
                 {
                     if (!slot.IsJoined) continue;
+                    if (!anyLeft) AlignGameplayMaps();
                     Leave(slot.Slot.PlayerSlotId);
                     anyLeft = true;
                 }
@@ -113,7 +115,32 @@ namespace FutebolDeBotao
             }
             trigger.Invoke();
             var result = trigger.LastLeaveResult;
-            if (result == null || !result.Succeeded) Debug.LogWarning($"[Jogadores] Leave de {id} falhou: {trigger.LastOutcome} {trigger.LastDiagnostic}");
+            if (result != null && result.Succeeded) return;
+            Debug.LogWarning($"[Jogadores] Leave de {id} falhou: {trigger.LastOutcome} {trigger.LastDiagnostic}. Tentando de novo.");
+            AlignGameplayMaps();
+            trigger.Invoke();
+            result = trigger.LastLeaveResult;
+            if (result == null || !result.Succeeded) Debug.LogWarning($"[Jogadores] Leave de {id} falhou de novo: {trigger.LastOutcome} {trigger.LastDiagnostic}");
+            else Debug.Log($"[Jogadores] Leave de {id} deu certo na segunda tentativa.");
+        }
+
+        /// <summary>
+        /// Contorno do framework 1.1.0: o Leave solta o bloqueio de controle da partida anterior e confere se o mapa de
+        /// gameplay ficou ligado. Quando a partida acaba no meio (abandono pela pausa), o adaptador pode guardar
+        /// "mapa desligado" como estado de antes do bloqueio, o Leave falha e o dispositivo fica preso no jogador
+        /// (o Join seguinte dá RejectedDeviceAlreadyOwned e os controles morrem). Aqui o adaptador solta o bloqueio dele,
+        /// o mapa liga e o portão é aplicado de novo: se ainda houver bloqueio, ele agora lembra "ligado" e o Leave
+        /// consegue restaurar.
+        /// </summary>
+        private static void AlignGameplayMaps()
+        {
+            foreach (var adapter in FindObjectsByType<UnityPlayerInputGateAdapter>())
+            {
+                if (adapter == null || !adapter.isActiveAndEnabled) continue;
+                adapter.Restore();
+                if (adapter.TryResolveGameplayActionMap(out var map, out _) && !map.enabled) map.Enable();
+                adapter.ApplyCurrentGate();
+            }
         }
 
         private PlayerSessionLeaveCommandTrigger LeaveFor(PlayerSlotId id)
