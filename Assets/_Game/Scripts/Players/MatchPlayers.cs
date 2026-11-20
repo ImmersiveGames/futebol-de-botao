@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using Immersive.Framework.PlayerParticipation;
 using Immersive.Framework.PlayerSlots;
@@ -9,7 +11,7 @@ namespace FutebolDeBotao
     /// Na Partida, deixa jogar só o jogador da vez: os outros ficam bloqueados pelo framework
     /// (bloqueio de disponibilidade, IF-ADR-044) e o leitor de input deles não devolve nada.
     /// Na vez da IA o Jogador 1 fica bloqueado. Cada vaga tem o seu Gameplay Availability Block Trigger (escopo Activity),
-    /// Antes de sair da Partida (Resultado, Menu ou Reiniciar), <see cref="ReleaseBeforeLeaving"/> solta todos os bloqueios
+    /// Antes de sair da Partida (Resultado, Menu ou Reiniciar), <see cref="ReleaseThenLeave"/> solta todos os bloqueios
     /// enquanto a Activity ainda está viva: se o bloqueio fica até a Activity acabar, o Leave no Menu falha e o jogador
     /// fica preso na sessão (o dispositivo continua dele).
     /// No editor, se a partida abriu direto (sem o Menu), faz o Join do Jogador 1 para teste.
@@ -17,6 +19,8 @@ namespace FutebolDeBotao
     public sealed class MatchPlayers : MonoBehaviour
     {
         private const float RetrySeconds = 0.5f;
+        // Saída da Partida: quanto tempo (sem escala) tenta soltar os bloqueios antes de sair mesmo assim.
+        private const float ReleaseTimeoutSeconds = 1.5f;
 
         [Tooltip("Player Session Observer da Partida (escopo Activity).")]
         [SerializeField] private PlayerSessionObserver session;
@@ -94,25 +98,48 @@ namespace FutebolDeBotao
             return null;
         }
 
-        /// <summary>Solta os bloqueios de todos antes de pedir a saída da Partida (ou o reinício).</summary>
-        public static void ReleaseBeforeLeaving(string reason)
+        /// <summary>
+        /// Solta os bloqueios de todos e só então chama <paramref name="leave"/> (a saída da Partida ou o reinício). Logo
+        /// depois de sair da pausa o input ainda pode estar voltando e a liberação falhar ("could not restore gameplay"):
+        /// tenta de novo a cada quadro, por até <see cref="ReleaseTimeoutSeconds"/>, e sai mesmo assim no fim. Se o
+        /// bloqueio ficasse até a Activity acabar, o Leave no Menu falharia e os controles da partida seguinte morreriam.
+        /// </summary>
+        public static void ReleaseThenLeave(string reason, Action leave)
         {
-            if (current == null) return;
+            if (current == null || !current.isActiveAndEnabled)
+            {
+                leave?.Invoke();
+                return;
+            }
             if (current.session != null && current.session.TryGetObservation(out var observation))
                 current.leavingOccurrence = observation.ActivityOccurrence;
-            current.ReleaseAll(reason);
+            current.StartCoroutine(current.ReleaseRoutine(reason, leave));
         }
 
-        private void ReleaseAll(string reason)
+        private IEnumerator ReleaseRoutine(string reason, Action leave)
         {
             retryAt.Clear();
-            if (blocks == null) return;
+            float deadline = Time.unscaledTime + ReleaseTimeoutSeconds;
+            while (!ReleaseAll() && Time.unscaledTime < deadline) yield return null;
+            if (blocks != null)
+                foreach (var block in blocks)
+                    if (block != null && block.OwnsActiveBlock)
+                        Debug.LogWarning($"[Jogadores] Não consegui liberar o bloqueio ({reason}): {block.LastDiagnostic}");
+            leave?.Invoke();
+        }
+
+        /// <summary>Pede a liberação de cada bloqueio ainda ativo; verdadeiro quando nenhum ficou.</summary>
+        private bool ReleaseAll()
+        {
+            if (blocks == null) return true;
+            bool all = true;
             foreach (var block in blocks)
             {
                 if (block == null || !block.OwnsActiveBlock) continue;
                 block.RequestRelease();
-                if (block.OwnsActiveBlock) Debug.LogWarning($"[Jogadores] Não consegui liberar o bloqueio ({reason}): {block.LastDiagnostic}");
+                if (block.OwnsActiveBlock) all = false;
             }
+            return all;
         }
 
         private void OnEnable() => current = this;

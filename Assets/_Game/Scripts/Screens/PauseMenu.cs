@@ -55,8 +55,7 @@ namespace FutebolDeBotao
             if (restartTrigger != null) RunAfterResume(() =>
             {
                 PlayerStats.Abandon();
-                MatchPlayers.ReleaseBeforeLeaving("reiniciar");
-                restartTrigger.RequestActivityRestart();
+                MatchPlayers.ReleaseThenLeave("reiniciar", () => restartTrigger.RequestActivityRestart());
             });
         }
 
@@ -66,8 +65,7 @@ namespace FutebolDeBotao
             void Leave()
             {
                 PlayerStats.Abandon();
-                MatchPlayers.ReleaseBeforeLeaving("sair para o menu");
-                menuRoute.RequestRoute();
+                MatchPlayers.ReleaseThenLeave("sair para o menu", () => menuRoute.RequestRoute());
             }
             // Sem pausa (Menu na tela de lição concluída do tutorial) vai direto.
             if (busy) return;
