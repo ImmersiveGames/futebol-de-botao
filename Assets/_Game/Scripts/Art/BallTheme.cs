@@ -26,7 +26,7 @@ namespace FutebolDeBotao
         public Sprite shine;
         [Tooltip("Sombra embaixo (fica parada). Vazio: a da bola padrão.")]
         public Sprite shadow;
-        [Tooltip("Cores da Color Palette que esta bola aceita, pelo nome. Vazio: todas.")]
+        [Tooltip("Cores da Color Palette que esta bola aceita, pelo nome. Tudo marcado: todas.")]
         [GoalColorName] public string[] colors = { };
         [Tooltip("Preço em moedas.")]
         [Min(0)] public int price;

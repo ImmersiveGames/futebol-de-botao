@@ -19,7 +19,7 @@ namespace FutebolDeBotao.Editor
 
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
+            PaletteMaskInspector.Draw(serializedObject, nameof(BallTheme.colors));
             // Vários selecionados: os campos editam todos; a prévia é só de um.
             if (targets.Length > 1) return;
 
