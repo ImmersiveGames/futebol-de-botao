@@ -43,7 +43,7 @@ namespace FutebolDeBotao
                 feltRows.Add(CreateTiled(root, $"Feltro {row + 1}", null, new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal));
             foreach (int row in new[] { -1, rows })
                 feltEnds.Add(CreateTiled(root, "Feltro da ponta", null, new Vector2(0f, -FieldLayout.HalfHeight + 0.5f + row), horizontal));
-            feltUpperHalf = CreateTiled(root, "Feltro (meia fileira)", oldBright,
+            feltUpperHalf = CreateTiled(root, "Feltro (meia fileira)", null,
                 new Vector2(0f, -FieldLayout.HalfHeight + rows / 2 + 0.75f), new Vector2(FieldLayout.Width, 0.5f));
 
             if (art.TryGetValue("Field_Marks", out var marksSprite))
