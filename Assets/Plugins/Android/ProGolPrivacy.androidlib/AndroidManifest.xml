@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pro Gol!: Firebase Analytics sem ID de publicidade e com o consentimento de anúncio negado desde a abertura. -->
+<!-- Pro Gol!: Firebase Analytics sem ID de publicidade e com o consentimento de anúncio negado desde a abertura.
+     Tela em pé opcional: o Play deduz screen.portrait obrigatório da orientação travada; declarado aqui como opcional. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.immersivegames.progol.privacy">
+  <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
   <application>
     <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
     <meta-data android:name="google_analytics_default_allow_ad_storage" android:value="false" />
