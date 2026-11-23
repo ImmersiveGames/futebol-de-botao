@@ -1,0 +1,1674 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GDD - Futebol de Botão</title>
+  <style>
+:root {
+  color-scheme: dark;
+
+  --docs-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --docs-font-code: "Cascadia Code", "Consolas", "Courier New", monospace;
+
+  --docs-spacing-2xs: 0.25rem;
+  --docs-spacing-xs: 0.5rem;
+  --docs-spacing-sm: 0.75rem;
+  --docs-spacing-md: 1rem;
+  --docs-spacing-lg: 1.5rem;
+  --docs-spacing-xl: 2rem;
+  --docs-spacing-2xl: 3rem;
+
+  --docs-radius-sm: 0.375rem;
+  --docs-radius-md: 0.625rem;
+  --docs-radius-lg: 0.875rem;
+  --docs-radius-pill: 999px;
+
+  --docs-border-width: 1px;
+  --docs-shadow-sm: 0 8px 20px rgb(0 0 0 / 18%);
+  --docs-shadow-md: 0 18px 50px rgb(0 0 0 / 25%);
+
+  --docs-layout-header-height: 4.25rem;
+  --docs-layout-tabs-height: 3.25rem;
+  --docs-layout-topbar-height: calc(var(--docs-layout-header-height) + var(--docs-layout-tabs-height));
+  --docs-layout-sidebar-width: 18rem;
+  --docs-layout-content-max: 1120px;
+
+  --docs-breakpoint-sm: 40rem;
+  --docs-breakpoint-md: 56rem;
+  --docs-breakpoint-lg: 72rem;
+  --docs-breakpoint-xl: 90rem;
+
+  --docs-z-header: 30;
+  --docs-z-tabs: 25;
+  --docs-z-drawer: 40;
+  --docs-z-skip: 100;
+}
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --docs-color-bg: #090b10;
+  --docs-color-surface: #11151d;
+  --docs-color-surface-raised: #171c26;
+  --docs-color-surface-soft: #0d1118;
+  --docs-color-border: #28303d;
+  --docs-color-border-strong: #394354;
+  --docs-color-text: #e7eaf0;
+  --docs-color-text-muted: #9da7b7;
+  --docs-color-text-subtle: #707b8e;
+  --docs-color-accent: #7bb7ff;
+  --docs-color-accent-strong: #9dccff;
+  --docs-color-accent-soft: rgb(123 183 255 / 14%);
+  --docs-color-code-bg: #06080d;
+  --docs-color-code-text: #dbeafe;
+
+  --docs-color-note: #8eb8ff;
+  --docs-color-note-bg: rgb(142 184 255 / 10%);
+  --docs-color-info: #76d0ff;
+  --docs-color-info-bg: rgb(118 208 255 / 10%);
+  --docs-color-tip: #8ee6c1;
+  --docs-color-tip-bg: rgb(142 230 193 / 10%);
+  --docs-color-warning: #ffd27a;
+  --docs-color-warning-bg: rgb(255 210 122 / 12%);
+  --docs-color-important: #ff9f9f;
+  --docs-color-important-bg: rgb(255 159 159 / 12%);
+  --docs-color-success: #98e6a6;
+  --docs-color-success-bg: rgb(152 230 166 / 10%);
+  --docs-color-example: #c6a6ff;
+  --docs-color-example-bg: rgb(198 166 255 / 10%);
+  --docs-color-best-practice: #8ee6d8;
+  --docs-color-best-practice-bg: rgb(142 230 216 / 10%);
+  --docs-color-danger: #ff7d7d;
+  --docs-color-danger-bg: rgb(255 125 125 / 12%);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --docs-color-bg: #f4f6fa;
+  --docs-color-surface: #ffffff;
+  --docs-color-surface-raised: #ffffff;
+  --docs-color-surface-soft: #eef2f7;
+  --docs-color-border: #d7deea;
+  --docs-color-border-strong: #c1cad8;
+  --docs-color-text: #111827;
+  --docs-color-text-muted: #536074;
+  --docs-color-text-subtle: #778398;
+  --docs-color-accent: #2563eb;
+  --docs-color-accent-strong: #1d4ed8;
+  --docs-color-accent-soft: rgb(37 99 235 / 10%);
+  --docs-color-code-bg: #f8fafc;
+  --docs-color-code-text: #111827;
+
+  --docs-color-note: #2563eb;
+  --docs-color-note-bg: rgb(37 99 235 / 8%);
+  --docs-color-info: #0284c7;
+  --docs-color-info-bg: rgb(2 132 199 / 8%);
+  --docs-color-tip: #047857;
+  --docs-color-tip-bg: rgb(4 120 87 / 8%);
+  --docs-color-warning: #b45309;
+  --docs-color-warning-bg: rgb(180 83 9 / 10%);
+  --docs-color-important: #dc2626;
+  --docs-color-important-bg: rgb(220 38 38 / 9%);
+  --docs-color-success: #15803d;
+  --docs-color-success-bg: rgb(21 128 61 / 8%);
+  --docs-color-example: #7c3aed;
+  --docs-color-example-bg: rgb(124 58 237 / 8%);
+  --docs-color-best-practice: #0f766e;
+  --docs-color-best-practice-bg: rgb(15 118 110 / 8%);
+  --docs-color-danger: #b91c1c;
+  --docs-color-danger-bg: rgb(185 28 28 / 9%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--docs-color-bg);
+  color: var(--docs-color-text);
+  font-family: var(--docs-font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--docs-color-text);
+  line-height: 1.2;
+  margin: 0 0 var(--docs-spacing-md);
+  scroll-margin-top: calc(var(--docs-layout-topbar-height) + var(--docs-spacing-lg));
+}
+
+h1 {
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  margin: 0;
+}
+
+h2 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: -0.04em;
+}
+
+h3 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  margin-top: var(--docs-spacing-xl);
+}
+
+h4 {
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0 0 var(--docs-spacing-md);
+}
+
+a {
+  color: var(--docs-color-accent);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--docs-color-accent-strong);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--docs-color-accent);
+  outline-offset: 3px;
+}
+
+ul,
+ol {
+  margin: 0 0 var(--docs-spacing-md);
+  padding-left: var(--docs-spacing-lg);
+}
+
+li + li {
+  margin-top: var(--docs-spacing-2xs);
+}
+
+blockquote {
+  border-left: 4px solid var(--docs-color-accent);
+  color: var(--docs-color-text-muted);
+  margin: var(--docs-spacing-lg) 0;
+  padding: var(--docs-spacing-sm) var(--docs-spacing-lg);
+  background: var(--docs-color-surface-soft);
+  border-radius: var(--docs-radius-md);
+}
+
+code,
+pre {
+  font-family: var(--docs-font-code);
+}
+
+code {
+  background: var(--docs-color-surface-soft);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-sm);
+  color: var(--docs-color-accent-strong);
+  padding: 0.1rem 0.3rem;
+}
+
+pre {
+  overflow-x: auto;
+}
+
+figcaption,
+.docs-kicker,
+.docs-search-status,
+.docs-footer {
+  color: var(--docs-color-text-muted);
+  font-size: 0.875rem;
+}
+
+.docs-kicker {
+  letter-spacing: 0.08em;
+  margin: 0 0 var(--docs-spacing-xs);
+  text-transform: uppercase;
+}
+
+.docs-skip-link {
+  background: var(--docs-color-accent);
+  border-radius: var(--docs-radius-md);
+  color: var(--docs-color-bg);
+  left: var(--docs-spacing-md);
+  padding: var(--docs-spacing-sm) var(--docs-spacing-md);
+  position: fixed;
+  top: -10rem;
+  z-index: var(--docs-z-skip);
+}
+
+.docs-skip-link:focus {
+  top: var(--docs-spacing-md);
+}
+
+.docs-topbar {
+  background: color-mix(in srgb, var(--docs-color-surface) 92%, transparent);
+  border-bottom: var(--docs-border-width) solid var(--docs-color-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--docs-z-header);
+}
+
+.docs-header {
+  align-items: center;
+  display: flex;
+  gap: var(--docs-spacing-md);
+  justify-content: space-between;
+  min-height: var(--docs-layout-header-height);
+  padding: var(--docs-spacing-sm) var(--docs-spacing-lg);
+}
+
+.docs-header__brand,
+.docs-header__tools,
+.docs-tabs,
+.docs-sidebar__header {
+  align-items: center;
+  display: flex;
+}
+
+.docs-header__brand {
+  gap: var(--docs-spacing-sm);
+  min-width: 16rem;
+}
+
+.docs-header__logo-set,
+.docs-header__logo {
+  display: block;
+}
+
+.docs-header__logo-set {
+  flex: 0 0 auto;
+}
+
+.docs-header__logo {
+  height: 2.4rem;
+  width: auto;
+}
+
+.docs-header__logo--light {
+  display: none;
+}
+
+:root[data-theme="light"] .docs-header__logo--dark {
+  display: none;
+}
+
+:root[data-theme="light"] .docs-header__logo--light {
+  display: block;
+}
+
+.docs-header__tools {
+  flex-wrap: wrap;
+  gap: var(--docs-spacing-sm);
+  justify-content: flex-end;
+}
+
+.docs-search-label {
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.docs-search-input {
+  background: var(--docs-color-surface-soft);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-pill);
+  color: var(--docs-color-text);
+  min-height: 2.5rem;
+  min-width: min(18rem, 70vw);
+  padding: 0 var(--docs-spacing-md);
+}
+
+.docs-button,
+.docs-tab,
+.docs-back-to-top {
+  background: var(--docs-color-surface-raised);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-pill);
+  color: var(--docs-color-text);
+  cursor: pointer;
+  font: inherit;
+  min-height: 2.4rem;
+  padding: var(--docs-spacing-xs) var(--docs-spacing-md);
+}
+
+.docs-button:hover,
+.docs-tab:hover,
+.docs-back-to-top:hover {
+  border-color: var(--docs-color-accent);
+}
+
+.docs-tabs {
+  background: var(--docs-color-surface);
+  border-top: var(--docs-border-width) solid var(--docs-color-border);
+  gap: var(--docs-spacing-sm);
+  min-height: var(--docs-layout-tabs-height);
+  overflow-x: auto;
+  padding: var(--docs-spacing-sm) var(--docs-spacing-lg);
+  scrollbar-width: thin;
+  white-space: nowrap;
+}
+
+.docs-tab.is-active {
+  background: var(--docs-color-accent-soft);
+  border-color: var(--docs-color-accent);
+  color: var(--docs-color-accent-strong);
+}
+
+.docs-search-status {
+  background: var(--docs-color-surface-soft);
+  border-bottom: var(--docs-border-width) solid var(--docs-color-border);
+  padding: var(--docs-spacing-xs) var(--docs-spacing-lg);
+}
+
+.docs-shell {
+  display: grid;
+  grid-template-columns: var(--docs-layout-sidebar-width) minmax(0, 1fr);
+  min-height: calc(100vh - var(--docs-layout-topbar-height));
+}
+
+.docs-sidebar {
+  align-self: start;
+  background: var(--docs-color-surface-soft);
+  border-color: var(--docs-color-border);
+  border-right: var(--docs-border-width) solid var(--docs-color-border);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--docs-layout-topbar-height));
+  max-height: calc(100vh - var(--docs-layout-topbar-height));
+  padding: var(--docs-spacing-lg);
+  position: sticky;
+  top: var(--docs-layout-topbar-height);
+}
+
+.docs-sidebar__header {
+  color: var(--docs-color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  justify-content: space-between;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--docs-spacing-sm);
+  text-transform: uppercase;
+}
+
+.docs-sidebar__nav {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding-right: var(--docs-spacing-xs);
+}
+
+.docs-sidebar__footer {
+  border-top: var(--docs-border-width) solid var(--docs-color-border);
+  flex: 0 0 auto;
+  margin-top: var(--docs-spacing-lg);
+  padding-top: var(--docs-spacing-md);
+}
+
+.docs-sidebar a {
+  border-radius: var(--docs-radius-md);
+  color: var(--docs-color-text-muted);
+  display: block;
+  padding: var(--docs-spacing-xs) var(--docs-spacing-sm);
+  text-decoration: none;
+}
+
+.docs-sidebar a.is-active {
+  background: var(--docs-color-accent-soft);
+  color: var(--docs-color-accent-strong);
+}
+
+.docs-sidebar .docs-nav-group {
+  margin-bottom: var(--docs-spacing-md);
+}
+
+.docs-sidebar .docs-nav-group-title {
+  color: var(--docs-color-text);
+  font-weight: 700;
+}
+
+.docs-main {
+  min-width: 0;
+  padding: var(--docs-spacing-xl);
+}
+
+.docs-content {
+  margin: 0 auto;
+  max-width: var(--docs-layout-content-max);
+}
+
+.docs-page-header {
+  background: linear-gradient(135deg, var(--docs-color-surface-raised), var(--docs-color-surface));
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-lg);
+  margin-bottom: var(--docs-spacing-2xl);
+  padding: var(--docs-spacing-xl);
+}
+
+.docs-section {
+  margin-bottom: calc(var(--docs-spacing-2xl) + var(--docs-spacing-md));
+}
+
+.docs-footer {
+  align-items: center;
+  background: var(--docs-color-surface);
+  border-top: var(--docs-border-width) solid var(--docs-color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--docs-spacing-md);
+  justify-content: space-between;
+  padding: var(--docs-spacing-lg);
+}
+
+.docs-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--docs-spacing-md);
+}
+
+.docs-back-to-top {
+  width: 100%;
+}
+
+.docs-mobile-only {
+  display: none;
+}
+
+@media (max-width: 72rem) {
+  .docs-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .docs-sidebar {
+    display: none;
+    height: auto;
+    max-height: none;
+    position: static;
+  }
+
+  .docs-sidebar.is-open {
+    display: flex;
+  }
+
+  .docs-mobile-only {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 48rem) {
+  .docs-header {
+    align-items: stretch;
+    flex-direction: column;
+    padding: var(--docs-spacing-sm);
+  }
+
+  .docs-tabs {
+    padding: var(--docs-spacing-sm);
+  }
+
+  .docs-main {
+    padding: var(--docs-spacing-md);
+  }
+
+  .docs-page-header {
+    padding: var(--docs-spacing-lg);
+  }
+
+  .docs-search-input {
+    min-width: 100%;
+  }
+}
+
+.docs-callout,
+.docs-block,
+.docs-figure,
+.docs-empty-state,
+.docs-search-panel,
+.docs-search-results,
+.docs-glossary-tools,
+.docs-related-documents {
+  background: var(--docs-color-surface);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-lg);
+  margin: var(--docs-spacing-xl) 0;
+  padding: var(--docs-spacing-lg);
+}
+
+.docs-callout {
+  border-left-width: 5px;
+}
+
+.docs-callout__title {
+  font-weight: 800;
+  margin-bottom: var(--docs-spacing-xs);
+}
+
+.docs-callout-note { background: var(--docs-color-note-bg); border-left-color: var(--docs-color-note); }
+.docs-callout-info { background: var(--docs-color-info-bg); border-left-color: var(--docs-color-info); }
+.docs-callout-tip { background: var(--docs-color-tip-bg); border-left-color: var(--docs-color-tip); }
+.docs-callout-warning { background: var(--docs-color-warning-bg); border-left-color: var(--docs-color-warning); }
+.docs-callout-important { background: var(--docs-color-important-bg); border-left-color: var(--docs-color-important); }
+.docs-callout-success { background: var(--docs-color-success-bg); border-left-color: var(--docs-color-success); }
+.docs-callout-example { background: var(--docs-color-example-bg); border-left-color: var(--docs-color-example); }
+.docs-callout-best-practice { background: var(--docs-color-best-practice-bg); border-left-color: var(--docs-color-best-practice); }
+
+.docs-callout-grid {
+  display: grid;
+  gap: var(--docs-spacing-lg);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.docs-block {
+  box-shadow: var(--docs-shadow-sm);
+}
+
+.docs-block + .docs-block,
+.docs-callout + .docs-callout,
+.docs-table + .docs-block,
+.docs-block + .docs-table {
+  margin-top: var(--docs-spacing-xl);
+}
+
+.docs-block h4 {
+  margin-bottom: var(--docs-spacing-sm);
+}
+
+.docs-block-decision { border-color: var(--docs-color-accent); }
+.docs-block-risk { border-color: var(--docs-color-warning); }
+.docs-block-open-question { border-color: var(--docs-color-example); }
+.docs-block-api { border-color: var(--docs-color-info); }
+.docs-block-flow { border-color: var(--docs-color-tip); }
+
+.docs-code {
+  background: var(--docs-color-code-bg);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-lg);
+  color: var(--docs-color-code-text);
+  font-size: 0.92rem;
+  padding: calc(var(--docs-spacing-lg) + 2rem) var(--docs-spacing-lg) var(--docs-spacing-lg);
+  position: relative;
+}
+
+.docs-code code {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  display: block;
+  padding: 0;
+}
+
+.docs-code-copy {
+  background: var(--docs-color-surface-raised);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-pill);
+  color: var(--docs-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  min-height: 2rem;
+  padding: var(--docs-spacing-2xs) var(--docs-spacing-sm);
+  position: absolute;
+  right: var(--docs-spacing-sm);
+  top: var(--docs-spacing-sm);
+}
+
+.docs-code-copy:hover {
+  border-color: var(--docs-color-accent);
+  color: var(--docs-color-accent-strong);
+}
+
+.docs-table {
+  border-collapse: collapse;
+  margin: var(--docs-spacing-xl) 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.docs-table th,
+.docs-table td {
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  padding: var(--docs-spacing-sm);
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-table th {
+  background: var(--docs-color-surface-raised);
+}
+
+.docs-figure img,
+.docs-diagram {
+  border-radius: var(--docs-radius-md);
+  display: block;
+  max-width: 100%;
+}
+
+.docs-diagram {
+  height: auto;
+  width: 100%;
+}
+
+.docs-diagram__background {
+  fill: var(--docs-color-surface-soft);
+}
+
+.docs-diagram__node rect {
+  fill: var(--docs-color-surface);
+  stroke: var(--docs-color-border-strong);
+  stroke-width: 2;
+}
+
+.docs-diagram__label {
+  fill: var(--docs-color-text);
+}
+
+.docs-diagram__arrow {
+  stroke: var(--docs-color-accent);
+}
+
+.docs-diagram__caption {
+  fill: var(--docs-color-text-muted);
+}
+
+.docs-badge {
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-pill);
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.1rem 0.55rem;
+}
+
+.docs-badge-success {
+  color: var(--docs-color-success);
+}
+
+.docs-badge-warning {
+  color: var(--docs-color-warning);
+}
+
+.docs-empty-state {
+  text-align: center;
+}
+
+.docs-search-panel {
+  box-shadow: var(--docs-shadow-sm);
+  margin: 0 auto var(--docs-spacing-xl);
+  width: 100%;
+}
+
+.docs-search-panel__header {
+  border-bottom: var(--docs-border-width) solid var(--docs-color-border);
+  margin-bottom: var(--docs-spacing-lg);
+  padding-bottom: var(--docs-spacing-md);
+}
+
+.docs-search-panel__header h2 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.docs-search-results {
+  display: grid;
+  gap: var(--docs-spacing-md);
+}
+
+.docs-search-result {
+  background: var(--docs-color-surface-soft);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-md);
+  padding: var(--docs-spacing-md);
+}
+
+.docs-search-result a {
+  display: inline-block;
+  font-weight: 700;
+  margin-bottom: var(--docs-spacing-xs);
+}
+
+.docs-search-result small,
+.docs-search-result__section,
+.docs-search-result__path {
+  color: var(--docs-color-text-muted);
+  display: block;
+}
+
+.docs-search-result__section,
+.docs-search-result__path {
+  font-size: 0.85rem;
+}
+
+.docs-search-result__path {
+  margin-bottom: var(--docs-spacing-sm);
+}
+
+.docs-search-result p {
+  margin-bottom: 0;
+}
+
+.docs-glossary-tools {
+  display: grid;
+  gap: var(--docs-spacing-sm);
+}
+
+.docs-glossary-term {
+  border-bottom: var(--docs-border-width) solid var(--docs-color-border);
+  padding-bottom: var(--docs-spacing-lg);
+}
+
+.docs-flow-list {
+  counter-reset: flow-step;
+  list-style: none;
+  padding-left: 0;
+}
+
+.docs-flow-list li {
+  background: var(--docs-color-surface-soft);
+  border: var(--docs-border-width) solid var(--docs-color-border);
+  border-radius: var(--docs-radius-md);
+  margin-bottom: var(--docs-spacing-sm);
+  padding: var(--docs-spacing-sm) var(--docs-spacing-md);
+}
+
+.is-search-hidden {
+  display: none !important;
+}
+
+/* Pro Gol: acréscimos ao template padrão (iguais aos do GDD do PEGA). */
+.docs-gdd-hero {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--docs-color-accent) 18%, transparent), transparent 45%),
+    linear-gradient(135deg, var(--docs-color-surface-raised), var(--docs-color-surface));
+}
+.docs-gdd-meta { display: flex; flex-wrap: wrap; gap: var(--docs-spacing-sm); margin-top: var(--docs-spacing-md); }
+.docs-table-wrap { overflow-x: auto; }
+/* O template só dá scroll-margin aos títulos; o link do menu aponta para a seção. */
+.docs-section[id] { scroll-margin-top: calc(var(--docs-layout-topbar-height) + var(--docs-spacing-lg)); }
+
+  </style>
+</head>
+<body>
+  <a class="docs-skip-link" href="#docs-main">Pular para o conteúdo</a>
+
+  <div class="docs-topbar">
+    <header class="docs-header">
+      <div class="docs-header__brand">
+        <span class="docs-header__logo-set" aria-hidden="true">
+          <img class="docs-header__logo docs-header__logo--dark" src="data:image/png;base64,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" alt="" width="180" height="65">
+          <img class="docs-header__logo docs-header__logo--light" src="data:image/png;base64,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" alt="" width="180" height="65">
+        </span>
+        <div>
+          <h1>Pro Gol!</h1>
+        </div>
+      </div>
+
+      <div class="docs-header__tools">
+        <label class="docs-search-label" for="docs-search-input">Buscar no GDD</label>
+        <input id="docs-search-input" class="docs-search-input" type="search" placeholder="Buscar no GDD..." autocomplete="off">
+        <button class="docs-button docs-button--ghost" type="button" data-action="toggle-theme" aria-label="Alternar tema claro ou escuro">Tema</button>
+        <button class="docs-button docs-button--ghost docs-mobile-only" type="button" data-action="toggle-sidebar" aria-expanded="false" aria-controls="docs-sidebar">Menu</button>
+      </div>
+    </header>
+
+    <nav class="docs-tabs" role="tablist" aria-label="Documentos">
+      <button id="docs-tab-gdd" class="docs-tab is-active" type="button" role="tab" data-document-target="gdd" aria-selected="true" aria-controls="docs-panel-gdd">Game Design Document</button>
+    </nav>
+  </div>
+
+  <div class="docs-search-status" id="docs-search-status" role="status" aria-live="polite">Busca pronta.</div>
+
+  <div class="docs-shell">
+    <aside class="docs-sidebar" id="docs-sidebar" aria-label="Navegação do documento">
+      <div class="docs-sidebar__header">
+        <span>Navegação</span>
+      </div>
+      <nav class="docs-sidebar__nav" data-sidebar-nav></nav>
+      <div class="docs-sidebar__footer">
+        <button class="docs-back-to-top" type="button" data-action="back-to-top">&uarr; Voltar ao topo</button>
+      </div>
+    </aside>
+
+    <main class="docs-main" id="docs-main" tabindex="-1">
+      <section class="docs-search-panel docs-content" data-search-panel hidden aria-labelledby="docs-search-panel-title">
+        <div class="docs-search-panel__header">
+          <p class="docs-kicker">Busca</p>
+          <h2 id="docs-search-panel-title">Resultados da busca</h2>
+          <p data-search-summary>Digite no campo de busca para pesquisar no GDD.</p>
+        </div>
+        <div class="docs-search-results" data-search-results></div>
+        <div class="docs-empty-state" data-search-empty hidden>
+          <h2>Nenhum resultado encontrado.</h2>
+          <p>Tente outro termo ou limpe a busca.</p>
+        </div>
+      </section>
+
+      <section id="docs-panel-gdd" class="docs-document is-active" role="tabpanel" aria-labelledby="docs-tab-gdd" data-document="gdd" data-document-title="Game Design Document">
+        <article class="docs-content">
+          <header id="gdd-titulo" class="docs-page-header docs-gdd-hero">
+            <p class="docs-kicker">Game Design Document</p>
+            <h2>GDD - Futebol de Botão</h2>
+            <p>Nov 23, 2026 · @Immersive Games</p>
+            <div class="docs-gdd-meta" aria-label="Dados do documento"><span class="docs-badge">Português</span><span class="docs-badge">Fonte: Claude Doc</span><span class="docs-badge">Revisão 260</span><span class="docs-badge">Exportado em 23/11/2026</span></div>
+          </header>
+<section class="docs-section" id="visao-geral" data-title="Visão geral"><h3>Visão geral</h3>
+<p>Um jogo de futebol de botão por turnos, rápido de aprender e com física satisfatória, chamado Pro Gol! (em inglês, button football), publicado no Google Play (Android) e com uma versão de navegador no itch.io.</p>
+<ul>
+<li><strong>Pitch:</strong> a mesa de botão da infância, com peteleco mirado no mouse ou no dedo, partidas de 5 a 10 minutos.</li>
+<li><strong>Gênero:</strong> esporte de mesa, estratégia por turnos com física.</li>
+<li><strong>Público:</strong> jogadores casuais e nostálgicos do botão; partidas curtas que cabem em uma pausa.</li>
+<li><strong>Plataformas:</strong> 1) Android pelo Google Play (versão principal, toque, em retrato; pacote com.immersivegames.progol); 2) navegador via itch.io (WebGL), sem anúncios nem compras.</li>
+<li><strong>Engine:</strong> Unity 6000.5 com o Immersive Framework.</li>
+</ul>
+</section>
+<section class="docs-section" id="decisoes-em-aberto" data-title="Decisões em aberto"><h3>Decisões em aberto</h3>
+<p>Todas as decisões-base foram fechadas em 07/10; o equilíbrio do goleiro, que era a última pendência, foi fechado em 09/11 (largura 1,2).</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Decisão</th>
+<th>Escolha</th>
+</tr></thead><tbody>
+<tr><td>Regras</td><td>Simplificadas, com opções configuráveis (ver Regras)</td></tr>
+<tr><td>Time em campo</td><td>3 botões + goleiro caixinha (padrão); opções de 5 botões e de jogar sem goleiro</td></tr>
+<tr><td>Visual</td><td>2D em pixel art, câmera top-down</td></tr>
+<tr><td>Adversário</td><td>IA + 2 jogadores locais; online só depois, se o jogo ficar bom</td></tr>
+<tr><td>Monetização</td><td>Anúncios + compra para remover anúncios (ver Monetização)</td></tr>
+<tr><td>Orientação</td><td>Campo sempre na vertical; Android em retrato, PC/itch.io com o campo vertical no centro da tela</td></tr>
+<tr><td>Times</td><td>Craques da Rua: 40 times com nomes de pessoas (ver Arte)</td></tr>
+</tbody></table></div>
+</section>
+<section class="docs-section" id="regras-e-gameplay" data-title="Regras e gameplay"><h3>Regras e gameplay</h3>
+<p>Cada turno é um peteleco em um botão; quem fizer mais gols no tempo vence.</p>
+<ol>
+<li><strong>Início:</strong> saída de bola no centro, time sorteado começa. Na saída, quem sai pode ter botões dentro do círculo central; os botões do adversário que cairiam dentro dele ficam com o centro em cima da linha do círculo.</li>
+<li><strong>Turno:</strong> o jogador escolhe um botão do seu time, mira e define a força; o botão empurra a bola.</li>
+<li><strong>Posse:</strong> o time mantém a vez enquanto seu botão tocar a bola, até o limite de toques seguidos (1 a 3, configurável); depois a vez passa.</li>
+<li><strong>Perda da vez:</strong> a vez passa se o botão errar a bola, se cometer falta (item 5), ou se o último toque na bola for de um botão adversário.</li>
+<li><strong>Chute a gol:</strong> permitido com a bola do meio-campo adversário em diante, chutando com qualquer botão; só ali aparece o botão "Pro Gol!". Falta (opção Faltas ligada): se o botão do peteleco, ou um companheiro empurrado por ele, acertar um adversário antes de alguém tocar a bola, o adversário ganha tiro livre no local do botão atingido: a bola fica onde ele levou a falta e ele vira o batedor, posicionado em volta da bola (gira 360°, até 30 s ou "Pronto", como no pênalti). Quem fez a falta volta para o seu lugar na formação e os botões perto da bola vão para o lugar livre mais perto, sem ficar um em cima do outro. Falta longe do lance (botão atingido a mais de 3,5 da bola no começo da jogada) dá cartão para o jogador, não para o botão: a 1ª é amarelo; a partir da 2ª, cada uma é vermelho e o botão que fez a falta sai até o fim da partida. Se o time ficar sem botões, é W.O.: a partida acaba, quem foi expulso fica com 0 e o adversário ganha 3 gols a mais. Falta no goleiro: se o botão do peteleco, ou um companheiro empurrado por ele, acertar o goleiro adversário antes de alguém tocar a bola, é tiro de meta para o time do goleiro (cartão pela mesma regra da falta longe do lance). Depois a vez começa normal: se a bola estiver no campo de ataque, o "Pro Gol!" fica disponível como em qualquer jogada (não é chute automático). O atacante anuncia o chute (botão "Pro Gol!"), o defensor tem até 30 s (ou até apertar "Pronto") para deslizar o goleiro na linha do gol, e só então o atacante chuta. Contra a IA, a IA posiciona o goleiro. <em>Mecânica a validar no protótipo.</em></li>
+<li><strong>Área e pênalti:</strong> cada gol tem uma área do goleiro (4 x 1,5 no campo de 7 x 11, igual ao desenho das marcações). Falta do defensor dentro da própria área é pênalti: bola na marca, no meio do campo do defensor; quem sofreu a falta bate, os outros atacantes voltam para a formação e os defensores ficam na linha do meio-campo. No pênalti, primeiro o atacante posiciona o batedor num arco atrás da bola (30 s), depois o defensor ajusta o goleiro (30 s), e só então sai o chute. Pênalti escondido (10/11, com goleiro, na falta e na disputa): os dois têm que escolher um lado (batedor a pelo menos 20° do reto; goleiro a pelo menos metade do caminho até a trave; tempo esgotado no meio = vai para o lado mais perto). Quem escolheu primeiro fica sob uma faixa preta até o outro dar Pronto; então a faixa sai e o batedor chuta. Dois jogadores: o batedor escolhe primeiro (vale a confiança). Contra a IA, ela escolhe sempre primeiro, escondida, sorteando o lado (com o jogador batendo, o goleiro dela escolhe antes).</li>
+<li><strong>Tiro de meta:</strong> todos os botões dos dois times voltam para a formação inicial, os goleiros vão para o centro do gol e a bola fica na frente do goleiro de quem defendeu. O jogador primeiro posiciona a bola: arrasta ela só para os lados, dentro da largura da área, sem passar por cima de botão, e aperta Pronto. Depois chuta direto na bola, com a mesma mira e barra de força; os dois passos usam o mesmo tempo de mira. Conta como 1 toque. Também é bola do goleiro, com tiro de meta para o time dele, não importa quem jogou (menos no recuo, abaixo), quando a jogada termina com a bola parada na área em volta do goleiro: a caixa dele mais 0,15 para cada lado e 0,2 para a frente (10/11; era 0,3 e 0,4), e o espaço atrás dele até a linha do gol (e, se a bola estiver entre o goleiro e o gol, até o fundo do gol, desde que não tenha entrado inteira). Fora da faixa do goleiro, a bola parada na boca do gol segue em jogo. Recuo (18/11): quando a jogada do próprio time (ele tocou por último, sem "Pro Gol!") termina com a bola nessa área do próprio goleiro, não é tiro de meta e os toques não enchem. Sem toque sobrando, a bola fica onde parou e a vez passa normal. Com toque sobrando, a bola vai para a frente do goleiro, ninguém volta para a formação, e o goleiro posiciona e chuta como no tiro de meta, gastando 1 toque. No "Pro Gol!", quando o goleiro fica pronto (Pronto do defensor, da IA ou fim do tempo) com a bola nessa área (encostada ou atrás dele), também é bola do goleiro. O goleiro nunca empurra bola nem botão: ao deslizar, para encostado no que estiver no caminho.</li>
+<li><strong>Gol:</strong> bola cruza a linha inteira (depois ela para dentro da rede) durante um "Pro Gol!"; reinício no centro com o time que sofreu. Gol sem "Pro Gol!" é anulado e vira tiro de meta. Gol contra só quando o chute saiu de um botão do time que defende aquele gol (a jogada era dele), mesmo que a bola tenha batido num botão adversário antes de entrar; aí vale sem "Pro Gol!". Chute do atacante que desvia num defensor e entra é gol normal do atacante, e só vale com "Pro Gol!". Sem goleiro não existe "Pro Gol!": o gol vale se a bola estava no campo de ataque de quem jogou no começo da jogada; chutado do campo de defesa é anulado e vira tiro de meta.</li>
+<li><strong>Paredes:</strong> não há lateral nem escanteio; o campo é cercado por paredes e a bola rebate para dentro. Por padrão, gol (inclusive gol contra) só vale se a bola não tocar as paredes laterais (esquerda e direita) depois do chute; trave, fundo e rede não contam; gol anulado vira tiro de meta para quem defendeu. Essa regra é configurável.</li>
+<li><strong>Fim:</strong> um tempo único, com duração escolhida antes da partida: 3, 5, 8 ou 10 minutos (padrão 5). O relógio corre só durante a mira. Empate (09/11): com a opção Prorrogação (Desligado, 50% ou 100% do tempo; padrão Desligado), joga-se a prorrogação, relógio corrido, sem gol de ouro. Continuando empatado e com a opção Pênaltis ligada (padrão Desligado; some sem goleiro), disputa de pênaltis: 5 cobranças alternadas para cada time, depois morte súbita; cada time bate no seu gol de ataque, em campo só o batedor (os botões revezam) e o goleiro adversário, um toque. Placar da disputa na metade oposta à cobrança, virado para o Jogador 1: uma linha por time com 5 casas (bolinha preta; verde = gol, vermelha = erro) e o total; na morte súbita as casas zeram quando enchem. Vencer na prorrogação ou nos pênaltis é vitória (moedas e estatísticas); o Resultado mostra o empate e os gols dos pênaltis entre parênteses embaixo de cada número.</li>
+</ol>
+<p>Timer de mira de 30 s por jogada mantém o ritmo.</p>
+</section>
+<section class="docs-section" id="opcoes-da-partida" data-title="Opções da partida"><h4>Opções da partida</h4>
+<p>Antes de cada partida o jogador pode ajustar estas regras; o padrão vale para o modo rápido.</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Opção</th>
+<th>Valores</th>
+<th>Padrão</th>
+</tr></thead><tbody>
+<tr><td>Duração</td><td>3, 5, 8 ou 10 minutos</td><td>5 minutos</td></tr>
+<tr><td>Botões por time</td><td>5 ou 3</td><td>3</td></tr>
+<tr><td>Goleiro</td><td>Ligado ou Desligado</td><td>Ligado</td></tr>
+<tr><td>Toques seguidos por turno</td><td>1, 2 ou 3</td><td>3</td></tr>
+<tr><td>Gol após tocar a parede</td><td>Anulado ou válido</td><td>Anulado</td></tr>
+<tr><td>Ajuda de mira</td><td>Completa, curta ou desligada</td><td>Completa</td></tr>
+<tr><td>Faltas</td><td>Ligado ou Desligado (desligado: bater em adversário é só física, sem tiro livre nem pênalti)</td><td>Ligado</td></tr>
+<tr><td>Dificuldade</td><td>Fácil, Médio, Difícil ou Pro (só contra a IA)</td><td>Médio</td></tr>
+<tr><td>Prorrogação</td><td>Desligado, 50% ou 100% do tempo (não aparece no torneio nem na liga)</td><td>Desligado</td></tr>
+<tr><td>Pênaltis</td><td>Ligado ou Desligado (some sem goleiro; não aparece no torneio nem na liga)</td><td>Desligado</td></tr>
+<tr><td>Torneio</td><td>Qual competição: Copa 8, 16 ou 32, Mundial 16 ou Liga 10 ou 20 (só nas Opções do torneio e da liga)</td><td>O primeiro da lista</td></tr>
+<tr><td>Turnos</td><td>1 ou 2 (só nas Opções da liga)</td><td>O do asset da liga</td></tr>
+</tbody></table></div>
+<p><strong>Equilíbrio do goleiro (</strong>fechado em 09/11: largura 1,2, ajustável em keeperWidth): goleiro cobrindo cerca de metade da largura do gol, deslizando com velocidade limitada. Sem goleiro, o gol fica menor para não virar goleada: duas traves fecham a boca de 2,4 para 1,4 (a largura do gol menos a do goleiro), valor ajustável no teste. Meta do playtest: algo como 1 gol a cada 3 ou 4 chutes.</p>
+</section>
+<section class="docs-section" id="modos-de-jogo" data-title="Modos de jogo"><h3>Modos de jogo</h3>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Modo</th>
+<th>Descrição</th>
+<th>Fase</th>
+</tr></thead><tbody>
+<tr><td>Amistoso vs IA</td><td>Partida única contra a IA em 4 níveis (Fácil, Médio, Difícil e Pro)</td><td>MVP</td></tr>
+<tr><td>2 jogadores local</td><td>Revezamento no mesmo computador ou celular</td><td>MVP</td></tr>
+<tr><td>Tutorial</td><td>Ensina os controles a quem nunca jogou (substitui o antigo modo Treino, que saiu do MVP em 09/10). Implementado em 11/11: 6 lições curtas dentro da partida de verdade, contra a IA no Fácil, sem relógio nem timers (Peteleco, Vez e toques, Pro Gol!, Defender, Falta e tiro livre, Pênalti escondido); texto conforme o aparelho (toque, mouse, teclado, controle); Pular e Repetir; 15 moedas por lição na primeira vez e mais 10 ao completar todas (100 no total). Botão Tutorial no Jogar; no primeiro Jogar o Menu pergunta "Quer aprender a jogar?" (Sim / Agora não)</td><td>Implementado (11/11)</td></tr>
+<tr><td>Campeonato</td><td>Competições contra a IA (a copa substituiu a torre do Mortal Kombat em 09/11): Torneio (Copa 8, 16 ou 32 em mata-mata, e Mundial 16 com fase de grupos) e Liga (10 ou 20 times, pontos corridos, 1 ou 2 turnos). Detalhes em Torneio e liga, abaixo</td><td>Implementado (09/11 a 17/11)</td></tr>
+<tr><td>Online 1x1</td><td>Partida por turnos pela internet</td><td>Futuro</td></tr>
+</tbody></table></div>
+<p><strong>Torneio e liga (mata-mata combinado em 09/11; grupos e liga depois):</strong></p>
+<ol>
+<li>Menu: <strong>Jogar abre Torneio, Liga, Partida única, Dois jogadores e Tutorial</strong>.</li>
+<li>Jogar → Torneio ou Liga. Com um torneio (ou uma liga) guardado em andamento: Continuar ou Novo (o novo abandona o guardado). Torneio e liga são guardados separados, dá para ter um de cada em andamento.</li>
+<li>Opções da partida: escolhidas uma vez no começo e guardadas para todo o torneio, com o nível da IA. Goleiro, prorrogação (50% do tempo) e pênaltis ficam sempre ligados e não aparecem: no empate do jogo do jogador, prorrogação e depois pênaltis.</li>
+<li>Chave: o jogador (Meu time) + 7 times sorteados do catálogo, em posições sorteadas. Só a primeira fase é sorteada; depois segue o padrão (vencedor do jogo 1 x vencedor do jogo 2...), e os perdedores das semifinais disputam o 3º lugar. Em cada jogo o de cima é o mandante: o jogador mandante joga na mesa de casa, visitante numa mesa de visitante sorteada.</li>
+<li>Tela da chave: uma aba por fase (Quartas, Semi, Final; a Final tem também o 3º lugar), os jogos empilhados de dois em dois com o placar (pênaltis entre parênteses), o jogo do jogador em destaque, Voltar e Jogar. Os jogos dos outros times da fase são sorteados quando o jogador termina o dele (placares do asset Placares, cada placar com um peso de 0 a 10; empate no mata-mata = pênaltis sorteados).</li>
+<li>Partida: Seleção de times só com esquema e camisas (os times e a mesa vêm da chave). Na pausa não há Reiniciar, e sair da partida (ou fechar o jogo no meio dela) é derrota e abandona o torneio.</li>
+<li>Fim de jogo: vitória mostra o botão <strong>Avançar</strong> (a chave na próxima fase, ou o fim do torneio) e Sair (Menu; o torneio fica guardado para continuar). Perdeu nas quartas, acabou; perdeu na semifinal, joga o 3º lugar.</li>
+</ol>
+<p>Fim do torneio: tela com o troféu (campeão, vice e 3º; arte do usuário, por enquanto taças provisórias), a colocação e as moedas (das partidas, como na partida única, mais o prêmio da competição, que pode ser dobrado assistindo a um anúncio). Cada torneio é um asset (Resources/Torneios) com times, prêmios, máximo de gols sorteados, prorrogação e troféus. Estatísticas: torneios jogados, títulos, vices, 3º lugares e abandonados, no geral e por nível. Times de cores parecidas: o visitante usa o outro uniforme.</p>
+<p>Competições (cada uma é um asset em Resources/Torneios com formato, times, turnos, prêmios, peso no ranking, placares sorteados, prorrogação e troféus; escolhida na linha Torneio das Opções):</p>
+<ul>
+<li><strong>Copa 8, Copa 16 e Copa 32</strong> (mata-mata): prêmios 50/25/10, 80/40/20 e 100/50/25 para campeão, vice e 3º; peso 1, 1,5 e 2.</li>
+<li><strong>Mundial 16</strong> (copa com grupos): 4 grupos de 4, passam 2 de cada para o mata-mata; prêmios 120/60/30; peso 2.</li>
+<li><strong>Liga 10 e Liga 20</strong> (pontos corridos, todos contra todos): prêmios do 1º ao 5º, Liga 10 com 125/60/40/20/10 (peso 2) e Liga 20 com 250/125/80/40/20 (peso 3). Linha Turnos (1 ou 2) nas Opções da liga: com 2 turnos o prêmio e o peso são multiplicados pelos campos do asset (padrão x2 e x1,5). Sair no meio de um jogo da liga é derrota por W.O. só daquele jogo, e a liga continua.</li>
+<li><strong>Peso no ranking:</strong> multiplica os Pontos da semana do torneio (ver Play Games, em Física e tecnologia).</li>
+</ul>
+</section>
+<section class="docs-section" id="controles" data-title="Controles"><h3>Controles</h3>
+<p>O mesmo gesto serve para mouse e toque: arrastar para trás, como um estilingue, e soltar. Só no toque: um botão fica escolhido (no começo da vez, o mais perto da bola; só ele brilha, e sem escolha brilham todos os que podem jogar); tocar e soltar num botão escolhe ele, ou tira a escolha se ele já era o escolhido; arrastar, começando em qualquer lugar (até em cima de outro botão), mira o escolhido, medindo a força a partir de onde o dedo encostou. Assim tocar no botão nunca chuta sem querer e o botão encostado na lateral também tem espaço para puxar. Sem nenhum escolhido, arrastar começando num botão mira ele. O mouse não muda.</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Ação</th>
+<th>Mouse (itch.io)</th>
+<th>Toque (Android)</th>
+</tr></thead><tbody>
+<tr><td>Selecionar botão</td><td>Clique no botão</td><td>Toque no botão</td></tr>
+<tr><td>Mirar e dar força</td><td>Arrastar para trás; distância = força</td><td>Arrastar com o dedo</td></tr>
+<tr><td>Chutar</td><td>Soltar o botão do mouse</td><td>Tirar o dedo</td></tr>
+<tr><td>Cancelar</td><td>Clique direito ou voltar ao centro</td><td>Arrastar de volta ao botão</td></tr>
+<tr><td>Câmera</td><td>Sem zoom (descartado; a mesa sempre cabe na tela)</td><td>Sem zoom</td></tr>
+</tbody></table></div>
+<p>Durante a mira aparecem uma faixa de força em volta do botão (transparente, cresce da borda para fora, de verde a amarelo e vermelho, com um anel fraco marcando o máximo), uma mira de bolinhas andando na direção do botão (cresce com a força, bolinha maior na ponta) e, se ele for acertar a bola, uma linha de bolinhas menores com a direção prevista da bola, sem mostrar rebotes (em teste desde 29/10, desenhado por código até a arte). O tamanho dessa ajuda é a opção "Ajuda de mira" (completa = mira e linha da bola; curta = só a mira; desligada = só a faixa de força; padrão completa). Não há zoom. Joystick na tela (opção das Configurações, ligada por padrão, só no toque): ao encostar o dedo para mirar aparece um círculo transparente do tamanho do arrasto máximo, com uma bolinha seguindo o dedo; é só visual, a mira é a mesma.</p>
+<p><strong>Teclado e controle (gamepad)</strong> (decidido em 13/10; mouse e toque continuam como acima):</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Ação</th>
+<th>Teclado</th>
+<th>Controle</th>
+</tr></thead><tbody>
+<tr><td>Cursor entre os botões (começa no mais perto da bola; direita/esquerda da tela de quem joga)</td><td>A/D, setas</td><td>Analógico esq., D-pad</td></tr>
+<tr><td>Escolher o botão / Pronto</td><td>E</td><td>A</td></tr>
+<tr><td>Voltar um passo (cancela a mira ou solta o botão)</td><td>Q (ou botão direito)</td><td>B</td></tr>
+<tr><td>Mirar</td><td>A/D gira</td><td>Analógico esq. ou D-pad giram (esquerda/direita)</td></tr>
+<tr><td>Força</td><td>W/S</td><td>Analógico dir. (cima/baixo)</td></tr>
+<tr><td>Chutar</td><td>Espaço</td><td>X</td></tr>
+<tr><td>Goleiro, batedor e bola do tiro de meta</td><td>A/D, setas</td><td>Analógico esq., D-pad</td></tr>
+<tr><td>Pro Gol!</td><td>C</td><td>LB ou RB</td></tr>
+<tr><td>Pausa</td><td>Esc</td><td>Start</td></tr>
+</tbody></table></div>
+<p>Com teclado/controle só o botão do cursor brilha. A mira abre apontando para a bola com força média; o giro começa devagar e acelera segurando. Reiniciar fica só no menu de pausa. Cada jogador pausa com o Esc/Start do próprio dispositivo (ou o botão de pausa do HUD) e só quem pausou mexe no menu de pausa e tira a pausa; dispositivo que ninguém escolheu nos Controles não pausa. Menus: WASD/setas ou analógico/D-pad navegam (cima/baixo entre as opções; esquerda/direita muda o valor nas Opções da partida e na Seleção de times, ou anda entre botões), E/A confirma, Q/B volta. A opção escolhida ganha uma moldura amarela pulsando, só enquanto se usa teclado/controle. Tela Controles (depois de Um/Dois jogadores, só quando há mais de um dispositivo): Jogador 1 na esquerda, dispositivos detectados no meio (Teclado e mouse, Toque, Controle N), Jogador 2 na direita. Cada um leva o seu cartão para um lado com o próprio dispositivo (no mouse/toque, as setinhas do cartão) e confirma; Q/B desfaz e, no meio, volta. Em Dois jogadores, confirmar de novo com o outro lado vazio = os dois revezando no mesmo dispositivo. Com dispositivos diferentes cada jogador entra na sessão com o seu (os dois são Actors); no mesmo dispositivo a partida lê os dispositivos direto.</p>
+</section>
+<section class="docs-section" id="fisica-e-tecnologia" data-title="Física e tecnologia"><h3>Física e tecnologia</h3>
+<p>A física roda em 2D (Box2D da Unity), vista de cima, o que combina com a pixel art e simplifica o projeto.</p>
+<ul>
+<li><strong>Física:</strong> Rigidbody2D sem gravidade, botões e bola com CircleCollider2D, goleiro com BoxCollider2D; PhysicsMaterial2D ajustável (atrito, quique) e Linear Drag para simular o feltro. A bola rebate nos botões parados como numa parede (o botão não sai do lugar); só o botão do peteleco empurra a bola. A bola não tem atrito: sai sempre na linha entre os centros do botão e da bola (a mesma da previsão da mira). No toque, a direção do peteleco é a de um instante antes (0,08 s) de soltar o dedo, para a tremida ao tirar o dedo não desviar o chute.</li>
+<li><strong>Paredes:</strong> EdgeCollider2D em volta do campo; cada chute registra se a bola tocou parede, para a regra de gol anulado.</li>
+<li><strong>Fim de turno:</strong> o turno acaba quando todas as velocidades ficam abaixo de um limiar por 0,3 s.</li>
+<li><strong>IA:</strong> simula alguns chutes candidatos (ângulo x força), pontua o resultado e escolhe com ruído conforme a dificuldade. Níveis Fácil, Médio, Difícil e Pro (desde 09/11), escolhidos na linha Dificuldade das Opções da partida. Contra a IA o jogador fica embaixo, com o Meu time; na vez da IA o HUD mostra "IA pensando". A cada toque a IA tem um objetivo claro, numa ordem fixa, e cada objetivo tem uma conta só para saber se a jogada deu certo. 1) Marcar: dá pra chutar? Com goleiro, não tem conta de chance: se algum botão (qualquer um que pode jogar, não só os mais perto) tem caminho livre até a bola e da bola até a boca do gol, a bola está a distância de chute (3 no Fácil, 4,5 no Médio, 6 no Difícil, 6,5 no Pro) e o goleiro não consegue andar até a bola (ela viraria dele), anuncia o "Pro Gol!". Com toque sobrando e só um botão com ângulo, antes tenta deixar a bola onde dois botões tenham ângulo (o adversário não sabe de qual vem o chute); se não consegue, anuncia assim mesmo. Depois, com o goleiro já posicionado, a simulação escolhe qual botão chuta e para onde (o canto que o goleiro cobre pior); se nenhum chute entra, fica com o que leva a bola mais perto da boca do gol, para obrigar o goleiro a defender. O goleiro não conta como bloqueio na hora de anunciar, porque ainda vai se mexer. Sem goleiro, no ataque, chuta direto se alguma versão do chute entra. 2) Preparar o chute (tem toque sobrando): fica com a bola e a deixa onde algum botão tenha chute livre no toque seguinte, de preferência mais de um (o adversário não sabe de qual vem o chute para posicionar o goleiro); se não achar, avança ficando com a bola. Com 3 toques, o Médio e o Difícil imaginam também o toque seguinte das melhores jogadas (2 no Médio, 4 no Difícil, mais no Pro) para o chute ficar pronto e a bola não ficar sem saída. 3) Com a bola perto do próprio gol (menos de 3,5), Afastar vem antes de Preparar, mesmo com toque sobrando (a conta é o quanto a bola fica mais longe do gol); longe do próprio gol, no último toque (ou se não deu para preparar), Proteger (deixar a bola onde o adversário não tenha chute livre). Se nada serve, Fechar o gol: põe um botão entre a bola e o gol. Sempre: a nota de cada jogada é a da jogada perfeita; as versões com o erro de mira e de força do nível só servem para ver o risco. Na hora de jogar, o erro acontece com uma chance por nível (Fácil 60%, Médio 45%, Difícil 25%, Pro 12%). Falta certa e risco de gol contra nunca são aceitos, e a chance de falta tem limite por nível. No tiro de meta, simula o chute em várias posições da bola. Personalidade: o nível diz quão bem ela joga e o perfil mexe só na distância para anunciar o Pro Gol! e no risco de falta (Ofensivo anuncia de 0,5 mais longe e aceita mais falta; Defensivo só de 0,5 mais perto e evita falta). O perfil vem do estilo do esquema da IA (2-3 e 1-2 Ofensivo, 3-2 Defensivo, 2-2-1, 2-1 e Losango Equilibrado). Nos 25% finais do tempo o placar puxa o perfil: perdendo vai para o Ofensivo, ganhando para o Defensivo, mais forte quanto menos tempo falta e maior a diferença (2 gols ou mais no fim = total). O jogador não escolhe: vê o estilo do esquema da IA na Seleção de times. No editor, cada decisão vai para um CSV por partida em Logs/IA (não aparece no console), com o perfil e o ajuste. No "Pro Gol!" do adversário, o goleiro da IA pensa como o atacante: pega os chutes a gol mais prováveis (3 no Fácil, 6 no Médio, 10 no Difícil, 15 no Pro), simula cada um contra várias posições do goleiro e fica onde entram menos gols, com um erro conforme o nível.</li>
+<li><strong>Arquitetura:</strong> construída sobre o <a href="https://github.com/ImmersiveGames/com.immersive.framework">Immersive Framework</a> (com.immersive.framework, via OpenUPM). Routes para as telas (menu, seleção, partida, resultado), Activity para a partida, Pause e Reset do framework para pausar e reiniciar, save num arquivo JSON do Progression Save (backend JSON do framework, um slot com versão: música, nível da IA, opções da partida, últimas escolhas de cada jogador, estatísticas contra a IA, perfil do Meu time, moedas e extrato, itens comprados, torneio e liga em andamento, tutorial e conquistas), BGM via com.immersive.audio. Dentro da Activity da partida, uma máquina de estados própria (Saída, Mira, Movimento, Pro Gol!, Gol, Fim) e ScriptableObjects para times e opções da partida. Versão: sempre a mais recente publicada (hoje 1.1.0, a primeira Stable, desde 28/10; a 1.2.0 saiu em 15/11 e entra depois do teste aberto, mantendo o contorno do Leave no Menu), acompanhando as atualizações. Serviços do Google (só Android): Play Games (login automático, save na nuvem, 21 conquistas e o ranking semanal Pontos da semana), Firebase Analytics e Crashlytics (só dados das partidas e erros, sem dados pessoais), AdMob (anúncios) e Unity IAP (Remover anúncios). Pontos da semana: cada torneio terminado vale colocação x nível da IA (Fácil 0,5, Médio 1, Difícil 1,5, Pro 2) x peso da competição, mais o saldo de gols (até +3 por partida) e +10 por título logo depois de outro na mesma semana; a semana soma os 10 melhores torneios e vira de sábado para domingo (horário do Pacífico), igual ao ranking semanal do Google. Tudo isso aparece na aba Carreira do Meu time.</li>
+<li><strong>Input:</strong> Input System 1.19 (já exigido pelo framework) com um único handler de ponteiro para mouse e toque, respeitando o input mode e o pause do framework.</li>
+<li><strong>Orientação:</strong> campo sempre vertical, com um gol em cima e outro embaixo, nas duas plataformas. No PC a janela é larga e as laterais mostram HUD e moldura; a câmera encaixa a mesa na largura da tela (ScreenFit, desde 15/10, por causa de celulares compridos como o Moto G84) e os menus se esticam; o Pixel Perfect foi descartado.</li>
+<li><strong>WebGL:</strong> build alvo abaixo de 20 MB; testar em Chrome e Firefox. Validar logo na fase 1 que o framework roda bem em WebGL.</li>
+<li><strong>Android:</strong> mesmo projeto, build separada; 60 fps em aparelhos intermediários.</li>
+</ul>
+</section>
+<section class="docs-section" id="arte-audio-e-ui" data-title="Arte, áudio e UI"><h3>Arte, áudio e UI</h3>
+<p>Pixel art top-down com cara de mesa de botão: feltro colorido cercado por placas ou outra borda, botões redondos com brilho de acrílico.</p>
+<ul>
+<li><strong>Times</strong> (17/11): o catálogo são os Craques da Rua (em espanhol Cracks de la Calle, em inglês Street Stars), 40 times fictícios com nomes de pessoas, como Zé Botão FC, cada um com nome traduzido em português, inglês e espanhol, sigla de 3 letras e dois uniformes com combinações de cores sem repetir entre times. As camisas dos times da IA são sorteadas entre todos os padrões, mesmo os que o jogador ainda não comprou. Os times só de cores (Azul, Vermelho...) foram aposentados; Criar telas só cria times de cor se o catálogo estiver vazio.</li>
+<li><strong>Depois:</strong> escudo dos times como uma camada a mais, e pacotes temáticos de camisas (ideias anotadas, sem plano). Nunca escudos de clubes reais (licença).</li>
+<li><strong>Dados do time:</strong> nome, abreviação de 3 letras (usada só no placar, para não estourar e ficar padrão), cor do botão, cor do anel e escudo. Mensagens e Resultado usam o nome; os botões em campo só as cores.</li>
+<li><strong>Esquemas táticos</strong> (contados de trás para a frente): com 5 botões 2-2-1 (equilibrado, padrão), 3-2 (defensivo), 2-3 (ofensivo) e 2-1-2 (losango); com 3 botões 2-1 (padrão) e 1-2 (ofensivo).</li>
+<li><strong>Seleção de times:</strong> é o próprio campo, com os dois times no esquema escolhido. Em cada metade, à esquerda e na altura do meio daquele campo, as setas do time lado a lado com o nome e a abreviação à direita delas e, embaixo, as setas da do uniforme (Uniforme 1/2), no mesmo formato (sem escudo de prévia: os botões no campo já mostram o time); à direita, as setas do esquema. A metade de cima fica girada 180° (base do celular com 2 jogadores na mesma tela; o PC será ajustado depois); contra a IA, as opções da metade de cima ficam em pé, como as do jogador (time à esquerda, esquema à direita), e só os botões dela continuam virados. Na faixa do meio-campo, cada metade tem o seu Pronto (à direita de quem joga daquele lado) e o Voltar fica com o Jogador 1; a partida começa com os dois prontos (contra a IA, só o Pronto de baixo). Pronto marcado trava as setas daquele time e Q/B desmarca. Com dispositivos separados cada jogador tem o próprio cursor (Jogador 1 amarelo, Jogador 2 azul) e só mexe na sua metade, inclusive com mouse/toque; contra a IA ou revezando, um cursor só passa pelas duas metades. As Opções da partida são só do Jogador 1. Os dois não podem ter o mesmo time; contra a IA ela sorteia time, esquema e camisas, e dá para trocar. As camisas (padrão do botão e do goleiro) vêm do uniforme escolhido. As camisas são desenhadas em cinza e tingidas: corpo, contorno, sombra interna e brilho na cor principal (os tons de cinza da arte fazem o claro e o escuro), padrão na segunda cor e sombra preta semitransparente. O goleiro não tem contorno. No jogo o desenho dos botões nunca gira (mesmo girando na física), para o padrão ficar coerente na tela; o time de cima não é girado, então a luz e a frente do goleiro (virada para baixo da tela) são iguais nos dois times. A bola e os botões passam por cima do goleiro. A escolha vale na sessão. Uniforme 1 e 2 (11/11, no lugar da cor reserva): cada time (catálogo e Meu time) tem dois uniformes, cada um com cor principal, segunda cor, camisa do botão e camisa do goleiro (o 2 pode ter padrão diferente do 1). Na Seleção, as setas abaixo do time trocam o uniforme (não há mais setas de cor nem de camisa); contra a IA, ela escolhe sozinha o uniforme que não fica parecido com o do jogador. No Meu time, nome e sigla ficam em cima e, embaixo, as abas Uniforme 1 e Uniforme 2, cada uma com a prévia do botão e do goleiro e as opções. Saves e times antigos: a cor reserva vira o Uniforme 2; sem reserva, o 2 tem as cores invertidas. Vale na partida, na Seleção, no placar, no Resultado e na chave do torneio. Financeiro (11/11): o Meu time tem quatro abas (Time, Mesa, Financeiro e Carreira; a Carreira, que veio depois, tem Estatísticas, Pontos da semana e o Play Games com Conquistas e Ranking) e o saldo saiu do topo. A aba Financeiro mostra o saldo, o ganho total separado por origem (partidas, torneios, tutorial), o gasto total na loja e o extrato com as últimas 30 movimentações (data, descrição e valor, verde quando ganha e vermelho quando gasta). As moedas saíram das Estatísticas.</li>
+<li><strong>Áudio:</strong> estalo do peteleco, batida entre botões (fraca/forte), bola na parede, apito (saída, falta, pênalti, gol anulado), apito final, cartão e torcida com fanfarra no gol, clique nos botões da interface, no estilo chiptune; música do menu (Abertura, Menu, Resultado) e da partida. Toca pelo com.immersive.audio e o BGM do framework (Route BGM). Por enquanto os sons são provisórios gerados por código; narração fica para depois.</li>
+<li><strong>HUD:</strong> placar, relógio, contador de toques e de quem é a vez; na mira, barra de força e indicadores de direção do botão e da bola; no celular (versão principal, tela em pé) cada jogador tem uma faixa logo depois do seu gol (a de cima girada para o jogador de cima), dentro da moldura que a câmera sempre encaixa: relógio e pausa à esquerda; placar (abreviações, gols e cartões) no meio; vez, toques, timer da jogada (vermelho nos últimos 5 s) e o botão Pro Gol!/Pronto à direita. Mensagens no meio do campo, uma virada para cada jogador. Contra a IA as duas faixas são do jogador, em pé: a de cima em duas linhas, placar centralizado com os cartões do lado de fora de cada time e, embaixo, tempo de jogo à esquerda, vez/toques no meio e timer da jogada à direita; a de baixo só com Pausa e o botão Pro Gol!/Pronto, maiores e perto do polegar, com o meio livre (lugar de um controle virtual no futuro). Mensagem do jogo só a do jogador. Avisos importantes (falta, cartão, pênalti, gol, gol anulado, bola do goleiro) param o jogo por 3 s, sem pular: controles travados, relógio e timer parados, a IA espera; o aviso some junto com a pausa. As outras mensagens (vez, toques) ficam 3,5 s sem parar o jogo. Os tempos ficam nas opções da partida. Os botões da vez brilham. No gol, o texto GOOOOOL! ondula nas cores do time que marcou, com fogos de artifício. No PC, por enquanto, um painel à esquerda do campo (a orientação do PC será revista).</li>
+<li><strong>Telas:</strong> fluxo: Abertura ("Clique para iniciar", "Toque para iniciar" no celular) → Menu com o título do jogo e os botões Jogar, Meu time, Loja, Configurações e Sair; Jogar abre Torneio, Liga, Partida única (contra a IA), Dois jogadores e Tutorial → Opções da partida (a Dificuldade Fácil/Médio/Difícil/Pro é a segunda opção e só aparece contra a IA; Voltar/Avançar) → Seleção de times → Jogo → Resultado ("Fim de Jogo"; o botão e o nome de cada time com o placar no meio, "W.O." quando for o caso; tabela dos dois times com Pro Gol!, conversão, posse de bola pela parte dos toques, toques na bola, toques errados, faltas, cartões e gols contra se teve; contra a IA, aviso de novo recorde de sequência a partir de 2 vitórias; Jogar de novo e Menu; numa partida que pagou moedas o Resultado tem só Avançar, que abre a página Premiação com as moedas subindo, Dobrar moedas por anúncio e os botões de seguir). As Estatísticas ficam na aba Carreira do Meu time. Também pausa (Continuar, Configurações, Reiniciar, Sair para o menu). Configurações (11/11, no Menu e na pausa, abre por cima): Volume geral, Música e Efeitos de 0% a 100%, guardados no aparelho (a opção Música saiu das Opções da partida); também Joystick na tela, Política de privacidade, Privacidade dos anúncios e Restaurar compras. Idioma (11/11) nessa tela: Automático (português se o aparelho estiver em português, senão inglês), Português, English ou Español; todos os textos do jogo traduzidos (Menu, partida, HUD, tutorial, loja, Meu time, estatísticas, torneio). Os textos ficam num arquivo único (Resources/Idiomas/textos.json) com português, inglês e espanhol, editado na janela Futebol de Botão/Idiomas/Textos; nomes de times e de itens também são traduzidos (abas Times e Itens da janela).</li>
+</ul>
+</section>
+<section class="docs-section" id="guia-de-arte-cenario" data-title="Guia de arte: cenário"><h4>Guia de arte: cenário</h4>
+<p>Atualizado em 23/11 (o guia de 10/10 descrevia a mesa antiga de madeira, que saiu em 20/11). As artes são feitas à mão no Aseprite; este guia diz o que desenhar e em que tamanho.</p>
+<ul>
+<li>Escala: 32 px por unidade do jogo, tiles de 32x32, filtro Point. Paleta: AAP-64 (vem com o Aseprite). Botões, camisas, feltro e bola são desenhados em branco ou cinza e o jogo aplica a cor por cima; as cores saem da paleta do jogo.</li>
+<li>A mesa é um tema em duas partes: a borda (asset Mesa, em Resources/Mesas) e o feltro (asset Feltro, em Resources/Feltros). Cada asset tem nome, preço em moedas, se já vem liberado e uma miniatura opcional para a Loja e o Meu time.</li>
+<li>Ordem das camadas (de baixo para cima): camada de cor da mesa (opcional), feltro, marcações, placas da borda, bola e botões, rede e trave.</li>
+</ul>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Peça</th>
+<th>Formato</th>
+<th>Observações</th>
+</tr></thead><tbody>
+<tr><td>Placas da borda (Mesa)</td><td>6 tiles 32x32: canto, depois do canto, centro, antes do canto, trave grande e trave pequena</td><td>Desenhados para a lateral de baixo; os outros lados giram ou espelham. A placa ocupa só a faixa de baixo do tile e o resto é transparente, com o feltro passando por baixo. A cor da placa vem pronta na arte. O asset também tem a camada de cor opcional e o recuo das paredes da física em pixels</td></tr>
+<tr><td>Traves</td><td>3 tiles: esquerda, centro e direita</td><td>Desenhadas para o gol de cima; o de baixo gira 180°. A cor da trave (branca, vermelha, amarela...) é escolhida pelo jogador, os dois gols sempre iguais, e não é desbloqueável</td></tr>
+<tr><td>Feltro (Feltro)</td><td>Felt_White, Felt_White_Gradient e Felt_White_Texture, tingidos por faixa</td><td>Padrões Liso (cor 1), Listrado (cor 1 e cor 2) e Meio a meio (cor 1 embaixo, cor 2 em cima), cada um com tile liso, gradiente ou textura. O feltro também define a cor das marcações. Campo de 7 x 11 tiles (224 x 352 px)</td></tr>
+<tr><td>Marcações</td><td>Field_Marks, sprite transparente de 224 x 352 px</td><td>Medidas abaixo; dá para desenhar um quarto e espelhar</td></tr>
+<tr><td>Bola (Bola, em Resources/Bolas)</td><td>Quadros da bola mais uma camada branca para a cor</td><td>O desenho é o padrão; a cor escolhida tinge a camada branca. Cada bola pode limitar as cores permitidas (lista vazia = todas da paleta)</td></tr>
+</tbody></table></div>
+<p><strong>Marcações</strong> (em pixels, a partir do canto de cima à esquerda do feltro):</p>
+<ul>
+<li>Linhas com 2 px de espessura.</li>
+<li>Meio-campo nas linhas 175 e 176.</li>
+<li>Círculo central com centro em (112, 176) e cerca de 58 px de diâmetro.</li>
+<li>Áreas com 128 px de largura (x de 48 a 176) e 51 px de fundo a partir da linha do gol.</li>
+<li>Marca do pênalti a 88 px da linha do gol (y 88 e y 264), com uns 5 px.</li>
+</ul>
+<p><strong>Mesas, feltros e bolas</strong> (23/11):</p>
+<ul>
+<li>Mesas (9): Mesa Clássica (liberada); Placas, Placas B, Alambrado Baixo e Alambrado Alto (200 moedas); Madeira Alto e Madeira Baixo (220); Stone Wall e Stone Low (250).</li>
+<li>Feltros (9): Verde listrado, Verde listrado com gradiente, Azul liso e Amarelo liberados; Azul e roxo listrado e Roxo meio a meio (200); Black, Black listrado e Sand (250).</li>
+<li>Bolas (7, desde 20/11): Clássica liberada; Nice 26, Didas 26, Bruma e Wing (150); Didas 27 e Nice 27 (200). O padrão da bola é comprado na Loja e a cor é livre.</li>
+<li>No Meu time, a aba Mesa escolhe a mesa de casa: mesa, feltro, cor da trave, bola e cor da bola. Na Seleção de times, as setas da bola trocam o padrão e mantêm a cor. O visitante joga numa mesa e num feltro diferentes, sorteados entre os liberados dele; a IA sorteia a bola e a cor.</li>
+</ul>
+<p><strong>Lembretes:</strong></p>
+<ul>
+<li>Para combinar com a perspectiva, botões e bola ganham uma bordinha de espessura e sombra. Tamanhos de referência: botão 22 px, bola 13 px, goleiro 32 x 8 px (esticado para a largura 1,2). Bola rápida (a partir de ~5 un/s, por chute ou batida) ganha um rastro branco meio transparente atrás dela, que cresce em 4 quadros até ~9 un/s e encolhe quando ela freia, girando nas mesmas 8 direções do desenho da bola.</li>
+<li>Área com 1,5 (48 px) desde 12/10; o gol continua com 2,4. A linha do gol é a das marcações (2 px, até a beira do feltro); o fundo do gol não tem linha, e o gol vale com a bola inteira além da beira do feltro.</li>
+<li>Telas (Abertura, Menu e Resultado): fundo com o feltro listrado (Felt_White tingido de #1A7A3E e #24523B), na mesma escala da mesa. Os textos têm sombra para não se perder nas faixas.</li>
+</ul>
+</section>
+<section class="docs-section" id="monetizacao" data-title="Monetização"><h3>Monetização</h3>
+<p>Anúncios (decidido 13/11, só Android): na primeira abertura, uma tela neutra pergunta o ano de nascimento (fica só no aparelho, não pergunta de novo); menor de 13 recebe anúncio para crianças, não personalizado e classificação G; 13 a 17, abaixo da idade de consentimento e não personalizado; 18+, pedido de consentimento do Google quando a lei exige. Entre partidas: um anúncio ao sair do Resultado, no máximo um a cada 2 partidas, nunca durante o jogo nem no tutorial, e nenhum depois de um anúncio com prêmio na mesma tela. Com prêmio (o jogador escolhe assistir): Dobrar moedas no Resultado da partida, Dobrar prêmio no fim do torneio e Vender patrocínio na aba Financeiro do Meu time (5 moedas, até 3 por dia). A compra Remover anúncios (dinheiro de verdade, na Loja; Restaurar compras nas Configurações) tira os anúncios entre partidas, e os com prêmio continuam. Banner (13/11): no topo do Menu e do Resultado; sai com Remover anúncios. A tabela abaixo resume como ficou. Itens (implementados entre 28/10 e 09/11): padrões de botão para o jogador escolher, além das cores do time, desenhados pelo usuário, alguns grátis e os outros comprados com moedas na Loja. Só visual, sem mudar a física. Em camadas: a base em cinza leva a cor do time e o padrão em cinza (listras, faixa, estrela, borda) leva a segunda cor do time (o anel), para cada padrão servir para qualquer time; os dois times precisam continuar fáceis de distinguir em campo. Sem escudos ou marcas de clubes reais (licença). Loja (pensada em 28/10, implementada em 05/11, botão Loja no Menu): abas Botão, Goleiro, Bola, Mesa e Feltro; o que foi comprado passa a aparecer no Meu time e na Seleção de times. Depende do sistema de save (o que foi liberado fica guardado no aparelho) e, no Android, das compras no app; no itch não há compras. Moedas e desbloqueáveis (04/11, implementados em 05/11): o campo vira tema em duas partes, a borda (mesa) e o feltro (cor/padrão), e a bola também virou item (ver Guia de arte: cenário). Cada item é um asset com nome, arte, preço em moedas e se já vem liberado (a Mesa Clássica, a bola Clássica e quatro feltros vêm liberados); o save guarda as moedas, os itens liberados e o tema escolhido. As moedas só se ganham jogando, não há pacote de moedas à venda (dinheiro de verdade só para remover anúncios). Partida solo contra a IA terminada paga, no Médio, 10 pela vitória, 5 pelo empate e 2 pela derrota; Fácil paga metade, Difícil +20% e o nível Pro +50%, arredondando para cima (Fácil 5/3/1, Médio 10/5/2, Difícil 12/6/3, Pro 15/8/3). Partida abandonada e 2 jogadores não pagam. O torneio paga mais: por partida e um prêmio no fim, conforme o asset de cada competição (ver Torneio e liga).</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Formato</th>
+<th>Onde aparece</th>
+<th>Regra</th>
+</tr></thead><tbody>
+<tr><td>Intersticial</td><td>Ao sair do Resultado (ou da Premiação)</td><td>No máximo 1 a cada 2 partidas; nunca durante o jogo</td></tr>
+<tr><td>Recompensado (opcional)</td><td>Premiação (Dobrar moedas), fim do torneio (Dobrar prêmio) e aba Financeiro (Vender patrocínio)</td><td>O jogador escolhe assistir para ganhar moedas (patrocínio: 5 moedas, até 3 por dia)</td></tr>
+<tr><td>Banner</td><td>Topo do Menu e do Resultado (desde 13/11)</td><td>Nunca na tela de partida, que no retrato já é apertada</td></tr>
+<tr><td>Remover anúncios</td><td>Loja (Restaurar compras nas Configurações)</td><td>Compra única; remove intersticial e banner, mantém o recompensado como opção</td></tr>
+</tbody></table></div>
+<p>SDK: Google AdMob (decidido em 12/11), com as regras de Famílias do Google Play; a compra usa o Unity IAP.</p>
+</section>
+<section class="docs-section" id="escopo-do-mvp-e-roadmap" data-title="Escopo do MVP e roadmap"><h3>Escopo do MVP e roadmap</h3>
+<p>O MVP é uma partida completa contra a IA ou entre 2 jogadores, jogável no navegador pelo itch.io.</p>
+<ol>
+<li><strong>Protótipo de física:</strong> mesa, 1 botão, bola, gol, goleiro e peteleco com mouse, com times de cores. Meta: o chute ser divertido sozinho. Abre direto no gameplay, mas já como uma Activity do framework.</li>
+<li><strong>Regras e turnos:</strong> times completos, toques, faltas, paredes, placar e relógio. Entra o fluxo mínimo com telas simples: abertura, menu (iniciar e opções da partida), partida e resultado, como Routes do framework.</li>
+<li><strong>IA e modos:</strong> IA em 3 níveis, 2 jogadores local.</li>
+<li><strong>Polimento e itch.io:</strong> arte, som, menus, build WebGL publicada.</li>
+<li><strong>Android:</strong> controles de toque, layout em retrato, decisão e integração dos anúncios, build na Play Store.</li>
+<li><strong>Pós-lançamento:</strong> tutorial, torneios e liga, 40 times, loja, idiomas e Play Games já feitos; falta avaliar o online. Teste aberto no Google Play desde 20/11 (versão 0.1.1, código 18, em análise em 23/11).</li>
+</ol>
+<p><strong>Anotado em 14/10 para mais para a frente, e já implementado</strong>:</p>
+<ul>
+<li><strong>Sistema de línguas:</strong> português, inglês e espanhol (11/11).</li>
+<li><strong>Estatísticas do jogador:</strong> só partidas contra a IA (2 jogadores não guarda), no total e por nível. Resultado: partidas, vitórias, empates, derrotas e abandonadas (número e %), sequência atual de vitórias e recorde. Gols: feitos, sofridos, contra, saldo, sofridos por gol feito e médias por partida. Jogo: chutes a gol (Pro Gol!), conversão, faltas, cartões, toques na bola e toques errados (total e por partida). Pênaltis: disputas vencidas e perdidas, gols feitos e sofridos (só disputas de pênaltis, não pênalti de falta). Abandonada = sair para o menu, reiniciar ou fechar o jogo no meio; zera a sequência. Tela Estatísticas (hoje na aba Carreira do Meu time) com abas Geral, Fácil, Médio, Difícil, Pro e Última partida, lista que rola e "Zerar estatísticas" (confirma e apaga tudo). Os números da IA só ficam na memória para a tela de Resultado. Detalhe das métricas: <a href="https://claude.ai/artifact/6wzpLNB75ZkTqQ9H9pUcU4">Métricas das estatísticas</a>.</li>
+<li><strong>Coleta de informações das partidas:</strong> sem dados pessoais, só dados das partidas, para entender o desempenho do jogo e se as pessoas estão jogando. Feito com Firebase Analytics e Crashlytics.</li>
+</ul>
+</section>
+<section class="docs-section" id="riscos" data-title="Riscos"><h3>Riscos</h3>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Risco</th>
+<th>Mitigação</th>
+</tr></thead><tbody>
+<tr><td>Goleiro forte demais, gols raros</td><td>Ajustar tamanho e velocidade do goleiro no protótipo; opção sem goleiro com gol menor</td></tr>
+<tr><td>Física diferente entre WebGL e Android</td><td>Timestep fixo, testar nas duas builds desde a fase 1</td></tr>
+<tr><td>IA burra ou imbatível</td><td>Simulação de chutes com ruído ajustável por nível</td></tr>
+<tr><td>Partidas lentas por excesso de mira</td><td>Timer de 30 s e relógio parado durante o movimento</td></tr>
+<tr><td>Campo apertado no celular em retrato</td><td>Pixel art legível em tela pequena, HUD enxuto nos cantos ao lado dos gols</td></tr>
+<tr><td>Dedo cobrindo o botão no celular</td><td>Arrasto pode começar em qualquer ponto após selecionar</td></tr>
+<tr><td>Anúncios irritando o jogador</td><td>Nunca durante a partida, limite de frequência, compra para remover</td></tr>
+</tbody></table></div>
+</section>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <footer class="docs-footer">
+    <p>Cópia exportada do Claude Doc em 23/11/2026 (rev 260). O original é o Claude Doc: <a href="https://claude.ai/artifact/Cdzi4Hhp6EKyHJGAYzz9jQ">https://claude.ai/artifact/Cdzi4Hhp6EKyHJGAYzz9jQ</a>. Não editar aqui; exportar de novo quando o doc mudar. Gerado com <code>com.immersivegames.docs</code> (template html-default).</p>
+    <nav aria-label="Links do rodapé">
+      <a href="GDD.md">Markdown</a>
+      <a href="#gdd-titulo">Voltar ao topo</a>
+    </nav>
+  </footer>
+
+  <script>
+(function () {
+  const documents = Array.from(document.querySelectorAll("[data-document]"));
+  const tabs = Array.from(document.querySelectorAll("[data-document-target]"));
+  const sidebarNav = document.querySelector("[data-sidebar-nav]");
+  const main = document.querySelector("#docs-main");
+
+  function getActiveDocument() {
+    return documents.find((doc) => doc.classList.contains("is-active")) || documents[0];
+  }
+
+  function buildNavigation(documentPanel) {
+    if (!documentPanel || !sidebarNav) return;
+
+    const sections = Array.from(documentPanel.querySelectorAll("h2[id], .docs-section[id]"));
+    const documentTitle = documentPanel.dataset.documentTitle || "Document";
+
+    sidebarNav.innerHTML = "";
+
+    const group = document.createElement("div");
+    group.className = "docs-nav-group";
+    const title = document.createElement("div");
+    title.className = "docs-nav-group-title";
+    title.textContent = documentTitle;
+    group.appendChild(title);
+
+    sections.forEach((section) => {
+      const id = section.id;
+      const heading = section.matches("h2") ? section : section.querySelector("h3, h2, h4");
+      const label = section.dataset.title || (heading ? heading.textContent.trim() : id);
+      const link = document.createElement("a");
+      link.href = `#${id}`;
+      link.textContent = label;
+      link.dataset.navTarget = id;
+      group.appendChild(link);
+
+    });
+
+    sidebarNav.appendChild(group);
+  }
+
+  function setActiveDocument(documentId, options = {}) {
+    documents.forEach((doc) => {
+      const active = doc.dataset.document === documentId;
+      doc.hidden = !active;
+      doc.classList.toggle("is-active", active);
+      doc.setAttribute("aria-hidden", String(!active));
+      if (active) {
+        doc.removeAttribute("tabindex");
+      } else {
+        doc.setAttribute("tabindex", "-1");
+      }
+    });
+
+    tabs.forEach((tab) => {
+      const active = tab.dataset.documentTarget === documentId;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-selected", String(active));
+      tab.setAttribute("tabindex", active ? "0" : "-1");
+    });
+
+    buildNavigation(getActiveDocument());
+
+    document.dispatchEvent(new CustomEvent("docs:document-changed", { detail: { documentId } }));
+
+    if (!options.preserveScroll) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (main) main.focus({ preventScroll: true });
+    }
+  }
+
+  function setActiveAnchor(id) {
+    document.querySelectorAll("[data-nav-target]").forEach((link) => {
+      const active = link.dataset.navTarget === id;
+      link.classList.toggle("is-active", active);
+    });
+  }
+
+  function observeSections() {
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (visible && visible.target.id) setActiveAnchor(visible.target.id);
+    }, { rootMargin: "-25% 0px -60% 0px", threshold: [0.1, 0.25, 0.5] });
+
+    document.querySelectorAll("[data-document] h2[id], [data-document] .docs-section[id]").forEach((section) => {
+      observer.observe(section);
+    });
+  }
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => setActiveDocument(tab.dataset.documentTarget));
+    tab.addEventListener("keydown", (event) => {
+      const currentIndex = tabs.indexOf(tab);
+      const nextKey = event.key === "ArrowRight" || event.key === "ArrowDown";
+      const previousKey = event.key === "ArrowLeft" || event.key === "ArrowUp";
+      if (!nextKey && !previousKey) return;
+
+      event.preventDefault();
+      const direction = nextKey ? 1 : -1;
+      const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+      tabs[nextIndex].focus();
+      setActiveDocument(tabs[nextIndex].dataset.documentTarget);
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    const backToTop = event.target.closest("[data-action='back-to-top']");
+    if (backToTop) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  });
+
+  window.docsNavigation = {
+    getActiveDocument,
+    setActiveDocument,
+    buildNavigation
+  };
+
+  buildNavigation(getActiveDocument());
+  setActiveDocument(getActiveDocument().dataset.document, { preserveScroll: true });
+  observeSections();
+})();
+
+(function () {
+  const input = document.querySelector("#docs-search-input");
+  const status = document.querySelector("#docs-search-status");
+  const globalToggle = document.querySelector("[data-action='toggle-search-mode']");
+  const searchPanel = document.querySelector("[data-search-panel]");
+  const searchResults = document.querySelector("[data-search-results]");
+  const searchEmpty = document.querySelector("[data-search-empty]");
+  const searchSummary = document.querySelector("[data-search-summary]");
+  const documents = Array.from(document.querySelectorAll("[data-document]"));
+  let globalMode = false;
+  let searchActive = false;
+  let previousScrollY = 0;
+
+  if (!input) return;
+
+  function getSearchPlaceholder() {
+    return globalMode ? "Buscar em todos os documentos..." : "Buscar no GDD...";
+  }
+
+  function getIdleSearchSummary() {
+    return globalMode
+      ? "Digite no campo de busca para pesquisar em todos os documentos."
+      : "Digite no campo de busca para pesquisar no GDD.";
+  }
+
+  function syncSearchModeControls() {
+    input.placeholder = getSearchPlaceholder();
+
+    if (globalToggle) {
+      globalToggle.setAttribute("aria-pressed", String(globalMode));
+      globalToggle.textContent = globalMode ? "Atual" : "Global";
+    }
+
+    if (searchSummary && searchPanel && searchPanel.hidden) {
+      searchSummary.textContent = getIdleSearchSummary();
+    }
+  }
+
+  function normalize(value) {
+    return (value || "").trim().toLowerCase();
+  }
+
+  function getSnippet(text, query) {
+    const clean = text.replace(/\s+/g, " ").trim();
+    const index = clean.toLowerCase().indexOf(query);
+    if (index < 0) return clean.slice(0, 140);
+    return clean.slice(Math.max(0, index - 50), Math.min(clean.length, index + query.length + 90));
+  }
+
+  function getSectionTitle(section) {
+    const heading = section.matches("h2") ? section : section.querySelector("h3, h2, h4");
+    return section.dataset.title || (heading ? heading.textContent.trim() : section.id);
+  }
+
+  function getDocumentPath(documentTitle, title) {
+    return title === documentTitle ? documentTitle : `${documentTitle} / ${title}`;
+  }
+
+  function getActiveDocument() {
+    return window.docsNavigation ? window.docsNavigation.getActiveDocument() : document.querySelector(".docs-document.is-active");
+  }
+
+  function showSearchView() {
+    if (!searchActive) {
+      previousScrollY = window.scrollY;
+    }
+
+    searchActive = true;
+    documents.forEach((doc) => {
+      doc.hidden = true;
+      doc.setAttribute("aria-hidden", "true");
+    });
+  }
+
+  function restoreDocumentView(options = {}) {
+    const active = getActiveDocument();
+    searchActive = false;
+
+    documents.forEach((doc) => {
+      const visible = doc === active;
+      doc.hidden = !visible;
+      doc.setAttribute("aria-hidden", String(!visible));
+    });
+
+    if (options.restoreScroll) {
+      window.scrollTo({ top: previousScrollY, behavior: "auto" });
+    }
+  }
+
+  function createSearchResult(result) {
+    const item = document.createElement("article");
+    item.className = "docs-search-result";
+
+    const link = document.createElement("a");
+    link.href = `#${result.id}`;
+    link.dataset.searchResult = "";
+    link.dataset.documentId = result.documentId;
+    link.dataset.targetId = result.id;
+    link.textContent = result.title;
+
+    const documentLabel = document.createElement("small");
+    documentLabel.textContent = `Documento: ${result.documentTitle}`;
+
+    const section = document.createElement("span");
+    section.className = "docs-search-result__section";
+    section.textContent = `Seção: ${result.sectionTitle}`;
+
+    const path = document.createElement("span");
+    path.className = "docs-search-result__path";
+    path.textContent = result.path;
+
+    const snippet = document.createElement("p");
+    snippet.textContent = result.snippet;
+
+    item.appendChild(link);
+    item.appendChild(documentLabel);
+    item.appendChild(section);
+    item.appendChild(path);
+    item.appendChild(snippet);
+
+    return item;
+  }
+
+  function clearSearchPanel(options = {}) {
+    if (searchPanel) searchPanel.hidden = true;
+    if (searchEmpty) searchEmpty.hidden = true;
+    if (searchResults) {
+      searchResults.innerHTML = "";
+    }
+    if (searchSummary) {
+      searchSummary.textContent = getIdleSearchSummary();
+    }
+
+    restoreDocumentView({ restoreScroll: Boolean(options.restoreScroll) });
+  }
+
+  function clearFiltering(options = {}) {
+    document.querySelectorAll(".is-search-hidden").forEach((node) => node.classList.remove("is-search-hidden"));
+    clearSearchPanel(options);
+  }
+
+  function renderResults(results, query) {
+    if (!searchPanel || !searchResults || !searchEmpty || !searchSummary) return;
+
+    showSearchView();
+    searchPanel.hidden = false;
+    searchResults.innerHTML = "";
+    searchEmpty.hidden = results.length !== 0;
+
+    searchSummary.textContent = `${results.length} Result${results.length === 1 ? "" : "s"}`;
+
+    results.forEach((result) => {
+      searchResults.appendChild(createSearchResult(result));
+    });
+  }
+
+  function activeDocumentSearch(query) {
+    const active = getActiveDocument();
+    if (!active) return 0;
+
+    const sections = Array.from(active.querySelectorAll(".docs-section"));
+    const docTitle = active.dataset.documentTitle || "Document";
+    const results = [];
+
+    sections.forEach((section) => {
+      const match = section.textContent.toLowerCase().includes(query);
+      if (match) {
+        const title = getSectionTitle(section);
+        results.push({
+          documentId: active.dataset.document,
+          documentTitle: docTitle,
+          title,
+          sectionTitle: title,
+          path: getDocumentPath(docTitle, title),
+          id: section.id,
+          snippet: getSnippet(section.textContent || "", query)
+        });
+      }
+    });
+
+    renderResults(results, query);
+    return results.length;
+  }
+
+  function globalSearch(query) {
+    const results = [];
+    document.querySelectorAll("[data-document]").forEach((doc) => {
+      const docTitle = doc.dataset.documentTitle || "Document";
+      doc.querySelectorAll("h2[id], .docs-section[id]").forEach((section) => {
+        const text = section.textContent || "";
+        if (text.toLowerCase().includes(query)) {
+          const title = getSectionTitle(section);
+          results.push({
+            documentId: doc.dataset.document,
+            documentTitle: docTitle,
+            title,
+            sectionTitle: title,
+            path: getDocumentPath(docTitle, title),
+            id: section.id,
+            snippet: getSnippet(text, query)
+          });
+        }
+      });
+    });
+
+    renderResults(results, query);
+    return results.length;
+  }
+
+  function runSearch() {
+    const query = normalize(input.value);
+
+    if (!query) {
+      clearFiltering({ restoreScroll: searchActive });
+      status.textContent = "Busca pronta.";
+      return;
+    }
+
+    const count = globalMode ? globalSearch(query) : activeDocumentSearch(query);
+    status.textContent = count === 0
+      ? "Nenhum resultado encontrado."
+      : globalMode
+        ? `${count} results across documents.`
+        : `${count} sections found.`;
+  }
+
+  input.addEventListener("input", runSearch);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      input.value = "";
+      runSearch();
+      input.blur();
+    }
+  });
+
+  if (globalToggle) {
+    globalToggle.addEventListener("click", () => {
+      globalMode = !globalMode;
+      syncSearchModeControls();
+      runSearch();
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    const result = event.target.closest("[data-search-result]");
+    if (result && window.docsNavigation) {
+      event.preventDefault();
+      window.docsNavigation.setActiveDocument(result.dataset.documentId, { preserveScroll: true });
+      input.value = "";
+      clearFiltering({ restoreScroll: false });
+      status.textContent = "Busca pronta.";
+
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(result.dataset.targetId);
+        if (!target) return;
+        history.replaceState(null, "", `#${result.dataset.targetId}`);
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  });
+
+  document.addEventListener("docs:document-changed", () => {
+    input.value = "";
+    clearFiltering({ restoreScroll: false });
+    status.textContent = "Busca limpa.";
+  });
+
+  syncSearchModeControls();
+})();
+
+(function () {
+  const filter = document.querySelector("#docs-glossary-filter");
+  if (!filter) return;
+
+  function runFilter() {
+    const query = filter.value.trim().toLowerCase();
+    document.querySelectorAll(".docs-glossary-term").forEach((term) => {
+      const matches = !query || term.textContent.toLowerCase().includes(query);
+      term.classList.toggle("is-search-hidden", !matches);
+    });
+  }
+
+  filter.addEventListener("input", runFilter);
+
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest('a[href^="#glossary-"]');
+    if (link && window.docsNavigation) {
+      window.docsNavigation.setActiveDocument("glossary", { preserveScroll: true });
+    }
+  });
+})();
+
+(function () {
+  const root = document.documentElement;
+  const topbar = document.querySelector(".docs-topbar");
+  const sidebar = document.querySelector("#docs-sidebar");
+
+  function updateTopbarHeight() {
+    if (!topbar) return;
+    const height = Math.ceil(topbar.getBoundingClientRect().height);
+    root.style.setProperty("--docs-layout-topbar-height", `${height}px`);
+  }
+
+  function safeGetTheme() {
+    try {
+      return localStorage.getItem("docs-theme");
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function safeSetTheme(theme) {
+    try {
+      localStorage.setItem("docs-theme", theme);
+    } catch (error) {
+      // The template remains usable without localStorage.
+    }
+  }
+
+  function fallbackCopyText(text) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      return document.execCommand("copy");
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    return fallbackCopyText(text);
+  }
+
+  function setupCodeCopyButtons() {
+    document.querySelectorAll(".docs-code").forEach((codeBlock, index) => {
+      if (codeBlock.querySelector(".docs-code-copy")) return;
+
+      const code = codeBlock.querySelector("code");
+      const button = document.createElement("button");
+      button.className = "docs-code-copy";
+      button.type = "button";
+      button.textContent = "Copiar";
+      button.dataset.action = "copy-code";
+      button.dataset.codeBlockIndex = String(index);
+      button.setAttribute("aria-label", "Copiar código");
+
+      button.addEventListener("click", async () => {
+        const text = code ? code.textContent : codeBlock.textContent;
+
+        try {
+          const copied = await copyText(text);
+          button.textContent = copied ? "Copiado" : "Não copiou";
+        } catch (error) {
+          button.textContent = "Não copiou";
+        }
+
+        window.setTimeout(() => {
+          button.textContent = "Copiar";
+        }, 1600);
+      });
+
+      codeBlock.appendChild(button);
+    });
+  }
+
+  const savedTheme = safeGetTheme();
+  if (savedTheme === "dark" || savedTheme === "light") {
+    root.dataset.theme = savedTheme;
+  }
+
+  updateTopbarHeight();
+  window.addEventListener("resize", updateTopbarHeight);
+
+  if ("ResizeObserver" in window && topbar) {
+    const topbarObserver = new ResizeObserver(updateTopbarHeight);
+    topbarObserver.observe(topbar);
+  }
+
+  setupCodeCopyButtons();
+
+  document.addEventListener("click", (event) => {
+    const themeButton = event.target.closest("[data-action='toggle-theme']");
+    if (themeButton) {
+      const next = root.dataset.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      safeSetTheme(next);
+      updateTopbarHeight();
+    }
+
+    const sidebarButton = event.target.closest("[data-action='toggle-sidebar']");
+    if (sidebarButton && sidebar) {
+      const open = !sidebar.classList.contains("is-open");
+      sidebar.classList.toggle("is-open", open);
+      sidebarButton.setAttribute("aria-expanded", String(open));
+    }
+
+  });
+})();
+
+
+(function () {
+  const sections = Array.from(document.querySelectorAll("[data-document] .docs-section[id]"));
+  function update() {
+    const limit = window.innerHeight * 0.3;
+    let current = sections[0];
+    for (const section of sections) {
+      if (section.getBoundingClientRect().top <= limit) current = section; else break;
+    }
+    if (!current) return;
+    document.querySelectorAll("[data-nav-target]").forEach((link) => {
+      link.classList.toggle("is-active", link.dataset.navTarget === current.id);
+    });
+  }
+  window.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+  update();
+})();
+
+  </script>
+</body>
+</html>
