@@ -1,5 +1,6 @@
-"""Gera Docs/GDD.html a partir de Docs/GDD.md com o template html-default
-do Immersive Games Documentation Framework (repositório com.immersivegames.docs).
+"""Gera Docs/GDD.html a partir de Docs/GDD.md e Docs/Tecnico.md (uma aba para
+cada) com o template html-default do Immersive Games Documentation Framework
+(repositório com.immersivegames.docs).
 
 Uso (da raiz do repositório):
     python Docs/ferramentas/gdd_html.py
@@ -7,7 +8,7 @@ Uso (da raiz do repositório):
 
 O HTML sai num arquivo único (CSS, JS e logos embutidos), que abre direto no
 navegador, sem servidor. Só usa a biblioteca padrão do Python 3.9+.
-O GDD.md é a cópia exportada do Claude Doc; não editar o HTML à mão.
+Os .md são cópias exportadas dos Claude Docs; não editar o HTML à mão.
 """
 from __future__ import annotations
 
@@ -20,7 +21,11 @@ import unicodedata
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-SOURCE = REPO / "Docs" / "GDD.md"
+# (id da aba, nome da aba, arquivo)
+DOCUMENTS = [
+    ("gdd", "Game Design Document", REPO / "Docs" / "GDD.md"),
+    ("tecnico", "Documentação técnica", REPO / "Docs" / "Tecnico.md"),
+]
 OUTPUT = REPO / "Docs" / "GDD.html"
 DEFAULT_TEMPLATE = REPO.parent / "com.immersivegames.docs" / "templates" / "html-default"
 
@@ -30,9 +35,9 @@ JS_FILES = ["navigation.js", "search.js", "glossary.js", "ui.js"]
 # Textos do template (em inglês) que aparecem para quem lê.
 JS_PT = {
     '"Search all documents..."': '"Buscar em todos os documentos..."',
-    '"Search active document..."': '"Buscar no GDD..."',
+    '"Search active document..."': '"Buscar no documento aberto..."',
     '"Type in the header search field to search all documents."': '"Digite no campo de busca para pesquisar em todos os documentos."',
-    '"Type in the header search field to search the active document."': '"Digite no campo de busca para pesquisar no GDD."',
+    '"Type in the header search field to search the active document."': '"Digite no campo de busca para pesquisar no documento aberto."',
     '"Active" : "Global"': '"Atual" : "Global"',
     "`Document: ${result.documentTitle}`": "`Documento: ${result.documentTitle}`",
     "`Section: ${result.sectionTitle}`": "`Seção: ${result.sectionTitle}`",
@@ -63,8 +68,10 @@ EXTRA_CSS = """
 # passou do topo da tela.
 EXTRA_JS = """
 (function () {
-  const sections = Array.from(document.querySelectorAll("[data-document] .docs-section[id]"));
   function update() {
+    const active = document.querySelector(".docs-document.is-active");
+    if (!active) return;
+    const sections = Array.from(active.querySelectorAll(".docs-section[id]"));
     const limit = window.innerHeight * 0.3;
     let current = sections[0];
     for (const section of sections) {
@@ -76,6 +83,7 @@ EXTRA_JS = """
     });
   }
   window.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+  document.addEventListener("docs:document-changed", () => requestAnimationFrame(update));
   update();
 })();
 """
@@ -223,24 +231,56 @@ def data_uri(path: Path) -> str:
     return f"data:{mime};base64," + base64.b64encode(path.read_bytes()).decode("ascii")
 
 
-def build(template: Path) -> str:
-    md = SOURCE.read_text(encoding="utf-8")
-    title, intro, sections = parse(md)
-
+def render_document(doc_id: str, tab: str, path: Path, active: bool) -> tuple[str, str]:
+    """Devolve (botão da aba, painel do documento)."""
+    title, intro, sections = parse(path.read_text(encoding="utf-8"))
     note = " ".join(l[1:].strip() for l in intro if l.startswith(">"))
     byline = " ".join(l.strip() for l in intro if l.strip() and not l.startswith(">"))
     rev = re.search(r"rev (\d+)", note)
     exported = re.search(r"em (\d{2}/\d{2}/\d{4})", note)
+    source = re.search(r"https://\S+?(?=[.\s]|$)", note)
 
     used: set[str] = set()
     body: list[str] = []
     for level, heading, content in sections:
-        sid = slugify(heading, used)
+        sid = f"{doc_id}-{slugify(heading, used)}"
         tag = "h3" if level == 2 else "h4" if level == 3 else "h5"
         body.append(
             f'<section class="docs-section" id="{sid}" data-title="{html.escape(heading)}">'
             f"<{tag}>{inline(heading)}</{tag}>\n{render_blocks(content)}\n</section>"
         )
+
+    badges = ["Português"]
+    if rev:
+        badges.append(f"Claude Doc rev {rev.group(1)}")
+    if exported:
+        badges.append(f"Exportado em {exported.group(1)}")
+    badges_html = "".join(f'<span class="docs-badge">{html.escape(b)}</span>' for b in badges)
+    original = f'<p>Original: <a href="{html.escape(source.group(0))}">Claude Doc</a> · cópia: <a href="{html.escape(path.name)}">{html.escape(path.name)}</a></p>' if source else ""
+
+    selected = "true" if active else "false"
+    button = (f'<button id="docs-tab-{doc_id}" class="docs-tab{" is-active" if active else ""}" type="button" role="tab" '
+              f'data-document-target="{doc_id}" aria-selected="{selected}" aria-controls="docs-panel-{doc_id}">{html.escape(tab)}</button>')
+    panel = f"""<section id="docs-panel-{doc_id}" class="docs-document{" is-active" if active else ""}" role="tabpanel" aria-labelledby="docs-tab-{doc_id}" data-document="{doc_id}" data-document-title="{html.escape(tab)}"{"" if active else " hidden"}>
+        <article class="docs-content">
+          <header id="{doc_id}-titulo" class="docs-page-header docs-gdd-hero">
+            <p class="docs-kicker">{html.escape(tab)}</p>
+            <h2>{inline(title)}</h2>
+            <p>{inline(byline)}</p>
+            {original}
+            <div class="docs-gdd-meta" aria-label="Dados do documento">{badges_html}</div>
+          </header>
+{chr(10).join(body)}
+        </article>
+      </section>"""
+    return button, panel
+
+
+def build(template: Path) -> str:
+    rendered = [render_document(doc_id, tab, path, i == 0)
+                for i, (doc_id, tab, path) in enumerate(DOCUMENTS) if path.exists()]
+    buttons = "\n      ".join(b for b, _ in rendered)
+    panels = "\n\n      ".join(p for _, p in rendered)
 
     css = "\n".join((template / "css" / f).read_text(encoding="utf-8") for f in CSS_FILES) + EXTRA_CSS
     js_parts = []
@@ -257,19 +297,12 @@ def build(template: Path) -> str:
     logo_white = data_uri(images / "immersive-games-logo-full-white.png")
     logo_black = data_uri(images / "immersive-games-logo-full-black.png")
 
-    badges = ["Português", "Fonte: Claude Doc"]
-    if rev:
-        badges.append(f"Revisão {rev.group(1)}")
-    if exported:
-        badges.append(f"Exportado em {exported.group(1)}")
-    badges_html = "".join(f'<span class="docs-badge">{html.escape(b)}</span>' for b in badges)
-
     return f"""<!doctype html>
 <html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{html.escape(title)}</title>
+  <title>Pro Gol! - Documentação</title>
   <style>
 {css}
   </style>
@@ -290,15 +323,16 @@ def build(template: Path) -> str:
       </div>
 
       <div class="docs-header__tools">
-        <label class="docs-search-label" for="docs-search-input">Buscar no GDD</label>
-        <input id="docs-search-input" class="docs-search-input" type="search" placeholder="Buscar no GDD..." autocomplete="off">
+        <label class="docs-search-label" for="docs-search-input">Buscar na documentação</label>
+        <input id="docs-search-input" class="docs-search-input" type="search" placeholder="Buscar no documento aberto..." autocomplete="off">
+        <button class="docs-button docs-button--ghost" type="button" data-action="toggle-search-mode" aria-pressed="false" title="Buscar nos dois documentos">Global</button>
         <button class="docs-button docs-button--ghost" type="button" data-action="toggle-theme" aria-label="Alternar tema claro ou escuro">Tema</button>
         <button class="docs-button docs-button--ghost docs-mobile-only" type="button" data-action="toggle-sidebar" aria-expanded="false" aria-controls="docs-sidebar">Menu</button>
       </div>
     </header>
 
     <nav class="docs-tabs" role="tablist" aria-label="Documentos">
-      <button id="docs-tab-gdd" class="docs-tab is-active" type="button" role="tab" data-document-target="gdd" aria-selected="true" aria-controls="docs-panel-gdd">Game Design Document</button>
+      {buttons}
     </nav>
   </div>
 
@@ -320,7 +354,7 @@ def build(template: Path) -> str:
         <div class="docs-search-panel__header">
           <p class="docs-kicker">Busca</p>
           <h2 id="docs-search-panel-title">Resultados da busca</h2>
-          <p data-search-summary>Digite no campo de busca para pesquisar no GDD.</p>
+          <p data-search-summary>Digite no campo de busca para pesquisar no documento aberto.</p>
         </div>
         <div class="docs-search-results" data-search-results></div>
         <div class="docs-empty-state" data-search-empty hidden>
@@ -329,25 +363,14 @@ def build(template: Path) -> str:
         </div>
       </section>
 
-      <section id="docs-panel-gdd" class="docs-document is-active" role="tabpanel" aria-labelledby="docs-tab-gdd" data-document="gdd" data-document-title="Game Design Document">
-        <article class="docs-content">
-          <header id="gdd-titulo" class="docs-page-header docs-gdd-hero">
-            <p class="docs-kicker">Game Design Document</p>
-            <h2>{inline(title)}</h2>
-            <p>{inline(byline)}</p>
-            <div class="docs-gdd-meta" aria-label="Dados do documento">{badges_html}</div>
-          </header>
-{chr(10).join(body)}
-        </article>
-      </section>
+      {panels}
     </main>
   </div>
 
   <footer class="docs-footer">
-    <p>{inline(note) if note else "GDD do Pro Gol!"} Gerado com <code>com.immersivegames.docs</code> (template html-default).</p>
+    <p>Documentação do Pro Gol!, exportada dos Claude Docs. Gerado com <code>com.immersivegames.docs</code> (template html-default) por <code>Docs/ferramentas/gdd_html.py</code>.</p>
     <nav aria-label="Links do rodapé">
-      <a href="GDD.md">Markdown</a>
-      <a href="#gdd-titulo">Voltar ao topo</a>
+      <a href="#docs-main">Voltar ao topo</a>
     </nav>
   </footer>
 

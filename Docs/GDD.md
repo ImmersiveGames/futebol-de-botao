@@ -1,6 +1,6 @@
 # GDD - Futebol de Botão
 
-> Cópia exportada do Claude Doc em 23/11/2026 (rev 260). O original é o Claude Doc: https://claude.ai/artifact/Cdzi4Hhp6EKyHJGAYzz9jQ. Não editar aqui; exportar de novo quando o doc mudar.
+> Cópia exportada do Claude Doc em 23/11/2026 (rev 262). O original é o Claude Doc: https://claude.ai/artifact/Cdzi4Hhp6EKyHJGAYzz9jQ. Não editar aqui; exportar de novo quando o doc mudar.
 
 Nov 23, 2026 · @Immersive Games
 
@@ -158,15 +158,15 @@ Atualizado em 23/11 (o guia de 10/10 descrevia a mesa antiga de madeira, que sai
 
 - Escala: 32 px por unidade do jogo, tiles de 32x32, filtro Point. Paleta: AAP-64 (vem com o Aseprite). Botões, camisas, feltro e bola são desenhados em branco ou cinza e o jogo aplica a cor por cima; as cores saem da paleta do jogo.
 - A mesa é um tema em duas partes: a borda (asset Mesa, em Resources/Mesas) e o feltro (asset Feltro, em Resources/Feltros). Cada asset tem nome, preço em moedas, se já vem liberado e uma miniatura opcional para a Loja e o Meu time.
-- Ordem das camadas (de baixo para cima): camada de cor da mesa (opcional), feltro, marcações, placas da borda, bola e botões, rede e trave.
+- Ordem das camadas (de baixo para cima): Fill da mesa (opcional, lado de fora), feltro, marcações, placas com a camada de cor, bola e botões, rede e trave.
 
 | Peça | Formato | Observações |
 | --- | --- | --- |
-| Placas da borda (Mesa) | 6 tiles 32x32: canto, depois do canto, centro, antes do canto, trave grande e trave pequena | Desenhados para a lateral de baixo; os outros lados giram ou espelham. A placa ocupa só a faixa de baixo do tile e o resto é transparente, com o feltro passando por baixo. A cor da placa vem pronta na arte. O asset também tem a camada de cor opcional e o recuo das paredes da física em pixels |
-| Traves | 3 tiles: esquerda, centro e direita | Desenhadas para o gol de cima; o de baixo gira 180°. A cor da trave (branca, vermelha, amarela...) é escolhida pelo jogador, os dois gols sempre iguais, e não é desbloqueável |
-| Feltro (Feltro) | Felt\_White, Felt\_White\_Gradient e Felt\_White\_Texture, tingidos por faixa | Padrões Liso (cor 1), Listrado (cor 1 e cor 2) e Meio a meio (cor 1 embaixo, cor 2 em cima), cada um com tile liso, gradiente ou textura. O feltro também define a cor das marcações. Campo de 7 x 11 tiles (224 x 352 px) |
+| Placas da borda (Mesa) | 6 peças: canto, parede (fundo e laterais), parede ao lado do gol grande, canto do fundo do gol grande, parede ao lado do gol pequeno e canto do fundo do gol pequeno | Desenhadas para a parede de cima; as outras giram ou espelham. Cada peça pode ter uma camada de cor (desenho branco por cima, pintado com a cor da trave escolhida). O asset também tem o Fill opcional (cobre o lado de fora da mesa no lugar do feltro), o recuo das paredes da física em pixels e a trave usada |
+| Traves | Asset Trave: esquerda e direita do gol grande e do pequeno, a peça do meio (a mesma nos dois) e a rede de cada uma (opcional) | Desenhadas para o gol de cima; o de baixo gira 180°. A trave é pintada com a cor escolhida (branca, vermelha, amarela...), os dois gols sempre iguais, e a cor não é desbloqueável. A rede fica como está, por cima da bola. Uma trave pode servir para várias mesas |
+| Feltro (Feltro) | Felt\_White, Felt\_White\_Gradient e Felt\_White\_Texture, tingidos por faixa | Padrões Liso (cor 1), Listrado (cor 1 e cor 2) e Meio a meio (cor 1 embaixo, cor 2 em cima), cada um com tile liso, gradiente ou textura. O feltro também define a cor das marcações e quais cores de trave combinam com ele. Campo de 7 x 11 tiles (224 x 352 px) |
 | Marcações | Field\_Marks, sprite transparente de 224 x 352 px | Medidas abaixo; dá para desenhar um quarto e espelhar |
-| Bola (Bola, em Resources/Bolas) | Quadros da bola mais uma camada branca para a cor | O desenho é o padrão; a cor escolhida tinge a camada branca. Cada bola pode limitar as cores permitidas (lista vazia = todas da paleta) |
+| Bola (Bola, em Resources/Bolas) | Quadros da bola, camada de cor de cada quadro (fundo branco, por baixo dos quadros), luz e sombra opcionais | O desenho é o padrão; a cor escolhida tinge a camada branca. Cada bola pode limitar as cores permitidas (lista vazia = todas da paleta) |
 
 **Marcações** (em pixels, a partir do canto de cima à esquerda do feltro):
 

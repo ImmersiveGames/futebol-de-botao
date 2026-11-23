@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GDD - Futebol de Botão</title>
+  <title>Pro Gol! - Documentação</title>
   <style>
 :root {
   color-scheme: dark;
@@ -818,8 +818,9 @@ figcaption,
       </div>
 
       <div class="docs-header__tools">
-        <label class="docs-search-label" for="docs-search-input">Buscar no GDD</label>
-        <input id="docs-search-input" class="docs-search-input" type="search" placeholder="Buscar no GDD..." autocomplete="off">
+        <label class="docs-search-label" for="docs-search-input">Buscar na documentação</label>
+        <input id="docs-search-input" class="docs-search-input" type="search" placeholder="Buscar no documento aberto..." autocomplete="off">
+        <button class="docs-button docs-button--ghost" type="button" data-action="toggle-search-mode" aria-pressed="false" title="Buscar nos dois documentos">Global</button>
         <button class="docs-button docs-button--ghost" type="button" data-action="toggle-theme" aria-label="Alternar tema claro ou escuro">Tema</button>
         <button class="docs-button docs-button--ghost docs-mobile-only" type="button" data-action="toggle-sidebar" aria-expanded="false" aria-controls="docs-sidebar">Menu</button>
       </div>
@@ -827,6 +828,7 @@ figcaption,
 
     <nav class="docs-tabs" role="tablist" aria-label="Documentos">
       <button id="docs-tab-gdd" class="docs-tab is-active" type="button" role="tab" data-document-target="gdd" aria-selected="true" aria-controls="docs-panel-gdd">Game Design Document</button>
+      <button id="docs-tab-tecnico" class="docs-tab" type="button" role="tab" data-document-target="tecnico" aria-selected="false" aria-controls="docs-panel-tecnico">Documentação técnica</button>
     </nav>
   </div>
 
@@ -848,7 +850,7 @@ figcaption,
         <div class="docs-search-panel__header">
           <p class="docs-kicker">Busca</p>
           <h2 id="docs-search-panel-title">Resultados da busca</h2>
-          <p data-search-summary>Digite no campo de busca para pesquisar no GDD.</p>
+          <p data-search-summary>Digite no campo de busca para pesquisar no documento aberto.</p>
         </div>
         <div class="docs-search-results" data-search-results></div>
         <div class="docs-empty-state" data-search-empty hidden>
@@ -863,9 +865,10 @@ figcaption,
             <p class="docs-kicker">Game Design Document</p>
             <h2>GDD - Futebol de Botão</h2>
             <p>Nov 23, 2026 · @Immersive Games</p>
-            <div class="docs-gdd-meta" aria-label="Dados do documento"><span class="docs-badge">Português</span><span class="docs-badge">Fonte: Claude Doc</span><span class="docs-badge">Revisão 260</span><span class="docs-badge">Exportado em 23/11/2026</span></div>
+            <p>Original: <a href="https://claude">Claude Doc</a> · cópia: <a href="GDD.md">GDD.md</a></p>
+            <div class="docs-gdd-meta" aria-label="Dados do documento"><span class="docs-badge">Português</span><span class="docs-badge">Claude Doc rev 262</span><span class="docs-badge">Exportado em 23/11/2026</span></div>
           </header>
-<section class="docs-section" id="visao-geral" data-title="Visão geral"><h3>Visão geral</h3>
+<section class="docs-section" id="gdd-visao-geral" data-title="Visão geral"><h3>Visão geral</h3>
 <p>Um jogo de futebol de botão por turnos, rápido de aprender e com física satisfatória, chamado Pro Gol! (em inglês, button football), publicado no Google Play (Android) e com uma versão de navegador no itch.io.</p>
 <ul>
 <li><strong>Pitch:</strong> a mesa de botão da infância, com peteleco mirado no mouse ou no dedo, partidas de 5 a 10 minutos.</li>
@@ -875,7 +878,7 @@ figcaption,
 <li><strong>Engine:</strong> Unity 6000.5 com o Immersive Framework.</li>
 </ul>
 </section>
-<section class="docs-section" id="decisoes-em-aberto" data-title="Decisões em aberto"><h3>Decisões em aberto</h3>
+<section class="docs-section" id="gdd-decisoes-em-aberto" data-title="Decisões em aberto"><h3>Decisões em aberto</h3>
 <p>Todas as decisões-base foram fechadas em 07/10; o equilíbrio do goleiro, que era a última pendência, foi fechado em 09/11 (largura 1,2).</p>
 <div class="docs-table-wrap"><table class="docs-table"><thead><tr>
 <th>Decisão</th>
@@ -890,7 +893,7 @@ figcaption,
 <tr><td>Times</td><td>Craques da Rua: 40 times com nomes de pessoas (ver Arte)</td></tr>
 </tbody></table></div>
 </section>
-<section class="docs-section" id="regras-e-gameplay" data-title="Regras e gameplay"><h3>Regras e gameplay</h3>
+<section class="docs-section" id="gdd-regras-e-gameplay" data-title="Regras e gameplay"><h3>Regras e gameplay</h3>
 <p>Cada turno é um peteleco em um botão; quem fizer mais gols no tempo vence.</p>
 <ol>
 <li><strong>Início:</strong> saída de bola no centro, time sorteado começa. Na saída, quem sai pode ter botões dentro do círculo central; os botões do adversário que cairiam dentro dele ficam com o centro em cima da linha do círculo.</li>
@@ -906,7 +909,7 @@ figcaption,
 </ol>
 <p>Timer de mira de 30 s por jogada mantém o ritmo.</p>
 </section>
-<section class="docs-section" id="opcoes-da-partida" data-title="Opções da partida"><h4>Opções da partida</h4>
+<section class="docs-section" id="gdd-opcoes-da-partida" data-title="Opções da partida"><h4>Opções da partida</h4>
 <p>Antes de cada partida o jogador pode ajustar estas regras; o padrão vale para o modo rápido.</p>
 <div class="docs-table-wrap"><table class="docs-table"><thead><tr>
 <th>Opção</th>
@@ -928,7 +931,7 @@ figcaption,
 </tbody></table></div>
 <p><strong>Equilíbrio do goleiro (</strong>fechado em 09/11: largura 1,2, ajustável em keeperWidth): goleiro cobrindo cerca de metade da largura do gol, deslizando com velocidade limitada. Sem goleiro, o gol fica menor para não virar goleada: duas traves fecham a boca de 2,4 para 1,4 (a largura do gol menos a do goleiro), valor ajustável no teste. Meta do playtest: algo como 1 gol a cada 3 ou 4 chutes.</p>
 </section>
-<section class="docs-section" id="modos-de-jogo" data-title="Modos de jogo"><h3>Modos de jogo</h3>
+<section class="docs-section" id="gdd-modos-de-jogo" data-title="Modos de jogo"><h3>Modos de jogo</h3>
 <div class="docs-table-wrap"><table class="docs-table"><thead><tr>
 <th>Modo</th>
 <th>Descrição</th>
@@ -959,7 +962,7 @@ figcaption,
 <li><strong>Peso no ranking:</strong> multiplica os Pontos da semana do torneio (ver Play Games, em Física e tecnologia).</li>
 </ul>
 </section>
-<section class="docs-section" id="controles" data-title="Controles"><h3>Controles</h3>
+<section class="docs-section" id="gdd-controles" data-title="Controles"><h3>Controles</h3>
 <p>O mesmo gesto serve para mouse e toque: arrastar para trás, como um estilingue, e soltar. Só no toque: um botão fica escolhido (no começo da vez, o mais perto da bola; só ele brilha, e sem escolha brilham todos os que podem jogar); tocar e soltar num botão escolhe ele, ou tira a escolha se ele já era o escolhido; arrastar, começando em qualquer lugar (até em cima de outro botão), mira o escolhido, medindo a força a partir de onde o dedo encostou. Assim tocar no botão nunca chuta sem querer e o botão encostado na lateral também tem espaço para puxar. Sem nenhum escolhido, arrastar começando num botão mira ele. O mouse não muda.</p>
 <div class="docs-table-wrap"><table class="docs-table"><thead><tr>
 <th>Ação</th>
@@ -991,7 +994,7 @@ figcaption,
 </tbody></table></div>
 <p>Com teclado/controle só o botão do cursor brilha. A mira abre apontando para a bola com força média; o giro começa devagar e acelera segurando. Reiniciar fica só no menu de pausa. Cada jogador pausa com o Esc/Start do próprio dispositivo (ou o botão de pausa do HUD) e só quem pausou mexe no menu de pausa e tira a pausa; dispositivo que ninguém escolheu nos Controles não pausa. Menus: WASD/setas ou analógico/D-pad navegam (cima/baixo entre as opções; esquerda/direita muda o valor nas Opções da partida e na Seleção de times, ou anda entre botões), E/A confirma, Q/B volta. A opção escolhida ganha uma moldura amarela pulsando, só enquanto se usa teclado/controle. Tela Controles (depois de Um/Dois jogadores, só quando há mais de um dispositivo): Jogador 1 na esquerda, dispositivos detectados no meio (Teclado e mouse, Toque, Controle N), Jogador 2 na direita. Cada um leva o seu cartão para um lado com o próprio dispositivo (no mouse/toque, as setinhas do cartão) e confirma; Q/B desfaz e, no meio, volta. Em Dois jogadores, confirmar de novo com o outro lado vazio = os dois revezando no mesmo dispositivo. Com dispositivos diferentes cada jogador entra na sessão com o seu (os dois são Actors); no mesmo dispositivo a partida lê os dispositivos direto.</p>
 </section>
-<section class="docs-section" id="fisica-e-tecnologia" data-title="Física e tecnologia"><h3>Física e tecnologia</h3>
+<section class="docs-section" id="gdd-fisica-e-tecnologia" data-title="Física e tecnologia"><h3>Física e tecnologia</h3>
 <p>A física roda em 2D (Box2D da Unity), vista de cima, o que combina com a pixel art e simplifica o projeto.</p>
 <ul>
 <li><strong>Física:</strong> Rigidbody2D sem gravidade, botões e bola com CircleCollider2D, goleiro com BoxCollider2D; PhysicsMaterial2D ajustável (atrito, quique) e Linear Drag para simular o feltro. A bola rebate nos botões parados como numa parede (o botão não sai do lugar); só o botão do peteleco empurra a bola. A bola não tem atrito: sai sempre na linha entre os centros do botão e da bola (a mesma da previsão da mira). No toque, a direção do peteleco é a de um instante antes (0,08 s) de soltar o dedo, para a tremida ao tirar o dedo não desviar o chute.</li>
@@ -1005,7 +1008,7 @@ figcaption,
 <li><strong>Android:</strong> mesmo projeto, build separada; 60 fps em aparelhos intermediários.</li>
 </ul>
 </section>
-<section class="docs-section" id="arte-audio-e-ui" data-title="Arte, áudio e UI"><h3>Arte, áudio e UI</h3>
+<section class="docs-section" id="gdd-arte-audio-e-ui" data-title="Arte, áudio e UI"><h3>Arte, áudio e UI</h3>
 <p>Pixel art top-down com cara de mesa de botão: feltro colorido cercado por placas ou outra borda, botões redondos com brilho de acrílico.</p>
 <ul>
 <li><strong>Times</strong> (17/11): o catálogo são os Craques da Rua (em espanhol Cracks de la Calle, em inglês Street Stars), 40 times fictícios com nomes de pessoas, como Zé Botão FC, cada um com nome traduzido em português, inglês e espanhol, sigla de 3 letras e dois uniformes com combinações de cores sem repetir entre times. As camisas dos times da IA são sorteadas entre todos os padrões, mesmo os que o jogador ainda não comprou. Os times só de cores (Azul, Vermelho...) foram aposentados; Criar telas só cria times de cor se o catálogo estiver vazio.</li>
@@ -1018,23 +1021,23 @@ figcaption,
 <li><strong>Telas:</strong> fluxo: Abertura ("Clique para iniciar", "Toque para iniciar" no celular) → Menu com o título do jogo e os botões Jogar, Meu time, Loja, Configurações e Sair; Jogar abre Torneio, Liga, Partida única (contra a IA), Dois jogadores e Tutorial → Opções da partida (a Dificuldade Fácil/Médio/Difícil/Pro é a segunda opção e só aparece contra a IA; Voltar/Avançar) → Seleção de times → Jogo → Resultado ("Fim de Jogo"; o botão e o nome de cada time com o placar no meio, "W.O." quando for o caso; tabela dos dois times com Pro Gol!, conversão, posse de bola pela parte dos toques, toques na bola, toques errados, faltas, cartões e gols contra se teve; contra a IA, aviso de novo recorde de sequência a partir de 2 vitórias; Jogar de novo e Menu; numa partida que pagou moedas o Resultado tem só Avançar, que abre a página Premiação com as moedas subindo, Dobrar moedas por anúncio e os botões de seguir). As Estatísticas ficam na aba Carreira do Meu time. Também pausa (Continuar, Configurações, Reiniciar, Sair para o menu). Configurações (11/11, no Menu e na pausa, abre por cima): Volume geral, Música e Efeitos de 0% a 100%, guardados no aparelho (a opção Música saiu das Opções da partida); também Joystick na tela, Política de privacidade, Privacidade dos anúncios e Restaurar compras. Idioma (11/11) nessa tela: Automático (português se o aparelho estiver em português, senão inglês), Português, English ou Español; todos os textos do jogo traduzidos (Menu, partida, HUD, tutorial, loja, Meu time, estatísticas, torneio). Os textos ficam num arquivo único (Resources/Idiomas/textos.json) com português, inglês e espanhol, editado na janela Futebol de Botão/Idiomas/Textos; nomes de times e de itens também são traduzidos (abas Times e Itens da janela).</li>
 </ul>
 </section>
-<section class="docs-section" id="guia-de-arte-cenario" data-title="Guia de arte: cenário"><h4>Guia de arte: cenário</h4>
+<section class="docs-section" id="gdd-guia-de-arte-cenario" data-title="Guia de arte: cenário"><h4>Guia de arte: cenário</h4>
 <p>Atualizado em 23/11 (o guia de 10/10 descrevia a mesa antiga de madeira, que saiu em 20/11). As artes são feitas à mão no Aseprite; este guia diz o que desenhar e em que tamanho.</p>
 <ul>
 <li>Escala: 32 px por unidade do jogo, tiles de 32x32, filtro Point. Paleta: AAP-64 (vem com o Aseprite). Botões, camisas, feltro e bola são desenhados em branco ou cinza e o jogo aplica a cor por cima; as cores saem da paleta do jogo.</li>
 <li>A mesa é um tema em duas partes: a borda (asset Mesa, em Resources/Mesas) e o feltro (asset Feltro, em Resources/Feltros). Cada asset tem nome, preço em moedas, se já vem liberado e uma miniatura opcional para a Loja e o Meu time.</li>
-<li>Ordem das camadas (de baixo para cima): camada de cor da mesa (opcional), feltro, marcações, placas da borda, bola e botões, rede e trave.</li>
+<li>Ordem das camadas (de baixo para cima): Fill da mesa (opcional, lado de fora), feltro, marcações, placas com a camada de cor, bola e botões, rede e trave.</li>
 </ul>
 <div class="docs-table-wrap"><table class="docs-table"><thead><tr>
 <th>Peça</th>
 <th>Formato</th>
 <th>Observações</th>
 </tr></thead><tbody>
-<tr><td>Placas da borda (Mesa)</td><td>6 tiles 32x32: canto, depois do canto, centro, antes do canto, trave grande e trave pequena</td><td>Desenhados para a lateral de baixo; os outros lados giram ou espelham. A placa ocupa só a faixa de baixo do tile e o resto é transparente, com o feltro passando por baixo. A cor da placa vem pronta na arte. O asset também tem a camada de cor opcional e o recuo das paredes da física em pixels</td></tr>
-<tr><td>Traves</td><td>3 tiles: esquerda, centro e direita</td><td>Desenhadas para o gol de cima; o de baixo gira 180°. A cor da trave (branca, vermelha, amarela...) é escolhida pelo jogador, os dois gols sempre iguais, e não é desbloqueável</td></tr>
-<tr><td>Feltro (Feltro)</td><td>Felt_White, Felt_White_Gradient e Felt_White_Texture, tingidos por faixa</td><td>Padrões Liso (cor 1), Listrado (cor 1 e cor 2) e Meio a meio (cor 1 embaixo, cor 2 em cima), cada um com tile liso, gradiente ou textura. O feltro também define a cor das marcações. Campo de 7 x 11 tiles (224 x 352 px)</td></tr>
+<tr><td>Placas da borda (Mesa)</td><td>6 peças: canto, parede (fundo e laterais), parede ao lado do gol grande, canto do fundo do gol grande, parede ao lado do gol pequeno e canto do fundo do gol pequeno</td><td>Desenhadas para a parede de cima; as outras giram ou espelham. Cada peça pode ter uma camada de cor (desenho branco por cima, pintado com a cor da trave escolhida). O asset também tem o Fill opcional (cobre o lado de fora da mesa no lugar do feltro), o recuo das paredes da física em pixels e a trave usada</td></tr>
+<tr><td>Traves</td><td>Asset Trave: esquerda e direita do gol grande e do pequeno, a peça do meio (a mesma nos dois) e a rede de cada uma (opcional)</td><td>Desenhadas para o gol de cima; o de baixo gira 180°. A trave é pintada com a cor escolhida (branca, vermelha, amarela...), os dois gols sempre iguais, e a cor não é desbloqueável. A rede fica como está, por cima da bola. Uma trave pode servir para várias mesas</td></tr>
+<tr><td>Feltro (Feltro)</td><td>Felt_White, Felt_White_Gradient e Felt_White_Texture, tingidos por faixa</td><td>Padrões Liso (cor 1), Listrado (cor 1 e cor 2) e Meio a meio (cor 1 embaixo, cor 2 em cima), cada um com tile liso, gradiente ou textura. O feltro também define a cor das marcações e quais cores de trave combinam com ele. Campo de 7 x 11 tiles (224 x 352 px)</td></tr>
 <tr><td>Marcações</td><td>Field_Marks, sprite transparente de 224 x 352 px</td><td>Medidas abaixo; dá para desenhar um quarto e espelhar</td></tr>
-<tr><td>Bola (Bola, em Resources/Bolas)</td><td>Quadros da bola mais uma camada branca para a cor</td><td>O desenho é o padrão; a cor escolhida tinge a camada branca. Cada bola pode limitar as cores permitidas (lista vazia = todas da paleta)</td></tr>
+<tr><td>Bola (Bola, em Resources/Bolas)</td><td>Quadros da bola, camada de cor de cada quadro (fundo branco, por baixo dos quadros), luz e sombra opcionais</td><td>O desenho é o padrão; a cor escolhida tinge a camada branca. Cada bola pode limitar as cores permitidas (lista vazia = todas da paleta)</td></tr>
 </tbody></table></div>
 <p><strong>Marcações</strong> (em pixels, a partir do canto de cima à esquerda do feltro):</p>
 <ul>
@@ -1058,7 +1061,7 @@ figcaption,
 <li>Telas (Abertura, Menu e Resultado): fundo com o feltro listrado (Felt_White tingido de #1A7A3E e #24523B), na mesma escala da mesa. Os textos têm sombra para não se perder nas faixas.</li>
 </ul>
 </section>
-<section class="docs-section" id="monetizacao" data-title="Monetização"><h3>Monetização</h3>
+<section class="docs-section" id="gdd-monetizacao" data-title="Monetização"><h3>Monetização</h3>
 <p>Anúncios (decidido 13/11, só Android): na primeira abertura, uma tela neutra pergunta o ano de nascimento (fica só no aparelho, não pergunta de novo); menor de 13 recebe anúncio para crianças, não personalizado e classificação G; 13 a 17, abaixo da idade de consentimento e não personalizado; 18+, pedido de consentimento do Google quando a lei exige. Entre partidas: um anúncio ao sair do Resultado, no máximo um a cada 2 partidas, nunca durante o jogo nem no tutorial, e nenhum depois de um anúncio com prêmio na mesma tela. Com prêmio (o jogador escolhe assistir): Dobrar moedas no Resultado da partida, Dobrar prêmio no fim do torneio e Vender patrocínio na aba Financeiro do Meu time (5 moedas, até 3 por dia). A compra Remover anúncios (dinheiro de verdade, na Loja; Restaurar compras nas Configurações) tira os anúncios entre partidas, e os com prêmio continuam. Banner (13/11): no topo do Menu e do Resultado; sai com Remover anúncios. A tabela abaixo resume como ficou. Itens (implementados entre 28/10 e 09/11): padrões de botão para o jogador escolher, além das cores do time, desenhados pelo usuário, alguns grátis e os outros comprados com moedas na Loja. Só visual, sem mudar a física. Em camadas: a base em cinza leva a cor do time e o padrão em cinza (listras, faixa, estrela, borda) leva a segunda cor do time (o anel), para cada padrão servir para qualquer time; os dois times precisam continuar fáceis de distinguir em campo. Sem escudos ou marcas de clubes reais (licença). Loja (pensada em 28/10, implementada em 05/11, botão Loja no Menu): abas Botão, Goleiro, Bola, Mesa e Feltro; o que foi comprado passa a aparecer no Meu time e na Seleção de times. Depende do sistema de save (o que foi liberado fica guardado no aparelho) e, no Android, das compras no app; no itch não há compras. Moedas e desbloqueáveis (04/11, implementados em 05/11): o campo vira tema em duas partes, a borda (mesa) e o feltro (cor/padrão), e a bola também virou item (ver Guia de arte: cenário). Cada item é um asset com nome, arte, preço em moedas e se já vem liberado (a Mesa Clássica, a bola Clássica e quatro feltros vêm liberados); o save guarda as moedas, os itens liberados e o tema escolhido. As moedas só se ganham jogando, não há pacote de moedas à venda (dinheiro de verdade só para remover anúncios). Partida solo contra a IA terminada paga, no Médio, 10 pela vitória, 5 pelo empate e 2 pela derrota; Fácil paga metade, Difícil +20% e o nível Pro +50%, arredondando para cima (Fácil 5/3/1, Médio 10/5/2, Difícil 12/6/3, Pro 15/8/3). Partida abandonada e 2 jogadores não pagam. O torneio paga mais: por partida e um prêmio no fim, conforme o asset de cada competição (ver Torneio e liga).</p>
 <div class="docs-table-wrap"><table class="docs-table"><thead><tr>
 <th>Formato</th>
@@ -1072,7 +1075,7 @@ figcaption,
 </tbody></table></div>
 <p>SDK: Google AdMob (decidido em 12/11), com as regras de Famílias do Google Play; a compra usa o Unity IAP.</p>
 </section>
-<section class="docs-section" id="escopo-do-mvp-e-roadmap" data-title="Escopo do MVP e roadmap"><h3>Escopo do MVP e roadmap</h3>
+<section class="docs-section" id="gdd-escopo-do-mvp-e-roadmap" data-title="Escopo do MVP e roadmap"><h3>Escopo do MVP e roadmap</h3>
 <p>O MVP é uma partida completa contra a IA ou entre 2 jogadores, jogável no navegador pelo itch.io.</p>
 <ol>
 <li><strong>Protótipo de física:</strong> mesa, 1 botão, bola, gol, goleiro e peteleco com mouse, com times de cores. Meta: o chute ser divertido sozinho. Abre direto no gameplay, mas já como uma Activity do framework.</li>
@@ -1089,7 +1092,7 @@ figcaption,
 <li><strong>Coleta de informações das partidas:</strong> sem dados pessoais, só dados das partidas, para entender o desempenho do jogo e se as pessoas estão jogando. Feito com Firebase Analytics e Crashlytics.</li>
 </ul>
 </section>
-<section class="docs-section" id="riscos" data-title="Riscos"><h3>Riscos</h3>
+<section class="docs-section" id="gdd-riscos" data-title="Riscos"><h3>Riscos</h3>
 <div class="docs-table-wrap"><table class="docs-table"><thead><tr>
 <th>Risco</th>
 <th>Mitigação</th>
@@ -1105,14 +1108,414 @@ figcaption,
 </section>
         </article>
       </section>
+
+      <section id="docs-panel-tecnico" class="docs-document" role="tabpanel" aria-labelledby="docs-tab-tecnico" data-document="tecnico" data-document-title="Documentação técnica" hidden>
+        <article class="docs-content">
+          <header id="tecnico-titulo" class="docs-page-header docs-gdd-hero">
+            <p class="docs-kicker">Documentação técnica</p>
+            <h2>Pro Gol! - Documentação técnica</h2>
+            <p>Nov 23, 2026 · @Immersive Games</p>
+            <p>Original: <a href="https://claude">Claude Doc</a> · cópia: <a href="Tecnico.md">Tecnico.md</a></p>
+            <div class="docs-gdd-meta" aria-label="Dados do documento"><span class="docs-badge">Português</span><span class="docs-badge">Claude Doc rev 37</span><span class="docs-badge">Exportado em 23/11/2026</span></div>
+          </header>
+<section class="docs-section" id="tecnico-visao-geral" data-title="Visão geral"><h3>Visão geral</h3>
+<p>O jogo tem cerca de 28 mil linhas de C# em 166 arquivos dentro de <code>Assets/_Game/Scripts</code> (assembly <code>FutebolDeBotao</code> e os dois de editor), mais 4 arquivos em <code>Assets/_Game/Lojas</code> que ligam os SDKs do Google e 5 arquivos de teste em <code>Assets/_Game/Tests</code>. Esta documentação descreve o código do commit 123f156 (23/11/2026, versão 0.1.1, código 18, a do teste aberto). A primeira versão do doc (18/11) foi escrita antes da etapa 3 da otimização, que reorganizou partida, torneio, save e telas; esta revisão já descreve a estrutura nova.</p>
+<p><strong>Quatro assemblies do jogo e um de ligação:</strong></p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Assembly</th>
+<th>Onde</th>
+<th>O que tem</th>
+</tr></thead><tbody>
+<tr><td>FutebolDeBotao</td><td>Scripts/</td><td>Todo o jogo: partida, IA, telas, save, torneio, loja. Não conhece nenhum SDK do Google.</td></tr>
+<tr><td>FutebolDeBotao.Editor</td><td>Scripts/Editor/</td><td>Menus de editor (Aplicar artes, Inspectors com prévia, janela de textos, atalhos de teste).</td></tr>
+<tr><td>FutebolDeBotao.Editor.Framework</td><td>Scripts/Editor/Framework/</td><td>Geradores de cena e de assets do framework (Criar telas, Criar jogadores, Criar áudio, câmera).</td></tr>
+<tr><td>FutebolDeBotao.Tests</td><td>Tests/Editor/</td><td>Testes automáticos EditMode (Test Runner da Unity).</td></tr>
+<tr><td>Assembly-CSharp</td><td>Lojas/</td><td>AdMob, Firebase, Play Games e Unity IAP. Cada arquivo implementa uma interface do jogo (IAdsProvider, IStoreProvider, IPlayGamesBackend) e se registra na abertura.</td></tr>
+</tbody></table></div>
+<p>Essa separação é boa: o jogo compila e roda no editor e no WebGL sem os SDKs, usando provedores simulados.</p>
+<p><strong>Pastas de Scripts:</strong></p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Pasta</th>
+<th>Arquivos</th>
+<th>Linhas</th>
+<th>Papel</th>
+</tr></thead><tbody>
+<tr><td>Screens</td><td>25</td><td>6.490</td><td>Telas: Menu, Seleção de times, Resultado, Torneio, Meu time, Loja, Estatísticas, Configurações, navegação por teclado/controle e a fábrica UiKit.</td></tr>
+<tr><td>Editor (+ Framework)</td><td>21</td><td>4.247</td><td>Geradores, Inspectors e janelas.</td></tr>
+<tr><td>Ai + Ai/Goals</td><td>15</td><td>3.542</td><td>IA por objetivos, planejador de chutes e simulador de física.</td></tr>
+<tr><td>Match</td><td>22</td><td>3.112</td><td>Regras e estado da partida (MatchController em 11 arquivos parciais), sessão entre telas (MatchSession), times e opções.</td></tr>
+<tr><td>Art</td><td>12</td><td>1.502</td><td>Mesa, trave, feltro, camisas, bolas, Color Palette e mesa da partida (Venue).</td></tr>
+<tr><td>Input</td><td>12</td><td>1.477</td><td>Mira, joystick, goleiro, dispositivos por jogador.</td></tr>
+<tr><td>Hud</td><td>5</td><td>1.386</td><td>HUD da partida, fogos, texto ondulado, destaque da vez.</td></tr>
+<tr><td>Save</td><td>7</td><td>1.284</td><td>SaveData, GameSave, SaveFlusher, perfil, estatísticas, loja, financeiro.</td></tr>
+<tr><td>Tournament</td><td>8</td><td>1.198</td><td>Torneio e liga (5 arquivos parciais), configuração, placares sorteados.</td></tr>
+<tr><td>Physics</td><td>14</td><td>1.093</td><td>Botão, bola, goleiro, paredes, monitor de movimento, lados do campo.</td></tr>
+<tr><td>Tutorial</td><td>3</td><td>748</td><td>Lições, textos e o diretor dentro da partida.</td></tr>
+<tr><td>Monetization</td><td>7</td><td>554</td><td>Anúncios, idade, compras, patrocínio.</td></tr>
+<tr><td>PlayGames</td><td>4</td><td>479</td><td>Login, nuvem, conquistas.</td></tr>
+<tr><td>Players</td><td>3</td><td>441</td><td>Jogadores do framework (Join/Leave, bloqueios, Actor).</td></tr>
+<tr><td>Audio, Localization, Analytics, Dev</td><td>3, 3, 1, 1</td><td>679</td><td>Sons, idiomas, eventos do Firebase, tecla F12 de captura.</td></tr>
+</tbody></table></div>
+<p><strong>Pacotes:</strong> Immersive Framework 1.1.0 (rotas, Activity, pausa, reiniciar, jogadores, Progression Save), Foundation por commit (igual à 0.2.2), Audio 0.2.3, Logging 0.2.3, Pooling 0.2.2; Unity Input System 1.19, uGUI, Cinemachine 3.1.7, Tilemap, Unity IAP 5.4.4, Test Framework 1.7 e o External Dependency Manager do Google. Os pacotes sem uso saíram do manifest em 18/11. O framework 1.2.0 (15/11) fica para depois do teste aberto: ele não corrige o Leave depois de abandonar a partida (ver Jogadores no framework).</p>
+<p><strong>Cenas:</strong> Abertura, Menu, Partida, Resultado e PersistentContent (o que fica vivo entre rotas). Os assets do framework (GameApplication, rotas, Activity Jogo, jogadores, câmera) ficam em <code>_Game/App</code>; opções, formações, física e traves em <code>_Game/Data</code>; o que é carregado em tempo de jogo fica em <code>_Game/Resources</code> (times, torneios, IA, mesas, feltros, camisas, bolas, Color Palette, idiomas).</p>
+<p><strong>Padrões que se repetem no código:</strong></p>
+<ul>
+<li><strong>Classes estáticas como serviços:</strong> MatchSession, GameSave, Tournament, Shop, Finance, PlayerStats, Txt, Ads, PlayGames. São globais e guardam estado entre cenas.</li>
+<li><strong>Classes parciais por assunto:</strong> as classes grandes (MatchController, Tournament, MatchHud) ficam divididas em arquivos com o nome do assunto (<code>MatchController.Penaltis.cs</code>, <code>Tournament.Tabela.cs</code>).</li>
+<li><strong>ScriptableObjects como dados ajustáveis:</strong> times, torneios, níveis da IA, opções, mesas, traves, feltros, camisas, bolas, paleta. O usuário cria itens novos sem código, com prévia no Inspector.</li>
+<li><strong>UI montada por código</strong> pela fábrica <code>UiKit</code>: as telas do framework vêm do gerador "Criar telas"; as telas mais novas (Meu time, Loja, Configurações, Estatísticas, Torneio) se montam sozinhas em tempo de jogo.</li>
+<li><strong>Comentários em português</strong> com <code>&lt;summary&gt;</code> em quase toda classe e método público, o que ajuda muito a manutenção.</li>
+</ul>
+</section>
+<section class="docs-section" id="tecnico-fluxo-do-jogo-e-telas" data-title="Fluxo do jogo e telas"><h3>Fluxo do jogo e telas</h3>
+<p>O jogo tem quatro rotas do framework (Abertura, Menu, Partida e Resultado), e quase toda a navegação acontece em painéis dentro da cena do Menu. O que passa de uma rota para outra fica na classe estática <strong>MatchSession</strong>.</p>
+<p><strong>Abertura do aplicativo</strong> (sem cena, por <code>RuntimeInitializeOnLoadMethod</code>):</p>
+<ol>
+<li>Antes da primeira cena: <code>GameSave</code> lê o save, <code>MobileSettings</code> acerta a taxa de quadros e a tela, e <code>FirebaseServices</code> e <code>AdMobAds</code> (Lojas) se registram.</li>
+<li>Depois da primeira cena: <code>Ads</code>, <code>ScreenFit</code>, <code>GameVolume</code>, <code>UnityIapStore</code>, <code>GooglePlayGamesBackend</code> e <code>ScreenshotKey</code> (só editor) se ligam.</li>
+</ol>
+<p><strong>Rotas e telas:</strong></p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Rota</th>
+<th>Script principal</th>
+<th>O que acontece</th>
+</tr></thead><tbody>
+<tr><td>Abertura</td><td>TitleScreen</td><td>Mostra o nome; qualquer tecla, clique ou toque pede a rota do Menu.</td></tr>
+<tr><td>Menu</td><td>MenuScreen + painéis</td><td>Primeira tela (Jogar, Meu time, Loja, Configurações, Sair), painel Jogar, Controles (DeviceSelectionScreen), Opções, Seleção de times (TeamSelectionScreen), Torneio/Liga (TournamentScreen), Meu time (ProfileScreen), Loja (ShopScreen), Estatísticas (StatsScreen), pergunta do tutorial.</td></tr>
+<tr><td>Partida</td><td>MatchController + MatchHud</td><td>A Activity "Jogo" do framework. Pausa (PauseMenu) e Reiniciar são do framework.</td></tr>
+<tr><td>Resultado</td><td>ResultScreen</td><td>Placar, tabela dos times, página Premiação; Jogar de novo, Menu ou Avançar (torneio).</td></tr>
+</tbody></table></div>
+<p><strong>Telas por cima de tudo</strong>, montadas por código com <code>OverlayUi</code>: Configurações, idade (AgeScreen), diálogos (MessageDialog, cujo painel cresce com o texto da mensagem) e o anúncio simulado. Enquanto uma está aberta, <code>OverlayUi.PauseNavigators</code> desliga os outros menus para a mesma tecla não mexer nos dois.</p>
+<p><strong>Caminho de uma partida única:</strong> Jogar → Partida única → Controles (só com mais de um dispositivo) → Opções → Seleção de times → <code>MenuPlayers</code> coloca os jogadores na sessão do framework → rota Partida → rota Resultado → Jogar de novo (mesma mesa) ou Menu. O torneio e a liga passam pela chave (TournamentScreen) e voltam a ela pelo Avançar do Resultado (<code>MatchSession.OpenTournament</code>). O tutorial vai dos Controles direto para a Partida.</p>
+<p><strong>MatchSession guarda entre as rotas:</strong></p>
+<ul>
+<li>Modo (<code>VsAi</code>), nível da IA, dispositivos dos jogadores e se dividem o mesmo dispositivo.</li>
+<li>Opções: uma cópia em memória do asset <code>OpcoesDaPartida</code> (o asset nunca muda); o torneio e o tutorial têm a sua própria cópia.</li>
+<li>Times por lado (índice no catálogo ou -1 = Meu time), uniforme, esquemas de 3 e 5 botões, camisas sorteadas para a IA.</li>
+<li>Mesa de casa e de visitante (<code>VenueSetup</code>: mesa, feltro, cor da trave, bola), resultado e números da última partida.</li>
+<li>Estado do torneio na tela (<code>TournamentSetup</code>, <code>InTournamentMatch</code>, <code>TournamentId</code>, <code>LeagueId</code>, <code>LeagueLegs</code>).</li>
+</ul>
+<p><strong>Jogadores no framework:</strong> <code>MenuPlayers</code> faz o Join/Leave das vagas antes da partida (contra a IA só o Jogador 1; dois jogadores com dispositivos diferentes, os dois; no mesmo dispositivo, ninguém, e a partida lê os dispositivos direto). Na partida, <code>MatchPlayers</code> bloqueia quem não é da vez e, antes de sair, pede para soltar todos os bloqueios e espera até 1,5 s que eles soltem. <code>CoachActor</code> é o Actor de cada jogador e lê o mapa de comandos "Jogo".</p>
+<p><strong>Contorno do Leave (20/11).</strong> No framework 1.1.0, depois de abandonar uma partida o Leave no Menu falhava ("could not restore gameplay after releasing the consumer block") e o Join seguinte dava <code>RejectedDeviceAlreadyOwned</code>: o <code>UnityPlayerInputGateAdapter</code> guardava "mapa desligado" como o estado de antes do bloqueio. Por isso <code>MenuPlayers.AlignGameplayMaps</code> restaura o adaptador, liga o mapa de gameplay e reaplica o portão antes do Leave; se o Leave falhar, alinha de novo e tenta mais uma vez. A 1.2.0 não mexe nesse código: não tirar o contorno enquanto o framework não corrigir (avisar o Renato).</p>
+<p><strong>Navegação por teclado e controle:</strong> cada painel tem um <code>MenuNavigator</code> com a lista de <code>MenuEntry</code> (botão ou linha de opção com setas). Com dono (Jogador 1 ou 2), só o dispositivo dele navega; a moldura amarela só aparece com teclado ou controle.</p>
+</section>
+<section class="docs-section" id="tecnico-partida" data-title="Partida"><h3>Partida</h3>
+<p>A partida inteira é uma máquina de estados dentro de <strong>MatchController</strong>, um componente que recebe a entrada e a saída da Activity "Jogo" do framework (<code>IActivityContentLifecycleReceiver</code>). Desde 18/11 a classe é parcial e fica dividida em 11 arquivos por assunto (2.017 linhas no total), todos na pasta <code>Match</code>:</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Arquivo</th>
+<th>Assunto</th>
+</tr></thead><tbody>
+<tr><td>MatchController.cs (415)</td><td>Estado, vez, toques, relógio, placar, mensagens e avisos que param o jogo.</td></tr>
+<tr><td>.Inicio (228)</td><td>Activity do framework, peças, opções, gol sem goleiro, IA, tutorial e saída de bola.</td></tr>
+<tr><td>.Movimento (155)</td><td>Peteleco, bola e botões andando, fim da jogada (<code>OnSettled</code>) e troca de vez.</td></tr>
+<tr><td>.ProGol (101)</td><td>Aviso de chute a gol e o goleiro do defensor.</td></tr>
+<tr><td>.Gol (152)</td><td>Bola na rede, gol contra, gol anulado e reinício.</td></tr>
+<tr><td>.Falta (134)</td><td>Quem fez a falta, cartões e W.O.</td></tr>
+<tr><td>.BolaParada (372)</td><td>Tiro livre e pênalti: batedor, pênalti escondido, lugar livre.</td></tr>
+<tr><td>.TiroDeMeta (157)</td><td>Posicionar a bola e chutar no tiro de meta, e o recuo para o goleiro.</td></tr>
+<tr><td>.Penaltis (114)</td><td>Disputa de pênaltis.</td></tr>
+<tr><td>.Fim (91)</td><td>Resultado, estatísticas, moedas, conquistas, Analytics e torneio; atalhos do menu Teste.</td></tr>
+<tr><td>.Tutorial (98)</td><td>Ganchos do tutorial (montar a jogada da lição, avisos para o diretor).</td></tr>
+</tbody></table></div>
+<p><strong>Estados (<code>MatchState</code>):</strong></p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Estado</th>
+<th>Quem age</th>
+<th>Sai quando</th>
+</tr></thead><tbody>
+<tr><td>Waiting</td><td>ninguém</td><td>a Activity entra (<code>StartMatch</code>)</td></tr>
+<tr><td>KickOff</td><td>ninguém</td><td>na mesma hora: formação, bola no centro, vai para Aim</td></tr>
+<tr><td>Aim</td><td>time da vez mira</td><td>peteleco (Moving), Pro Gol! (ShotCall), tempo da mira (passa a vez) ou relógio zerado (fim)</td></tr>
+<tr><td>ShotCall</td><td>defensor ajusta o goleiro</td><td>Pronto ou tempo: ShotAim, ou bola do goleiro</td></tr>
+<tr><td>ShotAim</td><td>atacante chuta</td><td>peteleco (Moving)</td></tr>
+<tr><td>PenaltySetup</td><td>batedor gira em volta da bola</td><td>Pronto ou tempo: tiro livre vira Aim; pênalti vira ShotCall</td></tr>
+<tr><td>GoalKick</td><td>defensor move a bola e chuta direto nela</td><td>chute (Moving)</td></tr>
+<tr><td>Moving</td><td>ninguém</td><td><code>MotionMonitor.Settled</code> (tudo parado), gol ou falta</td></tr>
+<tr><td>Goal</td><td>aviso de gol</td><td>pausa: saída, tiro de meta ou próxima cobrança</td></tr>
+<tr><td>End</td><td>placar final</td><td>pausa: rota do Resultado</td></tr>
+</tbody></table></div>
+<p><strong>Como uma jogada é decidida.</strong> O <code>AimController</code> avisa <code>Flicked</code> (botão) ou <code>BallKicked</code> (tiro de meta); o estado vira Moving. Quando o <code>MotionMonitor</code> diz que tudo parou, <code>OnSettled</code> decide em ordem: relógio zerado (fim), bola na área do goleiro (<code>KeeperBall.Owner</code>, tiro de meta; se a jogada foi do próprio time é recuo: sem toque sobrando a bola fica onde parou, com toque o goleiro chuta), ninguém tocou ("Errou!"), adversário tocou por último, chute anunciado que não entrou ("Pra fora!"), sobrou toque (volta para Aim) ou acabaram os toques.</p>
+<p><strong>Gol.</strong> <code>GoalTrigger</code> avisa quando a bola passa inteira da linha. <code>OnBallEntered</code> decide se vale: gol contra se quem jogou defende aquele gol; gol normal só com Pro Gol! (sem goleiro: chute do campo de ataque); parede lateral anula, a menos que a opção "Gol após tocar a parede" seja Válido.</p>
+<p><strong>Faltas.</strong> O <code>Disc</code> levanta três eventos: <code>Fouled</code> (o botão do peteleco acertou adversário antes da bola), <code>HitOpponent</code> (companheiro empurrado acertou adversário) e <code>HitOpponentKeeper</code>. <code>CommitFoul</code> congela a mesa, decide pênalti (vítima na área do defensor) ou tiro livre, e aplica cartão se a vítima estava a mais de <code>farFoulDistance</code> (3,5) da bola no começo da jogada. O segundo cartão tira o botão; sem botões, <code>Walkover</code>.</p>
+<p><strong>Bola parada:</strong></p>
+<ul>
+<li><strong>Tiro livre</strong> (<code>SetupFreeKick</code>): a bola vai ao lugar da falta, quem fez a falta volta à formação e quem estiver na roda do batedor é empurrado para o lugar livre mais perto (<code>FindFreeSpot</code>, busca em anéis de 0,15 até 8 unidades, 24 direções).</li>
+<li><strong>Pênalti</strong> (<code>SetupPenalty</code>): bola na marca, atacantes na formação, defensores espalhados na linha do meio. Com goleiro é o <strong>pênalti escondido</strong>: <code>BeginPenaltyChoice</code> decide quem escolhe primeiro (contra a IA, a IA), e <code>UpdatePenaltyCover</code> desenha a faixa preta por cima de quem já escolheu.</li>
+<li><strong>Tiro de meta</strong> (<code>SetupGoalKick</code>): todos na formação, bola na frente do goleiro; o jogador arrasta a bola para os lados (<code>MoveGoalKickBall</code>, anda de 0,02 em 0,02 até encostar num botão) e depois chuta.</li>
+</ul>
+<p><strong>Fim, prorrogação e pênaltis.</strong> <code>EndMatch</code> olha o empate: prorrogação (se ligada e ainda não jogada), depois disputa (se ligada e com goleiro). Na disputa só ficam ativos o batedor (revezando os botões que estavam em campo) e o goleiro de quem defende; <code>ShootoutWinner</code> encerra quando um lado não alcança mais ou, na morte súbita, quando um faz mais com o mesmo número de cobranças.</p>
+<p><strong>Avisos que param o jogo.</strong> <code>Hold()</code> trava controles, relógio e IA por <code>noticeHoldSeconds</code> (3 s) depois de falta, cartão, pênalti, gol e bola do goleiro. As mensagens ficam em <code>Message</code> com um contador de versão (<code>MessageVersion</code>) que o HUD observa.</p>
+<p><strong>Registro no fim</strong> (<code>RecordStats</code>): números dos dois times para o Resultado (<code>MatchSession.LastMatchNumbers</code>), estatísticas e moedas do jogador (<code>PlayerStats.Finish</code>), conquistas, Analytics e o resultado do jogo do torneio (<code>Tournament.RecordPlayerMatch</code>). Sair antes do fim conta abandono (<code>OnActivityContentExited</code>).</p>
+<p><strong>Dados da partida:</strong></p>
+<ul>
+<li><code>MatchOptions</code> (asset <code>Data/OpcoesDaPartida</code>): duração, toques, faltas, prorrogação, pênaltis, botões, goleiro e largura, tempos de mira, goleiro e batedor, arco e lados do pênalti, tempos de aviso.</li>
+<li><code>FieldLayout</code>: medidas do campo em constantes (7 x 11, gol 2,4 x 0,8, área 4 x 1,5, marca do pênalti, círculo central) e funções de lado e direção de ataque.</li>
+<li><code>Formation</code> (assets <code>Formacao 3</code> e <code>Formacao 5</code> e os esquemas do catálogo): posições do lado de baixo, espelhadas para o de cima.</li>
+<li><code>KeeperBall</code>: a regra de "bola do goleiro" (caixa do goleiro + 0,15 para os lados e 0,2 para a frente, e o espaço até o gol).</li>
+<li><code>TeamData</code>, <code>TeamCatalog</code> e <code>TeamUniform</code>: times, siglas, dois uniformes e o catálogo (<code>Resources/Times/_CatalogoDeTimes</code>, carregado uma vez e guardado).</li>
+</ul>
+<p>A IA e o tutorial entram como componentes adicionados na hora: <code>ConfigureAi</code> põe um <code>AiPlayer</code> no time de cima contra a IA, e <code>ConfigureTutorial</code> põe o <code>TutorialDirector</code>, que recebe as jogadas pelos métodos <code>Tutorial*</code> e por <code>OnPlayEnded</code>/<code>OnGoal</code>/<code>OnFoul</code>.</p>
+</section>
+<section class="docs-section" id="tecnico-fisica-input-e-camera" data-title="Física, input e câmera"><h3>Física, input e câmera</h3>
+<p>A mesa usa a física 2D da Unity sem gravidade, e todos os números de sensação ficam num asset só, <strong>PhysicsTuning</strong> (<code>Data/PhysicsTuning</code>): massa e amortecimento de botão e bola, quique, atrito, impulso máximo, arrasto máximo e mínimo, quique das paredes, empurrão das paredes e do canto, velocidade e tempo de repouso, velocidade do goleiro.</p>
+<p><strong>Peças da mesa (pasta Physics):</strong></p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Script</th>
+<th>Papel</th>
+</tr></thead><tbody>
+<tr><td>Disc</td><td>Botão: recebe o impulso (<code>Flick</code>), detecta falta (acertar adversário ou goleiro antes da bola) e toque na bola, guarda a velocidade antes do passo para a batida da bola.</td></tr>
+<tr><td>Ball</td><td>Bola sem atrito: guarda quem tocou por último, a lista de batidas da jogada (até 16, para o log), se tocou a parede lateral; para dentro da rede depois do gol.</td></tr>
+<tr><td>BallRebound</td><td>Faz a bola rebater no botão parado como numa parede (o botão não se mexe). Usado pelo jogo e pela simulação da IA.</td></tr>
+<tr><td>Goalkeeper</td><td>Goleiro cinemático que só desliza em X, com velocidade limitada; para encostado no que estiver no caminho, nunca empurra. <code>SetWidth</code> estica a arte.</td></tr>
+<tr><td>Wall, WallElastic, WallRepulsion</td><td>Paredes: marcação (lateral anula gol), quique com ganho, e um empurrão suave para nada ficar parado encostado (mais forte no canto).</td></tr>
+<tr><td>GoalTrigger</td><td>Avisa quando a bola passa inteira da linha do gol.</td></tr>
+<tr><td>MotionMonitor</td><td>Olha botões e bola a cada passo de física e avisa <code>Settled</code> quando tudo fica abaixo de <code>restSpeed</code> por <code>restTime</code> (0,3 s).</td></tr>
+<tr><td>BallVisual</td><td>Desenho da bola: quadros de rolagem pela distância, 8 direções, camada de cor por baixo dos quadros (criada na hora), luz e sombra paradas, rastro quando rápida.</td></tr>
+<tr><td>TableImpacts</td><td>Evento estático de batidas (botão, bola, parede, goleiro) com a velocidade, para os sons.</td></tr>
+</tbody></table></div>
+<p><strong>Input (pasta Input).</strong> O peteleco nasce no <strong>AimController</strong>: com mouse é arrastar do botão para trás; com toque, um botão fica escolhido e o arrasto pode começar em qualquer lugar; com teclado ou controle, um cursor anda entre os botões e a mira abre apontando para a bola. No toque, a direção do chute é a de 0,08 s antes de soltar o dedo (o histórico fica numa fila). A IA usa a mesma mira (<code>BeginScripted</code>, <code>SetScripted</code>, <code>ReleaseScripted</code>), então o jogador vê a mira dela.</p>
+<ul>
+<li><strong>AimVisuals</strong> desenha a faixa de força (arte Power_Rings ou uma textura feita em código), a mira de bolinhas e a linha prevista da bola, conforme a Ajuda de mira.</li>
+<li><strong>TouchJoystick</strong> é só visual: o círculo e a bolinha onde o dedo encostou.</li>
+<li><strong>GoalkeeperControl</strong> move o goleiro do defensor no Pro Gol! (arrasto, A/D, analógico).</li>
+<li><strong>TeamInput</strong> define <code>ITeamInput</code>, a interface de comandos de um time; <code>MatchInput.For(side)</code> devolve o <code>CoachActor</code> do lado (jogador do framework) ou um <code>DeviceTeamInput</code> que lê os dispositivos direto (dois jogadores revezando).</li>
+<li><strong>ControlsDefinition</strong> é a fonte única das teclas: o "Criar jogadores" grava o <code>Controles.inputactions</code> a partir dela, e o modo sem técnico monta as mesmas ações em tempo de jogo.</li>
+<li><strong>DeviceChoice</strong> guarda o dispositivo de cada jogador (tela Controles), o dono de cada dispositivo e quem pausou; <strong>PadMode</strong> sabe se o último comando veio de teclado/controle; <strong>AndroidBack</strong> entrega o Voltar do Android a um só dono por quadro; <strong>UiPointer</strong> impede que um toque no HUD vire mira.</li>
+</ul>
+<p><strong>Câmera e tela.</strong> A câmera nasce do Camera Output do framework depois que a cena carrega, por isso <code>WorldCamera.Resolve</code> procura de novo até ela existir. <strong>ScreenFit</strong> roda em todas as cenas e acerta o tamanho ortográfico para caber a mesa e as duas faixas de HUD na largura da tela (tela em pé) ou só a mesa (tela deitada). <strong>MobileSettings</strong> põe 60 quadros por segundo no celular e mantém a tela acesa durante a partida.</p>
+</section>
+<section class="docs-section" id="tecnico-ia" data-title="IA"><h3>IA</h3>
+<p>A IA decide cada toque por objetivos numa ordem fixa e testa as jogadas numa cópia invisível da mesa, com física própria; depois chuta pelo mesmo <code>AimController</code> do jogador, então segue exatamente as mesmas regras. São 15 arquivos e cerca de 3.500 linhas em <code>Scripts/Ai</code>.</p>
+<p><strong>As peças:</strong></p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Script</th>
+<th>Papel</th>
+</tr></thead><tbody>
+<tr><td>AiPlayer (658 linhas)</td><td>Componente que a partida põe no time de cima. Na vez da IA roda corrotinas: o toque (<code>PlayTouch</code>), o goleiro no Pro Gol! do jogador (<code>PlaceKeeper</code>/<code>BestKeeperX</code>), o batedor no tiro livre e pênalti (<code>SetUpKicker</code>) e a bola do tiro de meta (<code>PlaceGoalKickBall</code>). Mostra a mira antes de soltar e aplica o erro do nível.</td></tr>
+<tr><td>AiSituation</td><td>Fatos lidos uma vez no começo do toque: bola, toques, se há chute livre, placar, tempo.</td></tr>
+<tr><td>AiBrain (560 linhas)</td><td>Decide: monta a ordem dos objetivos (<code>Plan</code>), simula as jogadas de cada ação, dá nota, testa o erro nas melhores e sorteia entre as melhores seguras. Lembra as jogadas de saída já usadas.</td></tr>
+<tr><td>AiGoal + Goals/</td><td>Os objetivos: ScoreGoal (Marcar), ClearDangerGoal (Afastar), PrepareShotGoal (Preparar), ProtectGoal (Proteger), CloseGoalGoal (Fechar o gol). Cada um tem uma conta só (<code>Score</code>).</td></tr>
+<tr><td>AiAction</td><td>O que dá para fazer num toque (peteleco, chute na bola, posicionar, anunciar Pro Gol!), com pré-condição e as jogadas candidatas.</td></tr>
+<tr><td>ShotPlanner (862 linhas)</td><td>O cérebro sem física: gera jogadas pela geometria (como sinuca), confere o caminho com CircleCast, sabe se há chute livre, quantos botões têm chute, as ameaças do adversário, e dá nota ao resultado. Tem o modo pênalti (forças e alvos próprios).</td></tr>
+<tr><td>ShotSimulator (400 linhas)</td><td>A mesa invisível: copia paredes, botões, bola e goleiros numa <code>PhysicsScene2D</code> separada e simula um peteleco por até 4 s de jogo em passos de <code>fixedDeltaTime</code>. Refaz o rebote da bola e o quique das paredes; o empurrão suave das paredes fica de fora.</td></tr>
+<tr><td>AiDifficulty</td><td>Números de cada nível (<code>Resources/IA</code>: Facil, Medio, Dificil, Pro): botões testados, simulações, escolha entre as N melhores, falta aceita, planejar o toque seguinte, chance e tamanho do erro, distância do Pro Gol!, erro e chutes considerados pelo goleiro, pausas. Sem asset, usa números do código.</td></tr>
+<tr><td>AiProfile</td><td>Perfis Ofensivo, Equilibrado e Defensivo (<code>Resources/IA/Perfis</code>), escolhidos pelo esquema; mexem só na distância do Pro Gol! e no risco de falta. Nos 25% finais o placar puxa o perfil.</td></tr>
+<tr><td>AiLog</td><td>Uma linha no console por toque e, só no editor, um CSV por partida em <code>Logs/IA</code> com fatos, objetivos, jogada, nota esperada e o que aconteceu. Fora do editor (AiLog.Enabled falso) os textos do log nem são montados.</td></tr>
+</tbody></table></div>
+<p><strong>Uma decisão, passo a passo:</strong></p>
+<ol>
+<li><code>AiPlayer.PlayTouch</code> espera a pausa de "pensar" e lê a <code>AiSituation</code>; o <code>AiBrain</code> sincroniza a mesa simulada com a de verdade (<code>ShotSimulator.Sync</code>).</li>
+<li><code>AiBrain.Decide</code> percorre os objetivos do plano. Para cada ação pede candidatos ao <code>ShotPlanner</code>, escolhe os que vão à mesa simulada (<code>Diversify</code>: primeiro a melhor de cada botão) e simula.</li>
+<li>As melhores jogadas são simuladas de novo com o erro de mira e de força para os dois lados, só para medir o risco (falta, gol contra, perder a bola); a nota continua a da jogada perfeita.</li>
+<li>No Preparar com 3 toques, Médio, Difícil e Pro imaginam também o toque seguinte (<code>FollowUp</code>) a partir de onde a jogada simulada parou.</li>
+<li>Fica no primeiro objetivo que aceitar uma jogada segura; sorteia entre as melhores (<code>pickAmongBest</code>).</li>
+<li>Na hora de chutar, sorteia se erra (<code>errorChance</code>) e quanto (<code>angleErrorDegrees</code>, <code>powerError</code>), mostra a mira e solta.</li>
+</ol>
+<p><strong>Custo e tempo.</strong> O <code>AiBrain</code> trabalha em corrotina com um orçamento de 4 ms por quadro (<code>FrameBudgetMs</code>, medido com <code>Stopwatch</code>): passou disso, espera o quadro seguinte. O goleiro e o tiro de meta testam uma posição por quadro. Cada mudança de estado da partida invalida a conta em andamento (<code>StateVersion</code>), para a IA nunca jogar uma decisão velha.</p>
+</section>
+<section class="docs-section" id="tecnico-hud-telas-e-arte" data-title="HUD, telas e arte"><h3>HUD, telas e arte</h3>
+<p>Toda a interface é uGUI montada por código, de dois jeitos: as telas mais antigas (Abertura, Menu, Opções, Seleção, Resultado, Pausa, HUD da partida) são geradas no editor pelo <strong>Criar telas</strong> (<code>ScreensBuilder</code>) e ficam salvas nas cenas; as mais novas (Meu time, Loja, Estatísticas, Configurações, Torneio, idade, diálogos) se montam sozinhas quando abrem. Por isso, mudou uma tela gerada, tem que rodar o Criar telas de novo.</p>
+<p><strong>UiKit</strong> (<code>Screens/UiKit.cs</code>, desde 18/11) é a fábrica única das peças: retângulo, texto, botão, botão escondido e imagem, já com a fonte do jogo, sombra, TextFit, tradução (<code>LocalizedText</code>) e a arte dos botões. As telas chamam a UiKit pelos seus métodos de sempre (CreateText, CreateButton), então mudar o estilo é mexer num lugar só.</p>
+<p><strong>HUD da partida (pasta Hud):</strong></p>
+<ul>
+<li><strong>MatchHud</strong> (783 linhas + <code>MatchHud.Tutorial.cs</code>): faixas por jogador na tela em pé (contra a IA, informações em cima e botões embaixo; dois jogadores, uma faixa girada para cada um), painel lateral na tela deitada, mensagens no meio do campo, placar da disputa de pênaltis e o balão do tutorial. Desde 18/11 só remonta um texto quando o valor dele muda e só acerta a câmera dos canvases quando a câmera troca.</li>
+<li><strong>TurnHighlight</strong>: o anel girando atrás dos botões que podem jogar, da bola no tiro de meta e do goleiro no Pro Gol!.</li>
+<li><strong>GoalFireworks</strong> e <strong>TextWave</strong>: fogos nas pontas da faixa de mensagem e o GOOOOOL! ondulando nas cores do time.</li>
+</ul>
+<p><strong>Peças comuns das telas:</strong> <code>ButtonSkin</code> (botões 9-slice da folha de UI em várias cores, guardados em <code>Resources/BotoesUI</code>), <code>ButtonSkinText</code>, <code>ButtonClickSound</code>, <code>GameFont</code> (a primeira fonte de <code>Resources/Fontes</code>), <code>TextFit</code> (diminui a fonte até 60% quando o texto não cabe), <code>MenuNavigator</code>/<code>MenuEntry</code> e <code>OverlayUi</code>.</p>
+<p><strong>Arte da mesa e das peças (pasta Art).</strong> A arte é desenhada em branco ou cinza e tingida no jogo, e cada item vendável é um ScriptableObject em Resources. A mesa antiga (Field_Sprites, madeira e moldura) saiu em 20/11; todas as mesas usam o formato novo.</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Item</th>
+<th>Script</th>
+<th>Onde ficam</th>
+<th>Como entra no jogo</th>
+</tr></thead><tbody>
+<tr><td>Mesa</td><td>TableTheme</td><td>Resources/Mesas</td><td>6 peças de placa desenhadas para a parede de cima (canto, parede, parede e canto do fundo do gol grande e do pequeno), cada uma com camada de cor opcional; Fill opcional por fora; recuo das paredes em pixels; a trave usada; preço e miniatura. <code>TableArt</code> gira e espelha as peças nos outros lados e acerta a colisão das paredes. Mesa incompleta usa a primeira completa (<code>TableTheme.Complete</code>).</td></tr>
+<tr><td>Trave</td><td>GoalFrameSet</td><td>Data/Traves</td><td>Esquerda e direita do gol grande e do pequeno, a peça do meio e as redes (opcionais), desenhadas para o gol de cima. A trave é pintada com a cor escolhida; a rede fica por cima da bola.</td></tr>
+<tr><td>Feltro</td><td>FeltTheme + FeltArt</td><td>Resources/Feltros</td><td>Padrão (Liso, Listrado, Meio a meio) com um dos tiles brancos (liso, gradiente, textura), pintados com as cores do item; cor das marcações; cores de trave aceitas. Sem feltro: verde listrado.</td></tr>
+<tr><td>Camisa</td><td>ShirtPattern + ShirtArt</td><td>Resources/PadroesCamisa</td><td><code>PieceArt</code> empilha as camadas (sombra, corpo, padrão, contorno, sombra interna, brilho); corpo na cor principal, padrão na segunda cor. O desenho nunca gira.</td></tr>
+<tr><td>Bola</td><td>BallTheme</td><td>Resources/Bolas</td><td>Quadros sem cor, camada de cor de cada quadro (fundo branco), luz e sombra; lista de cores aceitas. <code>BallVisual</code> monta as camadas; a cor é uma posição na paleta.</td></tr>
+<tr><td>Paleta</td><td>ColorPalette</td><td>Resources/ColorPalette</td><td>Lista única de cores (desde 19/11): cores do Meu time, traves, camadas das placas e cor da bola. O time guarda a cor; a mesa e a bola guardam o nome, então mudar a ordem não troca a escolha de ninguém.</td></tr>
+</tbody></table></div>
+<p><strong>Venue</strong> (<code>Art/Venue.cs</code>) junta mesa, feltro, cor da trave e bola com a cor dela numa <code>VenueSetup</code>: a de casa vem do Meu time, a de visitante é sorteada entre os itens liberados, com mesa e feltro diferentes dos de casa. Contra a IA a bola e a cor são sorteadas.</p>
+<p><strong>Prévias:</strong> <code>TablePreview</code> desenha a mesa em miniatura no Meu time e na Loja; os Inspectors de mesa, bola, camisa e time mostram a prévia no editor (mesa e bola aceitam vários selecionados), e as listas de cores aceitas viram um dropdown de marcar (<code>PaletteMaskInspector</code>).</p>
+</section>
+<section class="docs-section" id="tecnico-save-e-dados" data-title="Save e dados"><h3>Save e dados</h3>
+<p>Tudo o que o jogo guarda está num único objeto, <strong>SaveData</strong> (versão 14), gravado em JSON (<code>JsonUtility</code>) num slot do backend do Progression Save do framework (<code>progol.principal</code>, pasta ProGol). A gravação é segura: o framework escreve sem corromper se o aparelho desligar no meio.</p>
+<p><strong>O que tem no SaveData:</strong></p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Parte</th>
+<th>Conteúdo</th>
+<th>Vai para a nuvem</th>
+</tr></thead><tbody>
+<tr><td>settings</td><td>volumes, idioma, nível da IA, torneio e liga escolhidos, turnos, joystick</td><td>não</td></tr>
+<tr><td>options</td><td>últimas opções da partida</td><td>não</td></tr>
+<tr><td>players[2]</td><td>último time, uniforme e esquemas de cada jogador</td><td>não</td></tr>
+<tr><td>profile</td><td>Meu time (nome, sigla, dois uniformes, mesa de casa, cor da trave, bola e cor da bola) e as moedas</td><td>sim</td></tr>
+<tr><td>stats</td><td>total e por nível (4), última partida, partida em andamento, moedas ganhas e gastas</td><td>sim</td></tr>
+<tr><td>unlocked</td><td>itens comprados ("camisa:id", "bola:id", "mesa:id", "feltro:id")</td><td>sim</td></tr>
+<tr><td>tournament, league</td><td>o torneio e a liga em andamento (<code>TournamentRun</code>)</td><td>sim</td></tr>
+<tr><td>tutorial</td><td>lições feitas, bônus pago, se já perguntou</td><td>sim</td></tr>
+<tr><td>finance</td><td>totais por origem e as 30 últimas movimentações</td><td>sim</td></tr>
+<tr><td>achievements, weekly</td><td>conquistas guardadas e os pontos da semana</td><td>sim</td></tr>
+<tr><td>ads</td><td>ano de nascimento, anúncios removidos, contagem do intersticial, patrocínios do dia</td><td>não</td></tr>
+<tr><td>cloud</td><td>identificador e data do último envio, resumo do que foi sincronizado</td><td>controle</td></tr>
+</tbody></table></div>
+<p><strong>GameSave</strong> (estático) faz o resto:</p>
+<ul>
+<li><code>Load</code> roda antes da primeira cena: lê, converte (<code>Upgrade</code>), aplica as escolhas na <code>MatchSession</code> e conta como abandonada a partida que ficou no meio quando o jogo fechou.</li>
+<li><code>Save(motivo)</code> junta o estado da sessão (nível, opções, escolhas) e <strong>marca</strong> o save para gravar; <code>WriteOnly</code> marca sem juntar (o tutorial usa, para não virar a última escolha). Desde 18/11 nenhuma das duas grava na hora: o <code>SaveFlusher</code> (objeto escondido criado na primeira marcação) chama <code>Flush</code> no fim do quadro, quando o app vai para o fundo e quando o jogo fecha. Assim as 27 chamadas espalhadas pelo jogo viram no máximo uma gravação por quadro. Cada gravação avisa o Play Games que o save mudou.</li>
+<li><code>CloudJson</code>, <code>CloudHash</code>, <code>ParseCloud</code> e <code>ApplyCloud</code> preparam e aplicam o save da nuvem, deixando de fora o que é só do aparelho.</li>
+</ul>
+<p><strong>Versões e conversão.</strong> <code>Upgrade</code> primeiro completa o que faltar (listas nulas, níveis, perfil sem nome ou cor) e depois roda, em ordem, cada passo da lista <code>Migrations</code> mais novo que o save. Versão nova com conversão = um passo novo no fim da lista; versões sem passo só ganharam campos com padrão.</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Passo</th>
+<th>O que converte</th>
+</tr></thead><tbody>
+<tr><td>v2</td><td>Marca de partida em andamento.</td></tr>
+<tr><td>v4</td><td>Moedas ganhas e gastas (gastos pelo preço do que já foi comprado).</td></tr>
+<tr><td>v8</td><td>Cor reserva vira o Uniforme 2; sem reserva, as cores invertidas.</td></tr>
+<tr><td>v9</td><td>Financeiro: totais vindos das estatísticas.</td></tr>
+<tr><td>v10</td><td>Música Ligado/Desligado vira volume da música.</td></tr>
+<tr><td>v13</td><td>Cores da mesa passam a vir da Color Palette; o nome salvo da cor das traves acompanha.</td></tr>
+<tr><td>v14</td><td>Bolas em padrões: as bolas amarela e vermelha antigas viram a bola padrão nessas cores.</td></tr>
+</tbody></table></div>
+<p>Os campos antigos ficam num bloco marcado "Legado" em cada classe do save, só para essas conversões; o jogo não usa. Tirar um deles só com cuidado, porque um save antigo pode voltar pela nuvem.</p>
+<p><strong>Serviços em cima do save</strong> (todos estáticos): <code>PlayerProfile</code> (Meu time), <code>PlayerStats</code> (começo, fim e abandono de partida, Dobrar moedas), <code>Shop</code> (saldo, compras, recompensa por nível), <code>Finance</code> (ganhos, gastos e extrato), <code>Tutorial</code> e <code>Tournament</code>. Eles mexem em <code>GameSave.Data</code> direto e pedem <code>Save</code> no fim; como a gravação é uma só por quadro, pedir mais de uma vez não custa nada.</p>
+</section>
+<section class="docs-section" id="tecnico-torneio-liga-e-ranking-semanal" data-title="Torneio, liga e ranking semanal"><h3>Torneio, liga e ranking semanal</h3>
+<p>Torneio e liga são o mesmo sistema, a classe estática <strong>Tournament</strong>, com dois saves separados: <code>SaveData.tournament</code> e <code>SaveData.league</code>. A propriedade <code>Tournament.LeagueMode</code> diz com qual dos dois o Menu, a partida e o Resultado estão mexendo, e por isso dá para ter um de cada em andamento. Desde 18/11 a classe é parcial, em 5 arquivos na pasta <code>Tournament</code> (824 linhas): <code>Tournament.cs</code> (início, jogo do jogador, avanço, desistência), <code>.Tabela</code> (grupos e liga, classificação), <code>.MataMata</code> (chave), <code>.Premios</code> (colocação, prêmio, estatísticas e conquistas) e <code>.Sorteio</code> (times e placares sorteados). O ranking semanal também mudou para essa pasta (<code>WeeklyRanking.cs</code>).</p>
+<p><strong>Configuração.</strong> Cada competição é um <code>TournamentConfig</code> em <code>Resources/Torneios</code> (copa8, copa16, copa32, mundial16, liga10, liga20): formato (Mata-mata, Copa com grupos, Liga), número de times, tamanho do grupo e classificados, turnos, prêmios por colocação, multiplicadores de 2 turnos, peso no ranking, placares sorteados (<code>SimulatedScores</code>, asset <code>Placares</code>), prorrogação e troféus. O <code>TournamentConfigEditor</code> mostra só os campos que valem para o formato.</p>
+<p><strong>Ciclo de uma competição:</strong></p>
+<ol>
+<li><code>StartNew</code> guarda opções, nível e turnos, sorteia os times do catálogo (<code>slots</code>, o jogador é o -1) e monta os jogos: a chave do mata-mata, ou os grupos e a liga por rodízio (método do círculo, <code>RoundRobin</code>, com o mando invertido no 2º turno).</li>
+<li><code>PrepareMatch</code> prepara a sessão para o próximo jogo do jogador: opções do torneio, Meu time embaixo, adversário em cima com esquema e camisas sorteados, mesa do mandante.</li>
+<li>Ao fim da partida, <code>RecordPlayerMatch</code> grava o jogo, sorteia os outros da fase ou da rodada (<code>Simulate</code>), avança (<code>AdvanceGroups</code>, <code>BuildKnockoutFromGroups</code>, <code>AdvanceKnockout</code>) e, se o jogador terminou, chama <code>Finish</code>.</li>
+<li><code>Finish</code> calcula colocação e prêmio (<code>PrizeFor</code>), atualiza estatísticas, Financeiro, conquistas e o ranking semanal. <code>DoublePrize</code> paga de novo depois do anúncio.</li>
+<li>Sair no meio: <code>Forfeit</code> (no torneio é o fim dele; na liga só aquele jogo, por W.O.). <code>ResolveLeftover</code> trata a partida que ficou aberta quando o jogo fechou.</li>
+</ol>
+<p><strong>Tabela</strong> (<code>Table</code>): calculada na hora a partir dos jogos, com desempate por pontos, saldo, gols pró, confronto direto e um sorteio fixo pela semente da competição. Os jogos que o jogador não joga são sorteados só pelo peso de cada placar, sem levar em conta qual time é mais forte.</p>
+<p><strong>Tela</strong> (<code>TournamentScreen</code>, 724 linhas, montada em código): pergunta Continuar/Novo, chave com uma aba por fase, aba Grupos na copa, abas Tabela e Rodadas na liga, e a página final com troféu, colocação e moedas.</p>
+<p><strong>Ranking semanal</strong> (<code>PlayGames/WeeklyRanking.cs</code>): cada competição terminada vale colocação × fator do nível (Fácil 0,5, Médio 1, Difícil 1,5, Pro 2) × peso da competição, mais o saldo de gols (até +3 por partida, nunca negativo) e +10 por título logo depois de outro. Colocação no mata-mata: 1º 100, 2º 60, 3º 40, 4º 30, eliminado nas quartas ou depois 15, antes 8; na liga, 100/60/40/30, até a metade da tabela 15, abaixo 8; caiu nos grupos, 5. A semana soma os 10 melhores e vira de sábado para domingo no horário do Pacífico, como o ranking semanal do Google, então a pontuação enviada nunca diminui na semana.</p>
+</section>
+<section class="docs-section" id="tecnico-economia-loja-e-estatisticas" data-title="Economia, loja e estatísticas"><h3>Economia, loja e estatísticas</h3>
+<p>Tudo aqui é estático e mexe direto em <code>GameSave.Data</code>. Finance e AddCoins só mexem nos dados; quem chama pede o Save (a gravação acontece uma vez no fim do quadro).</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Script</th>
+<th>O que faz</th>
+</tr></thead><tbody>
+<tr><td>Shop.cs</td><td>Tabela de moedas por nível (Fácil 5/3/1, Médio 10/5/2, Difícil 12/6/3, Pro 15/8/3). <code>Buy(key, price, itemName)</code>: debita via Finance.Spend, conta itemsBought, põe a chave ("camisa:", "bola:", "mesa:", "feltro:" + id) em <code>unlocked</code>, grava, manda o evento spend_virtual_currency e checa conquistas. <code>PriceOf</code> procura o item nos quatro catálogos.</td></tr>
+<tr><td>Finance.cs</td><td><code>Earn(FinanceSource)</code> e <code>Spend</code>; extrato com as 30 últimas linhas em SaveData.finance, descrição gravada no idioma da hora.</td></tr>
+<tr><td>Sponsorship.cs</td><td>"Vender patrocínio": anúncio com prêmio paga 5 moedas, até 3 por dia.</td></tr>
+<tr><td>PlayerStats.cs</td><td>BeginMatch (marca partida em andamento = abandono se o app fechar), Abandon, Finish (paga e conta), DoubleCoins (anúncio do Resultado), ResetAll. Sequência recorde a partir de 2 vitórias.</td></tr>
+<tr><td>PlayerProfile.cs</td><td>Meu time: nome, sigla, uniformes 1 e 2, mesa de casa. <code>Uniform(index)</code>, <code>CleanName</code>, <code>CleanAbbreviation</code>.</td></tr>
+</tbody></table></div>
+<p>Telas (todas montadas em runtime): ShopScreen (abas Botão, Goleiro, Bola, Mesa, Feltro; cartões e confirmação), ProfileScreen (abas Time, Mesa, Financeiro, Carreira; Carreira abre Estatísticas, Pontos da semana e Play Games), StatsScreen (Geral, Fácil, Médio, Difícil, Pro, Última partida) e ResultScreen (página Premiação com "Dobrar moedas"; o intersticial vem depois de sair dela).</p>
+<p>Itens (ShirtPattern, BallTheme, TableTheme, FeltTheme) são assets em Resources com <code>All()</code>, preço e <code>unlockedByDefault</code>. Um item está liberado se vem liberado ou foi comprado.</p>
+</section>
+<section class="docs-section" id="tecnico-idiomas" data-title="Idiomas"><h3>Idiomas</h3>
+<p>Sistema próprio, sem o pacote Localization da Unity.</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Script</th>
+<th>O que faz</th>
+</tr></thead><tbody>
+<tr><td>Txt.cs</td><td><code>Get(id)</code>, <code>Format(id, args)</code>, <code>IdOf(texto)</code>, evento <code>Changed</code>. O id é o próprio texto em português. Lê Resources/Idiomas/textos.json (uma entrada por linha, campos id, pt, en, es; espanhol vazio cai no português). Idioma vazio no save = Automático (aparelho em PT vira pt, senão en).</td></tr>
+<tr><td>LocalizedText.cs</td><td>Componente para texto fixo; troca sozinho quando o idioma muda. <code>Attach(Text)</code> acha o id mesmo se o texto já estiver traduzido.</td></tr>
+<tr><td>TextFit.cs</td><td><code>Shrink</code>: diminui a fonte até 60% quando o texto não cabe.</td></tr>
+<tr><td>Editor: TextsWindow / TextsTool</td><td>Janela Idiomas/Textos (abas Textos, Itens, Times; busca; filtros "falta inglês/espanhol", "longos") e os menus Gravar textos que faltam e Recarregar textos.</td></tr>
+</tbody></table></div>
+<p>Regra para texto novo: fixo numa tela runtime usa <code>LocalizedText.Attach</code>; texto que muda usa <code>Txt.Get</code>/<code>Format</code>. Nomes de itens e times passam por <code>Txt.Get(nome)</code>; Meu time nunca é traduzido.</p>
+<p>Ponto fraco conhecido: como o id é o texto em português, corrigir uma vírgula no PT quebra a ligação com EN/ES (precisa regravar a entrada). Ver Pontos de atenção.</p>
+</section>
+<section class="docs-section" id="tecnico-servicos-android-anuncios-compras-play-games-firebase" data-title="Serviços Android (anúncios, compras, Play Games, Firebase)"><h3>Serviços Android (anúncios, compras, Play Games, Firebase)</h3>
+<p>O jogo fala só com fachadas estáticas no assembly FutebolDeBotao. As implementações reais ficam em Assets/_Game/Lojas (Assembly-CSharp, sem asmdef), atrás de símbolos de compilação (Android: PROGOL_ADMOB, PROGOL_FIREBASE, PROGOL_PLAYGAMES), e se registram sozinhas com <code>RuntimeInitializeOnLoadMethod</code>. Sem o SDK (itch, editor) o jogo segue funcionando.</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Fachada</th>
+<th>Implementação</th>
+<th>Como liga</th>
+</tr></thead><tbody>
+<tr><td>Ads (Monetization)</td><td>AdMobAds.cs; no editor/dev, SimulatedAds (anúncios falsos na tela, SimulatedBanner)</td><td><code>Ads.Factory</code> antes da 1ª cena. Intersticial a cada 2 saídas do Resultado (<code>InterstitialEvery</code>), com prêmio sob pedido, banner por "donos" (Menu, Resultado) e BannerSpace para empurrar a UI.</td></tr>
+<tr><td>AgeGate / AgeScreen</td><td>–</td><td>Ano de nascimento na 1ª abertura; decide criança (child-directed, G, não personalizado), adolescente ou adulto (UMP).</td></tr>
+<tr><td>Purchases</td><td>UnityIapStore.cs (Unity IAP 5)</td><td><code>Purchases.Register</code>. Um produto não consumível (remover anúncios): BuyRemoveAds, Restore, Retry, Grant.</td></tr>
+<tr><td>PlayGames</td><td>GooglePlayGamesBackend.cs</td><td><code>PlayGames.Register</code>. Login, save na nuvem (envio no máximo a cada 20 s, nova tentativa em 90 s, pergunta ao jogador quando nuvem e aparelho divergem), Achievements (21 conquistas, guardadas no save e reenviadas no login), WeeklyRanking (pontos da semana, semana no fuso do Pacífico). Ids em GPGSIds.</td></tr>
+<tr><td>GameAnalytics (Analytics)</td><td>FirebaseServices.cs</td><td><code>GameAnalytics.Sink</code>. Eventos match_start, match_end, match_abandon e Log genérico; Crashlytics junto.</td></tr>
+</tbody></table></div>
+<p>O desenho com interface + registro é bom: mantém o jogo compilando sem SDKs e permite testar no editor.</p>
+<p><strong>Anúncios reais x de teste.</strong> O <code>AdMobAds</code> usa os IDs de teste do Google, a não ser que o símbolo <code>PROGOL_ADS_REAIS</code> esteja ligado no Android (ligado desde 20/11, versão 0.1.0 do teste aberto). O Moto G84 está cadastrado como aparelho de teste no AdMob.</p>
+<p><strong>Manifest do Android.</strong> A biblioteca <code>Plugins/Android/ProGolPrivacy.androidlib</code> desliga o ID de publicidade (Firebase e AdMob) e declara <code>android.hardware.screen.portrait</code> como opcional: o Google Play deduzia esse recurso como obrigatório por causa da tela travada em pé e avisava que tablets ficavam de fora.</p>
+</section>
+<section class="docs-section" id="tecnico-ferramentas-de-editor" data-title="Ferramentas de editor"><h3>Ferramentas de editor</h3>
+<p>Dois assemblies: FutebolDeBotao.Editor (Scripts/Editor) e FutebolDeBotao.Editor.Framework (Scripts/Editor/Framework, o que depende do framework da Immersive). Tudo no menu "Futebol de Botão".</p>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>Menu / ferramenta</th>
+<th>Arquivo</th>
+<th>Para que serve</th>
+</tr></thead><tbody>
+<tr><td>Criar telas</td><td>ScreensBuilder (753 linhas)</td><td>Gera na cena as telas fixas (Menu, Seleção, HUD...) e o fundo de feltro das telas. Mudou tela gerada, precisa rodar de novo.</td></tr>
+<tr><td>Aplicar artes</td><td>ArtBuilder (697)</td><td>Recorta folhas e liga sprites em botões, bola, goleiro e feltro. Acha a bola Clássica pelo id e não sobrescreve os quadros dela.</td></tr>
+<tr><td>Criar times / jogadores / áudio / câmera do framework</td><td>TeamsBuilder, PlayersBuilder, AudioBuilder (+ ChiptuneSounds, sons provisórios gerados), FrameworkCameraBuilder</td><td>Criam assets e objetos do framework. O TeamsBuilder só cria times se o catálogo estiver vazio.</td></tr>
+<tr><td>Criar cena da partida</td><td>PrototypeSceneBuilder</td><td>Monta a cena de partida.</td></tr>
+<tr><td>Aplicar ícone do app</td><td>IconBuilder</td><td>Ícones do Android.</td></tr>
+<tr><td>Idiomas/...</td><td>TextsWindow, TextsTool</td><td>Ver Idiomas.</td></tr>
+<tr><td>Teste/...</td><td>MatchCheats, ShopCheats</td><td>Encerrar tempo, Empatar placar, W.O., Dar 100 moedas, Zerar moedas, Zerar compras (só em Play).</td></tr>
+<tr><td>Inspectors</td><td>TableThemeEditor, BallThemeEditor, ShirtPatternEditor, TeamDataEditor (+ TeamUniformConverter, ShirtPatternIdDrawer), TournamentConfigEditor, PaletteMaskInspector, GoalColorNameDrawer</td><td>Prévias de mesa, bola, camisa e time; listas de cores como dropdown de marcar; campos do torneio conforme o formato.</td></tr>
+<tr><td>Importação</td><td>ButtonSpritesImport</td><td>Ajusta a importação das folhas de botões.</td></tr>
+</tbody></table></div>
+<p><strong>Testes automáticos</strong> (<code>Tests/Editor</code>, assembly FutebolDeBotao.Tests, 35 testes EditMode, desde 18/11): conversão de saves antigos (<code>SaveUpgradeTests</code>), tabela e prêmios do torneio (<code>TournamentTests</code>), moedas e Financeiro (<code>EconomyTests</code>) e textos dos idiomas (<code>TextsTests</code>). O <code>SaveSandbox</code> troca o save do jogo por um de mentira durante o teste, sem gravar nada no disco. Rodar em Window &gt; General &gt; Test Runner &gt; EditMode.</p>
+<p>No jogo, só para o editor: ScreenshotKey (F12 grava em Capturas) e AiLog (CSV por partida em Logs/IA).</p>
+<p><strong>Documentação em HTML:</strong> <code>Docs/ferramentas/gdd_html.py</code> gera <code>Docs/GDD.html</code> (GDD e esta documentação técnica em abas) com o template do Immersive Games Documentation Framework (repositório com.immersivegames.docs).</p>
+</section>
+<section class="docs-section" id="tecnico-pontos-de-atencao-para-discutir" data-title="Pontos de atenção (para discutir)"><h3>Pontos de atenção (para discutir)</h3>
+<p>A lista de 18/11 virou a Fase 7 do roteiro (otimização), feita e testada no mesmo dia em três etapas: etapa 1 (7e3c86b), etapa 2 (15925ec) e etapa 3, partes A a E (944a9b3, 1b72da0, 2fedf29, e79a517, 82686ec). Prioridade: Alta = vale fazer antes de crescer mais; Média = quando mexer na área; Baixa = limpeza. Esforço: P (horas), M (um dia), G (vários dias).</p>
+</section>
+<section class="docs-section" id="tecnico-ainda-abertos" data-title="Ainda abertos"><h4>Ainda abertos</h4>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>#</th>
+<th>Onde</th>
+<th>Problema</th>
+<th>Sugestão</th>
+<th>Prior. / esforço</th>
+</tr></thead><tbody>
+<tr><td>3</td><td>Telas geradas no editor x telas runtime</td><td>Duas formas de montar tela; as geradas exigem rodar Criar telas. A UiKit já deixou as duas iguais por dentro.</td><td>Escolher uma (runtime para tudo, ou prefabs).</td><td>Média / G</td></tr>
+<tr><td>9</td><td>Idiomas: id = texto PT</td><td>Corrigir o PT solta EN/ES.</td><td>Na janela de textos, ao editar o PT, oferecer "renomear id" que leva as traduções junto.</td><td>Baixa / P</td></tr>
+<tr><td>14</td><td>Debug.Log em build (116 chamadas: falta, Play Games, jogadores, save)</td><td>Custo pequeno, mas polui o logcat.</td><td>Usar o Logging do framework ou <code>[Conditional]</code>.</td><td>Baixa / P</td></tr>
+<tr><td>15</td><td>Tournament.Table</td><td>Recalcula a tabela inteira a cada chamada; confronto direto percorre todos os jogos dentro do sort. Liga de 20 = 380 jogos.</td><td>Cachear por rodada.</td><td>Baixa / P</td></tr>
+<tr><td>20</td><td>Tournament (design)</td><td>Jogos simulados ignoram a força dos times.</td><td>Ideia: nota por time; decidir se é desejado.</td><td>Discutir</td></tr>
+<tr><td>21</td><td>MenuPlayers.AlignGameplayMaps</td><td>Contorno do bug do Leave do framework 1.1.0 (ver Jogadores no framework).</td><td>Avisar o Renato; tirar quando o framework corrigir.</td><td>Média / P</td></tr>
+<tr><td>22</td><td>Framework 1.2.0</td><td>Saiu em 15/11; exige Composition 0.1.0-preview.3, Logging 0.2.4 e Foundation 0.2.3.</td><td>Atualizar depois do teste aberto, mantendo o contorno do item 21.</td><td>Média / M</td></tr>
+</tbody></table></div>
+</section>
+<section class="docs-section" id="tecnico-resolvidos-em-1811" data-title="Resolvidos em 18/11"><h4>Resolvidos em 18/11</h4>
+<div class="docs-table-wrap"><table class="docs-table"><thead><tr>
+<th>#</th>
+<th>Ponto</th>
+<th>Como ficou</th>
+</tr></thead><tbody>
+<tr><td>1</td><td>MatchController com 1.918 linhas fazendo tudo</td><td>Classe parcial em 11 arquivos por assunto (parte C).</td></tr>
+<tr><td>2</td><td>CreateText/CreateButton copiados em ~11 arquivos</td><td>Fábrica única UiKit (parte D).</td></tr>
+<tr><td>4</td><td>Tournament.cs misturando tudo</td><td>Classe parcial em 5 arquivos; WeeklyRanking na pasta Tournament (parte E).</td></tr>
+<tr><td>5</td><td>SaveData.Upgrade() crescendo</td><td>Lista de passos por versão (<code>Migrations</code>) e campos em blocos Legado (parte B).</td></tr>
+<tr><td>6</td><td>Várias gravações seguidas do save</td><td>Save só marca; o SaveFlusher grava uma vez por quadro (parte B).</td></tr>
+<tr><td>7</td><td>Ternário Opponent(side) em 12 lugares</td><td>Extensão <code>TeamSide.Opponent()</code> (etapa 2).</td></tr>
+<tr><td>8</td><td>Sem testes automáticos</td><td>35 testes EditMode (parte A).</td></tr>
+<tr><td>10</td><td>MatchHud reescrevendo textos todo quadro</td><td>Texto só muda quando o valor muda; câmera só na troca (etapa 1).</td></tr>
+<tr><td>11, 12</td><td>GetComponent repetido em Disc/Ball</td><td>Raio guardado e TryGetComponent (etapa 1).</td></tr>
+<tr><td>13</td><td>Textos do log da IA montados no celular</td><td><code>AiLog.Enabled</code> só no editor (etapa 1).</td></tr>
+<tr><td>16, 17</td><td>HUD OnGUI morto e comentários velhos</td><td>Removido e atualizados (etapa 2).</td></tr>
+<tr><td>18</td><td>MatchSession.ResetStatics incompleto</td><td>Zera tudo (etapa 2).</td></tr>
+<tr><td>19</td><td>Pacotes sem uso no manifest</td><td>Removidos (etapa 2).</td></tr>
+</tbody></table></div>
+<p>O que está bom e vale manter: fachadas com registro para SDKs (Serviços Android), texturas geradas em cache estático, IA em assets por nível, save com versão e passos de conversão, testes do save e da economia.</p>
+</section>
+        </article>
+      </section>
     </main>
   </div>
 
   <footer class="docs-footer">
-    <p>Cópia exportada do Claude Doc em 23/11/2026 (rev 260). O original é o Claude Doc: <a href="https://claude.ai/artifact/Cdzi4Hhp6EKyHJGAYzz9jQ">https://claude.ai/artifact/Cdzi4Hhp6EKyHJGAYzz9jQ</a>. Não editar aqui; exportar de novo quando o doc mudar. Gerado com <code>com.immersivegames.docs</code> (template html-default).</p>
+    <p>Documentação do Pro Gol!, exportada dos Claude Docs. Gerado com <code>com.immersivegames.docs</code> (template html-default) por <code>Docs/ferramentas/gdd_html.py</code>.</p>
     <nav aria-label="Links do rodapé">
-      <a href="GDD.md">Markdown</a>
-      <a href="#gdd-titulo">Voltar ao topo</a>
+      <a href="#docs-main">Voltar ao topo</a>
     </nav>
   </footer>
 
@@ -1257,13 +1660,13 @@ figcaption,
   if (!input) return;
 
   function getSearchPlaceholder() {
-    return globalMode ? "Buscar em todos os documentos..." : "Buscar no GDD...";
+    return globalMode ? "Buscar em todos os documentos..." : "Buscar no documento aberto...";
   }
 
   function getIdleSearchSummary() {
     return globalMode
       ? "Digite no campo de busca para pesquisar em todos os documentos."
-      : "Digite no campo de busca para pesquisar no GDD.";
+      : "Digite no campo de busca para pesquisar no documento aberto.";
   }
 
   function syncSearchModeControls() {
@@ -1653,8 +2056,10 @@ figcaption,
 
 
 (function () {
-  const sections = Array.from(document.querySelectorAll("[data-document] .docs-section[id]"));
   function update() {
+    const active = document.querySelector(".docs-document.is-active");
+    if (!active) return;
+    const sections = Array.from(active.querySelectorAll(".docs-section[id]"));
     const limit = window.innerHeight * 0.3;
     let current = sections[0];
     for (const section of sections) {
@@ -1666,6 +2071,7 @@ figcaption,
     });
   }
   window.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+  document.addEventListener("docs:document-changed", () => requestAnimationFrame(update));
   update();
 })();
 
