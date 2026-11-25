@@ -9,6 +9,9 @@ namespace FutebolDeBotao
         /// <summary>Pode dobrar o prêmio do torneio terminado com um anúncio (uma vez).</summary>
         public static bool CanDoublePrize => Run.exists && !Run.active && !Run.abandoned && Run.prize > 0 && !Run.prizeDoubled;
 
+        /// <summary>Músicas do rádio que o título que acabou de sair liberou (1º torneio ou 1ª liga ganhos); vazio = nenhuma.</summary>
+        public static List<RadioTrack> NewRadioSongs { get; private set; } = new();
+
         private static void Finish(int position)
         {
             var run = Run;
@@ -22,6 +25,9 @@ namespace FutebolDeBotao
 
             var stats = GameSave.Data.stats;
             int level = Mathf.Clamp(run.level, 0, AiDifficulty.LevelCount - 1);
+            bool firstTitle = !run.abandoned && run.position == 1 &&
+                              (league ? stats.total.leagueTitles == 0 : stats.total.tournamentTitles == 0);
+            NewRadioSongs = firstTitle ? Radio.UnlockedBy(league ? RadioUnlock.LeagueTitle : RadioUnlock.TournamentTitle) : new List<RadioTrack>();
             foreach (var s in new[] { stats.total, stats.levels[level] })
             {
                 if (league)

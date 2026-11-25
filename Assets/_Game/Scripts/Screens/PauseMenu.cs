@@ -13,6 +13,7 @@ namespace FutebolDeBotao
     /// este componente fica fora do painel escondido para as corrotinas não pararem.
     /// Reiniciar e Menu primeiro tiram a pausa e só depois fazem o pedido, para o jogo não voltar congelado.
     /// O botão Configurações abre a tela de volumes por cima da pausa (só quem pausou navega).
+    /// Rádio: a linha embaixo do título mostra a música tocando e "Próxima música" troca (<see cref="MatchRadio"/>).
     /// Reiniciar e Menu contam a partida como abandonada nas estatísticas. No torneio, Reiniciar some e sair abandona o torneio.
     /// </summary>
     public sealed class PauseMenu : MonoBehaviour
@@ -22,6 +23,8 @@ namespace FutebolDeBotao
         [SerializeField] private PauseRequestTrigger pauseTrigger;
         [SerializeField] private ActivityRestartTrigger restartTrigger;
         [SerializeField] private RouteRequestTrigger menuRoute;
+        [SerializeField] private Text radioLabel;
+        [SerializeField] private Button nextSong;
 
         private bool busy;
 
@@ -43,7 +46,27 @@ namespace FutebolDeBotao
             if (label != null) label.text = Txt.Get(Tournament.LeagueMode ? "Sair (derrota por W.O.)" : "Abandonar torneio");
         }
 
+        /// <summary>Linha do rádio e o botão Próxima música (o "Criar telas" liga).</summary>
+        public void ConfigureRadio(Text label, Button next)
+        {
+            radioLabel = label;
+            nextSong = next;
+        }
+
         public void OpenSettings() => SettingsScreen.Open(true);
+
+        public void NextSong() => MatchRadio.Next();
+
+        // Só com a pausa aberta (o painel é filho deste Canvas); custa pouco.
+        private void Update()
+        {
+            if (radioLabel == null || !radioLabel.isActiveAndEnabled) return;
+            var track = MatchRadio.Current;
+            string text = Radio.IsOff ? Txt.Get("Rádio desligado")
+                : track != null ? Txt.Format("Rádio: {0}", Radio.NameOf(track)) : string.Empty;
+            if (radioLabel.text != text) radioLabel.text = text;
+            if (nextSong != null && nextSong.interactable == Radio.IsOff) nextSong.interactable = !Radio.IsOff;
+        }
 
         public void Resume()
         {

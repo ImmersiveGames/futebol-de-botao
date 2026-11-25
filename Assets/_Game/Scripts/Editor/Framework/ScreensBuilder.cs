@@ -467,15 +467,20 @@ namespace FutebolDeBotao.Editor
             var panel = CreatePanel(canvas, "Painel", PanelColor, Vector2.zero, Vector2.one);
             // O framework exige o CanvasGroup no mesmo objeto do Surface Root.
             var group = panel.gameObject.AddComponent<CanvasGroup>();
-            CreateText(panel.transform, "Título", "Pausa", 64, new Vector2(0f, 260f), new Vector2(600f, 110f), FontStyle.Bold);
+            CreateText(panel.transform, "Título", "Pausa", 64, new Vector2(0f, 300f), new Vector2(600f, 110f), FontStyle.Bold);
+            // Música tocando no rádio (o PauseMenu escreve; sem tradução automática).
+            var radioLabel = CreateText(panel.transform, "Rádio", string.Empty, 28, new Vector2(0f, 220f), new Vector2(600f, 50f));
+            UnityEngine.Object.DestroyImmediate(radioLabel.GetComponent<LocalizedText>());
             var resume = CreateButton(panel.transform, "Continuar", "Continuar", new Vector2(0f, 120f), new Vector2(420f, 90f), pauseMenu.Resume, ButtonStyle.Yellow);
             var music = CreateButton(panel.transform, "Configurações", "Configurações", new Vector2(0f, 0f), new Vector2(420f, 90f), pauseMenu.OpenSettings);
-            var restartButton = CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -120f), new Vector2(420f, 90f), pauseMenu.Restart, ButtonStyle.Red);
-            var menuButton = CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -240f), new Vector2(420f, 90f), pauseMenu.BackToMenu, ButtonStyle.Red);
+            var nextSong = CreateButton(panel.transform, "Próxima música", "Próxima música", new Vector2(0f, -120f), new Vector2(420f, 90f), pauseMenu.NextSong);
+            var restartButton = CreateButton(panel.transform, "Reiniciar", "Reiniciar partida", new Vector2(0f, -240f), new Vector2(420f, 90f), pauseMenu.Restart, ButtonStyle.Red);
+            var menuButton = CreateButton(panel.transform, "Menu", "Sair para o menu", new Vector2(0f, -360f), new Vector2(420f, 90f), pauseMenu.BackToMenu, ButtonStyle.Red);
             pauseMenu.Configure(pause, restart, toMenu);
+            pauseMenu.ConfigureRadio(radioLabel, nextSong);
             // Quem pausou mexe no menu (Esc/Start do próprio dispositivo, ou o mouse/toque dele).
             var pauseNavigator = panel.gameObject.AddComponent<MenuNavigator>();
-            pauseNavigator.Configure(new[] { Item(resume), Item(music), Item(restartButton), Item(menuButton) }, resume);
+            pauseNavigator.Configure(new[] { Item(resume), Item(music), Item(nextSong), Item(restartButton), Item(menuButton) }, resume);
             pauseNavigator.FollowPauser();
             panel.gameObject.SetActive(false);
 

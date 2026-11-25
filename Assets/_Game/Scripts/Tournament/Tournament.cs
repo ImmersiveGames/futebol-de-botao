@@ -34,7 +34,11 @@ namespace FutebolDeBotao
 
         // Com o "Enter Play Mode" sem recarregar o domínio, o estático sobrevive entre execuções no editor.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => LeagueMode = false;
+        private static void ResetStatics()
+        {
+            LeagueMode = false;
+            NewRadioSongs = new List<RadioTrack>();
+        }
 
         public static SaveData.TournamentRun Run => LeagueMode
             ? (GameSave.Data.league ??= new SaveData.TournamentRun())

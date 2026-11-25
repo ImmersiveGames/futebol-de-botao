@@ -131,6 +131,8 @@ namespace FutebolDeBotao
             public string leagueId;
             /// <summary>Turnos da liga escolhidos por último (1 ou 2; 0 = o padrão do asset).</summary>
             public int leagueLegs;
+            /// <summary>Rádio da partida (<see cref="Radio"/>): vazio = Aleatória, "off" = Desligada, senão o id da música.</summary>
+            public string radio = "";
 
             // ---- Legado: só servem para converter saves antigos (GameSave, passos de versão). O jogo não usa. ----
             /// <summary>Música Ligado/Desligado (até a versão 9; o passo da versão 10 converte); agora vale <see cref="musicVolume"/>.</summary>

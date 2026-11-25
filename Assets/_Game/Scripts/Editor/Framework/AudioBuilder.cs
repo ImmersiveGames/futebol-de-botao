@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using Immersive.Audio.Authoring;
 using Immersive.Audio.Contracts;
@@ -18,12 +19,19 @@ namespace FutebolDeBotao.Editor
     /// a música de cada Route (Route BGM Binding) e os sons da partida (<see cref="MatchSounds"/>).
     /// "Criar áudio" gera os sons provisórios que faltam (<see cref="ChiptuneSounds"/>), cria os assets e o Audio Runtime e
     /// depois roda "Criar telas", que liga a música e os sons nas cenas.
+    /// Músicas de verdade ficam em Assets/_Game/Audio/Musicas: samba_menu.wav e batucada_partida.wav (se existirem) entram no
+    /// lugar das provisórias do menu e da partida, e as do rádio (<see cref="RadioSongs"/>) viram cues radio_* e a lista
+    /// Resources/Audio/Radio (<see cref="RadioPlaylist"/>), que o <see cref="MatchRadio"/> toca na partida.
     /// </summary>
     public static class AudioBuilder
     {
         private const string AudioFolder = "Assets/_Game/Audio";
         private const string ClipsFolder = AudioFolder + "/Sons";
         private const string CuesFolder = AudioFolder + "/Cues";
+        private const string MusicFolder = AudioFolder + "/Musicas";
+        private const string PlaylistPath = "Assets/_Game/Resources/" + RadioPlaylist.ResourcePath + ".asset";
+        private const string MenuMusicFile = "samba_menu";
+        private const string MatchMusicFile = "batucada_partida";
         private const string DefaultsPath = AudioFolder + "/PadroesDeAudio.asset";
         private const string PersistentScenePath = "Assets/_Game/Scenes/PersistentContent.unity";
         private const string AudioRuntimeName = "Áudio";
@@ -44,6 +52,20 @@ namespace FutebolDeBotao.Editor
             ("fogos", 1f),
             ("cartao", 0.8f),
             ("clique", 0.6f)
+        };
+
+        // Músicas do rádio, na ordem do seletor (depois da Batucada, que é a música da partida): arquivo em Musicas/
+        // (= id gravado no save), nome mostrado, desbloqueio.
+        private static readonly (string file, string name, RadioUnlock unlock)[] RadioSongs =
+        {
+            ("rock", "Rock", RadioUnlock.LeagueTitle),
+            ("funk", "Funk", RadioUnlock.Free),
+            ("sertanejo", "Sertanejo", RadioUnlock.Free),
+            ("frevo", "Frevo", RadioUnlock.TournamentTitle),
+            ("forro", "Forró", RadioUnlock.Free),
+            ("axe", "Axé", RadioUnlock.Free),
+            ("carimbo", "Carimbó", RadioUnlock.Free),
+            ("boi", "Toada de boi", RadioUnlock.Free)
         };
 
         [MenuItem("Futebol de Botão/Criar áudio")]
@@ -88,25 +110,94 @@ namespace FutebolDeBotao.Editor
                 });
             }
 
-            foreach (var music in new[] { MenuMusic, MatchMusic })
+            ConfigureMusicImports();
+            foreach (var (music, file) in new[] { (MenuMusic, MenuMusicFile), (MatchMusic, MatchMusicFile) })
             {
-                var cue = Cue<AudioBgmCueAsset>(music, "bgm", 0.5f, AudioBusKeys.Bgm);
-                if (cue == null) return null;
-                Set(cue, so =>
-                {
-                    so.FindProperty("loopMode").intValue = (int)AudioLoopMode.On;
-                    so.FindProperty("fadeInSeconds").floatValue = 0.8f;
-                    so.FindProperty("fadeOutSeconds").floatValue = 0.6f;
-                });
+                // A música de verdade (Musicas/) no lugar da provisória (Sons/), quando já está no projeto.
+                var real = AssetDatabase.LoadAssetAtPath<AudioClip>($"{MusicFolder}/{file}.wav");
+                if (BgmCue(music, real) == null) return null;
             }
+            BuildRadio();
 
             AssetDatabase.SaveAssets();
             return defaults;
         }
 
-        private static T Cue<T>(string clipName, string kind, float volume, string bus) where T : AudioCueAsset
+        private static AudioBgmCueAsset BgmCue(string cueName, AudioClip clip = null)
         {
-            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{ClipsFolder}/{clipName}.wav");
+            var cue = Cue<AudioBgmCueAsset>(cueName, "bgm", 0.5f, AudioBusKeys.Bgm, clip);
+            if (cue == null) return null;
+            Set(cue, so =>
+            {
+                so.FindProperty("loopMode").intValue = (int)AudioLoopMode.On;
+                so.FindProperty("fadeInSeconds").floatValue = 0.8f;
+                so.FindProperty("fadeOutSeconds").floatValue = 0.6f;
+            });
+            return cue;
+        }
+
+        /// <summary>
+        /// Lista do rádio: a Batucada (cue da partida) e as músicas de <see cref="RadioSongs"/> que já estão em Musicas/.
+        /// Itens já na lista mantêm nome, ordem e desbloqueio do Inspector; só os cues são religados e os novos entram no fim.
+        /// </summary>
+        private static void BuildRadio()
+        {
+            var playlist = LoadOrCreate<RadioPlaylist>(PlaylistPath);
+            var wanted = new List<(string id, string name, RadioUnlock unlock, AudioBgmCueAsset cue)>
+            {
+                ("batucada", "Batucada", RadioUnlock.Free, LoadCue<AudioBgmCueAsset>(MatchMusic))
+            };
+            var missing = new List<string>();
+            foreach (var (file, songName, unlock) in RadioSongs)
+            {
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{MusicFolder}/{file}.wav");
+                if (clip == null)
+                {
+                    missing.Add(file);
+                    continue;
+                }
+                wanted.Add((file, songName, unlock, BgmCue("radio_" + file, clip)));
+            }
+            foreach (var (id, songName, unlock, cue) in wanted)
+            {
+                var track = playlist.tracks.Find(t => t != null && t.id == id);
+                if (track == null)
+                {
+                    track = new RadioTrack { id = id, displayName = songName, unlock = unlock };
+                    playlist.tracks.Add(track);
+                }
+                track.cue = cue;
+            }
+            EditorUtility.SetDirty(playlist);
+            if (missing.Count > 0)
+                Debug.LogWarning($"[Futebol de Botão] Rádio: faltam em {MusicFolder} as músicas {string.Join(", ", missing)} (.wav). Elas ficam fora até chegarem.");
+        }
+
+        /// <summary>Músicas de verdade: estéreo, lidas aos poucos do disco (são várias e longas).</summary>
+        private static void ConfigureMusicImports()
+        {
+            if (!AssetDatabase.IsValidFolder(MusicFolder)) return;
+            foreach (var guid in AssetDatabase.FindAssets("t:AudioClip", new[] { MusicFolder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (AssetImporter.GetAtPath(path) is not AudioImporter importer) continue;
+                var settings = importer.defaultSampleSettings;
+                if (!importer.forceToMono && settings.loadType == AudioClipLoadType.Streaming &&
+                    settings.compressionFormat == AudioCompressionFormat.Vorbis) continue;
+                importer.forceToMono = false;
+                importer.loadInBackground = true;
+                settings.loadType = AudioClipLoadType.Streaming;
+                settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                settings.quality = 0.6f;
+                importer.defaultSampleSettings = settings;
+                importer.SaveAndReimport();
+            }
+        }
+
+        /// <summary>Cue com o som de Sons/ com o mesmo nome, ou com <paramref name="clipOverride"/> (música de Musicas/).</summary>
+        private static T Cue<T>(string clipName, string kind, float volume, string bus, AudioClip clipOverride = null) where T : AudioCueAsset
+        {
+            var clip = clipOverride != null ? clipOverride : AssetDatabase.LoadAssetAtPath<AudioClip>($"{ClipsFolder}/{clipName}.wav");
             if (clip == null)
             {
                 Debug.LogError($"[Futebol de Botão] Faltou o som {ClipsFolder}/{clipName}.wav.");
@@ -233,6 +324,11 @@ namespace FutebolDeBotao.Editor
         public static void AddMatchAudio(Transform parent, MatchController match, RouteAsset route)
         {
             AddRouteMusic(parent, MatchMusic, route);
+
+            // Rádio: troca a música da Route pela escolhida nas Configurações (lista em Resources/Audio/Radio).
+            var radio = new GameObject("Rádio");
+            radio.transform.SetParent(parent, false);
+            radio.AddComponent<MatchRadio>().Configure(LoadCue<AudioBgmCueAsset>(MatchMusic));
 
             var flick = LoadCue<AudioSfxCueAsset>("peteleco");
             if (flick == null) return;

@@ -7,8 +7,9 @@ using UnityEngine.UI;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Tela Configurações (Menu e pausa): Idioma (<see cref="Txt"/>) e Volume geral, Música e Efeitos de 0% a 100%
-    /// (<see cref="GameVolume"/>), mais o botão da política de privacidade (abre o site). Monta a UI
+    /// Tela Configurações (Menu e pausa): Idioma (<see cref="Txt"/>), Volume geral, Música e Efeitos de 0% a 100%
+    /// (<see cref="GameVolume"/>), Rádio da partida (<see cref="Radio"/>: Aleatória, uma música ou Desligada; as trancadas
+    /// aparecem em cinza com o que libera), mais o botão da política de privacidade (abre o site). Monta a UI
     /// sozinha num Canvas próprio por cima de tudo, com o fundo escurecido; enquanto aberta, os outros menus não respondem ao
     /// teclado/controle. Mudar um volume vale na hora (o clique das setas já sai no volume novo); Voltar grava e fecha.
     /// </summary>
@@ -32,7 +33,9 @@ namespace FutebolDeBotao
         private readonly List<MenuNavigator> pausedNavigators = new();
         private Action onClose;
         private bool fromPause;
-        private Text languageLabel, masterLabel, musicLabel, effectsLabel, joystickLabel;
+        private Text languageLabel, masterLabel, musicLabel, radioLabel, radioHint, effectsLabel, joystickLabel;
+        private List<string> radioOptions;
+        private int radioIndex;
         private Button restoreButton;
 
         /// <summary>Abre a tela (se já estiver aberta, nada muda). <paramref name="followPauser"/>: só quem pausou navega.</summary>
@@ -93,6 +96,20 @@ namespace FutebolDeBotao
             Refresh();
         }
 
+        /// <summary>Aleatória, as músicas, Desligada (dá a volta). Música trancada só aparece; a escolha gravada não muda.</summary>
+        private void ChangeRadio(int step)
+        {
+            int count = radioOptions.Count;
+            radioIndex = ((radioIndex + step) % count + count) % count;
+            string option = radioOptions[radioIndex];
+            if (!Radio.IsLockedOption(option))
+            {
+                Radio.Choice = option;
+                MatchRadio.SettingsChanged();
+            }
+            Refresh();
+        }
+
         private void ChangeEffects(int step)
         {
             GameVolume.Effects = Mathf.Clamp(GameVolume.Effects + step, 0, GameVolume.MaxLevel);
@@ -124,6 +141,11 @@ namespace FutebolDeBotao
             languageLabel.text = string.IsNullOrEmpty(Txt.Choice) ? Txt.Get("Automático") : Txt.NativeName(Txt.Choice);
             masterLabel.text = GameVolume.Percent(GameVolume.Master);
             musicLabel.text = GameVolume.Percent(GameVolume.Music);
+            string radioOption = radioOptions[radioIndex];
+            bool locked = Radio.IsLockedOption(radioOption);
+            radioLabel.text = Radio.OptionLabel(radioOption);
+            radioLabel.color = locked ? new Color(1f, 1f, 1f, 0.45f) : Color.white;
+            radioHint.text = locked ? Radio.UnlockHint(Radio.Find(radioOption)) : string.Empty;
             effectsLabel.text = GameVolume.Percent(GameVolume.Effects);
             joystickLabel.text = Txt.Get(GameSave.Data.settings.touchJoystick ? "Ligado" : "Desligado");
         }
@@ -152,9 +174,9 @@ namespace FutebolDeBotao
             bool restoreShown = Purchases.Supported;
             bool adPrivacyShown = Ads.PrivacyOptionsRequired;
             int extras = (restoreShown ? 1 : 0) + (adPrivacyShown ? 1 : 0);
-            // A linha do joystick conta como um extra fixo.
-            float lift = 45f * (extras + 1);
-            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f + 90f * (extras + 1)));
+            // As linhas do joystick e do rádio contam como dois extras fixos.
+            float lift = 45f * (extras + 2);
+            var panel = CreateRect(root, "Painel", Vector2.zero, new Vector2(660f, 770f + 90f * (extras + 2)));
             var background = panel.gameObject.AddComponent<Image>();
             var panelSprite = ButtonArt.Find(ButtonSkin.HudPanelName);
             if (panelSprite != null)
@@ -168,15 +190,20 @@ namespace FutebolDeBotao
             var language = CreateArrowRow(panel, "Idioma", 130f + lift, ChangeLanguage, out languageLabel);
             var master = CreateArrowRow(panel, "Volume geral", 40f + lift, ChangeMaster, out masterLabel);
             var music = CreateArrowRow(panel, "Música", -50f + lift, ChangeMusic, out musicLabel);
-            var effects = CreateArrowRow(panel, "Efeitos", -140f + lift, ChangeEffects, out effectsLabel);
-            var joystick = CreateArrowRow(panel, "Joystick na tela", -230f + lift, ChangeJoystick, out joystickLabel);
-            float y = -325f + lift;
+            radioOptions = Radio.Options();
+            radioIndex = Mathf.Max(0, radioOptions.IndexOf(Radio.Choice));
+            var radio = CreateArrowRow(panel, "Rádio", -140f + lift, ChangeRadio, out radioLabel);
+            radioHint = CreateText(panel, "Rádio: como liberar", string.Empty, 18, FontStyle.Normal, LabelColor,
+                new Vector2(ValueX, -185f + lift), new Vector2(ValueWidth + 40f, 22f));
+            var effects = CreateArrowRow(panel, "Efeitos", -230f + lift, ChangeEffects, out effectsLabel);
+            var joystick = CreateArrowRow(panel, "Joystick na tela", -320f + lift, ChangeJoystick, out joystickLabel);
+            float y = -415f + lift;
             var privacy = CreateButton(panel, "Política de privacidade", "Política de privacidade", new Vector2(0f, y),
                 new Vector2(460f, 70f), () => Application.OpenURL(PrivacyPolicyUrl), ButtonStyle.Brown);
             LocalizedText.Attach(privacy.GetComponentInChildren<Text>());
             var privacyEntry = privacy.gameObject.AddComponent<MenuEntry>();
             privacyEntry.Configure(privacy);
-            var entries = new List<MenuEntry> { language, master, music, effects, joystick, privacyEntry };
+            var entries = new List<MenuEntry> { language, master, music, radio, effects, joystick, privacyEntry };
             if (adPrivacyShown)
             {
                 // Europa, Reino Unido...: o jogador pode rever o consentimento dos anúncios a qualquer momento.
