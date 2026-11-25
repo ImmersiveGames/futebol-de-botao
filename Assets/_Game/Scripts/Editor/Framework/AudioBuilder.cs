@@ -174,22 +174,30 @@ namespace FutebolDeBotao.Editor
                 Debug.LogWarning($"[Futebol de Botão] Rádio: faltam em {MusicFolder} as músicas {string.Join(", ", missing)} (.wav). Elas ficam fora até chegarem.");
         }
 
-        /// <summary>Músicas de verdade: estéreo, lidas aos poucos do disco (são várias e longas).</summary>
+        /// <summary>
+        /// Músicas de verdade: mono, 22 kHz e Vorbis 0,5 (chiptune quase não perde e o app fica ~9 MB menor), lidas aos
+        /// poucos do disco (são várias e longas).
+        /// </summary>
         private static void ConfigureMusicImports()
         {
+            const uint sampleRate = 22050;
+            const float quality = 0.5f;
             if (!AssetDatabase.IsValidFolder(MusicFolder)) return;
             foreach (var guid in AssetDatabase.FindAssets("t:AudioClip", new[] { MusicFolder }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 if (AssetImporter.GetAtPath(path) is not AudioImporter importer) continue;
                 var settings = importer.defaultSampleSettings;
-                if (!importer.forceToMono && settings.loadType == AudioClipLoadType.Streaming &&
-                    settings.compressionFormat == AudioCompressionFormat.Vorbis) continue;
-                importer.forceToMono = false;
+                if (importer.forceToMono && settings.loadType == AudioClipLoadType.Streaming &&
+                    settings.compressionFormat == AudioCompressionFormat.Vorbis && Mathf.Approximately(settings.quality, quality) &&
+                    settings.sampleRateSetting == AudioSampleRateSetting.OverrideSampleRate && settings.sampleRateOverride == sampleRate) continue;
+                importer.forceToMono = true;
                 importer.loadInBackground = true;
                 settings.loadType = AudioClipLoadType.Streaming;
                 settings.compressionFormat = AudioCompressionFormat.Vorbis;
-                settings.quality = 0.6f;
+                settings.quality = quality;
+                settings.sampleRateSetting = AudioSampleRateSetting.OverrideSampleRate;
+                settings.sampleRateOverride = sampleRate;
                 importer.defaultSampleSettings = settings;
                 importer.SaveAndReimport();
             }
