@@ -123,7 +123,7 @@ namespace FutebolDeBotao.Editor
             return defaults;
         }
 
-        /// <summary>Cue de música em loop. As do rádio (e a Batucada, que também está nele) somem e entram mais devagar ao trocar.</summary>
+        /// <summary>Cue de música em loop. As do rádio (e a Batucada, que também está nele) somem em 0,8 s ao trocar (as outras em 0,6 s).</summary>
         private static AudioBgmCueAsset BgmCue(string cueName, AudioClip clip = null, bool radio = false)
         {
             var cue = Cue<AudioBgmCueAsset>(cueName, "bgm", 0.5f, AudioBusKeys.Bgm, clip);
@@ -131,8 +131,8 @@ namespace FutebolDeBotao.Editor
             Set(cue, so =>
             {
                 so.FindProperty("loopMode").intValue = (int)AudioLoopMode.On;
-                so.FindProperty("fadeInSeconds").floatValue = radio ? 1.2f : 0.8f;
-                so.FindProperty("fadeOutSeconds").floatValue = radio ? 1.5f : 0.6f;
+                so.FindProperty("fadeInSeconds").floatValue = 0.8f;
+                so.FindProperty("fadeOutSeconds").floatValue = radio ? 0.8f : 0.6f;
             });
             return cue;
         }
