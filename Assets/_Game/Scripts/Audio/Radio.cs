@@ -4,7 +4,8 @@ using UnityEngine;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// Rádio da partida: Aleatória (padrão), uma música fixa ou Desligada, gravado em
+    /// Rádio da partida: Aleatória (padrão: sorteia uma no começo e ela fica em loop), Lista (começa numa sorteada e vai
+    /// trocando na ordem da lista de tempos em tempos), uma música fixa ou Desligada, gravado em
     /// <see cref="SaveData.SettingsData.radio"/>. Só vale na partida; o menu sempre toca a música dele.
     /// Músicas trancadas (<see cref="RadioUnlock"/>) aparecem no seletor mas não tocam; a liberação sai das estatísticas,
     /// então quem já tem o título ganha a música na hora. Quem toca é o <see cref="MatchRadio"/>.
@@ -13,6 +14,8 @@ namespace FutebolDeBotao
     {
         /// <summary>Valor gravado para "Desligada"; vazio = Aleatória.</summary>
         public const string Off = "off";
+        /// <summary>Valor gravado para "Lista".</summary>
+        public const string List = "list";
 
         private static RadioPlaylist playlist;
         private static bool loaded;
@@ -53,6 +56,9 @@ namespace FutebolDeBotao
 
         public static bool IsOff => Choice == Off;
         public static bool IsRandom => string.IsNullOrEmpty(Choice);
+        public static bool IsList => Choice == List;
+        /// <summary>Aleatória ou Lista: o rádio escolhe a música (não é uma fixa).</summary>
+        public static bool IsAuto => IsRandom || IsList;
 
         public static bool IsUnlocked(RadioTrack track)
         {
@@ -99,7 +105,7 @@ namespace FutebolDeBotao
         public static RadioTrack Pick(RadioTrack current = null)
         {
             if (IsOff) return null;
-            if (!IsRandom)
+            if (!IsAuto)
             {
                 var fixedTrack = Find(Choice);
                 if (fixedTrack != null && fixedTrack.cue != null && IsUnlocked(fixedTrack)) return fixedTrack;
@@ -110,20 +116,21 @@ namespace FutebolDeBotao
         }
 
         /// <summary>
-        /// "Próxima" na pausa: na Aleatória sorteia outra; com música fixa passa para a próxima liberada da lista e ela vira
-        /// a escolha (gravada). Desligada: nada.
+        /// "Próxima" na pausa (e a troca automática da Lista): na Aleatória sorteia outra; na Lista vai para a próxima
+        /// liberada da lista; com música fixa passa para a próxima liberada e ela vira a escolha (gravada). Desligada: nada.
         /// </summary>
         public static RadioTrack Next(RadioTrack current)
         {
             if (IsOff) return null;
             if (IsRandom) return Pick(current);
+            bool list = IsList;
             var tracks = Tracks;
             int start = current != null ? IndexOf(current) : IndexOf(Find(Choice));
             for (int k = 1; k <= tracks.Count; k++)
             {
                 var track = tracks[((start + k) % tracks.Count + tracks.Count) % tracks.Count];
                 if (track == null || track.cue == null || !IsUnlocked(track)) continue;
-                Choice = track.id;
+                if (!list) Choice = track.id;
                 return track;
             }
             return current;
@@ -139,10 +146,10 @@ namespace FutebolDeBotao
 
         // ---- Seletor das Configurações: Aleatória, as músicas (trancadas também, para o jogador saber que existem), Desligada ----
 
-        /// <summary>Opções do seletor, na ordem: "" (Aleatória), ids das músicas, <see cref="Off"/>.</summary>
+        /// <summary>Opções do seletor, na ordem: "" (Aleatória), <see cref="List"/>, ids das músicas, <see cref="Off"/>.</summary>
         public static List<string> Options()
         {
-            var options = new List<string> { string.Empty };
+            var options = new List<string> { string.Empty, List };
             foreach (var track in Tracks)
                 if (track != null && !string.IsNullOrEmpty(track.id)) options.Add(track.id);
             options.Add(Off);
@@ -154,6 +161,7 @@ namespace FutebolDeBotao
         {
             if (string.IsNullOrEmpty(option)) return Txt.Get("Aleatória");
             if (option == Off) return Txt.Get("Desligada");
+            if (option == List) return Txt.Get("Lista");
             return NameOf(Find(option));
         }
 

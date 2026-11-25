@@ -109,11 +109,24 @@ namespace FutebolDeBotao.Tests
         }
 
         [Test]
+        public void Lista_VaiNaOrdemPulandoTrancadas_SemMudarAEscolha()
+        {
+            using (SaveSandbox.Use(new SaveData()))
+            {
+                Radio.Choice = Radio.List;
+                Assert.That(Radio.Pick().id, Is.EqualTo("batucada").Or.EqualTo("funk"));
+                Assert.AreEqual("funk", Radio.Next(Radio.Find("batucada")).id);
+                Assert.AreEqual("batucada", Radio.Next(Radio.Find("funk")).id);
+                Assert.AreEqual(Radio.List, Radio.Choice);
+            }
+        }
+
+        [Test]
         public void Seletor_AleatoriaMusicasDesligada()
         {
             using (SaveSandbox.Use(new SaveData()))
             {
-                CollectionAssert.AreEqual(new[] { "", "batucada", "rock", "funk", "frevo", Radio.Off }, Radio.Options());
+                CollectionAssert.AreEqual(new[] { "", Radio.List, "batucada", "rock", "funk", "frevo", Radio.Off }, Radio.Options());
             }
         }
     }

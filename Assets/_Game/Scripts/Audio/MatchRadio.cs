@@ -10,17 +10,17 @@ namespace FutebolDeBotao
     /// <summary>
     /// Toca o rádio na partida (<see cref="Radio"/>). A Route da partida continua pedindo a música dela ao framework
     /// (assim, ao voltar ao menu, a música do menu sempre volta); quando o framework termina de tocá-la, o rádio troca pela
-    /// escolhida direto no serviço de BGM, ou para (Desligada). Na Aleatória, sorteia uma no começo e troca por outra a
-    /// cada <see cref="RandomSwitchSeconds"/> (a música fica em loop até lá; o serviço faz fade out e fade in pelos cues).
-    /// Música fixa fica em loop. Próxima música troca na hora. Ao trocar, mostra o nome por <see cref="NameSeconds"/> segundos.
+    /// escolhida direto no serviço de BGM, ou para (Desligada). Aleatória e música fixa ficam em loop; a Lista começa numa
+    /// sorteada e passa para a próxima da lista a cada <see cref="ListSwitchSeconds"/> (o serviço faz fade out e fade in
+    /// pelos cues). Próxima música troca na hora. Ao trocar, mostra o nome por <see cref="NameSeconds"/> segundos.
     /// </summary>
     public sealed class MatchRadio : MonoBehaviour
     {
         private const float NameSeconds = 2f;
         private const float FadeSeconds = 0.3f;
         private const float RouteWaitSeconds = 3f;
-        /// <summary>Aleatória: tempo tocando a mesma música antes de sortear outra.</summary>
-        private const float RandomSwitchSeconds = 120f;
+        /// <summary>Lista: tempo tocando a mesma música antes de passar para a próxima.</summary>
+        private const float ListSwitchSeconds = 120f;
 
         [Tooltip("Cue que a Route da partida toca (a Batucada). O rádio só troca depois que ele começar.")]
         [SerializeField] private AudioBgmCueAsset routeCue;
@@ -76,8 +76,8 @@ namespace FutebolDeBotao
         {
             if (instance == null || !instance.ready) return;
             var wanted = Radio.Pick(instance.current);
-            // Aleatória continua na música atual (se ela pode tocar); fixa ou desligada troca.
-            if (Radio.IsRandom && instance.current != null && Radio.IsUnlocked(instance.current)) wanted = instance.current;
+            // Aleatória e Lista continuam na música atual (se ela pode tocar); fixa ou desligada troca.
+            if (Radio.IsAuto && instance.current != null && Radio.IsUnlocked(instance.current)) wanted = instance.current;
             instance.Apply(wanted);
         }
 
@@ -109,12 +109,12 @@ namespace FutebolDeBotao
             ShowName();
         }
 
-        // Aleatória: depois de RandomSwitchSeconds com a mesma música, sorteia outra (conta com a pausa aberta também).
+        // Lista: depois de ListSwitchSeconds com a mesma música, passa para a próxima (conta com a pausa aberta também).
         private void Update()
         {
-            if (!ready || current == null || !Radio.IsRandom) return;
+            if (!ready || current == null || !Radio.IsList) return;
             playingFor += Time.unscaledDeltaTime;
-            if (playingFor >= RandomSwitchSeconds) Apply(Radio.Pick(current));
+            if (playingFor >= ListSwitchSeconds) Apply(Radio.Next(current));
         }
 
         // ---- Nome da música ----
