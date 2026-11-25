@@ -10,8 +10,8 @@ namespace FutebolDeBotao
     /// <summary>
     /// Toca o rádio na partida (<see cref="Radio"/>). A Route da partida continua pedindo a música dela ao framework
     /// (assim, ao voltar ao menu, a música do menu sempre volta); quando o framework termina de tocá-la, o rádio troca pela
-    /// escolhida direto no serviço de BGM, ou para (Desligada). Na Aleatória, ao fim de cada música sorteia a próxima;
-    /// música fixa fica em loop. Ao trocar, mostra o nome por <see cref="NameSeconds"/> segundos.
+    /// escolhida direto no serviço de BGM, ou para (Desligada). Na Aleatória, sorteia uma no começo da partida e ela fica
+    /// em loop (como a fixa); só troca na Próxima música. Ao trocar, mostra o nome por <see cref="NameSeconds"/> segundos.
     /// </summary>
     public sealed class MatchRadio : MonoBehaviour
     {
@@ -27,7 +27,6 @@ namespace FutebolDeBotao
         private AudioSource source;
         private RadioTrack current;
         private bool ready;
-        private float lastTime;
         private Text nameText;
         private CanvasGroup nameGroup;
         private Coroutine nameRoutine;
@@ -98,23 +97,11 @@ namespace FutebolDeBotao
             current = track;
             if (same)
             {
-                lastTime = source.time;
                 ShowName();
                 return;
             }
             service.Play(track.cue);
-            lastTime = 0f;
             ShowName();
-        }
-
-        // Aleatória: a música deu a volta (o tempo do clipe voltou para o começo) = acabou; sorteia outra.
-        private void Update()
-        {
-            if (!ready || current == null || source == null || !Radio.IsRandom) return;
-            if (service.ActiveCue != current.cue || source.clip != current.cue.Clip) return;
-            float time = source.time;
-            if (time + 1f < lastTime) Apply(Radio.Pick(current));
-            else lastTime = time;
         }
 
         // ---- Nome da música ----
