@@ -115,7 +115,7 @@ namespace FutebolDeBotao.Editor
             {
                 // A música de verdade (Musicas/) no lugar da provisória (Sons/), quando já está no projeto.
                 var real = AssetDatabase.LoadAssetAtPath<AudioClip>($"{MusicFolder}/{file}.wav");
-                if (BgmCue(music, real) == null) return null;
+                if (BgmCue(music, real, radio: music == MatchMusic) == null) return null;
             }
             BuildRadio();
 
@@ -123,15 +123,16 @@ namespace FutebolDeBotao.Editor
             return defaults;
         }
 
-        private static AudioBgmCueAsset BgmCue(string cueName, AudioClip clip = null)
+        /// <summary>Cue de música em loop. As do rádio (e a Batucada, que também está nele) somem e entram mais devagar ao trocar.</summary>
+        private static AudioBgmCueAsset BgmCue(string cueName, AudioClip clip = null, bool radio = false)
         {
             var cue = Cue<AudioBgmCueAsset>(cueName, "bgm", 0.5f, AudioBusKeys.Bgm, clip);
             if (cue == null) return null;
             Set(cue, so =>
             {
                 so.FindProperty("loopMode").intValue = (int)AudioLoopMode.On;
-                so.FindProperty("fadeInSeconds").floatValue = 0.8f;
-                so.FindProperty("fadeOutSeconds").floatValue = 0.6f;
+                so.FindProperty("fadeInSeconds").floatValue = radio ? 1.2f : 0.8f;
+                so.FindProperty("fadeOutSeconds").floatValue = radio ? 1.5f : 0.6f;
             });
             return cue;
         }
@@ -156,7 +157,7 @@ namespace FutebolDeBotao.Editor
                     missing.Add(file);
                     continue;
                 }
-                wanted.Add((file, songName, unlock, BgmCue("radio_" + file, clip)));
+                wanted.Add((file, songName, unlock, BgmCue("radio_" + file, clip, radio: true)));
             }
             foreach (var (id, songName, unlock, cue) in wanted)
             {

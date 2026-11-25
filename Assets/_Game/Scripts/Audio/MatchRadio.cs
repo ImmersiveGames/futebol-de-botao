@@ -10,14 +10,17 @@ namespace FutebolDeBotao
     /// <summary>
     /// Toca o rádio na partida (<see cref="Radio"/>). A Route da partida continua pedindo a música dela ao framework
     /// (assim, ao voltar ao menu, a música do menu sempre volta); quando o framework termina de tocá-la, o rádio troca pela
-    /// escolhida direto no serviço de BGM, ou para (Desligada). Na Aleatória, sorteia uma no começo da partida e ela fica
-    /// em loop (como a fixa); só troca na Próxima música. Ao trocar, mostra o nome por <see cref="NameSeconds"/> segundos.
+    /// escolhida direto no serviço de BGM, ou para (Desligada). Na Aleatória, sorteia uma no começo e troca por outra a
+    /// cada <see cref="RandomSwitchSeconds"/> (a música fica em loop até lá; o serviço faz fade out e fade in pelos cues).
+    /// Música fixa fica em loop. Próxima música troca na hora. Ao trocar, mostra o nome por <see cref="NameSeconds"/> segundos.
     /// </summary>
     public sealed class MatchRadio : MonoBehaviour
     {
         private const float NameSeconds = 2f;
         private const float FadeSeconds = 0.3f;
         private const float RouteWaitSeconds = 3f;
+        /// <summary>Aleatória: tempo tocando a mesma música antes de sortear outra.</summary>
+        private const float RandomSwitchSeconds = 120f;
 
         [Tooltip("Cue que a Route da partida toca (a Batucada). O rádio só troca depois que ele começar.")]
         [SerializeField] private AudioBgmCueAsset routeCue;
@@ -27,6 +30,7 @@ namespace FutebolDeBotao
         private AudioSource source;
         private RadioTrack current;
         private bool ready;
+        private float playingFor;
         private Text nameText;
         private CanvasGroup nameGroup;
         private Coroutine nameRoutine;
@@ -95,6 +99,7 @@ namespace FutebolDeBotao
             // Já tocando essa (ou só ela está liberada na Próxima): continua de onde está.
             bool same = service.ActiveCue == track.cue && source != null && source.isPlaying;
             current = track;
+            playingFor = 0f;
             if (same)
             {
                 ShowName();
@@ -102,6 +107,14 @@ namespace FutebolDeBotao
             }
             service.Play(track.cue);
             ShowName();
+        }
+
+        // Aleatória: depois de RandomSwitchSeconds com a mesma música, sorteia outra (conta com a pausa aberta também).
+        private void Update()
+        {
+            if (!ready || current == null || !Radio.IsRandom) return;
+            playingFor += Time.unscaledDeltaTime;
+            if (playingFor >= RandomSwitchSeconds) Apply(Radio.Pick(current));
         }
 
         // ---- Nome da música ----
