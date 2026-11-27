@@ -95,6 +95,14 @@ Competições (cada uma é um asset em Resources/Torneios com formato, times, tu
 - **Liga 10 e Liga 20** (pontos corridos, todos contra todos): prêmios do 1º ao 5º, Liga 10 com 125/60/40/20/10 (peso 2) e Liga 20 com 250/125/80/40/20 (peso 3). Linha Turnos (1 ou 2) nas Opções da liga: com 2 turnos o prêmio e o peso são multiplicados pelos campos do asset (padrão x2 e x1,5). Sair no meio de um jogo da liga é derrota por W.O. só daquele jogo, e a liga continua.
 - **Peso no ranking:** multiplica os Pontos da semana do torneio (ver Play Games, em Física e tecnologia).
 
+**Desafios e sequência de dias (combinados em 27/11 no doc "Desafios diários – Pro Gol!", implementados no mesmo dia):** botão **Desafios** (laranja, logo abaixo do Jogar, com bolinha vermelha quando há prêmio para pegar) abre uma tela por cima do Menu com as abas **Hoje** e **Semana**. Só partidas contra a IA (partida única, torneio e liga) contam; 2 jogadores, abandonos e o nível da IA não mudam os desafios (só os que pedem nível).
+
+- **Do dia:** 3 sorteados (1 fácil, 1 médio e 1 difícil, sem repetir os do dia anterior), viram à meia-noite do aparelho. Prêmios 5/10/15 moedas e +15 de bônus por completar os 3 (até 45 por dia). Cada desafio se pega com **Pegar**; 1 troca por dia (**Trocar**, assistindo a um anúncio com prêmio) por outro da mesma dificuldade.
+- **Da semana:** 3 sorteados (um de 25, um de 40 e um de 60 moedas), sem troca; viram junto com o ranking Pontos da semana (sábado para domingo, horário do Pacífico).
+- **Sequência:** o dia entra quando o jogador termina 2 partidas; perder um dia volta ao dia 1. Prêmio automático num ciclo de 7 dias: 5, 5, 10, 10, 15, 15 e 30.
+- A Premiação mostra o dia da sequência fechado e os desafios completados na partida. No Financeiro, a linha "Desafios e tutorial".
+- Listas: fáceis F1-F13, médios M1-M12, difíceis D1-D9 e semanais S1-S13 (ver o doc). Gol de rebote = gol válido em que a bola tocou alguma parede (na regra padrão, só a do fundo); prorrogação e pênaltis entram no sorteio normalmente.
+
 ## Controles
 
 O mesmo gesto serve para mouse e toque: arrastar para trás, como um estilingue, e soltar. Só no toque: um botão fica escolhido (no começo da vez, o mais perto da bola; só ele brilha, e sem escolha brilham todos os que podem jogar); tocar e soltar num botão escolhe ele, ou tira a escolha se ele já era o escolhido; arrastar, começando em qualquer lugar (até em cima de outro botão), mira o escolhido, medindo a força a partir de onde o dedo encostou. Assim tocar no botão nunca chuta sem querer e o botão encostado na lateral também tem espaço para puxar. Sem nenhum escolhido, arrastar começando num botão mira ele. O mouse não muda.

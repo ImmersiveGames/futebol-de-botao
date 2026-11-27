@@ -47,6 +47,11 @@ namespace FutebolDeBotao
                 Count(goal.DefendingSide).conceded++;
                 if (ownGoal) Count(Turn).ownGoals++;
                 else if (shotWasCalled) Count(scorer).shotGoals++;
+                if (!ownGoal && scorer == TeamSide.Bottom)
+                {
+                    if (shotFromSetPiece) playerSetPieceGoals++;
+                    if (enteredBall.TouchedAnyWallSinceShot) playerWallGoals++;
+                }
                 message = ownGoal ? Txt.Get("Gol contra!") : Txt.Get("GOOOOOL!");
             }
             else

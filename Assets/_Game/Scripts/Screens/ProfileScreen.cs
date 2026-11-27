@@ -167,7 +167,7 @@ namespace FutebolDeBotao
             spentLabel.text = $"-{data.spent}";
             matchesLabel.text = $"+{data.fromMatches}";
             tournamentsLabel.text = $"+{data.fromTournaments}";
-            tutorialLabel.text = $"+{data.fromTutorial}";
+            tutorialLabel.text = $"+{data.fromTutorial + data.fromChallenges}";
             sponsorsLabel.text = $"+{data.fromSponsors}";
             RefreshSponsor();
 
@@ -510,7 +510,7 @@ namespace FutebolDeBotao
             earnedLabel = SummaryRow(page, "Ganho total", 228f, false, EarnColor);
             matchesLabel = SummaryRow(page, "Partidas", 193f, true, Color.white);
             tournamentsLabel = SummaryRow(page, "Torneios", 160f, true, Color.white);
-            tutorialLabel = SummaryRow(page, "Tutorial", 127f, true, Color.white);
+            tutorialLabel = SummaryRow(page, "Desafios e tutorial", 127f, true, Color.white);
             sponsorsLabel = SummaryRow(page, "Patrocínios", 94f, true, Color.white);
             spentLabel = SummaryRow(page, "Gasto total (loja)", 52f, false, SpendColor);
 

@@ -17,6 +17,9 @@ namespace FutebolDeBotao
 
         public Rigidbody2D Body => body;
         public bool TouchedWallSinceShot { get; private set; }
+
+        /// <summary>A bola tocou alguma parede da mesa (lateral ou fundo; rede não) desde o último peteleco.</summary>
+        public bool TouchedAnyWallSinceShot { get; private set; }
         public Disc LastDiscTouch { get; private set; }
         /// <summary>Time do último botão ou goleiro que tocou a bola desde o último peteleco. Nulo: ninguém tocou.</summary>
         public TeamSide? LastTouchSide { get; private set; }
@@ -76,6 +79,7 @@ namespace FutebolDeBotao
         public void BeginShot()
         {
             TouchedWallSinceShot = false;
+            TouchedAnyWallSinceShot = false;
             LastDiscTouch = null;
             LastTouchSide = null;
             touches.Clear();
@@ -149,6 +153,7 @@ namespace FutebolDeBotao
                     : wall.gameObject.name.ToLowerInvariant(), null);
                 // Só a parede lateral anula o gol: trave, fundo e rede não contam.
                 if (wall.IsSideWall) TouchedWallSinceShot = true;
+                if (wall.PushesBack && !inGoal) TouchedAnyWallSinceShot = true;
                 if (inGoal)
                 {
                     // Bateu na rede depois do gol: para ali mesmo.

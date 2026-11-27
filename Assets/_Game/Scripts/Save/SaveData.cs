@@ -11,7 +11,7 @@ namespace FutebolDeBotao
     [Serializable]
     public sealed class SaveData
     {
-        public const int CurrentVersion = 14;
+        public const int CurrentVersion = 15;
 
         public int version = CurrentVersion;
         public SettingsData settings = new();
@@ -41,6 +41,42 @@ namespace FutebolDeBotao
         public WeeklyData weekly = new();
         /// <summary>Save na nuvem (Play Games): de qual envio veio e se mudou desde o último. Fica só no aparelho.</summary>
         public CloudData cloud = new();
+        /// <summary>Desafios diários e semanais e a sequência de dias (versão 15, <see cref="Challenges"/>).</summary>
+        public ChallengesData challenges = new();
+
+        /// <summary>Um desafio sorteado: qual (<see cref="ChallengeCatalog"/>), quanto já andou e se o prêmio já foi pego.</summary>
+        [Serializable]
+        public sealed class ChallengeSlot
+        {
+            public string id;
+            public int progress;
+            public bool claimed;
+        }
+
+        [Serializable]
+        public sealed class ChallengesData
+        {
+            /// <summary>Dia dos desafios diários ("yyyy-MM-dd", data do aparelho).</summary>
+            public string day;
+            public List<ChallengeSlot> daily = new();
+            /// <summary>Os do dia anterior (o sorteio evita repetir).</summary>
+            public List<string> previousDaily = new();
+            /// <summary>Já trocou um desafio hoje (com anúncio).</summary>
+            public bool swapUsed;
+            /// <summary>Bônus de completar os 3 do dia já pego.</summary>
+            public bool dailyBonusClaimed;
+            /// <summary>Semana dos semanais (domingo que abre a semana, horário do Pacífico, igual ao ranking).</summary>
+            public string week;
+            public List<ChallengeSlot> weekly = new();
+            public List<string> previousWeekly = new();
+            /// <summary>Partidas terminadas no dia <see cref="matchesDay"/> (2 = o dia entra na sequência).</summary>
+            public string matchesDay;
+            public int matchesToday;
+            /// <summary>Último dia que entrou na sequência e quantos dias seguidos ela tem até ele.</summary>
+            public string streakDay;
+            public int streakDays;
+            public int bestStreak;
+        }
 
         [Serializable]
         public sealed class WeeklyData
@@ -88,6 +124,8 @@ namespace FutebolDeBotao
             public int fromTutorial;
             /// <summary>Patrocínios (anúncio com prêmio na aba Financeiro), versão 11.</summary>
             public int fromSponsors;
+            /// <summary>Desafios diários, semanais e sequência de dias (versão 15).</summary>
+            public int fromChallenges;
             /// <summary>Últimas movimentações, da mais antiga para a mais nova.</summary>
             public List<FinanceEntry> entries = new();
         }

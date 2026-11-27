@@ -53,12 +53,40 @@ namespace FutebolDeBotao
             MatchSession.LastMatchNumbers = new[] { numbers[0], numbers[1] };
             int bottomPenalties = IsShootout ? ShootoutGoals(TeamSide.Bottom) : -1;
             int topPenalties = IsShootout ? ShootoutGoals(TeamSide.Top) : -1;
+            // Antes de o torneio registrar o jogo (depois disso o "jogo do jogador" já é o próximo).
+            var competitionMatch = MatchSession.InTournamentMatch ? Tournament.PlayerMatch() : null;
+            bool league = competitionMatch != null && Tournament.Config != null && Tournament.Config.IsLeague;
             bool counted = PlayerStats.Finish(numbers[(int)TeamSide.Bottom], Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
                 bottomPenalties, topPenalties);
+            bool wonShootout = IsShootout && Score(TeamSide.Bottom) == Score(TeamSide.Top) && bottomPenalties > topPenalties;
+            bool wonInExtraTime = period == Period.ExtraTime && Score(TeamSide.Bottom) > Score(TeamSide.Top);
             if (counted)
-                Achievements.MatchFinished(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover,
-                    IsShootout && Score(TeamSide.Bottom) == Score(TeamSide.Top) && bottomPenalties > topPenalties,
-                    period == Period.ExtraTime && Score(TeamSide.Bottom) > Score(TeamSide.Top), playerTrailed);
+            {
+                Achievements.MatchFinished(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover, wonShootout, wonInExtraTime, playerTrailed);
+                int outcome = Score(TeamSide.Bottom).CompareTo(Score(TeamSide.Top));
+                if (outcome == 0 && IsShootout) outcome = bottomPenalties.CompareTo(topPenalties);
+                Challenges.MatchFinished(new ChallengeMatch
+                {
+                    goals = Score(TeamSide.Bottom),
+                    conceded = Score(TeamSide.Top),
+                    outcome = outcome,
+                    walkover = walkover,
+                    shootoutWon = wonShootout,
+                    extraTimeWin = wonInExtraTime,
+                    comeback = playerTrailed,
+                    level = (AiLevel)Mathf.Clamp(GameSave.Data.stats.last.level, 0, AiDifficulty.LevelCount - 1),
+                    numbers = numbers[(int)TeamSide.Bottom],
+                    minutes = options.durationMinutes,
+                    hasGoalkeeper = options.hasGoalkeeper,
+                    discs = options.discsPerTeam,
+                    touchesPerTurn = options.touchesPerTurn,
+                    competition = competitionMatch != null,
+                    league = league,
+                    knockout = competitionMatch != null && !league && !competitionMatch.groupStage,
+                    setPieceGoals = playerSetPieceGoals,
+                    wallGoals = playerWallGoals,
+                });
+            }
             if (analyticsMatchOpen)
                 GameAnalytics.MatchEnd(Score(TeamSide.Bottom), Score(TeamSide.Top), walkover, bottomPenalties, topPenalties,
                     period != Period.Regular, Time.realtimeSinceStartup - analyticsStartTime,

@@ -118,7 +118,15 @@ namespace FutebolDeBotao
             Data.lastTitle = false;
         }
 
-        private static string CurrentWeek()
+        /// <summary>Quanto falta para a semana virar (domingo 0h no horário do Pacífico).</summary>
+        public static TimeSpan TimeToNextWeek()
+        {
+            DateTime pacific = ToPacific(DateTime.UtcNow);
+            DateTime next = pacific.Date.AddDays(7 - (int)pacific.DayOfWeek);
+            return next - pacific;
+        }
+
+        internal static string CurrentWeek()
         {
             DateTime pacific = ToPacific(DateTime.UtcNow);
             return pacific.Date.AddDays(-(int)pacific.DayOfWeek).ToString("yyyy-MM-dd");

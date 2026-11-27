@@ -60,6 +60,7 @@ namespace FutebolDeBotao
             bool title = !run.abandoned && run.position == 1;
             WeeklyRanking.TournamentFinished(placement, title, run.abandoned, level, config.RankingWeightFor(legs),
                 WeeklyRanking.GoalDifference(played));
+            Challenges.TournamentFinished(config, run.position, run.abandoned);
             if (title) Achievements.TournamentWon(config);
             else Achievements.Report();
             if (run.prize > 0)

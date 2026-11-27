@@ -96,6 +96,29 @@ namespace FutebolDeBotao
             return button;
         }
 
+        private static Sprite circle;
+
+        /// <summary>Círculo branco liso (64 px, borda suave), para pintar com a cor da imagem: avisos e bolinhas.</summary>
+        public static Sprite Circle
+        {
+            get
+            {
+                if (circle != null) return circle;
+                const int size = 64;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Círculo", wrapMode = TextureWrapMode.Clamp };
+                float radius = size * 0.5f;
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(radius, radius));
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(radius - distance)));
+                }
+                texture.Apply();
+                circle = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+                return circle;
+            }
+        }
+
         /// <summary>Imagem que não recebe toque.</summary>
         public static Image CreateImage(Transform parent, string objectName, Sprite sprite, Color color, Vector2 position, Vector2 size)
         {

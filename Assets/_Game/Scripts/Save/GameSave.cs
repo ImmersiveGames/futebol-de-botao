@@ -445,6 +445,11 @@ namespace FutebolDeBotao
             data.achievements ??= new System.Collections.Generic.List<string>();
             data.weekly ??= new SaveData.WeeklyData();
             data.weekly.points ??= new System.Collections.Generic.List<int>();
+            data.challenges ??= new SaveData.ChallengesData();
+            data.challenges.daily ??= new System.Collections.Generic.List<SaveData.ChallengeSlot>();
+            data.challenges.weekly ??= new System.Collections.Generic.List<SaveData.ChallengeSlot>();
+            data.challenges.previousDaily ??= new System.Collections.Generic.List<string>();
+            data.challenges.previousWeekly ??= new System.Collections.Generic.List<string>();
         }
     }
 }

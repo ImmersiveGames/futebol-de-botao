@@ -151,6 +151,7 @@ namespace FutebolDeBotao
             restoreControls = false;
             score[0] = score[1] = 0;
             playerTrailed = false;
+            playerSetPieceGoals = playerWallGoals = 0;
             farFouls[0] = farFouls[1] = 0;
             numbers[0] = new SaveData.MatchNumbers();
             numbers[1] = new SaveData.MatchNumbers();

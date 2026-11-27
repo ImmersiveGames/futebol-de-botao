@@ -91,6 +91,7 @@ namespace FutebolDeBotao
         public static (int lesson, int bonus) Complete(int lesson)
         {
             string id = TutorialTexts.LessonId(lesson);
+            Challenges.TutorialLesson();
             if (Data.done.Contains(id)) return (0, 0);
             Data.done.Add(id);
             int coins = LessonReward;

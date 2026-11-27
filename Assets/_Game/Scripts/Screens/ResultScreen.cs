@@ -32,6 +32,8 @@ namespace FutebolDeBotao
         private const float DoubleHintY = -160f;
         private const float CountSeconds = 0.8f;
         private const float TournamentY = -345f;
+        /// <summary>Primeira linha das novidades dos desafios na Premiação (embaixo do Dobrar).</summary>
+        private const float ChallengeNewsY = -220f;
         /// <summary>Gols da disputa de pênaltis, entre parênteses, embaixo de cada número do placar.</summary>
         private const float PenaltyX = 82f;
         private const float PenaltyY = 272f;
@@ -168,6 +170,7 @@ namespace FutebolDeBotao
             prizeAmount = CreateText(prizePage, "Moedas", "+0", 120, FontStyle.Bold, HighlightColor, new Vector2(0f, PrizeAmountY), new Vector2(680f, 160f));
             CreateText(prizePage, "Palavra moedas", Txt.Get("moedas"), 40, FontStyle.Bold, HighlightColor, new Vector2(0f, PrizeWordY), new Vector2(680f, 60f));
             prizeBalance = CreateText(prizePage, "Saldo", string.Empty, 30, FontStyle.Normal, Color.white, new Vector2(0f, PrizeBalanceY), new Vector2(680f, 44f));
+            BuildChallengeNews(prizePage);
             if (!Ads.RewardedAvailable || PlayerStats.CoinsDoubled) return;
             doubleButton = OverlayUi.CreateButton(prizePage, "Dobrar moedas", "Dobrar moedas", new Vector2(0f, DoubleY), new Vector2(520f, 120f),
                 WatchDouble, ButtonStyle.Yellow);
@@ -181,6 +184,24 @@ namespace FutebolDeBotao
             doubleHint = CreateText(prizePage, "Dobrar explicação",
                 Txt.Format("Assista a um anúncio e ganhe mais {0} moedas, o dobro do que esta partida pagou.", PlayerStats.CoinsEarned),
                 26, FontStyle.Normal, Color.white, new Vector2(0f, DoubleHintY), new Vector2(600f, 80f));
+        }
+
+        /// <summary>
+        /// Premiação: até 3 linhas sobre os desafios da partida (dia da sequência fechado e desafios completos, com o
+        /// lembrete de pegar o prêmio na tela Desafios).
+        /// </summary>
+        private void BuildChallengeNews(RectTransform page)
+        {
+            var lines = new List<string>();
+            if (Challenges.StreakJustReached > 0)
+                lines.Add(Txt.Format("Sequência: {0} dias seguidos! +{1}", Challenges.StreakJustReached, Challenges.StreakJustPaid));
+            var done = Challenges.JustCompleted;
+            if (done.Count == 1) lines.Add(Txt.Format("Desafio completo: {0}", Txt.Get(done[0].text)));
+            else if (done.Count > 1) lines.Add(Txt.Format("{0} desafios completos!", done.Count));
+            if (done.Count > 0) lines.Add(Txt.Get("Pegue o prêmio em Desafios, no Menu."));
+            for (int i = 0; i < lines.Count; i++)
+                CreateText(page, "Desafios", lines[i], 24, FontStyle.Bold, i == lines.Count - 1 && done.Count > 0 ? Color.white : HighlightColor,
+                    new Vector2(0f, ChallengeNewsY - i * 34f), new Vector2(660f, 34f));
         }
 
         /// <summary>"Avançar" do Resultado: troca para a Premiação com os botões de seguir.</summary>

@@ -64,6 +64,9 @@ namespace FutebolDeBotao
             ButtonStyle style = ButtonStyle.Green) =>
             UiKit.CreateButton(parent, objectName, label, position, size, action, style);
 
+        public static Image CreateImageOf(Transform parent, string objectName, Sprite sprite, Color color, Vector2 position, Vector2 size) =>
+            UiKit.CreateImage(parent, objectName, sprite, color, position, size);
+
         public static MenuEntry Entry(Button button)
         {
             var entry = button.gameObject.AddComponent<MenuEntry>();

@@ -65,6 +65,9 @@ namespace FutebolDeBotao
         [Tooltip("Uma linha por opção, na ordem de MatchOptionKind.")]
         [SerializeField] private RectTransform[] optionRows = new RectTransform[0];
 
+        [Tooltip("Botão Desafios da primeira tela (ganha a bolinha de aviso quando há prêmio para pegar).")]
+        [SerializeField] private Button challengesButton;
+
         [Tooltip("Pergunta \"Quer aprender a jogar?\" no primeiro Jogar (Sim abre o tutorial).")]
         [SerializeField] private GameObject tutorialAsk;
 
@@ -102,9 +105,43 @@ namespace FutebolDeBotao
             AgeScreen.Open();
             Ads.ShowBanner(this);
             BannerSpace.Attach(this);
+            CreateChallengesBadge();
+            Challenges.Changed += UpdateChallengesBadge;
         }
 
-        private void OnDestroy() => Ads.HideBanner(this);
+        private void OnDestroy()
+        {
+            Ads.HideBanner(this);
+            Challenges.Changed -= UpdateChallengesBadge;
+        }
+
+        // ---- Desafios ----
+
+        private GameObject challengesBadge;
+
+        public void SetChallengesButton(Button button) => challengesButton = button;
+
+        /// <summary>"Desafios" na primeira tela: abre por cima do Menu.</summary>
+        public void ShowChallenges() => ChallengesScreen.Open(UpdateChallengesBadge);
+
+        /// <summary>Bolinha vermelha com "!" no canto do botão Desafios (prêmio esperando o "Pegar").</summary>
+        private void CreateChallengesBadge()
+        {
+            if (challengesButton == null) return;
+            var rect = UiKit.CreateRect(challengesButton.transform, "Aviso", Vector2.zero, new Vector2(40f, 40f));
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-6f, -6f);
+            UiKit.CreateImage(rect, "Borda", UiKit.Circle, Color.white, Vector2.zero, new Vector2(40f, 40f));
+            UiKit.CreateImage(rect, "Bolinha", UiKit.Circle, new Color(0.9f, 0.2f, 0.18f), Vector2.zero, new Vector2(32f, 32f));
+            UiKit.CreateText(rect, "!", "!", 24, FontStyle.Bold, Color.white, Vector2.zero, new Vector2(32f, 32f), shadow: false);
+            challengesBadge = rect.gameObject;
+            UpdateChallengesBadge();
+        }
+
+        private void UpdateChallengesBadge()
+        {
+            if (challengesBadge != null) challengesBadge.SetActive(Challenges.HasRewardToClaim);
+        }
 
         /// <summary>Partida única: contra a IA (nível nas Opções). Você joga com o time de baixo. Abre as Opções.</summary>
         public void PlayOnePlayer()

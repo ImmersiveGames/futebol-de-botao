@@ -52,6 +52,10 @@ namespace FutebolDeBotao
         private float stateTimer;
         private int touchesLeft;
         private bool shotWasCalled;
+        /// <summary>O toque em andamento é a cobrança de uma falta ou de um pênalti (desafio "gol de falta ou pênalti").</summary>
+        private bool shotFromSetPiece;
+        /// <summary>Gols do jogador (time de baixo) de falta/pênalti e de rebote na parede, para os desafios.</summary>
+        private int playerSetPieceGoals, playerWallGoals;
         private Disc shooter;
         private Disc freeKickDisc;
         private bool setupIsPenalty;

@@ -246,12 +246,15 @@ namespace FutebolDeBotao.Editor
             CreateText(modePanel, "Título", GameTitle, 72, new Vector2(0f, 160f), new Vector2(680f, 120f), FontStyle.Bold);
             var menuButton = new Vector2(420f, 80f);
             var play = CreateButton(modePanel, "Jogar", "Jogar", new Vector2(0f, -100f), menuButton, menu.ShowPlay, ButtonStyle.Yellow);
-            var profileButton = CreateButton(modePanel, "Meu time", "Meu time", new Vector2(0f, -190f), menuButton, menu.ShowProfile, ButtonStyle.Green);
-            var shopButton = CreateButton(modePanel, "Loja", "Loja", new Vector2(0f, -280f), menuButton, menu.ShowShop, ButtonStyle.Green);
-            var settingsButton = CreateButton(modePanel, "Configurações", "Configurações", new Vector2(0f, -370f), menuButton, menu.ShowSettings, ButtonStyle.Green);
-            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -460f), menuButton, menu.QuitApp, ButtonStyle.Red);
+            // Desafios em laranja, logo abaixo do Jogar, para chamar atenção (bolinha de aviso posta pelo MenuScreen).
+            var challengesButton = CreateButton(modePanel, "Desafios", "Desafios", new Vector2(0f, -190f), menuButton, menu.ShowChallenges, ButtonStyle.Orange);
+            var profileButton = CreateButton(modePanel, "Meu time", "Meu time", new Vector2(0f, -280f), menuButton, menu.ShowProfile, ButtonStyle.Green);
+            var shopButton = CreateButton(modePanel, "Loja", "Loja", new Vector2(0f, -370f), menuButton, menu.ShowShop, ButtonStyle.Green);
+            var settingsButton = CreateButton(modePanel, "Configurações", "Configurações", new Vector2(0f, -460f), menuButton, menu.ShowSettings, ButtonStyle.Green);
+            var quit = CreateButton(modePanel, "Sair", "Sair", new Vector2(0f, -550f), menuButton, menu.QuitApp, ButtonStyle.Red);
             quit.gameObject.AddComponent<HideOnWeb>();
-            AddNavigator(modePanel, null, Item(play), Item(profileButton), Item(shopButton), Item(settingsButton), Item(quit));
+            menu.SetChallengesButton(challengesButton);
+            AddNavigator(modePanel, null, Item(play), Item(challengesButton), Item(profileButton), Item(shopButton), Item(settingsButton), Item(quit));
             CreateStudioLogo(modePanel);
             CreateGameLogo(modePanel);
 

@@ -48,6 +48,7 @@ namespace FutebolDeBotao
             NewRecord = 0;
             CoinsEarned = 0;
             CoinsDoubled = false;
+            Challenges.BeginMatch();
             if (MatchSession.VsAi != true) return;
             CountLeftover();
             Data.inProgressLevel = (int)MatchSession.AiLevel;

@@ -18,6 +18,7 @@ namespace FutebolDeBotao
             ball.MarkTouchedBy(Turn);
             Count(Turn).touches++;
             shotWasCalled = false;
+            shotFromSetPiece = false;
             shotFromAttackHalf = InAttackHalf(ball.Body.position, Turn);
             shooter = null;
             touchesLeft--;
@@ -36,6 +37,7 @@ namespace FutebolDeBotao
             shotBallStart = ball.Body.position;
             shotFromAttackHalf = InAttackHalf(shotBallStart, Turn);
             shooter.BeginShot();
+            shotFromSetPiece = freeKickDisc != null && disc == freeKickDisc;
             freeKickDisc = null;
             touchesLeft--;
             message = string.Empty;

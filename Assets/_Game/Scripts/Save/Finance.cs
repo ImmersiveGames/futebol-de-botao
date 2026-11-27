@@ -10,7 +10,9 @@ namespace FutebolDeBotao
         Tournament,
         Tutorial,
         /// <summary>Patrocínio vendido na aba Financeiro (anúncio com prêmio).</summary>
-        Sponsor
+        Sponsor,
+        /// <summary>Desafios diários e semanais e a sequência de dias.</summary>
+        Challenge
     }
 
     /// <summary>
@@ -37,9 +39,12 @@ namespace FutebolDeBotao
                 case FinanceSource.Tournament: data.fromTournaments += amount; break;
                 case FinanceSource.Tutorial: data.fromTutorial += amount; break;
                 case FinanceSource.Sponsor: data.fromSponsors += amount; break;
+                case FinanceSource.Challenge: data.fromChallenges += amount; break;
                 default: data.fromMatches += amount; break;
             }
             Add(description, amount);
+            // Desafios de moedas: só as de partidas e torneios (inclusive o Dobrar) contam.
+            if (source is FinanceSource.Match or FinanceSource.Tournament) Challenges.CoinsEarned(amount);
         }
 
         /// <summary>Gastou moedas (o saldo já foi conferido por quem chama).</summary>
