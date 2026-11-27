@@ -105,6 +105,7 @@ namespace FutebolDeBotao
             AgeScreen.Open();
             Ads.ShowBanner(this);
             BannerSpace.Attach(this);
+            CreateVersionLabel();
             CreateChallengesBadge();
             Challenges.Changed += UpdateChallengesBadge;
         }
@@ -113,6 +114,21 @@ namespace FutebolDeBotao
         {
             Ads.HideBanner(this);
             Challenges.Changed -= UpdateChallengesBadge;
+        }
+
+        /// <summary>"v1.0.0" no canto de baixo à esquerda (versão do Player Settings). Criado depois do BannerSpace, para
+        /// ficar sempre no canto da tela.</summary>
+        private void CreateVersionLabel()
+        {
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) return;
+            var text = UiKit.CreateText(canvas.rootCanvas.transform, "Versão", "v" + Application.version, 18, FontStyle.Normal,
+                Color.white, Vector2.zero, new Vector2(200f, 26f));
+            text.alignment = TextAnchor.LowerLeft;
+            text.raycastTarget = false;
+            var rect = text.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+            rect.anchoredPosition = new Vector2(14f, 10f);
         }
 
         // ---- Desafios ----
