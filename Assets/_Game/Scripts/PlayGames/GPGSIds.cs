@@ -46,6 +46,9 @@ public static class GPGSIds
         public const string achievement_comeback = "CgkI8aaQo70WEAIQDg"; // <GPGSID>
         public const string achievement_respect = "CgkI8aaQo70WEAIQBw"; // <GPGSID>
         public const string achievement_streak_of_5 = "CgkI8aaQo70WEAIQCA"; // <GPGSID>
+        public const string achievement_cup_32_champion = "CgkI8aaQo70WEAIQGA"; // <GPGSID>
+        public const string achievement_world_champion = "CgkI8aaQo70WEAIQGQ"; // <GPGSID>
+        public const string achievement_league_champion = "CgkI8aaQo70WEAIQGg"; // <GPGSID>
 
 }
 
