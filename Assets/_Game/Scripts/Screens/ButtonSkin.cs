@@ -17,6 +17,10 @@ namespace FutebolDeBotao
         Yellow,
         /// <summary>Desligado (não dá para tocar).</summary>
         Gray,
+        /// <summary>Laranja (folha nova, 27/11): destaque, como o botão Desafios.</summary>
+        Orange,
+        /// <summary>Azul (folha nova, 27/11).</summary>
+        Blue,
     }
 
     /// <summary>
@@ -30,7 +34,7 @@ namespace FutebolDeBotao
     public static class ButtonSkin
     {
         /// <summary>Nome do recorte de cada estilo na folha (mesma ordem de <see cref="ButtonStyle"/>).</summary>
-        public static readonly string[] StyleNames = { "Green_Button", "Red_Button", "Brown_Button", "Yellow_Button", "Gray_Button" };
+        public static readonly string[] StyleNames = { "Green_Button", "Red_Button", "Brown_Button", "Yellow_Button", "Gray_Button", "Orange_Button", "Blue_Button" };
         public const string PressedSuffix = "_Pressed";
         /// <summary>Fundo 9-slice das faixas da HUD, na mesma folha.</summary>
         public const string HudPanelName = "Hud_BG_Tile";
