@@ -62,6 +62,8 @@ namespace FutebolDeBotao
             open.onClose = closed;
             open.Build();
             go.SetActive(true);
+            // Depois de ligar: com o objeto desligado o Attach não acha o Canvas (GetComponentInParent pula os desligados).
+            BannerSpace.Attach(open.panel);
         }
 
         private void Close()
@@ -110,7 +112,6 @@ namespace FutebolDeBotao
             navigator = gameObject.AddComponent<MenuNavigator>();
             Challenges.Changed += Rebuild;
             ShowPage(false);
-            BannerSpace.Attach(panel);
         }
 
         /// <summary>Caixa de rolagem entre o tempo e o Voltar; a página fica presa no topo do conteúdo.</summary>
