@@ -18,7 +18,7 @@ namespace FutebolDeBotao
         private const float PanelWidth = 660f;
         private const float PanelHeight = 1160f;
         private const float CardWidth = 600f;
-        private const float CardHeight = 150f;
+        private const float CardHeight = 160f;
         private const float StreakY = 375f;
         private const float ListTop = 150f;
         private const float ListBottom = -440f;
@@ -269,9 +269,9 @@ namespace FutebolDeBotao
             bool claimed = Challenges.DailyBonusClaimed;
             Box(layer, "Bônus", new Vector2(0f, y), new Vector2(CardWidth, 100f), Challenges.CanClaimBonus ? DoneCardColor : CardColor);
             var label = OverlayUi.CreateText(layer, "Bônus: texto", Txt.Get("Bônus: complete os 3"), 26, FontStyle.Bold, Color.white,
-                new Vector2(-130f, y + 20f), new Vector2(330f, 34f));
+                new Vector2(-120f, y + 20f), new Vector2(330f, 34f));
             label.alignment = TextAnchor.MiddleLeft;
-            Bar(new Vector2(-130f, y - 22f), 330f, done, daily.Count);
+            Bar(new Vector2(-120f, y - 22f), 330f, done, daily.Count);
             Reward(new Vector2(205f, y + 22f), ChallengeCatalog.DailyBonus);
             if (claimed) Claimed(new Vector2(205f, y - 22f));
             else if (Challenges.CanClaimBonus)
@@ -316,16 +316,16 @@ namespace FutebolDeBotao
 
             float left = -285f;
             string tag = def.weekly ? Txt.Get("Semana") : Txt.Get(TierNames[(int)def.tier]);
-            var tagBox = Box(layer, "Etiqueta", new Vector2(left + 55f, y + 48f), new Vector2(110f, 30f), TierColors[(int)def.tier]);
+            var tagBox = Box(layer, "Etiqueta", new Vector2(left + 55f, y + 55f), new Vector2(110f, 30f), TierColors[(int)def.tier]);
             OverlayUi.CreateText(tagBox, "Texto", tag.ToUpperInvariant(), 18, FontStyle.Bold, Color.white, Vector2.zero, new Vector2(106f, 28f));
 
-            var text = OverlayUi.CreateText(layer, "Desafio", Txt.Get(def.text), 26, FontStyle.Bold, Color.white,
-                new Vector2(left + 195f, y + 6f), new Vector2(390f, 44f));
+            var text = OverlayUi.CreateText(layer, "Desafio", Txt.Get(def.text), 24, FontStyle.Bold, Color.white,
+                new Vector2(left + 195f, y + 5f), new Vector2(390f, 60f));
             text.alignment = TextAnchor.MiddleLeft;
-            Bar(new Vector2(left + 165f, y - 45f), 330f, slot.progress, def.target);
+            Bar(new Vector2(left + 165f, y - 52f), 330f, slot.progress, def.target);
 
-            Reward(new Vector2(205f, y + 42f), def.reward);
-            var at = new Vector2(205f, y - 28f);
+            Reward(new Vector2(205f, y + 50f), def.reward);
+            var at = new Vector2(205f, y - 25f);
             if (slot.claimed) Claimed(at);
             else if (complete)
             {
