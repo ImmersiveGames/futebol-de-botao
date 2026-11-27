@@ -26,6 +26,7 @@ Só aparecem nos relatórios os dados que chegarem DEPOIS do cadastro (não é r
 | Mudou mesa | table | yes, no |
 | Mudou nome | team_name | yes, no |
 | Abandonou torneio | abandoned | yes, no |
+| Formato do torneio | format | matamata, copa, liga |
 | Desafio | challenge | F1-F13, M1-M12, D1-D9, S1-S13 |
 | Desafio semanal | weekly | yes, no |
 | Desafio trocado | from | id do desafio que saiu |
@@ -60,4 +61,4 @@ Só aparecem nos relatórios os dados que chegarem DEPOIS do cadastro (não é r
 | Intersticiais na sessão | session_count |
 | Dias seguidos | days |
 
-Total: 22 dimensões + 22 métricas (limite do Firebase: 50 de cada).
+Total: 23 dimensões + 22 métricas (limite do Firebase: 50 de cada).
