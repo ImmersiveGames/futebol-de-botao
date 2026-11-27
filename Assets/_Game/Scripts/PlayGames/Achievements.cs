@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace FutebolDeBotao
 {
     /// <summary>
-    /// As 21 conquistas do Play Games (lista aprovada em 16/11; só partidas contra a IA contam, como as estatísticas).
+    /// As 24 conquistas do Play Games (lista aprovada em 16/11, mais copa 32/mundial/liga em 27/11; só partidas contra a IA contam, como as estatísticas).
     /// A maioria sai das estatísticas do save (por isso vale para quem já jogava antes: libera no primeiro login); as
     /// que não dá para tirar delas (goleada, muralha, virada, prorrogação, copa 16) ficam em
     /// <see cref="SaveData.achievements"/> e vão junto no save da nuvem. <see cref="Report"/> manda tudo ao Google
@@ -29,10 +29,13 @@ namespace FutebolDeBotao
             Report();
         }
 
-        /// <summary>Torneio terminado em 1º lugar (a copa de 16 tem conquista própria).</summary>
-        public static void TournamentWon(int teams)
+        /// <summary>Torneio ou liga terminados em 1º lugar: copa 16, copa 32, Copa Mundial e liga têm conquista própria.</summary>
+        public static void TournamentWon(TournamentConfig config)
         {
-            if (teams >= 16) Earn(GPGSIds.achievement_big_cup_champion);
+            if (config.IsLeague) Earn(GPGSIds.achievement_league_champion);
+            else if (config.HasGroups) Earn(GPGSIds.achievement_world_champion);
+            else if (config.TeamCount == 16) Earn(GPGSIds.achievement_big_cup_champion);
+            else if (config.TeamCount == 32) Earn(GPGSIds.achievement_cup_32_champion);
             Report();
         }
 
@@ -66,6 +69,7 @@ namespace FutebolDeBotao
             if (total.bestStreak >= 5) Unlock(GPGSIds.achievement_streak_of_5);
             if (total.bestStreak >= 10) Unlock(GPGSIds.achievement_streak_of_10);
             if (total.tournamentTitles > 0) Unlock(GPGSIds.achievement_champion);
+            if (total.leagueTitles > 0) Unlock(GPGSIds.achievement_league_champion);
             if ((int)AiLevel.Pro < levels.Length && levels[(int)AiLevel.Pro].tournamentTitles > 0) Unlock(GPGSIds.achievement_pro_champion);
             var profile = data.profile;
             if (profile != null && (profile.teamName != PlayerProfile.DefaultName || profile.primary != PlayerProfile.DefaultPrimary ||
